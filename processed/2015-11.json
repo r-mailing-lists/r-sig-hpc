@@ -1,0 +1,36 @@
+{
+  "list": "r-sig-hpc",
+  "description": "",
+  "month": "2015-11",
+  "messages": [
+    {
+      "id": "msg-a61642fe7712",
+      "message_id": "<FF9DB805FC41CC4E95825A50F6806302B4920CAD@challenger.uhd.campus>",
+      "from_name": "Hodgess, Erin",
+      "from_email_hash": "9a43d72d3c5a93c98a7b509fb8aef328797f49fac98830a099e885b965325eac",
+      "date": "2015-11-08T03:16:20Z",
+      "subject": "[R-sig-hpc] using MPI fortran without the library(Rmpi)",
+      "subject_clean": "using MPI fortran without the library(Rmpi)",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Hello everyone:\n\nI'm experiment with some toy code.  I was looking to see if I can write a program in Fortran with MPI to work in conjunction with R without the Rmpi library.  Here is the Fortran code:\n\n      subroutine integcR(np,integral)\n      implicit none\n      include '/usr/local/include/mpif.h'\n      integer rank,size,ierror,tag,status(MPI_STATUS_SIZE),i,np\n      double precision :: integral,x, total_t\n      double precision :: numres,edif\n      double precision, PARAMETER :: x_lower_bound = 0.0,x_upper_bound = 1.0\n      integer, PARAMETER :: nSteps = 100000000\n      double precision, PARAMETER :: dx = (x_upper_bound - x_lower_bound)/nSteps\n      double precision :: analy\n      integer :: iMin,iMax\n      call MPI_INIT(ierror)\n      call MPI_COMM_SIZE(MPI_COMM_WORLD,size,ierror)\n      call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierror)\n      integral = 0.0\n      x = 0.0\n      total_t = 0.0\n      iMin = INT((rank * real(nSteps,kind=8))/real(size,kind=8))\n      iMax = INT(((rank+1) * real(nSteps,kind=8))/real(size,kind=8))\n       do i = iMin,(iMax-1)\n          x = x_lower_bound + dx*(real(i,kind=8)+0.5)\n          integral = integral + (x**np)*dx\n       end do\n\n              call MPI_REDUCE(integral,total_t,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,ierror)\n\n       numres = total_t\n\n      call MPI_FINALIZE(ierror)\n      end\n\nAnd the R function is:\nnb <- 4\nif(!is.loaded(\"integcR\"))dyn.load(\"integcR.so\")\nprint(\"is\")\nprint(is.loaded(\"integcR\"))\ngtot <- 0.0\nintegral <- 0.0\n\nxplanet <- .Fortran(\"integcR\",np=as.integer(nb),\n        integral=as.numeric(integral))$numres\nprint(\"planet\")\nprint(xplanet)\n\nFinally, the Batch file is:\n#!/bin/bash\nmpif90 -g -O2 -fPIC  integcR.f90 -shared -o integcR.so\n\nmpirun -np 4 Rscript testR10.R  >out10.txt\n\n\nWhen I run it, the Fortran program shows that it is not loaded.\n\nIs there anything obvious that I'm doing wrong, please?  Or can this not be done, please?\n\nThanks in advance,\nSincerely,\nErin\n\n\n\n\n\n\n\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "Hello everyone:\n\nI'm experiment with some toy code.  I was looking to see if I can write a program in Fortran with MPI to work in conjunction with R without the Rmpi library.  Here is the Fortran code",
+      "thread_id": "thread-a61642fe7712",
+      "thread_depth": 0,
+      "month": "2015-11"
+    }
+  ],
+  "threads": [
+    {
+      "id": "thread-a61642fe7712",
+      "subject": "using MPI fortran without the library(Rmpi)",
+      "message_count": 1,
+      "participants": [
+        "Hodgess, Erin"
+      ],
+      "started": "2015-11-08T03:16:20+00:00",
+      "last_reply": "2015-11-08T03:16:20+00:00",
+      "root_message_id": "msg-a61642fe7712"
+    }
+  ]
+}

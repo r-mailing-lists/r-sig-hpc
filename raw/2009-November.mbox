@@ -1,0 +1,3081 @@
+From k.unger at imperial.ac.uk  Tue Nov  3 11:50:02 2009
+From: k.unger at imperial.ac.uk (Unger, Kristian)
+Date: Tue, 3 Nov 2009 10:50:02 +0000
+Subject: [R-sig-hpc] how to get job index into R?
+Message-ID: <3E94B1FFA366414A98480B2D86E42E6D1912B43182@ICEXM5.ic.ac.uk>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20091103/810e8541/attachment.pl>
+
+From richard.pearson at well.ox.ac.uk  Tue Nov  3 12:01:41 2009
+From: richard.pearson at well.ox.ac.uk (Richard Pearson)
+Date: Tue, 03 Nov 2009 11:01:41 +0000
+Subject: [R-sig-hpc] how to get job index into R?
+In-Reply-To: <3E94B1FFA366414A98480B2D86E42E6D1912B43182@ICEXM5.ic.ac.uk>
+References: <3E94B1FFA366414A98480B2D86E42E6D1912B43182@ICEXM5.ic.ac.uk>
+Message-ID: <4AF00D95.9030503@well.ox.ac.uk>
+
+Hi Kristian
+
+Are you talking about an array job on Sun Grid Engine (SGE), or something else? If SGE, 
+you can access the array index from within R using:
+
+arrayIndex <- Sys.getenv("SGE_TASK_ID")
+
+HTH
+
+Richard
+
+Unger, Kristian wrote:
+> Hi there!
+> 
+> I am fairly new to HPC therefore I am asking a pretty basic question. I would like to submit a job array which uses one single R script. The R script uses one dataset which I want to analyse a defined set of say 100 sets of variables. Which variables to choose should be determined by the job array index number. But how can the job index number handed over to the R script? Would this concept work out at all?
+> 
+> Best wishes
+> 
+> Kristian
+> 
+> _____
+> 
+> Dr Kristian Unger
+> 
+> Imperial College London
+> 
+> 
+> 
+> 	[[alternative HTML version deleted]]
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+
+-- 
+Richard D Pearson                          richard.pearson at well.ox.ac.uk
+Wellcome Trust Centre for Human Genetics   http://www.well.ox.ac.uk/~rpearson
+University of Oxford                       Tel: +44 (0)1865 617890
+Roosevelt Drive                            Mob: +44 (0)7971 221181
+Oxford OX3 7BN, UK                         Fax: +44 (0)1865 287664
+
+
+From edd at debian.org  Tue Nov  3 13:36:06 2009
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Tue, 3 Nov 2009 06:36:06 -0600
+Subject: [R-sig-hpc] how to get job index into R?
+In-Reply-To: <3E94B1FFA366414A98480B2D86E42E6D1912B43182@ICEXM5.ic.ac.uk>
+References: <3E94B1FFA366414A98480B2D86E42E6D1912B43182@ICEXM5.ic.ac.uk>
+Message-ID: <19184.9142.655866.852461@ron.nulle.part>
+
+
+On 3 November 2009 at 10:50, Unger, Kristian wrote:
+| Hi there!
+| 
+| I am fairly new to HPC therefore I am asking a pretty basic question. I would like to submit a job array which uses one single R script. The R script uses one dataset which I want to analyse a defined set of say 100 sets of variables. Which variables to choose should be determined by the job array index number. But how can the job index number handed over to the R script? Would this concept work out at all?
+
+One common approach is to enumerate the set of variable or values in a data
+structure and to then unroll that data.structure.  E.g.
+
+R> z <- 1:9
+R> sapply(z, function(x) x^2)
+[1]  1  4  9 16 25 36 49 64 81
+R> 
+
+Conceptually, parallel computing is the same:  create a data structure 'z',
+and then use anything from, say, mclapply (from multicore) or parSapply (from
+snow) to unroll the computing of a function over z as I did here.
+
+See e.g. my 'Intro to HPC with R' tutorial slides for more examples.
+
+Cheers, Dirk
+ 
+-- 
+Three out of two people have difficulties with fractions.
+
+
+From k.unger at imperial.ac.uk  Tue Nov  3 14:33:17 2009
+From: k.unger at imperial.ac.uk (Unger, Kristian)
+Date: Tue, 3 Nov 2009 13:33:17 +0000
+Subject: [R-sig-hpc] how to get job index into R?
+In-Reply-To: <19184.9142.655866.852461@ron.nulle.part>
+References: <3E94B1FFA366414A98480B2D86E42E6D1912B43182@ICEXM5.ic.ac.uk>
+	<19184.9142.655866.852461@ron.nulle.part>
+Message-ID: <3E94B1FFA366414A98480B2D86E42E6D1912B431BD@ICEXM5.ic.ac.uk>
+
+Many thanks Dirk!
+
+I actually did exactly this in my R script. The problem was that I did not know how to get the job index into R. Richard Pearson who replied earlier gave me the R command for doing this which is "Sys.getenv". Using this command I easily grab the job index number by using Sys.getenv("PBS_ARRAY_INDEX").
+
+Best wishes
+
+Kristian Unger
+
+_____ 
+
+Dr Kristian Unger
+
+Bioinformaticist Chernobyl Tissue Bank
+
+Department of Histopathology
+
+Imperial College London
+
+Rm G02, Ground floor G Block
+Hammersmith Hospital
+Du Cane Road, 
+London W12 0HS
+
+Tel +44-20-8383-2443
+
+Mob +44-795-1080619
+
+Skype kristianunger
+
+http://www1.imperial.ac.uk/medicine/about/divisions/is/histo/
+http://www.chernobyltissuebank.com
+
+
+-----Original Message-----
+From: Dirk Eddelbuettel [mailto:edd at debian.org] 
+Sent: 03 November 2009 12:36
+To: Unger, Kristian
+Cc: r-sig-hpc at r-project.org
+Subject: Re: [R-sig-hpc] how to get job index into R?
+
+
+On 3 November 2009 at 10:50, Unger, Kristian wrote:
+| Hi there!
+| 
+| I am fairly new to HPC therefore I am asking a pretty basic question. I would like to submit a job array which uses one single R script. The R script uses one dataset which I want to analyse a defined set of say 100 sets of variables. Which variables to choose should be determined by the job array index number. But how can the job index number handed over to the R script? Would this concept work out at all?
+
+One common approach is to enumerate the set of variable or values in a data
+structure and to then unroll that data.structure.  E.g.
+
+R> z <- 1:9
+R> sapply(z, function(x) x^2)
+[1]  1  4  9 16 25 36 49 64 81
+R> 
+
+Conceptually, parallel computing is the same:  create a data structure 'z',
+and then use anything from, say, mclapply (from multicore) or parSapply (from
+snow) to unroll the computing of a function over z as I did here.
+
+See e.g. my 'Intro to HPC with R' tutorial slides for more examples.
+
+Cheers, Dirk
+ 
+-- 
+Three out of two people have difficulties with fractions.
+
+
+From edd at debian.org  Tue Nov  3 15:19:00 2009
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Tue, 3 Nov 2009 08:19:00 -0600
+Subject: [R-sig-hpc] how to get job index into R?
+In-Reply-To: <3E94B1FFA366414A98480B2D86E42E6D1912B431BD@ICEXM5.ic.ac.uk>
+References: <3E94B1FFA366414A98480B2D86E42E6D1912B43182@ICEXM5.ic.ac.uk>
+	<19184.9142.655866.852461@ron.nulle.part>
+	<3E94B1FFA366414A98480B2D86E42E6D1912B431BD@ICEXM5.ic.ac.uk>
+Message-ID: <19184.15316.605448.280176@ron.nulle.part>
+
+
+On 3 November 2009 at 13:33, Unger, Kristian wrote:
+| Many thanks Dirk!
+| 
+| I actually did exactly this in my R script. The problem was that I did not know how to get the job index into R. Richard Pearson who replied earlier gave me the R command for doing this which is "Sys.getenv". Using this command I easily grab the job index number by using Sys.getenv("PBS_ARRAY_INDEX").
+
+Cool. In that case I misunderstood the question -- you were really after the
+interaction with your job scheduler.  My bad but kudos and thanks to Richard.
+
+Dirk
+
+-- 
+Three out of two people have difficulties with fractions.
+
+
+From vlagani at ics.forth.gr  Wed Nov  4 13:12:15 2009
+From: vlagani at ics.forth.gr (vlagani at ics.forth.gr)
+Date: Wed, 04 Nov 2009 14:12:15 +0200
+Subject: [R-sig-hpc] Rmpi and shared libraries
+Message-ID: <20091104141215.16381buw64o8bpvo@webmail.ics.forth.gr>
+
+Dear All,
+
+I am trying to install Rmpi on a Cray XT4 system with a Unicos/lc OS.
+
+As simple user, I have to install Rmpi under a local directory; R  
+2.9.0 is already available for all the users.
+
+Well, the installation of the package was pretty simple. I used the command:
+
+R CMD INSTALL --configure-args="--with-mpi=<path_to_mpi>   
+CC=path_to_CC" -l <mydirectory> Rmpi_0.5-7.tar.gz
+
+and I got a very clean installation, without errors.
+
+However, I checked the Rmpi.so library:
+
+> R CMD ldd Rmpi.so
+libmpich.so.1.1 => not found
+libutil.so.1 => /lib64/libutil.so.1 (0x00002afcda620000)
+libpthread.so.0 => <path_to_R>/R/lib/libpthread.so.0 (0x00002afcda724000)
+libc.so.6 => <path_to_R>/R/lib/libc.so.6 (0x00002afcda83b000)
+/lib64/ld-linux-x86-64.so.2 (0x0000555555554000)
+
+
+After reading some r-sig-hpc posts, I easily solved this problem:
+
+> LD_LIBRARY_PATH=<path_to_mpi>/lib:$LD_LIBRARY_PATH
+> R CMD ldd Rmpi.so
+libmpich.so.1.1 => <path_to_mpi>/lib/libmpich.so.1.1 (0x00002b5a65272000)
+libutil.so.1 => /lib64/libutil.so.1 (0x00002b5a65550000)
+libpthread.so.0 => <path_to_R>/R/lib/libpthread.so.0 (0x00002b5a65654000)
+libc.so.6 => <path_to_R>/R/lib/libc.so.6 (0x00002b5a6576b000)
+libportals.so.1 => not found
+libpmi.so => not found
+libalpslli.so.0 => not found
+libalpsutil.so.0 => not found
+librt.so.1 => /lib64/librt.so.1 (0x00002b5a6599e000)
+/lib64/ld-linux-x86-64.so.2 (0x0000555555554000)
+
+
+After a while, I recognized that libportals.so.1, libpmi.so, etc. were  
+under a non-standard directory. So I modified the path in order to have:
+
+LD_LIBRARY_PATH=<path_to_missing_libs>:<path_to_mpi>/lib:$LD_LIBRARY_PATH
+
+After this modification "R CMD ldd Rmpi.so" was able to find all the  
+libraries.
+
+Unfortunately, when I try to run a simple Rmpi script, I receive an error.
+
+The script (rscript.R) is just one line:
+
+> library(Rmpi, lib.loc='<mydirectory>');
+
+
+I launch rscript.R with the following command:
+
+aprun -n 1 -N 1 R CMD BATCH rscript.R
+
+and when the job is finished this is the output (rscript.Rout):
+
+library(Rmpi, lib.loc='<mydirectory>')
+Error in dyn.load(file, DLLpath = DLLpath, ...) :
+   unable to load shared library '<mydirectory>/Rmpi/libs/Rmpi.so':
+   <path_to_missing_libs>/libpmi.so: undefined symbol: ptl_err_str
+Error in library(Rmpi, lib.loc = "<mydirectory>") :
+   .First.lib failed for 'Rmpi'
+Error in dyn.unload(file.path(libpath, "libs", paste("Rmpi",  
+.Platform$dynlib.ext,  :
+   dynamic/shared library '/<mydirectory>/Rmpi/libs/Rmpi.so' was not loaded
+Execution halted
+
+So, if you are still reading, thanks for your attention: I know that  
+this is a very long email!
+
+Well, at this point I would like to ask:
+
+1) Why I was able to compile and link Rmpi.so if libportals, libpmi,  
+etc. were not under standard directories?
+
+2) When I call "R CMD ldd Rmpi.so" all the libs are in the form:
+lib => <somewhere>lib
+except /lib64/ld-linux-x86-64.so.2. Any explanations?
+
+3) Maybe the problem is that I have to compile the missing libraries  
+(libportals, libpmi, etc) by myself. The ones that I am using were  
+compiled in order to be used by OpenFOAM, so maybe they were compiled  
+with some particular options. Where can I find the source of this  
+libraries?
+
+4) The administrator of the system suggested to me to link Rmpi.so  
+only with static libraries. The reasons are inherent to the  
+architecture of the supercomputer, and to be honest, I don't  
+understand them.
+I mean, I should force gcc to link Rmpi.so to libmpich.a, libpmi.a,  
+etc., rather than to libmpich.so, libpmi.so, etc. I guess that I  
+should play a little bit with the "configure" file of the Rmpi  
+package, but I am quite a linux newbie and I  am not so confident with  
+shell scripting.
+
+Well, that's all! Thanks again for reading. And thanks in advance for  
+any answer!
+
+Ciao,
+
+Vincenzo Lagani
+
+
+From HodgessE at uhd.edu  Mon Nov  9 03:16:12 2009
+From: HodgessE at uhd.edu (Hodgess, Erin)
+Date: Sun, 8 Nov 2009 20:16:12 -0600
+Subject: [R-sig-hpc] using Rmpi with a simulation study
+Message-ID: <70A5AC06FDB5E54482D19E1C04CDFCF307C378A1@BALI.uhd.campus>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20091108/539f5391/attachment.pl>
+
+From HodgessE at uhd.edu  Mon Nov  9 07:30:04 2009
+From: HodgessE at uhd.edu (Hodgess, Erin)
+Date: Mon, 9 Nov 2009 00:30:04 -0600
+Subject: [R-sig-hpc] update on Rmpi with simulation study
+Message-ID: <70A5AC06FDB5E54482D19E1C04CDFCF307C378A3@BALI.uhd.campus>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20091109/23e6878a/attachment.pl>
+
+From HodgessE at uhd.edu  Mon Nov  9 09:11:18 2009
+From: HodgessE at uhd.edu (Hodgess, Erin)
+Date: Mon, 9 Nov 2009 02:11:18 -0600
+Subject: [R-sig-hpc] resolved Rmpi with simulation study
+Message-ID: <70A5AC06FDB5E54482D19E1C04CDFCF307C378A5@BALI.uhd.campus>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20091109/2554bee5/attachment.pl>
+
+From brian at braverock.com  Mon Nov  9 10:56:37 2009
+From: brian at braverock.com (Brian G. Peterson)
+Date: Mon, 09 Nov 2009 03:56:37 -0600
+Subject: [R-sig-hpc] resolved Rmpi with simulation study
+In-Reply-To: <70A5AC06FDB5E54482D19E1C04CDFCF307C378A5@BALI.uhd.campus>
+References: <70A5AC06FDB5E54482D19E1C04CDFCF307C378A5@BALI.uhd.campus>
+Message-ID: <4AF7E755.7060704@braverock.com>
+
+Hodgess, Erin wrote:
+> I came up with a solution...not a great one, but it runs.
+
+So, for closure, and the archives, what was the solution you came up with and 
+your diagnosis of the problem?
+
+I have typically used 'rsprng' or 'random' to get random numbers that are 
+different on different nodes in a parallel operation.
+
+Regards,
+
+    - Brian
+
+-- 
+Brian G. Peterson
+http://braverock.com/brian/
+Ph: 773-459-4973
+IM: bgpbraverock
+
+
+From HodgessE at uhd.edu  Mon Nov  9 17:32:26 2009
+From: HodgessE at uhd.edu (Hodgess, Erin)
+Date: Mon, 9 Nov 2009 10:32:26 -0600
+Subject: [R-sig-hpc] resolved Rmpi with simulation study
+References: <70A5AC06FDB5E54482D19E1C04CDFCF307C378A5@BALI.uhd.campus>
+	<4AF7E755.7060704@braverock.com>
+Message-ID: <70A5AC06FDB5E54482D19E1C04CDFCF307C378A8@BALI.uhd.campus>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20091109/e1bf07f4/attachment.pl>
+
+From mtmorgan at fhcrc.org  Mon Nov  9 18:31:39 2009
+From: mtmorgan at fhcrc.org (Martin Morgan)
+Date: Mon, 09 Nov 2009 09:31:39 -0800
+Subject: [R-sig-hpc] resolved Rmpi with simulation study
+In-Reply-To: <70A5AC06FDB5E54482D19E1C04CDFCF307C378A8@BALI.uhd.campus>
+References: <70A5AC06FDB5E54482D19E1C04CDFCF307C378A5@BALI.uhd.campus>	<4AF7E755.7060704@braverock.com>
+	<70A5AC06FDB5E54482D19E1C04CDFCF307C378A8@BALI.uhd.campus>
+Message-ID: <4AF851FB.9060407@fhcrc.org>
+
+Hodgess, Erin wrote:
+> Hi again.
+> 
+> I calculated the closest larger number of sims based on the mpi.comm.size and did a loop based on that.
+
+A different strategy is to aim first for an lapply implementation of 
+your overall program (for single threaded and to get the syntax correct) 
+and then simply change to mpi.parLapply. Use the job.num argument to 
+determine how to divide the list of tasks among nodes (if communication 
+costs are important then leave as-is, which divides the tasks as evenly 
+as possible amongst all nodes; the other extreme is 
+job.num=length(<whatever lapply is iterating through>), which will 
+allocate one task at a time, maximizing communication but providing 
+fine-grained 'load balancing' appropriate if each simulation has a very 
+unpredictable time for execution).
+
+If you think carefully about your lapply, and arrange so that the 
+function takes in all required arguments, then there is no need for 
+broadcasting objects to slaves or worrying about minimizing 
+communication costs, mpi.parLapply does all the work
+
+For instance,
+
+   myMatrix <- matrix(rnorm(1000000), 100) # 100 x 1000
+   res <- mpi.parSapply(seq_len(nrow(myMatrix)), function(i, m) {
+       ## do the real work here, we'll do something inappropriate
+       mean(m[i,])
+   }, myMatrix)
+   all.equal(res, rowMeans(myMatrix))
+
+forwards myMatrix efficiently.
+
+Martin
+
+> 
+> I got about 4 times speedup with 26 nodes, 2 times speedup with 7 nodes.
+> 
+> The communication must be the slowdown factor here.
+> 
+> But for what it's worth, here are the functions, as well:
+> 
+> [hodgess at grid bin]$ cat linsim.R
+> chow1 <- function() {
+> 	x <- bigx[,fold]
+> 	y <- bigy[,fold]
+> 	nm <- length(x)
+> 	n <- nm/m
+> 	xq <- yq <- matrix(0,nrow=n,ncol=1)
+> 	c1 <- (1/m)*cdgen(n,m)
+> 	xq <- c1 %*% x
+> 	yq <- c1 %*% y
+> 	vv <- c1 %*% t(c1)
+> 	vvi <- solve(vv)
+> 	xvx <- t(xq) %*% vvi %*% xq
+> 	xvxi <- solve(xvx)
+> 	beta <- xvxi %*% t(xq) %*% vvi %*% yq
+> 	res1 <- yq - xq %*% beta
+> 	cv1 <- t(c1) %*% vvi
+> 	newy <- x %*% beta + cv1%*%res1
+> 	w <- sum((x-newy)^2)/360
+> 	return(w)
+> }
+> 
+> 
+> 
+> 
+> cdgen <- function(n,m) {
+> 	x <- rep(1,m)
+> 	nm <- n*m
+> 	cd <- matrix(0,nrow=n,ncol=nm)
+> 	xg <- seq(from=1,by=m,length=n)
+> 	xh <- seq(from=m,by=m,length=n)
+> 	for(i in 1:n) {
+> 		cd[i,xg[i]:xh[i]] <- x
+> 	}
+> 	return(cd)
+> }
+> 
+> 
+> linsim <- function(n1=10,phi1=0.5) {
+> library("Rmpi")
+> 
+> # Notice we just say "give us all the slaves you've got."
+> mpi.spawn.Rslaves()
+> 
+> if (mpi.comm.size() < 2) {
+>     print("More slave processes are required.")
+>     mpi.quit()
+>     }
+> 
+> .Last <- function(){
+>     if (is.loaded("mpi_initialize")){
+>         if (mpi.comm.size(1) > 0){
+>             print("Please use mpi.close.Rslaves() to close slaves.")
+>             mpi.close.Rslaves()
+>         }
+>         print("Please use mpi.quit() to quit R")
+>         .Call("mpi_finalize")
+>     }
+> 
+> }
+> 
+> 
+> 	w <- NULL
+> 	m <- 3
+> #Fix up closest multiple from mpi.comm.size
+> 	n2 <- ceiling(n1/(mpi.comm.size()))
+> 	n1 <- n3 <- n2*(mpi.comm.size())
+> 	xx <- min(mpi.comm.size(),n1)
+> 	cat("xx",xx,n1,n2,"\n")
+> 
+> 	iz <- 0
+> #run loop based on mpi.comm.size	
+> 	while(n1 >=1) {
+> 	bigx <- matrix(arima.sim(list(order=c(1,0,0),ar=phi1),360*xx),
+> 		nrow=360,ncol=xx)
+> 	bigy <- matrix(arima.sim(list(order=c(1,0,0),ar=phi1),360*xx),
+> 		nrow=360,ncol=xx)
+> 	mpi.bcast.Robj2slave(phi1)
+> 	mpi.bcast.Robj2slave(m)
+> 	mpi.bcast.Robj2slave(chow1)
+> 	mpi.bcast.Robj2slave(cdgen)
+> 	mpi.bcast.Robj2slave(bigx)
+> 	mpi.bcast.Robj2slave(bigy)
+> 	mpi.bcast.cmd(fold <- mpi.comm.rank())
+> 	mpi.bcast.cmd(chow1)
+> 	
+> 	newone <- mpi.remote.exec(chow1())
+> #	newone <- chow1(x=x1,y=y1,m=3)
+> 	w <- c(w,unlist(newone))
+> 	n1 <- n1 - xx
+> 	xx <- min(n1,mpi.comm.size())
+> 	}
+> 	zzz <- list(total=n3,mean=mean(w,na.rm=TRUE),sd=sd(w,na.rm=TRUE)/sqrt(360))
+> 	return(zzz)
+> }
+> 
+> 
+> Thanks,
+> Erin
+> 
+> 
+> Erin M. Hodgess, PhD
+> Associate Professor
+> Department of Computer and Mathematical Sciences
+> University of Houston - Downtown
+> mailto: hodgesse at uhd.edu
+> 
+> 
+> 
+> -----Original Message-----
+> From: Brian G. Peterson [mailto:brian at braverock.com]
+> Sent: Mon 11/9/2009 3:56 AM
+> To: Hodgess, Erin
+> Cc: r-sig-hpc at r-project.org
+> Subject: Re: [R-sig-hpc] resolved Rmpi with simulation study
+>  
+> Hodgess, Erin wrote:
+>> I came up with a solution...not a great one, but it runs.
+> 
+> So, for closure, and the archives, what was the solution you came up with and 
+> your diagnosis of the problem?
+> 
+> I have typically used 'rsprng' or 'random' to get random numbers that are 
+> different on different nodes in a parallel operation.
+> 
+> Regards,
+> 
+>     - Brian
+> 
+
+
+-- 
+Martin Morgan
+Computational Biology / Fred Hutchinson Cancer Research Center
+1100 Fairview Ave. N.
+PO Box 19024 Seattle, WA 98109
+
+Location: Arnold Building M1 B861
+Phone: (206) 667-2793
+
+
+From jeedward at yahoo.com  Tue Nov 10 12:05:15 2009
+From: jeedward at yahoo.com (John Edward)
+Date: Tue, 10 Nov 2009 03:05:15 -0800 (PST)
+Subject: [R-sig-hpc] HPCS-10 Call for papers
+Message-ID: <857846.92223.qm@web45916.mail.sp1.yahoo.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20091110/05a2ffaa/attachment.pl>
+
+From jeedward at yahoo.com  Tue Nov 10 12:10:58 2009
+From: jeedward at yahoo.com (John Edward)
+Date: Tue, 10 Nov 2009 03:10:58 -0800 (PST)
+Subject: [R-sig-hpc] HPCS-10 Call for papers
+Message-ID: <927148.39383.qm@web45905.mail.sp1.yahoo.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20091110/b0dc30d2/attachment.pl>
+
+From rdiaz02 at gmail.com  Wed Nov 11 17:43:18 2009
+From: rdiaz02 at gmail.com (Ramon Diaz-Uriarte)
+Date: Wed, 11 Nov 2009 17:43:18 +0100
+Subject: [R-sig-hpc] ff and parallel computing (multiple nodes, shared disk)
+Message-ID: <624934630911110843p533548e9i7955dda4feb38c2@mail.gmail.com>
+
+Dear All,
+
+I am considering using ff for processing medium-sized data sets in a
+computer cluster (distributed memory), with shared disk space. The
+presentation by the ff authors in
+
+http://ff.r-forge.r-project.org/ff&bit_UseR!2009.pdf
+
+shows examples of using ff with snowfall on a multicore machine but
+not over several machines.
+
+I have been playing with ff and it seems possible to read ff and ffdf
+objects over several nodes. It seems it is also possible to safely put
+together an ffdf object which has been created by columns in different
+nodes. I am pasting code below (you'd only need to replace the name of
+the shared directory).
+
+
+I'd appreciate comments, suggestions, and alternatives (on P.S.2 I
+provide some further details on intended usage and other alternatives
+I've looked at).
+
+Best,
+
+R.
+
+P.S. I am CC'ing Jens Oehlschlaegel, the maintainer of ff, since I do
+not know if he reads this list.
+
+P.S.2. The data, in a single RData, can take from 500 MB to 4 GB,
+which is more than any one process should use. I plan to use between
+20 and 30 nodes, each with two dual-core Opteron CPUs.
+
+I do not think a DB solution is warranted here: the original data
+(floats) are in a flat text file, where columns are samples, and we do
+the processing by sample (or in chunks withing sample). The data are
+used twice: first for the analysis and then for the plotting (which
+uses the original data + the output from analysis).  And we are done.
+Almost always, processing is carried out non-interactively.
+
+Up to now I've been using papply, but I am running into large memory
+consumption because of the creation of intermediate lists. Moreover,
+I'd rather avoid sending a lot of data via MPI (our network is less
+than ideal) ---yes, sure, the shared space also needs to use a switch.
+Finally, if intermediate results are stored in the disk, I can recover
+from network errors and MPI crashes.
+
+One approach would be to break down the original data set in
+individual "RData" files, and load each one as needed in the slaves.
+But this seems like reinventing the wheel, I doubt I'd write efficient
+code, it clutters the disk, and "load"ing adds time. I also looked at
+the package "BufferedMatrix" (in BioC), which seemd ideal, but
+currently "you can not save and reload a Bu?eredMatrix between R
+sessions", which I think excludes it for my intended usage.
+
+*********************************************************
+
+## LAM-MPI universe booted, etc.
+## 4 nodes, each in a different machine
+
+
+library(ff)
+library(snowfall)
+
+## Names for dirs and files
+mydir <- "/http/tmp"
+fn1 <- "t1"
+fn2 <- "t2"
+fn3 <- "t3"
+
+fullname1 <- paste(mydir, fn1, sep = "/")
+fullname2 <- paste(mydir, fn2, sep = "/")
+fullname3 <- paste(mydir, fn3, sep = "/")
+
+
+sfInit(parallel = TRUE, cpus = 4, type = "MPI")
+sfLibrary(ff)
+sfClusterSetupRNG(type = "SPRNG")
+sfExport("mydir")
+setwd(mydir)
+sfClusterEval(setwd(mydir))
+
+## To know where things happen
+sfClusterApply(1:4, function(i) assign("nodenum", i, env = .GlobalEnv))
+
+
+
+##   Getting values of ff object in slaves
+x1 <- ff(1:60, dim = c(4, 15), filename = fullname1)
+close(x1)
+save(file = "x1.RData", x1)
+
+## Acessing values; read-only
+sfClusterEval(load("x1.RData"))
+sfClusterEval(open(x1, readonly = TRUE))
+sfClusterApplyLB(1:15, function(i) {list(nodenum = nodenum, values = x1[, i])})
+sfClusterEval(close(x1))
+
+
+
+##### I think it is OK to change in place if stored as ffdf:
+### each column is a different file
+
+## a) Create ffdf in master, send to nodes, modify there
+
+## I use pattern here, and not latter, to avoid 'Invalid cross-device link'
+## if R binary and filename are in different disks
+
+x2 <- ffdf(c1 = ff(length = 4, vmode = "double", pattern = fullname2),
+           c2 = ff(length = 4, vmode = "double", pattern = fullname2),
+           c3 = ff(length = 4, vmode = "double", pattern = fullname2),
+           c4 = ff(length = 4, vmode = "double", pattern = fullname2),
+           c5 = ff(length = 4, vmode = "double", pattern = fullname2),
+           c4 = ff(length = 4, vmode = "double", pattern = fullname2),
+           c7 = ff(length = 4, vmode = "double", pattern = fullname2),
+           c8 = ff(length = 4, vmode = "double", pattern = fullname2),
+           c9 = ff(length = 4, vmode = "double", pattern = fullname2),
+           c10 = ff(length = 4, vmode = "double", pattern = fullname2),
+           c11 = ff(length = 4, vmode = "double", pattern = fullname2),
+           c12 = ff(length = 4, vmode = "double", pattern = fullname2),
+           c13 = ff(length = 4, vmode = "double", pattern = fullname2),
+           c14 = ff(length = 4, vmode = "double", pattern = fullname2),
+           c15 = ff(length = 4, vmode = "double", pattern = fullname2))
+
+close(x2)
+save(file = "x2.RData", x2)
+
+sfClusterEval(load("x2.RData"))
+sfClusterEval(open(x2))
+## The following is, of course, non-deterministic. Just to see it
+## working.
+sfClusterApplyLB(1:15, function(i) x2[, i] <- rep(nodenum, 4))
+sfClusterEval(close(x2))
+
+rm(x2)
+load("x2.RData")
+open(x2)
+x2[, ] ## changes are stored
+
+
+
+## b) Create ff object in nodes, and put together as ffdf in master
+##    Note that we pass the object back as the return of sfClusterApplyLB
+##    In contrast, in a) we do not pass anything back from
+##    sfClusterApplyLB, but leave it in the disk.
+
+sfExport("fullname3")
+
+createAndClose <- function(i) {
+  nameobj <- paste("ffpiece", i, sep = "")
+  assign(nameobj,
+         ff(rep(nodenum, 4), pattern = fullname3))
+  close(get(nameobj))
+  return(get(nameobj))
+}
+
+
+list.ff <- sfClusterApplyLB(1:15, createAndClose)
+
+## put together ffdf
+## x3 <- ffdf(list.ff[[1]], list.ff[[2]], list.ff[[3]]) ## etc ...
+
+eval(parse(text = paste("x3 <- ffdf(", paste("list.ff[[", 1:15, "]]",
+             sep = "", collapse = ", "), ")")))
+
+open(x3)
+x3
+
+
+
+
+
+
+-- 
+Ramon Diaz-Uriarte
+Structural Biology and Biocomputing Programme
+Spanish National Cancer Centre (CNIO)
+http://ligarto.org/rdiaz
+Phone: +34-91-732-8000 ext. 3019
+
+
+From bcarvalh at jhsph.edu  Thu Nov 12 19:29:34 2009
+From: bcarvalh at jhsph.edu (Benilton Carvalho)
+Date: Thu, 12 Nov 2009 16:29:34 -0200
+Subject: [R-sig-hpc] ff and parallel computing (multiple nodes,
+	shared disk)
+In-Reply-To: <624934630911110843p533548e9i7955dda4feb38c2@mail.gmail.com>
+References: <624934630911110843p533548e9i7955dda4feb38c2@mail.gmail.com>
+Message-ID: <847EC80E-5E7D-46BD-B2FE-2FFD7461EBAC@jhsph.edu>
+
+Ramon,
+
+I've been investigating solutions for something similar.
+
+I wrote my own code to use NetCDF, which doesn't perform well when I  
+need random access to the data.
+
+I while back, I also tried something using SQLite, which didn't work  
+well either, but I fail to remember the specifics.
+
+I'm currently "playing" with ff and bigmemory. The limitations I  
+observed were that ff objects have max length limited to .Machine 
+$integer.max, 2^31-1, and that, currently, bigmemory does not behave  
+as expected on my Leopard machine when I run "R --arch x86_64" and  
+create a huge object.
+
+About the 2^31-1 limit: each column of datasets I handle are often  
+6.5e6 elements long; therefore, I'd have "only" 330 columns per ff  
+object (my situation requires me to be ready for thousands columns).  
+This would require me to create several ff objects, which is not  
+currently an option.
+
+So, let me know if you come up with a compromise and I'll let you know  
+if I come across anything relevant.
+
+Cheers,
+
+b
+
+On Nov 11, 2009, at 2:43 PM, Ramon Diaz-Uriarte wrote:
+
+> Dear All,
+>
+> I am considering using ff for processing medium-sized data sets in a
+> computer cluster (distributed memory), with shared disk space. The
+> presentation by the ff authors in
+>
+> http://ff.r-forge.r-project.org/ff&bit_UseR!2009.pdf
+>
+> shows examples of using ff with snowfall on a multicore machine but
+> not over several machines.
+>
+> I have been playing with ff and it seems possible to read ff and ffdf
+> objects over several nodes. It seems it is also possible to safely put
+> together an ffdf object which has been created by columns in different
+> nodes. I am pasting code below (you'd only need to replace the name of
+> the shared directory).
+>
+>
+> I'd appreciate comments, suggestions, and alternatives (on P.S.2 I
+> provide some further details on intended usage and other alternatives
+> I've looked at).
+>
+> Best,
+>
+> R.
+>
+> P.S. I am CC'ing Jens Oehlschlaegel, the maintainer of ff, since I do
+> not know if he reads this list.
+>
+> P.S.2. The data, in a single RData, can take from 500 MB to 4 GB,
+> which is more than any one process should use. I plan to use between
+> 20 and 30 nodes, each with two dual-core Opteron CPUs.
+>
+> I do not think a DB solution is warranted here: the original data
+> (floats) are in a flat text file, where columns are samples, and we do
+> the processing by sample (or in chunks withing sample). The data are
+> used twice: first for the analysis and then for the plotting (which
+> uses the original data + the output from analysis).  And we are done.
+> Almost always, processing is carried out non-interactively.
+>
+> Up to now I've been using papply, but I am running into large memory
+> consumption because of the creation of intermediate lists. Moreover,
+> I'd rather avoid sending a lot of data via MPI (our network is less
+> than ideal) ---yes, sure, the shared space also needs to use a switch.
+> Finally, if intermediate results are stored in the disk, I can recover
+> from network errors and MPI crashes.
+>
+> One approach would be to break down the original data set in
+> individual "RData" files, and load each one as needed in the slaves.
+> But this seems like reinventing the wheel, I doubt I'd write efficient
+> code, it clutters the disk, and "load"ing adds time. I also looked at
+> the package "BufferedMatrix" (in BioC), which seemd ideal, but
+> currently "you can not save and reload a Bu?eredMatrix between R
+> sessions", which I think excludes it for my intended usage.
+>
+> *********************************************************
+>
+> ## LAM-MPI universe booted, etc.
+> ## 4 nodes, each in a different machine
+>
+>
+> library(ff)
+> library(snowfall)
+>
+> ## Names for dirs and files
+> mydir <- "/http/tmp"
+> fn1 <- "t1"
+> fn2 <- "t2"
+> fn3 <- "t3"
+>
+> fullname1 <- paste(mydir, fn1, sep = "/")
+> fullname2 <- paste(mydir, fn2, sep = "/")
+> fullname3 <- paste(mydir, fn3, sep = "/")
+>
+>
+> sfInit(parallel = TRUE, cpus = 4, type = "MPI")
+> sfLibrary(ff)
+> sfClusterSetupRNG(type = "SPRNG")
+> sfExport("mydir")
+> setwd(mydir)
+> sfClusterEval(setwd(mydir))
+>
+> ## To know where things happen
+> sfClusterApply(1:4, function(i) assign("nodenum", i, env  
+> = .GlobalEnv))
+>
+>
+>
+> ##   Getting values of ff object in slaves
+> x1 <- ff(1:60, dim = c(4, 15), filename = fullname1)
+> close(x1)
+> save(file = "x1.RData", x1)
+>
+> ## Acessing values; read-only
+> sfClusterEval(load("x1.RData"))
+> sfClusterEval(open(x1, readonly = TRUE))
+> sfClusterApplyLB(1:15, function(i) {list(nodenum = nodenum, values =  
+> x1[, i])})
+> sfClusterEval(close(x1))
+>
+>
+>
+> ##### I think it is OK to change in place if stored as ffdf:
+> ### each column is a different file
+>
+> ## a) Create ffdf in master, send to nodes, modify there
+>
+> ## I use pattern here, and not latter, to avoid 'Invalid cross- 
+> device link'
+> ## if R binary and filename are in different disks
+>
+> x2 <- ffdf(c1 = ff(length = 4, vmode = "double", pattern = fullname2),
+>           c2 = ff(length = 4, vmode = "double", pattern = fullname2),
+>           c3 = ff(length = 4, vmode = "double", pattern = fullname2),
+>           c4 = ff(length = 4, vmode = "double", pattern = fullname2),
+>           c5 = ff(length = 4, vmode = "double", pattern = fullname2),
+>           c4 = ff(length = 4, vmode = "double", pattern = fullname2),
+>           c7 = ff(length = 4, vmode = "double", pattern = fullname2),
+>           c8 = ff(length = 4, vmode = "double", pattern = fullname2),
+>           c9 = ff(length = 4, vmode = "double", pattern = fullname2),
+>           c10 = ff(length = 4, vmode = "double", pattern = fullname2),
+>           c11 = ff(length = 4, vmode = "double", pattern = fullname2),
+>           c12 = ff(length = 4, vmode = "double", pattern = fullname2),
+>           c13 = ff(length = 4, vmode = "double", pattern = fullname2),
+>           c14 = ff(length = 4, vmode = "double", pattern = fullname2),
+>           c15 = ff(length = 4, vmode = "double", pattern = fullname2))
+>
+> close(x2)
+> save(file = "x2.RData", x2)
+>
+> sfClusterEval(load("x2.RData"))
+> sfClusterEval(open(x2))
+> ## The following is, of course, non-deterministic. Just to see it
+> ## working.
+> sfClusterApplyLB(1:15, function(i) x2[, i] <- rep(nodenum, 4))
+> sfClusterEval(close(x2))
+>
+> rm(x2)
+> load("x2.RData")
+> open(x2)
+> x2[, ] ## changes are stored
+>
+>
+>
+> ## b) Create ff object in nodes, and put together as ffdf in master
+> ##    Note that we pass the object back as the return of  
+> sfClusterApplyLB
+> ##    In contrast, in a) we do not pass anything back from
+> ##    sfClusterApplyLB, but leave it in the disk.
+>
+> sfExport("fullname3")
+>
+> createAndClose <- function(i) {
+>  nameobj <- paste("ffpiece", i, sep = "")
+>  assign(nameobj,
+>         ff(rep(nodenum, 4), pattern = fullname3))
+>  close(get(nameobj))
+>  return(get(nameobj))
+> }
+>
+>
+> list.ff <- sfClusterApplyLB(1:15, createAndClose)
+>
+> ## put together ffdf
+> ## x3 <- ffdf(list.ff[[1]], list.ff[[2]], list.ff[[3]]) ## etc ...
+>
+> eval(parse(text = paste("x3 <- ffdf(", paste("list.ff[[", 1:15, "]]",
+>             sep = "", collapse = ", "), ")")))
+>
+> open(x3)
+> x3
+>
+>
+>
+>
+>
+>
+> --
+> Ramon Diaz-Uriarte
+> Structural Biology and Biocomputing Programme
+> Spanish National Cancer Centre (CNIO)
+> http://ligarto.org/rdiaz
+> Phone: +34-91-732-8000 ext. 3019
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From rdiaz02 at gmail.com  Thu Nov 12 19:51:15 2009
+From: rdiaz02 at gmail.com (Ramon Diaz-Uriarte)
+Date: Thu, 12 Nov 2009 19:51:15 +0100
+Subject: [R-sig-hpc] ff and parallel computing (multiple nodes,
+	shared 	disk)
+In-Reply-To: <847EC80E-5E7D-46BD-B2FE-2FFD7461EBAC@jhsph.edu>
+References: <624934630911110843p533548e9i7955dda4feb38c2@mail.gmail.com>
+	<847EC80E-5E7D-46BD-B2FE-2FFD7461EBAC@jhsph.edu>
+Message-ID: <624934630911121051ta73b0e8k8346636498239c8e@mail.gmail.com>
+
+Dear Benilton,
+
+Thanks for your comments.
+
+On Thu, Nov 12, 2009 at 7:29 PM, Benilton Carvalho <bcarvalh at jhsph.edu> wrote:
+> Ramon,
+>
+> I've been investigating solutions for something similar.
+>
+> I wrote my own code to use NetCDF, which doesn't perform well when I need
+> random access to the data.
+>
+> I while back, I also tried something using SQLite, which didn't work well
+> either, but I fail to remember the specifics.
+>
+
+OK, I won't go through those paths, then.
+
+
+> I'm currently "playing" with ff and bigmemory. The limitations I observed
+> were that ff objects have max length limited to .Machine$integer.max,
+> 2^31-1, and that, currently, bigmemory does not behave as expected on my
+> Leopard machine when I run "R --arch x86_64" and create a huge object.
+>
+
+bigmemory is really neat, but does not fit what I am trying to do: it
+would not work if I want to acess the very same elements across
+machines.
+
+> About the 2^31-1 limit: each column of datasets I handle are often 6.5e6
+> elements long; therefore, I'd have "only" 330 columns per ff object (my
+> situation requires me to be ready for thousands columns). This would require
+> me to create several ff objects, which is not currently an option.
+>
+
+The limits are so far OK for me. In addition, I could also use an ffdf
+object, which, if I undersand, could be used to overcome those limits
+(as you can have an arbitrary number of ff components).
+
+Anyway, thanks for pointing that out. I need to make sure I do not
+accidentally cross the size limits of ff objects.
+
+
+> So, let me know if you come up with a compromise and I'll let you know if I
+> come across anything relevant.
+>
+
+I'll do.
+
+Best,
+
+R.
+
+> Cheers,
+>
+> b
+>
+> On Nov 11, 2009, at 2:43 PM, Ramon Diaz-Uriarte wrote:
+>
+>> Dear All,
+>>
+>> I am considering using ff for processing medium-sized data sets in a
+>> computer cluster (distributed memory), with shared disk space. The
+>> presentation by the ff authors in
+>>
+>> http://ff.r-forge.r-project.org/ff&bit_UseR!2009.pdf
+>>
+>> shows examples of using ff with snowfall on a multicore machine but
+>> not over several machines.
+>>
+>> I have been playing with ff and it seems possible to read ff and ffdf
+>> objects over several nodes. It seems it is also possible to safely put
+>> together an ffdf object which has been created by columns in different
+>> nodes. I am pasting code below (you'd only need to replace the name of
+>> the shared directory).
+>>
+>>
+>> I'd appreciate comments, suggestions, and alternatives (on P.S.2 I
+>> provide some further details on intended usage and other alternatives
+>> I've looked at).
+>>
+>> Best,
+>>
+>> R.
+>>
+>> P.S. I am CC'ing Jens Oehlschlaegel, the maintainer of ff, since I do
+>> not know if he reads this list.
+>>
+>> P.S.2. The data, in a single RData, can take from 500 MB to 4 GB,
+>> which is more than any one process should use. I plan to use between
+>> 20 and 30 nodes, each with two dual-core Opteron CPUs.
+>>
+>> I do not think a DB solution is warranted here: the original data
+>> (floats) are in a flat text file, where columns are samples, and we do
+>> the processing by sample (or in chunks withing sample). The data are
+>> used twice: first for the analysis and then for the plotting (which
+>> uses the original data + the output from analysis). ?And we are done.
+>> Almost always, processing is carried out non-interactively.
+>>
+>> Up to now I've been using papply, but I am running into large memory
+>> consumption because of the creation of intermediate lists. Moreover,
+>> I'd rather avoid sending a lot of data via MPI (our network is less
+>> than ideal) ---yes, sure, the shared space also needs to use a switch.
+>> Finally, if intermediate results are stored in the disk, I can recover
+>> from network errors and MPI crashes.
+>>
+>> One approach would be to break down the original data set in
+>> individual "RData" files, and load each one as needed in the slaves.
+>> But this seems like reinventing the wheel, I doubt I'd write efficient
+>> code, it clutters the disk, and "load"ing adds time. I also looked at
+>> the package "BufferedMatrix" (in BioC), which seemd ideal, but
+>> currently "you can not save and reload a Bu?eredMatrix between R
+>> sessions", which I think excludes it for my intended usage.
+>>
+>> *********************************************************
+>>
+>> ## LAM-MPI universe booted, etc.
+>> ## 4 nodes, each in a different machine
+>>
+>>
+>> library(ff)
+>> library(snowfall)
+>>
+>> ## Names for dirs and files
+>> mydir <- "/http/tmp"
+>> fn1 <- "t1"
+>> fn2 <- "t2"
+>> fn3 <- "t3"
+>>
+>> fullname1 <- paste(mydir, fn1, sep = "/")
+>> fullname2 <- paste(mydir, fn2, sep = "/")
+>> fullname3 <- paste(mydir, fn3, sep = "/")
+>>
+>>
+>> sfInit(parallel = TRUE, cpus = 4, type = "MPI")
+>> sfLibrary(ff)
+>> sfClusterSetupRNG(type = "SPRNG")
+>> sfExport("mydir")
+>> setwd(mydir)
+>> sfClusterEval(setwd(mydir))
+>>
+>> ## To know where things happen
+>> sfClusterApply(1:4, function(i) assign("nodenum", i, env = .GlobalEnv))
+>>
+>>
+>>
+>> ## ? Getting values of ff object in slaves
+>> x1 <- ff(1:60, dim = c(4, 15), filename = fullname1)
+>> close(x1)
+>> save(file = "x1.RData", x1)
+>>
+>> ## Acessing values; read-only
+>> sfClusterEval(load("x1.RData"))
+>> sfClusterEval(open(x1, readonly = TRUE))
+>> sfClusterApplyLB(1:15, function(i) {list(nodenum = nodenum, values = x1[,
+>> i])})
+>> sfClusterEval(close(x1))
+>>
+>>
+>>
+>> ##### I think it is OK to change in place if stored as ffdf:
+>> ### each column is a different file
+>>
+>> ## a) Create ffdf in master, send to nodes, modify there
+>>
+>> ## I use pattern here, and not latter, to avoid 'Invalid cross-device
+>> link'
+>> ## if R binary and filename are in different disks
+>>
+>> x2 <- ffdf(c1 = ff(length = 4, vmode = "double", pattern = fullname2),
+>> ? ? ? ? ?c2 = ff(length = 4, vmode = "double", pattern = fullname2),
+>> ? ? ? ? ?c3 = ff(length = 4, vmode = "double", pattern = fullname2),
+>> ? ? ? ? ?c4 = ff(length = 4, vmode = "double", pattern = fullname2),
+>> ? ? ? ? ?c5 = ff(length = 4, vmode = "double", pattern = fullname2),
+>> ? ? ? ? ?c4 = ff(length = 4, vmode = "double", pattern = fullname2),
+>> ? ? ? ? ?c7 = ff(length = 4, vmode = "double", pattern = fullname2),
+>> ? ? ? ? ?c8 = ff(length = 4, vmode = "double", pattern = fullname2),
+>> ? ? ? ? ?c9 = ff(length = 4, vmode = "double", pattern = fullname2),
+>> ? ? ? ? ?c10 = ff(length = 4, vmode = "double", pattern = fullname2),
+>> ? ? ? ? ?c11 = ff(length = 4, vmode = "double", pattern = fullname2),
+>> ? ? ? ? ?c12 = ff(length = 4, vmode = "double", pattern = fullname2),
+>> ? ? ? ? ?c13 = ff(length = 4, vmode = "double", pattern = fullname2),
+>> ? ? ? ? ?c14 = ff(length = 4, vmode = "double", pattern = fullname2),
+>> ? ? ? ? ?c15 = ff(length = 4, vmode = "double", pattern = fullname2))
+>>
+>> close(x2)
+>> save(file = "x2.RData", x2)
+>>
+>> sfClusterEval(load("x2.RData"))
+>> sfClusterEval(open(x2))
+>> ## The following is, of course, non-deterministic. Just to see it
+>> ## working.
+>> sfClusterApplyLB(1:15, function(i) x2[, i] <- rep(nodenum, 4))
+>> sfClusterEval(close(x2))
+>>
+>> rm(x2)
+>> load("x2.RData")
+>> open(x2)
+>> x2[, ] ## changes are stored
+>>
+>>
+>>
+>> ## b) Create ff object in nodes, and put together as ffdf in master
+>> ## ? ?Note that we pass the object back as the return of sfClusterApplyLB
+>> ## ? ?In contrast, in a) we do not pass anything back from
+>> ## ? ?sfClusterApplyLB, but leave it in the disk.
+>>
+>> sfExport("fullname3")
+>>
+>> createAndClose <- function(i) {
+>> ?nameobj <- paste("ffpiece", i, sep = "")
+>> ?assign(nameobj,
+>> ? ? ? ?ff(rep(nodenum, 4), pattern = fullname3))
+>> ?close(get(nameobj))
+>> ?return(get(nameobj))
+>> }
+>>
+>>
+>> list.ff <- sfClusterApplyLB(1:15, createAndClose)
+>>
+>> ## put together ffdf
+>> ## x3 <- ffdf(list.ff[[1]], list.ff[[2]], list.ff[[3]]) ## etc ...
+>>
+>> eval(parse(text = paste("x3 <- ffdf(", paste("list.ff[[", 1:15, "]]",
+>> ? ? ? ? ? ?sep = "", collapse = ", "), ")")))
+>>
+>> open(x3)
+>> x3
+>>
+>>
+>>
+>>
+>>
+>>
+>> --
+>> Ramon Diaz-Uriarte
+>> Structural Biology and Biocomputing Programme
+>> Spanish National Cancer Centre (CNIO)
+>> http://ligarto.org/rdiaz
+>> Phone: +34-91-732-8000 ext. 3019
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+>
+
+
+
+-- 
+Ramon Diaz-Uriarte
+Structural Biology and Biocomputing Programme
+Spanish National Cancer Centre (CNIO)
+http://ligarto.org/rdiaz
+Phone: +34-91-732-8000 ext. 3019
+
+
+From Brian.O'Gorman at noaa.gov  Thu Nov 12 19:52:02 2009
+From: Brian.O'Gorman at noaa.gov (Brian O'Gorman)
+Date: Thu, 12 Nov 2009 09:52:02 -0900
+Subject: [R-sig-hpc] libmpi.so OR libmpich.a
+Message-ID: <4AFC5952.90705@noaa.gov>
+
+I'm having trouble with the following command. Could anyone offer a 
+solution as I am unable to find the missing libraries? Thanks.
+
+R CMD INSTALL Rmpi_0.5-7.tar.gz
+
+The command returns
+
+checking for gcc... gcc
+checking for C compiler default output file name... a.out
+checking whether the C compiler works... yes
+checking whether we are cross compiling... no
+checking for suffix of executables...
+checking for suffix of object files... o
+checking whether we are using the GNU C compiler... yes
+checking whether gcc accepts -g... yes
+checking for gcc option to accept ISO C89... none needed
+I am here /usr/local
+Try to find mpi.h ...
+Found in /usr/local/include
+Try to find libmpi.so or libmpich.a
+checking for main in -lmpi... no
+libmpi not found. exiting...
+
+
+
+The machine I'm on is, from uname
+
+Linux wfe2 2.6.18-92.1.13.el5 #1 SMP Mon Oct 6 16:34:16 GMT 2008 x86_64 
+x86_64 x86_64 GNU/Linux
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: brian_o'gorman.vcf
+Type: text/x-vcard
+Size: 354 bytes
+Desc: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20091112/1b2c8e63/attachment.vcf>
+
+From jeff.a.ryan at gmail.com  Thu Nov 12 20:40:28 2009
+From: jeff.a.ryan at gmail.com (Jeff Ryan)
+Date: Thu, 12 Nov 2009 13:40:28 -0600
+Subject: [R-sig-hpc] ff and parallel computing (multiple nodes,
+	shared 	disk)
+In-Reply-To: <624934630911121051ta73b0e8k8346636498239c8e@mail.gmail.com>
+References: <624934630911110843p533548e9i7955dda4feb38c2@mail.gmail.com>
+	<847EC80E-5E7D-46BD-B2FE-2FFD7461EBAC@jhsph.edu>
+	<624934630911121051ta73b0e8k8346636498239c8e@mail.gmail.com>
+Message-ID: <e8e755250911121140h249a5a93k259339c88fd59982@mail.gmail.com>
+
+Not that this is by any means a pre-rolled solution, but I have a
+interface to BerkeleyDB on CRAN now called RBerkeley:
+
+http://cran.r-project.org/web/packages/RBerkeley/index.html
+
+In spite of its age (wisdom :) ) ... BDB might offer a possible
+partial solution.
+
+Across nodes gets tricky though, as there is not pre-built server per
+se, as it is really a library.
+
+HTH,
+Jeff
+
+
+On Thu, Nov 12, 2009 at 12:51 PM, Ramon Diaz-Uriarte <rdiaz02 at gmail.com> wrote:
+> Dear Benilton,
+>
+> Thanks for your comments.
+>
+> On Thu, Nov 12, 2009 at 7:29 PM, Benilton Carvalho <bcarvalh at jhsph.edu> wrote:
+>> Ramon,
+>>
+>> I've been investigating solutions for something similar.
+>>
+>> I wrote my own code to use NetCDF, which doesn't perform well when I need
+>> random access to the data.
+>>
+>> I while back, I also tried something using SQLite, which didn't work well
+>> either, but I fail to remember the specifics.
+>>
+>
+> OK, I won't go through those paths, then.
+>
+>
+>> I'm currently "playing" with ff and bigmemory. The limitations I observed
+>> were that ff objects have max length limited to .Machine$integer.max,
+>> 2^31-1, and that, currently, bigmemory does not behave as expected on my
+>> Leopard machine when I run "R --arch x86_64" and create a huge object.
+>>
+>
+> bigmemory is really neat, but does not fit what I am trying to do: it
+> would not work if I want to acess the very same elements across
+> machines.
+>
+>> About the 2^31-1 limit: each column of datasets I handle are often 6.5e6
+>> elements long; therefore, I'd have "only" 330 columns per ff object (my
+>> situation requires me to be ready for thousands columns). This would require
+>> me to create several ff objects, which is not currently an option.
+>>
+>
+> The limits are so far OK for me. In addition, I could also use an ffdf
+> object, which, if I undersand, could be used to overcome those limits
+> (as you can have an arbitrary number of ff components).
+>
+> Anyway, thanks for pointing that out. I need to make sure I do not
+> accidentally cross the size limits of ff objects.
+>
+>
+>> So, let me know if you come up with a compromise and I'll let you know if I
+>> come across anything relevant.
+>>
+>
+> I'll do.
+>
+> Best,
+>
+> R.
+>
+>> Cheers,
+>>
+>> b
+>>
+>> On Nov 11, 2009, at 2:43 PM, Ramon Diaz-Uriarte wrote:
+>>
+>>> Dear All,
+>>>
+>>> I am considering using ff for processing medium-sized data sets in a
+>>> computer cluster (distributed memory), with shared disk space. The
+>>> presentation by the ff authors in
+>>>
+>>> http://ff.r-forge.r-project.org/ff&bit_UseR!2009.pdf
+>>>
+>>> shows examples of using ff with snowfall on a multicore machine but
+>>> not over several machines.
+>>>
+>>> I have been playing with ff and it seems possible to read ff and ffdf
+>>> objects over several nodes. It seems it is also possible to safely put
+>>> together an ffdf object which has been created by columns in different
+>>> nodes. I am pasting code below (you'd only need to replace the name of
+>>> the shared directory).
+>>>
+>>>
+>>> I'd appreciate comments, suggestions, and alternatives (on P.S.2 I
+>>> provide some further details on intended usage and other alternatives
+>>> I've looked at).
+>>>
+>>> Best,
+>>>
+>>> R.
+>>>
+>>> P.S. I am CC'ing Jens Oehlschlaegel, the maintainer of ff, since I do
+>>> not know if he reads this list.
+>>>
+>>> P.S.2. The data, in a single RData, can take from 500 MB to 4 GB,
+>>> which is more than any one process should use. I plan to use between
+>>> 20 and 30 nodes, each with two dual-core Opteron CPUs.
+>>>
+>>> I do not think a DB solution is warranted here: the original data
+>>> (floats) are in a flat text file, where columns are samples, and we do
+>>> the processing by sample (or in chunks withing sample). The data are
+>>> used twice: first for the analysis and then for the plotting (which
+>>> uses the original data + the output from analysis). ?And we are done.
+>>> Almost always, processing is carried out non-interactively.
+>>>
+>>> Up to now I've been using papply, but I am running into large memory
+>>> consumption because of the creation of intermediate lists. Moreover,
+>>> I'd rather avoid sending a lot of data via MPI (our network is less
+>>> than ideal) ---yes, sure, the shared space also needs to use a switch.
+>>> Finally, if intermediate results are stored in the disk, I can recover
+>>> from network errors and MPI crashes.
+>>>
+>>> One approach would be to break down the original data set in
+>>> individual "RData" files, and load each one as needed in the slaves.
+>>> But this seems like reinventing the wheel, I doubt I'd write efficient
+>>> code, it clutters the disk, and "load"ing adds time. I also looked at
+>>> the package "BufferedMatrix" (in BioC), which seemd ideal, but
+>>> currently "you can not save and reload a Bu?eredMatrix between R
+>>> sessions", which I think excludes it for my intended usage.
+>>>
+>>> *********************************************************
+>>>
+>>> ## LAM-MPI universe booted, etc.
+>>> ## 4 nodes, each in a different machine
+>>>
+>>>
+>>> library(ff)
+>>> library(snowfall)
+>>>
+>>> ## Names for dirs and files
+>>> mydir <- "/http/tmp"
+>>> fn1 <- "t1"
+>>> fn2 <- "t2"
+>>> fn3 <- "t3"
+>>>
+>>> fullname1 <- paste(mydir, fn1, sep = "/")
+>>> fullname2 <- paste(mydir, fn2, sep = "/")
+>>> fullname3 <- paste(mydir, fn3, sep = "/")
+>>>
+>>>
+>>> sfInit(parallel = TRUE, cpus = 4, type = "MPI")
+>>> sfLibrary(ff)
+>>> sfClusterSetupRNG(type = "SPRNG")
+>>> sfExport("mydir")
+>>> setwd(mydir)
+>>> sfClusterEval(setwd(mydir))
+>>>
+>>> ## To know where things happen
+>>> sfClusterApply(1:4, function(i) assign("nodenum", i, env = .GlobalEnv))
+>>>
+>>>
+>>>
+>>> ## ? Getting values of ff object in slaves
+>>> x1 <- ff(1:60, dim = c(4, 15), filename = fullname1)
+>>> close(x1)
+>>> save(file = "x1.RData", x1)
+>>>
+>>> ## Acessing values; read-only
+>>> sfClusterEval(load("x1.RData"))
+>>> sfClusterEval(open(x1, readonly = TRUE))
+>>> sfClusterApplyLB(1:15, function(i) {list(nodenum = nodenum, values = x1[,
+>>> i])})
+>>> sfClusterEval(close(x1))
+>>>
+>>>
+>>>
+>>> ##### I think it is OK to change in place if stored as ffdf:
+>>> ### each column is a different file
+>>>
+>>> ## a) Create ffdf in master, send to nodes, modify there
+>>>
+>>> ## I use pattern here, and not latter, to avoid 'Invalid cross-device
+>>> link'
+>>> ## if R binary and filename are in different disks
+>>>
+>>> x2 <- ffdf(c1 = ff(length = 4, vmode = "double", pattern = fullname2),
+>>> ? ? ? ? ?c2 = ff(length = 4, vmode = "double", pattern = fullname2),
+>>> ? ? ? ? ?c3 = ff(length = 4, vmode = "double", pattern = fullname2),
+>>> ? ? ? ? ?c4 = ff(length = 4, vmode = "double", pattern = fullname2),
+>>> ? ? ? ? ?c5 = ff(length = 4, vmode = "double", pattern = fullname2),
+>>> ? ? ? ? ?c4 = ff(length = 4, vmode = "double", pattern = fullname2),
+>>> ? ? ? ? ?c7 = ff(length = 4, vmode = "double", pattern = fullname2),
+>>> ? ? ? ? ?c8 = ff(length = 4, vmode = "double", pattern = fullname2),
+>>> ? ? ? ? ?c9 = ff(length = 4, vmode = "double", pattern = fullname2),
+>>> ? ? ? ? ?c10 = ff(length = 4, vmode = "double", pattern = fullname2),
+>>> ? ? ? ? ?c11 = ff(length = 4, vmode = "double", pattern = fullname2),
+>>> ? ? ? ? ?c12 = ff(length = 4, vmode = "double", pattern = fullname2),
+>>> ? ? ? ? ?c13 = ff(length = 4, vmode = "double", pattern = fullname2),
+>>> ? ? ? ? ?c14 = ff(length = 4, vmode = "double", pattern = fullname2),
+>>> ? ? ? ? ?c15 = ff(length = 4, vmode = "double", pattern = fullname2))
+>>>
+>>> close(x2)
+>>> save(file = "x2.RData", x2)
+>>>
+>>> sfClusterEval(load("x2.RData"))
+>>> sfClusterEval(open(x2))
+>>> ## The following is, of course, non-deterministic. Just to see it
+>>> ## working.
+>>> sfClusterApplyLB(1:15, function(i) x2[, i] <- rep(nodenum, 4))
+>>> sfClusterEval(close(x2))
+>>>
+>>> rm(x2)
+>>> load("x2.RData")
+>>> open(x2)
+>>> x2[, ] ## changes are stored
+>>>
+>>>
+>>>
+>>> ## b) Create ff object in nodes, and put together as ffdf in master
+>>> ## ? ?Note that we pass the object back as the return of sfClusterApplyLB
+>>> ## ? ?In contrast, in a) we do not pass anything back from
+>>> ## ? ?sfClusterApplyLB, but leave it in the disk.
+>>>
+>>> sfExport("fullname3")
+>>>
+>>> createAndClose <- function(i) {
+>>> ?nameobj <- paste("ffpiece", i, sep = "")
+>>> ?assign(nameobj,
+>>> ? ? ? ?ff(rep(nodenum, 4), pattern = fullname3))
+>>> ?close(get(nameobj))
+>>> ?return(get(nameobj))
+>>> }
+>>>
+>>>
+>>> list.ff <- sfClusterApplyLB(1:15, createAndClose)
+>>>
+>>> ## put together ffdf
+>>> ## x3 <- ffdf(list.ff[[1]], list.ff[[2]], list.ff[[3]]) ## etc ...
+>>>
+>>> eval(parse(text = paste("x3 <- ffdf(", paste("list.ff[[", 1:15, "]]",
+>>> ? ? ? ? ? ?sep = "", collapse = ", "), ")")))
+>>>
+>>> open(x3)
+>>> x3
+>>>
+>>>
+>>>
+>>>
+>>>
+>>>
+>>> --
+>>> Ramon Diaz-Uriarte
+>>> Structural Biology and Biocomputing Programme
+>>> Spanish National Cancer Centre (CNIO)
+>>> http://ligarto.org/rdiaz
+>>> Phone: +34-91-732-8000 ext. 3019
+>>>
+>>> _______________________________________________
+>>> R-sig-hpc mailing list
+>>> R-sig-hpc at r-project.org
+>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>>
+>
+>
+>
+> --
+> Ramon Diaz-Uriarte
+> Structural Biology and Biocomputing Programme
+> Spanish National Cancer Centre (CNIO)
+> http://ligarto.org/rdiaz
+> Phone: +34-91-732-8000 ext. 3019
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+
+-- 
+Jeffrey Ryan
+jeffrey.ryan at insightalgo.com
+
+ia: insight algorithmics
+www.insightalgo.com
+
+
+From rdiaz02 at gmail.com  Fri Nov 13 01:30:57 2009
+From: rdiaz02 at gmail.com (Ramon Diaz-Uriarte)
+Date: Fri, 13 Nov 2009 01:30:57 +0100
+Subject: [R-sig-hpc] ff and parallel computing (multiple nodes,
+	shared 	disk)
+In-Reply-To: <e8e755250911121140h249a5a93k259339c88fd59982@mail.gmail.com>
+References: <624934630911110843p533548e9i7955dda4feb38c2@mail.gmail.com>
+	<847EC80E-5E7D-46BD-B2FE-2FFD7461EBAC@jhsph.edu>
+	<624934630911121051ta73b0e8k8346636498239c8e@mail.gmail.com>
+	<e8e755250911121140h249a5a93k259339c88fd59982@mail.gmail.com>
+Message-ID: <624934630911121630k7b2bdfb0q72082725a68e5abb@mail.gmail.com>
+
+Dear Jeff,
+
+Thanks! I'll take a look at it tomorrow from work. The across nodes
+stuff, however, might be a show stopper because of my current needs.
+
+Best,
+
+R.
+
+On Thu, Nov 12, 2009 at 8:40 PM, Jeff Ryan <jeff.a.ryan at gmail.com> wrote:
+> Not that this is by any means a pre-rolled solution, but I have a
+> interface to BerkeleyDB on CRAN now called RBerkeley:
+>
+> http://cran.r-project.org/web/packages/RBerkeley/index.html
+>
+> In spite of its age (wisdom :) ) ... BDB might offer a possible
+> partial solution.
+>
+> Across nodes gets tricky though, as there is not pre-built server per
+> se, as it is really a library.
+>
+> HTH,
+> Jeff
+>
+>
+> On Thu, Nov 12, 2009 at 12:51 PM, Ramon Diaz-Uriarte <rdiaz02 at gmail.com> wrote:
+>> Dear Benilton,
+>>
+>> Thanks for your comments.
+>>
+>> On Thu, Nov 12, 2009 at 7:29 PM, Benilton Carvalho <bcarvalh at jhsph.edu> wrote:
+>>> Ramon,
+>>>
+>>> I've been investigating solutions for something similar.
+>>>
+>>> I wrote my own code to use NetCDF, which doesn't perform well when I need
+>>> random access to the data.
+>>>
+>>> I while back, I also tried something using SQLite, which didn't work well
+>>> either, but I fail to remember the specifics.
+>>>
+>>
+>> OK, I won't go through those paths, then.
+>>
+>>
+>>> I'm currently "playing" with ff and bigmemory. The limitations I observed
+>>> were that ff objects have max length limited to .Machine$integer.max,
+>>> 2^31-1, and that, currently, bigmemory does not behave as expected on my
+>>> Leopard machine when I run "R --arch x86_64" and create a huge object.
+>>>
+>>
+>> bigmemory is really neat, but does not fit what I am trying to do: it
+>> would not work if I want to acess the very same elements across
+>> machines.
+>>
+>>> About the 2^31-1 limit: each column of datasets I handle are often 6.5e6
+>>> elements long; therefore, I'd have "only" 330 columns per ff object (my
+>>> situation requires me to be ready for thousands columns). This would require
+>>> me to create several ff objects, which is not currently an option.
+>>>
+>>
+>> The limits are so far OK for me. In addition, I could also use an ffdf
+>> object, which, if I undersand, could be used to overcome those limits
+>> (as you can have an arbitrary number of ff components).
+>>
+>> Anyway, thanks for pointing that out. I need to make sure I do not
+>> accidentally cross the size limits of ff objects.
+>>
+>>
+>>> So, let me know if you come up with a compromise and I'll let you know if I
+>>> come across anything relevant.
+>>>
+>>
+>> I'll do.
+>>
+>> Best,
+>>
+>> R.
+>>
+>>> Cheers,
+>>>
+>>> b
+>>>
+>>> On Nov 11, 2009, at 2:43 PM, Ramon Diaz-Uriarte wrote:
+>>>
+>>>> Dear All,
+>>>>
+>>>> I am considering using ff for processing medium-sized data sets in a
+>>>> computer cluster (distributed memory), with shared disk space. The
+>>>> presentation by the ff authors in
+>>>>
+>>>> http://ff.r-forge.r-project.org/ff&bit_UseR!2009.pdf
+>>>>
+>>>> shows examples of using ff with snowfall on a multicore machine but
+>>>> not over several machines.
+>>>>
+>>>> I have been playing with ff and it seems possible to read ff and ffdf
+>>>> objects over several nodes. It seems it is also possible to safely put
+>>>> together an ffdf object which has been created by columns in different
+>>>> nodes. I am pasting code below (you'd only need to replace the name of
+>>>> the shared directory).
+>>>>
+>>>>
+>>>> I'd appreciate comments, suggestions, and alternatives (on P.S.2 I
+>>>> provide some further details on intended usage and other alternatives
+>>>> I've looked at).
+>>>>
+>>>> Best,
+>>>>
+>>>> R.
+>>>>
+>>>> P.S. I am CC'ing Jens Oehlschlaegel, the maintainer of ff, since I do
+>>>> not know if he reads this list.
+>>>>
+>>>> P.S.2. The data, in a single RData, can take from 500 MB to 4 GB,
+>>>> which is more than any one process should use. I plan to use between
+>>>> 20 and 30 nodes, each with two dual-core Opteron CPUs.
+>>>>
+>>>> I do not think a DB solution is warranted here: the original data
+>>>> (floats) are in a flat text file, where columns are samples, and we do
+>>>> the processing by sample (or in chunks withing sample). The data are
+>>>> used twice: first for the analysis and then for the plotting (which
+>>>> uses the original data + the output from analysis). ?And we are done.
+>>>> Almost always, processing is carried out non-interactively.
+>>>>
+>>>> Up to now I've been using papply, but I am running into large memory
+>>>> consumption because of the creation of intermediate lists. Moreover,
+>>>> I'd rather avoid sending a lot of data via MPI (our network is less
+>>>> than ideal) ---yes, sure, the shared space also needs to use a switch.
+>>>> Finally, if intermediate results are stored in the disk, I can recover
+>>>> from network errors and MPI crashes.
+>>>>
+>>>> One approach would be to break down the original data set in
+>>>> individual "RData" files, and load each one as needed in the slaves.
+>>>> But this seems like reinventing the wheel, I doubt I'd write efficient
+>>>> code, it clutters the disk, and "load"ing adds time. I also looked at
+>>>> the package "BufferedMatrix" (in BioC), which seemd ideal, but
+>>>> currently "you can not save and reload a Bu?eredMatrix between R
+>>>> sessions", which I think excludes it for my intended usage.
+>>>>
+>>>> *********************************************************
+>>>>
+>>>> ## LAM-MPI universe booted, etc.
+>>>> ## 4 nodes, each in a different machine
+>>>>
+>>>>
+>>>> library(ff)
+>>>> library(snowfall)
+>>>>
+>>>> ## Names for dirs and files
+>>>> mydir <- "/http/tmp"
+>>>> fn1 <- "t1"
+>>>> fn2 <- "t2"
+>>>> fn3 <- "t3"
+>>>>
+>>>> fullname1 <- paste(mydir, fn1, sep = "/")
+>>>> fullname2 <- paste(mydir, fn2, sep = "/")
+>>>> fullname3 <- paste(mydir, fn3, sep = "/")
+>>>>
+>>>>
+>>>> sfInit(parallel = TRUE, cpus = 4, type = "MPI")
+>>>> sfLibrary(ff)
+>>>> sfClusterSetupRNG(type = "SPRNG")
+>>>> sfExport("mydir")
+>>>> setwd(mydir)
+>>>> sfClusterEval(setwd(mydir))
+>>>>
+>>>> ## To know where things happen
+>>>> sfClusterApply(1:4, function(i) assign("nodenum", i, env = .GlobalEnv))
+>>>>
+>>>>
+>>>>
+>>>> ## ? Getting values of ff object in slaves
+>>>> x1 <- ff(1:60, dim = c(4, 15), filename = fullname1)
+>>>> close(x1)
+>>>> save(file = "x1.RData", x1)
+>>>>
+>>>> ## Acessing values; read-only
+>>>> sfClusterEval(load("x1.RData"))
+>>>> sfClusterEval(open(x1, readonly = TRUE))
+>>>> sfClusterApplyLB(1:15, function(i) {list(nodenum = nodenum, values = x1[,
+>>>> i])})
+>>>> sfClusterEval(close(x1))
+>>>>
+>>>>
+>>>>
+>>>> ##### I think it is OK to change in place if stored as ffdf:
+>>>> ### each column is a different file
+>>>>
+>>>> ## a) Create ffdf in master, send to nodes, modify there
+>>>>
+>>>> ## I use pattern here, and not latter, to avoid 'Invalid cross-device
+>>>> link'
+>>>> ## if R binary and filename are in different disks
+>>>>
+>>>> x2 <- ffdf(c1 = ff(length = 4, vmode = "double", pattern = fullname2),
+>>>> ? ? ? ? ?c2 = ff(length = 4, vmode = "double", pattern = fullname2),
+>>>> ? ? ? ? ?c3 = ff(length = 4, vmode = "double", pattern = fullname2),
+>>>> ? ? ? ? ?c4 = ff(length = 4, vmode = "double", pattern = fullname2),
+>>>> ? ? ? ? ?c5 = ff(length = 4, vmode = "double", pattern = fullname2),
+>>>> ? ? ? ? ?c4 = ff(length = 4, vmode = "double", pattern = fullname2),
+>>>> ? ? ? ? ?c7 = ff(length = 4, vmode = "double", pattern = fullname2),
+>>>> ? ? ? ? ?c8 = ff(length = 4, vmode = "double", pattern = fullname2),
+>>>> ? ? ? ? ?c9 = ff(length = 4, vmode = "double", pattern = fullname2),
+>>>> ? ? ? ? ?c10 = ff(length = 4, vmode = "double", pattern = fullname2),
+>>>> ? ? ? ? ?c11 = ff(length = 4, vmode = "double", pattern = fullname2),
+>>>> ? ? ? ? ?c12 = ff(length = 4, vmode = "double", pattern = fullname2),
+>>>> ? ? ? ? ?c13 = ff(length = 4, vmode = "double", pattern = fullname2),
+>>>> ? ? ? ? ?c14 = ff(length = 4, vmode = "double", pattern = fullname2),
+>>>> ? ? ? ? ?c15 = ff(length = 4, vmode = "double", pattern = fullname2))
+>>>>
+>>>> close(x2)
+>>>> save(file = "x2.RData", x2)
+>>>>
+>>>> sfClusterEval(load("x2.RData"))
+>>>> sfClusterEval(open(x2))
+>>>> ## The following is, of course, non-deterministic. Just to see it
+>>>> ## working.
+>>>> sfClusterApplyLB(1:15, function(i) x2[, i] <- rep(nodenum, 4))
+>>>> sfClusterEval(close(x2))
+>>>>
+>>>> rm(x2)
+>>>> load("x2.RData")
+>>>> open(x2)
+>>>> x2[, ] ## changes are stored
+>>>>
+>>>>
+>>>>
+>>>> ## b) Create ff object in nodes, and put together as ffdf in master
+>>>> ## ? ?Note that we pass the object back as the return of sfClusterApplyLB
+>>>> ## ? ?In contrast, in a) we do not pass anything back from
+>>>> ## ? ?sfClusterApplyLB, but leave it in the disk.
+>>>>
+>>>> sfExport("fullname3")
+>>>>
+>>>> createAndClose <- function(i) {
+>>>> ?nameobj <- paste("ffpiece", i, sep = "")
+>>>> ?assign(nameobj,
+>>>> ? ? ? ?ff(rep(nodenum, 4), pattern = fullname3))
+>>>> ?close(get(nameobj))
+>>>> ?return(get(nameobj))
+>>>> }
+>>>>
+>>>>
+>>>> list.ff <- sfClusterApplyLB(1:15, createAndClose)
+>>>>
+>>>> ## put together ffdf
+>>>> ## x3 <- ffdf(list.ff[[1]], list.ff[[2]], list.ff[[3]]) ## etc ...
+>>>>
+>>>> eval(parse(text = paste("x3 <- ffdf(", paste("list.ff[[", 1:15, "]]",
+>>>> ? ? ? ? ? ?sep = "", collapse = ", "), ")")))
+>>>>
+>>>> open(x3)
+>>>> x3
+>>>>
+>>>>
+>>>>
+>>>>
+>>>>
+>>>>
+>>>> --
+>>>> Ramon Diaz-Uriarte
+>>>> Structural Biology and Biocomputing Programme
+>>>> Spanish National Cancer Centre (CNIO)
+>>>> http://ligarto.org/rdiaz
+>>>> Phone: +34-91-732-8000 ext. 3019
+>>>>
+>>>> _______________________________________________
+>>>> R-sig-hpc mailing list
+>>>> R-sig-hpc at r-project.org
+>>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>
+>>>
+>>
+>>
+>>
+>> --
+>> Ramon Diaz-Uriarte
+>> Structural Biology and Biocomputing Programme
+>> Spanish National Cancer Centre (CNIO)
+>> http://ligarto.org/rdiaz
+>> Phone: +34-91-732-8000 ext. 3019
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>
+>
+>
+> --
+> Jeffrey Ryan
+> jeffrey.ryan at insightalgo.com
+>
+> ia: insight algorithmics
+> www.insightalgo.com
+>
+
+
+
+-- 
+Ramon Diaz-Uriarte
+Structural Biology and Biocomputing Programme
+Spanish National Cancer Centre (CNIO)
+http://ligarto.org/rdiaz
+Phone: +34-91-732-8000 ext. 3019
+
+
+From atp at piskorski.com  Sat Nov 14 11:02:57 2009
+From: atp at piskorski.com (Andrew Piskorski)
+Date: Sat, 14 Nov 2009 05:02:57 -0500
+Subject: [R-sig-hpc] ff and parallel computing (multiple nodes,
+	shared disk)
+In-Reply-To: <847EC80E-5E7D-46BD-B2FE-2FFD7461EBAC@jhsph.edu>
+References: <847EC80E-5E7D-46BD-B2FE-2FFD7461EBAC@jhsph.edu>
+Message-ID: <20091114100257.GA40897@piskorski.com>
+
+On Thu, Nov 12, 2009 at 04:29:34PM -0200, Benilton Carvalho wrote:
+
+> I wrote my own code to use NetCDF, which doesn't perform well when I  
+> need random access to the data.
+
+What sort of I/O numbers do you actually see?
+
+You're hitting a single shared disk server with random access IO
+requests from multiple nodes?  If so, isn't that probably the problem
+right there?  Random access is a disk speed killer.  I wouldn't expect
+playing with NetCDF vs. SQLite vs. ff vs. bigmemory to make much
+difference.  Things I'd expect might help in that case would be:
+
+- Massively faster shared disk I/O (hardware upgrade).
+- Moving I/O to the slave nodes.
+- Perhaps running an RDBMS that knows how to better optimize incoming
+  client I/O requests.
+
+Or is your situation a bit different than the original poster's, and
+your code is I/O limited even with just one node?
+
+-- 
+Andrew Piskorski <atp at piskorski.com>
+http://www.piskorski.com/
+
+
+From bcarvalh at jhsph.edu  Sat Nov 14 12:57:32 2009
+From: bcarvalh at jhsph.edu (Benilton Carvalho)
+Date: Sat, 14 Nov 2009 09:57:32 -0200
+Subject: [R-sig-hpc] ff and parallel computing (multiple nodes,
+	shared disk)
+In-Reply-To: <20091114100257.GA40897@piskorski.com>
+References: <847EC80E-5E7D-46BD-B2FE-2FFD7461EBAC@jhsph.edu>
+	<20091114100257.GA40897@piskorski.com>
+Message-ID: <CD665FB2-9930-4832-B965-0B418EFAD592@jhsph.edu>
+
+When I tried this, I didn't even put the solution on a cluster. Using  
+my own laptop, I had an object with 8M rows and took about 1m30s to  
+retrieve 20 random rows. Saving a transposed version of the matrix  
+took much more time, but data retrieval was way faster, and I (think  
+I) got something like 2-3 seconds to retrieve 20 rows from this big  
+object.
+
+ff and bigmemory take a fraction of a second, but the comparison seems  
+a bit "unfair" as some sort of caching happens.
+
+b
+
+On Nov 14, 2009, at 8:02 AM, Andrew Piskorski wrote:
+
+> On Thu, Nov 12, 2009 at 04:29:34PM -0200, Benilton Carvalho wrote:
+>
+>> I wrote my own code to use NetCDF, which doesn't perform well when I
+>> need random access to the data.
+>
+> What sort of I/O numbers do you actually see?
+>
+> You're hitting a single shared disk server with random access IO
+> requests from multiple nodes?  If so, isn't that probably the problem
+> right there?  Random access is a disk speed killer.  I wouldn't expect
+> playing with NetCDF vs. SQLite vs. ff vs. bigmemory to make much
+> difference.  Things I'd expect might help in that case would be:
+>
+> - Massively faster shared disk I/O (hardware upgrade).
+> - Moving I/O to the slave nodes.
+> - Perhaps running an RDBMS that knows how to better optimize incoming
+>  client I/O requests.
+>
+> Or is your situation a bit different than the original poster's, and
+> your code is I/O limited even with just one node?
+>
+> --
+> Andrew Piskorski <atp at piskorski.com>
+> http://www.piskorski.com/
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From rdiaz02 at gmail.com  Mon Nov 16 12:41:50 2009
+From: rdiaz02 at gmail.com (Ramon Diaz-Uriarte)
+Date: Mon, 16 Nov 2009 12:41:50 +0100
+Subject: [R-sig-hpc] ff and parallel computing (multiple nodes,
+	shared 	disk)
+In-Reply-To: <20091114100257.GA40897@piskorski.com>
+References: <847EC80E-5E7D-46BD-B2FE-2FFD7461EBAC@jhsph.edu>
+	<20091114100257.GA40897@piskorski.com>
+Message-ID: <624934630911160341j49133d8fm47aaf8d28bd98f9a@mail.gmail.com>
+
+On Sat, Nov 14, 2009 at 11:02 AM, Andrew Piskorski <atp at piskorski.com> wrote:
+> On Thu, Nov 12, 2009 at 04:29:34PM -0200, Benilton Carvalho wrote:
+>
+>> I wrote my own code to use NetCDF, which doesn't perform well when I
+>> need random access to the data.
+>
+> What sort of I/O numbers do you actually see?
+>
+> You're hitting a single shared disk server with random access IO
+> requests from multiple nodes? ?If so, isn't that probably the problem
+> right there? ?Random access is a disk speed killer. ?I wouldn't expect
+
+Yes. That is one part of the problem.
+
+
+> playing with NetCDF vs. SQLite vs. ff vs. bigmemory to make much
+> difference. ?Things I'd expect might help in that case would be:
+>
+> - Massively faster shared disk I/O (hardware upgrade).
+> - Moving I/O to the slave nodes.
+
+
+For some parallelized computations, I think I do not want to move the
+I/O to the local slave nodes' storage.
+
+First, if it is unpredictable (e.g., from load balancing) which node
+is going to access what part of the data, I must ensure all nodes can
+access any portion of the data. We could move all that data to the
+local disks, before any read is attempted, but this still requires
+coping a complete data frame (or equivalent) to each local disk. In
+contrast, with the shared disk approach, we leave on one copy in the
+shared disk and have each node access just the required column(s). For
+now I am playing with the first approach. The second requires more
+code and I do not see how it would be much faster.
+
+
+Second, even if the output of the computations is left on the local
+drives (non-shared disk), it will eventually need to be moved
+somewhere else where the master can collect and organize all that
+output. I can do that as the return object from, say, a parallelized
+apply, or I can leave it on the shared disk and let the master serve
+itself as needed. In my particular case, putting together an ffdf
+object in the master seems to be fast, as the ffdf only references ff
+files (created by the slaves) that live on the shared disk space. But
+when putting together the ffdf object those ff files do not actually
+need to be read in their entirety.
+
+
+Best,
+
+
+R.
+
+
+
+
+
+> - Perhaps running an RDBMS that knows how to better optimize incoming
+> ?client I/O requests.
+>
+> Or is your situation a bit different than the original poster's, and
+> your code is I/O limited even with just one node?
+>
+> --
+> Andrew Piskorski <atp at piskorski.com>
+> http://www.piskorski.com/
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+
+-- 
+Ramon Diaz-Uriarte
+Structural Biology and Biocomputing Programme
+Spanish National Cancer Centre (CNIO)
+http://ligarto.org/rdiaz
+Phone: +34-91-732-8000 ext. 3019
+
+
+From sdavis2 at mail.nih.gov  Mon Nov 16 13:13:08 2009
+From: sdavis2 at mail.nih.gov (Sean Davis)
+Date: Mon, 16 Nov 2009 07:13:08 -0500
+Subject: [R-sig-hpc] ff and parallel computing (multiple nodes,
+	shared 	disk)
+In-Reply-To: <624934630911160341j49133d8fm47aaf8d28bd98f9a@mail.gmail.com>
+References: <847EC80E-5E7D-46BD-B2FE-2FFD7461EBAC@jhsph.edu>
+	<20091114100257.GA40897@piskorski.com>
+	<624934630911160341j49133d8fm47aaf8d28bd98f9a@mail.gmail.com>
+Message-ID: <264855a00911160413i1589cf26t460ddd69fcf5907@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20091116/c24f668e/attachment.pl>
+
+From rdiaz02 at gmail.com  Tue Nov 17 13:01:47 2009
+From: rdiaz02 at gmail.com (Ramon Diaz-Uriarte)
+Date: Tue, 17 Nov 2009 13:01:47 +0100
+Subject: [R-sig-hpc] ff and parallel computing (multiple nodes,
+	shared 	disk)
+In-Reply-To: <264855a00911160413i1589cf26t460ddd69fcf5907@mail.gmail.com>
+References: <847EC80E-5E7D-46BD-B2FE-2FFD7461EBAC@jhsph.edu>
+	<20091114100257.GA40897@piskorski.com>
+	<624934630911160341j49133d8fm47aaf8d28bd98f9a@mail.gmail.com>
+	<264855a00911160413i1589cf26t460ddd69fcf5907@mail.gmail.com>
+Message-ID: <624934630911170401p65c80aa8l1588a1b1481ac6e3@mail.gmail.com>
+
+Dear Sean,
+
+
+
+On Mon, Nov 16, 2009 at 1:13 PM, Sean Davis <sdavis2 at mail.nih.gov> wrote:
+>
+>
+> On Mon, Nov 16, 2009 at 6:41 AM, Ramon Diaz-Uriarte <rdiaz02 at gmail.com>
+> wrote:
+>>
+>> On Sat, Nov 14, 2009 at 11:02 AM, Andrew Piskorski <atp at piskorski.com>
+>> wrote:
+>> > On Thu, Nov 12, 2009 at 04:29:34PM -0200, Benilton Carvalho wrote:
+>> >
+>> >> I wrote my own code to use NetCDF, which doesn't perform well when I
+>> >> need random access to the data.
+>> >
+>> > What sort of I/O numbers do you actually see?
+>> >
+>> > You're hitting a single shared disk server with random access IO
+>> > requests from multiple nodes? ?If so, isn't that probably the problem
+>> > right there? ?Random access is a disk speed killer. ?I wouldn't expect
+>>
+>> Yes. That is one part of the problem.
+>>
+>>
+>> > playing with NetCDF vs. SQLite vs. ff vs. bigmemory to make much
+>> > difference. ?Things I'd expect might help in that case would be:
+>> >
+>> > - Massively faster shared disk I/O (hardware upgrade).
+>> > - Moving I/O to the slave nodes.
+>>
+>>
+>> For some parallelized computations, I think I do not want to move the
+>> I/O to the local slave nodes' storage.
+>>
+>> First, if it is unpredictable (e.g., from load balancing) which node
+>> is going to access what part of the data, I must ensure all nodes can
+>> access any portion of the data. We could move all that data to the
+>> local disks, before any read is attempted, but this still requires
+>> coping a complete data frame (or equivalent) to each local disk. In
+>> contrast, with the shared disk approach, we leave on one copy in the
+>> shared disk and have each node access just the required column(s). For
+>> now I am playing with the first approach. The second requires more
+>> code and I do not see how it would be much faster.
+>>
+>>
+>> Second, even if the output of the computations is left on the local
+>> drives (non-shared disk), it will eventually need to be moved
+>> somewhere else where the master can collect and organize all that
+>> output. I can do that as the return object from, say, a parallelized
+>> apply, or I can leave it on the shared disk and let the master serve
+>> itself as needed. In my particular case, putting together an ffdf
+>> object in the master seems to be fast, as the ffdf only references ff
+>> files (created by the slaves) that live on the shared disk space. But
+>> when putting together the ffdf object those ff files do not actually
+>> need to be read in their entirety.
+>>
+>
+> Hi, Ramon.
+>
+> My reply below is strolling off-topic, but it gets to at least part of the
+> problem that you describe above.
+>
+> You might want to look into a general clustered file system such as lustre,
+> gluster, or GFS.? I can speak a bit to gluster, as we have used it a bit.
+
+Thanks for the suggestion!!
+
+
+> Basically, the file systems of several machines (for example, all the local
+> storage on the nodes) is consolidated, making a shared file system.? Since
+> this filesystem is shared over multiple machines, it is much less
+> susceptible to being overwhelmed by many data streams reading/writing at
+> once.? Furthermore, these clustered file systems can usually be made aware
+> of the concept of "local" storage being local, so there is a preference
+> during parallel storage to have the data go to a node-local storage rather
+> than being randomly distributed among all available nodes.? Gluster we found
+> to have the lowest setup cost (it runs as a FUSE plugin), but it still has
+> some bugs; that said, for a high-performance shared cluster scratch space,
+> we have had some success.? See here for more details:
+
+I am forwarding your email to our sys admins. From looking at the docs
+for Gluster, if I understand, FUSE can be run by non-root user, but we
+still would need the sys admins to set up the FUSE server and install
+Gluster system-wide.
+
+And then you mention scratch space, some bugs, and "some success". So
+you sound very cautious here. I guess that shared binaries, shared
+homes, etc, are not something you'd place in here?
+
+
+Best,
+
+R.
+
+
+
+>
+> http://en.wikipedia.org/wiki/List_of_file_systems#Distributed_file_systems
+>
+> Sean
+>
+>
+>>
+>> > - Perhaps running an RDBMS that knows how to better optimize incoming
+>> > ?client I/O requests.
+>> >
+>> > Or is your situation a bit different than the original poster's, and
+>> > your code is I/O limited even with just one node?
+>> >
+>> > --
+>> > Andrew Piskorski <atp at piskorski.com>
+>> > http://www.piskorski.com/
+>> >
+>> > _______________________________________________
+>> > R-sig-hpc mailing list
+>> > R-sig-hpc at r-project.org
+>> > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>> >
+>>
+>>
+>>
+>> --
+>> Ramon Diaz-Uriarte
+>> Structural Biology and Biocomputing Programme
+>> Spanish National Cancer Centre (CNIO)
+>> http://ligarto.org/rdiaz
+>> Phone: +34-91-732-8000 ext. 3019
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+>
+
+
+
+-- 
+Ramon Diaz-Uriarte
+Structural Biology and Biocomputing Programme
+Spanish National Cancer Centre (CNIO)
+http://ligarto.org/rdiaz
+Phone: +34-91-732-8000 ext. 3019
+
+
+From sdavis2 at mail.nih.gov  Tue Nov 17 13:16:29 2009
+From: sdavis2 at mail.nih.gov (Sean Davis)
+Date: Tue, 17 Nov 2009 07:16:29 -0500
+Subject: [R-sig-hpc] ff and parallel computing (multiple nodes,
+	shared 	disk)
+In-Reply-To: <624934630911170401p65c80aa8l1588a1b1481ac6e3@mail.gmail.com>
+References: <847EC80E-5E7D-46BD-B2FE-2FFD7461EBAC@jhsph.edu>
+	<20091114100257.GA40897@piskorski.com>
+	<624934630911160341j49133d8fm47aaf8d28bd98f9a@mail.gmail.com>
+	<264855a00911160413i1589cf26t460ddd69fcf5907@mail.gmail.com>
+	<624934630911170401p65c80aa8l1588a1b1481ac6e3@mail.gmail.com>
+Message-ID: <264855a00911170416g75b66549j6f4959d970deea3a@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20091117/341a1f96/attachment.pl>
+
+From rdiaz02 at gmail.com  Wed Nov 18 10:37:02 2009
+From: rdiaz02 at gmail.com (Ramon Diaz-Uriarte)
+Date: Wed, 18 Nov 2009 10:37:02 +0100
+Subject: [R-sig-hpc] ff and parallel computing (multiple nodes,
+	shared 	disk)
+In-Reply-To: <264855a00911170416g75b66549j6f4959d970deea3a@mail.gmail.com>
+References: <847EC80E-5E7D-46BD-B2FE-2FFD7461EBAC@jhsph.edu>
+	<20091114100257.GA40897@piskorski.com>
+	<624934630911160341j49133d8fm47aaf8d28bd98f9a@mail.gmail.com>
+	<264855a00911160413i1589cf26t460ddd69fcf5907@mail.gmail.com>
+	<624934630911170401p65c80aa8l1588a1b1481ac6e3@mail.gmail.com>
+	<264855a00911170416g75b66549j6f4959d970deea3a@mail.gmail.com>
+Message-ID: <624934630911180137m56c7935an4f7a31bafe241e8f@mail.gmail.com>
+
+On Tue, Nov 17, 2009 at 1:16 PM, Sean Davis <sdavis2 at mail.nih.gov> wrote:
+>
+>
+> On Tue, Nov 17, 2009 at 7:01 AM, Ramon Diaz-Uriarte <rdiaz02 at gmail.com>
+> wrote:
+>>
+>> Dear Sean,
+>>
+>>
+>>
+>> On Mon, Nov 16, 2009 at 1:13 PM, Sean Davis <sdavis2 at mail.nih.gov> wrote:
+>> >
+>> >
+>> > On Mon, Nov 16, 2009 at 6:41 AM, Ramon Diaz-Uriarte <rdiaz02 at gmail.com>
+>> > wrote:
+>> >>
+>> >> On Sat, Nov 14, 2009 at 11:02 AM, Andrew Piskorski <atp at piskorski.com>
+>> >> wrote:
+>> >> > On Thu, Nov 12, 2009 at 04:29:34PM -0200, Benilton Carvalho wrote:
+>> >> >
+>> >> >> I wrote my own code to use NetCDF, which doesn't perform well when I
+>> >> >> need random access to the data.
+>> >> >
+>> >> > What sort of I/O numbers do you actually see?
+>> >> >
+>> >> > You're hitting a single shared disk server with random access IO
+>> >> > requests from multiple nodes? ?If so, isn't that probably the problem
+>> >> > right there? ?Random access is a disk speed killer. ?I wouldn't
+>> >> > expect
+>> >>
+>> >> Yes. That is one part of the problem.
+>> >>
+>> >>
+>> >> > playing with NetCDF vs. SQLite vs. ff vs. bigmemory to make much
+>> >> > difference. ?Things I'd expect might help in that case would be:
+>> >> >
+>> >> > - Massively faster shared disk I/O (hardware upgrade).
+>> >> > - Moving I/O to the slave nodes.
+>> >>
+>> >>
+>> >> For some parallelized computations, I think I do not want to move the
+>> >> I/O to the local slave nodes' storage.
+>> >>
+>> >> First, if it is unpredictable (e.g., from load balancing) which node
+>> >> is going to access what part of the data, I must ensure all nodes can
+>> >> access any portion of the data. We could move all that data to the
+>> >> local disks, before any read is attempted, but this still requires
+>> >> coping a complete data frame (or equivalent) to each local disk. In
+>> >> contrast, with the shared disk approach, we leave on one copy in the
+>> >> shared disk and have each node access just the required column(s). For
+>> >> now I am playing with the first approach. The second requires more
+>> >> code and I do not see how it would be much faster.
+>> >>
+>> >>
+>> >> Second, even if the output of the computations is left on the local
+>> >> drives (non-shared disk), it will eventually need to be moved
+>> >> somewhere else where the master can collect and organize all that
+>> >> output. I can do that as the return object from, say, a parallelized
+>> >> apply, or I can leave it on the shared disk and let the master serve
+>> >> itself as needed. In my particular case, putting together an ffdf
+>> >> object in the master seems to be fast, as the ffdf only references ff
+>> >> files (created by the slaves) that live on the shared disk space. But
+>> >> when putting together the ffdf object those ff files do not actually
+>> >> need to be read in their entirety.
+>> >>
+>> >
+>> > Hi, Ramon.
+>> >
+>> > My reply below is strolling off-topic, but it gets to at least part of
+>> > the
+>> > problem that you describe above.
+>> >
+>> > You might want to look into a general clustered file system such as
+>> > lustre,
+>> > gluster, or GFS.? I can speak a bit to gluster, as we have used it a
+>> > bit.
+>>
+>> Thanks for the suggestion!!
+>>
+>>
+>> > Basically, the file systems of several machines (for example, all the
+>> > local
+>> > storage on the nodes) is consolidated, making a shared file system.
+>> > Since
+>> > this filesystem is shared over multiple machines, it is much less
+>> > susceptible to being overwhelmed by many data streams reading/writing at
+>> > once.? Furthermore, these clustered file systems can usually be made
+>> > aware
+>> > of the concept of "local" storage being local, so there is a preference
+>> > during parallel storage to have the data go to a node-local storage
+>> > rather
+>> > than being randomly distributed among all available nodes.? Gluster we
+>> > found
+>> > to have the lowest setup cost (it runs as a FUSE plugin), but it still
+>> > has
+>> > some bugs; that said, for a high-performance shared cluster scratch
+>> > space,
+>> > we have had some success.? See here for more details:
+>>
+>> I am forwarding your email to our sys admins. From looking at the docs
+>> for Gluster, if I understand, FUSE can be run by non-root user, but we
+>> still would need the sys admins to set up the FUSE server and install
+>> Gluster system-wide.
+>>
+>> And then you mention scratch space, some bugs, and "some success". So
+>> you sound very cautious here. I guess that shared binaries, shared
+>> homes, etc, are not something you'd place in here?
+>>
+>
+> The success has been in running I/O intensive applications like the Illumina
+> pipeline on as many as 60 processors.? Adding gluster to the mix nearly
+> halved the wall time to completely analyze a run (using an older Solexa
+> pipeline version).? Unfortunately, our experience has been that the system
+
+That is quite a speed increase!!
+
+> is not 100% stable (but has been more than 99%) and data loss bugs seem to
+> still be present (my only evidence is the gluster email list).? In short, I
+> wouldn't trust gluster with truly irreplaceable data.? On the other hand,
+> lustre (a totally unrelated project) is said to be running on many very
+> large clusters, but it requires a bit more work to set up and configure and
+> is not available for mac or windows, I don't believe.
+>
+
+I just looked at the page for lustre and the places/machines where it
+is installed gives a lot of reassurance. Not being available for
+windows or mac is not an issue for us.
+
+I'll try to play around with both, and see which one is best for us.
+
+Thanks again,
+
+R.
+
+
+
+
+
+> If you have the resources to try these (and possibly others) out, it is
+> certainly worth doing some research and testing before committing.
+>
+> Sean
+>
+>>
+>> >
+>> >
+>> > http://en.wikipedia.org/wiki/List_of_file_systems#Distributed_file_systems
+>> >
+>> > Sean
+>> >
+>> >
+>> >>
+>> >> > - Perhaps running an RDBMS that knows how to better optimize incoming
+>> >> > ?client I/O requests.
+>> >> >
+>> >> > Or is your situation a bit different than the original poster's, and
+>> >> > your code is I/O limited even with just one node?
+>> >> >
+>> >> > --
+>> >> > Andrew Piskorski <atp at piskorski.com>
+>> >> > http://www.piskorski.com/
+>> >> >
+>> >> > _______________________________________________
+>> >> > R-sig-hpc mailing list
+>> >> > R-sig-hpc at r-project.org
+>> >> > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>> >> >
+>> >>
+>> >>
+>> >>
+>> >> --
+>> >> Ramon Diaz-Uriarte
+>> >> Structural Biology and Biocomputing Programme
+>> >> Spanish National Cancer Centre (CNIO)
+>> >> http://ligarto.org/rdiaz
+>> >> Phone: +34-91-732-8000 ext. 3019
+>> >>
+>> >> _______________________________________________
+>> >> R-sig-hpc mailing list
+>> >> R-sig-hpc at r-project.org
+>> >> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>> >
+>> >
+>>
+>>
+>>
+>> --
+>> Ramon Diaz-Uriarte
+>> Structural Biology and Biocomputing Programme
+>> Spanish National Cancer Centre (CNIO)
+>> http://ligarto.org/rdiaz
+>> Phone: +34-91-732-8000 ext. 3019
+>
+>
+
+
+
+-- 
+Ramon Diaz-Uriarte
+Structural Biology and Biocomputing Programme
+Spanish National Cancer Centre (CNIO)
+http://ligarto.org/rdiaz
+Phone: +34-91-732-8000 ext. 3019
+
+
+From bcarvalh at jhsph.edu  Wed Nov 18 20:09:44 2009
+From: bcarvalh at jhsph.edu (Benilton Carvalho)
+Date: Wed, 18 Nov 2009 17:09:44 -0200
+Subject: [R-sig-hpc] Rmpi on Mac OS X 10.5.8 dual core machine
+Message-ID: <A868B6EE-8C72-4B7F-BADB-BE241A2F7E11@jhsph.edu>
+
+Hi,
+
+I decided to experiment with Rmpi on my dual core machine (Mac OS X  
+10.5.8).
+
+So, I try the usual:
+
+library(Rmpi)
+mpi.spawn.Rslaves()
+
+and let R "sit there"... I expected the R process to be idle, but for  
+my surprise it uses, at least, 70% of CPU.
+
+Is this an expected behavior? I'm currently assuming I'm missing  
+something obvious.
+
+Also, on a Mac OS X system, is Rmpi supposed to work without LAM?
+
+Hao Yu's page makes me think it is a requirement, but, on my system,  
+it found OpenMPI, so I didn't install LAM....
+
+Comments,
+
+b
+
+
+From francesco.pecci at univr.it  Thu Nov 19 09:53:24 2009
+From: francesco.pecci at univr.it (Francesco Pecci)
+Date: Thu, 19 Nov 2009 09:53:24 +0100
+Subject: [R-sig-hpc] StepAIC
+Message-ID: <4B050784.5060606@univr.it>
+
+I am trying to understand if is possible to calculate stepAIC in 
+parallel mode, using Rmpi, snow or other avilable libraries. I thank who 
+will give me indications.
+Francesco Pecci
+
+-- 
+Francesco Pecci
+Dipartimento di Scienze Economiche 
+Universit? di Verona 
+Viale dell'Universit?, 3 
+37129 Verona 
+tel +390458425454 
+fax +390458028529
+
+
+From danmcglinn at gmail.com  Thu Nov 19 16:19:30 2009
+From: danmcglinn at gmail.com (Daniel McGlinn)
+Date: Thu, 19 Nov 2009 10:19:30 -0500
+Subject: [R-sig-hpc] sfClusterMap
+Message-ID: <b9994a0e0911190719v646fa640h2603aead01330c1a@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20091119/12e0540b/attachment.pl>
+
+From brian at braverock.com  Thu Nov 19 17:06:51 2009
+From: brian at braverock.com (Brian G. Peterson)
+Date: Thu, 19 Nov 2009 10:06:51 -0600
+Subject: [R-sig-hpc] sfClusterMap
+In-Reply-To: <b9994a0e0911190719v646fa640h2603aead01330c1a@mail.gmail.com>
+References: <b9994a0e0911190719v646fa640h2603aead01330c1a@mail.gmail.com>
+Message-ID: <4B056D1B.7040304@braverock.com>
+
+Use the source Dan!
+
+ > sfClusterMap
+function (fun, ..., MoreArgs = NULL, RECYCLE = TRUE)
+stop("Currently no wrapper for clusterMap")
+<environment: namespace:snowfall>
+
+
+Daniel McGlinn wrote:
+> Dear list,
+>
+> I am attempting to use the function "sfClusterMap" in the snowfall package
+> which attempts to mimic the mapply function but in parallel. Unfortunately I
+> am recieving the following error:
+> Error in sfClusterMap(some.func, x.vals, y.vals) :
+>   Currently no wrapper for clusterMap
+>
+> Can anyone tell me if this function is simply defunct or if I am making a
+> mistake in my code?
+>
+> Thanks for your help in advance!
+> Sincerely,
+> Dan McGlinn
+>
+> #####################
+> library(snowfall)
+>
+> some.func<-function(x,y) sum(x,y)
+> x.vals<-1:10
+> y.vals<-1:10
+> mapply(some.func,x.vals,y.vals)
+>
+> ##attempt with sfClusterMap
+> sfInit(parallel=TRUE, cpus=2, type="SOCK")
+> sfExport(list=c("some.func","x.vals","y.vals"))
+> out.file<-sfClusterMap(some.func,x.vals,y.vals)
+>
+> ##returns the following error message:
+> Error in sfClusterMap(some.func, x.vals, y.vals) :
+>   Currently no wrapper for clusterMap
+>
+> 	[[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>   
+
+
+-- 
+Brian G. Peterson
+http://braverock.com/brian/
+Ph: 773-459-4973
+IM: bgpbraverock
+
+
+From rdiaz02 at gmail.com  Fri Nov 20 11:08:12 2009
+From: rdiaz02 at gmail.com (Ramon Diaz-Uriarte)
+Date: Fri, 20 Nov 2009 11:08:12 +0100
+Subject: [R-sig-hpc] bugs or strange interactions between multicore and ff
+Message-ID: <624934630911200208w201cd583ie80d2daa1633c506@mail.gmail.com>
+
+Dear All,
+
+I am observing strange interactions between the parallel function
+(library multicore) and library ff: the objects written by ff are
+wrong.
+
+- The problem shows up when the function passed to multicore produces
+printed output (e.g., "print" or "cat") AND multicore is called with
+argument "silent = TRUE".
+
+- The problem can be avoided if ff is forced to release the memory
+resources (using "close(ffobject)") BEFORE the print statement. See
+the difference between "my.f3" and "my.f4" below.
+
+So it seems that standard output is getting mixed with the memory
+mapped by ff before the cache is flushed.
+
+
+I am not sure if the bug is in "ff", or in "multicore", or in my usage
+of the combination.
+
+
+Code with reproducible examples follows. I see the problems in at
+least three different systems (all GNU/Linux, both i686 and x86-64; R
+2.10 patched --different versions--; latest versions of multicore and
+ff). Version information at end.
+
+Best,
+
+R.
+
+
+
+##### Examples
+
+## Beware: running the examples will leave a bunch of files named
+bugexample*.ff
+## under getwd()
+## vmode used does not matter; problems are seen with any vmode
+--though output differs
+
+library(ff)
+
+my.f1 <- function() { ## problems
+  vv <- ff(1:5, vmode = "integer", pattern = paste(getwd(),
+"/bugexample", sep = ""))
+  save(file = "vv.RData", vv)
+  print(2 * 2)
+}
+
+my.f2 <- function() { ## OK
+  vv <- ff(1:5, vmode = "integer", pattern = paste(getwd(),
+"/bugexample", sep = ""))
+  close(vv)
+  save(file = "vv.RData", vv)
+  print(2 * 2)
+}
+
+my.f3 <- function() { ## OK
+  vv <- ff(1:5, vmode = "integer", pattern = paste(getwd(),
+"/bugexample", sep = ""))
+  save(file = "vv.RData", vv)
+  close(vv)
+  print(2 * 2)
+}
+
+my.f4 <- function() { ## problems
+  vv <- ff(1:5, vmode = "integer", pattern = paste(getwd(),
+"/bugexample", sep = ""))
+  save(file = "vv.RData", vv)
+  print(2 * 2)
+  close(vv)
+}
+
+
+my.f5 <- function() { ## OK
+  vv <- ff(1:5, vmode = "integer", pattern = paste(getwd(),
+"/bugexample", sep = ""))
+  save(file = "vv.RData", vv)
+}
+
+
+library(multicore)
+
+## Problems
+parallel(my.f1(), silent = TRUE)
+collect()
+load("vv.RData"); open(vv); filename(vv); vv; rm(vv)
+
+## OK
+parallel(my.f2(), silent = TRUE)
+collect()
+load("vv.RData"); open(vv); filename(vv); vv; rm(vv)
+
+## OK
+parallel(my.f3(), silent = TRUE)
+collect()
+load("vv.RData"); open(vv); filename(vv); vv; rm(vv)
+
+
+## Problems
+parallel(my.f4(), silent = TRUE)
+collect()
+load("vv.RData"); open(vv); filename(vv); vv; rm(vv)
+
+## OK
+parallel(my.f5(), silent = TRUE)
+collect()
+load("vv.RData"); open(vv); filename(vv); vv; rm(vv)
+
+
+# OK
+parallel(my.f1(), silent = FALSE)
+collect()
+load("vv.RData"); open(vv); filename(vv); vv; rm(vv)
+
+
+
+
+### Library fork works OK
+
+library(fork)
+## OK
+pid <- fork(my.f1); wait(pid)
+load("vv.RData"); open(vv); filename(vv); vv; rm(vv)
+
+## OK
+pid <- fork(my.f2); wait(pid)
+load("vv.RData"); open(vv); filename(vv); vv; rm(vv)
+
+
+
+#################
+
+
+
+Version information: system 1:
+
+> version
+               _
+platform       i686-pc-linux-gnu
+arch           i686
+os             linux-gnu
+system         i686, linux-gnu
+status         Patched
+major          2
+minor          10.0
+year           2009
+month          11
+day            04
+svn rev        50311
+language       R
+version.string R version 2.10.0 Patched (2009-11-04 r50311)
+> packageDescription("multicore")$Version
+[1] "0.1-3"
+> packageDescription("ff")$Version
+[1] "2.1-1"
+
+
+Version information: system 2:
+> version
+               _
+platform       x86_64-unknown-linux-gnu
+arch           x86_64
+os             linux-gnu
+system         x86_64, linux-gnu
+status         Patched
+major          2
+minor          10.0
+year           2009
+month          11
+day            05
+svn rev        50317
+language       R
+version.string R version 2.10.0 Patched (2009-11-05 r50317)
+
+> packageDescription("multicore")$Version
+[1] "0.1-3"
+
+> packageDescription("ff")$Version
+[1] "2.1-1"
+
+
+
+Version information: system 3:
+> version
+               _
+platform       x86_64-unknown-linux-gnu
+arch           x86_64
+os             linux-gnu
+system         x86_64, linux-gnu
+status         Patched
+major          2
+minor          10.0
+year           2009
+month          11
+day            09
+svn rev        50375
+language       R
+version.string R version 2.10.0 Patched (2009-11-09 r50375)
+> packageDescription("multicore")$Version
+[1] "0.1-3"
+> packageDescription("ff")$Version
+[1] "2.1-1"
+
+
+
+
+
+-- 
+Ramon Diaz-Uriarte
+Structural Biology and Biocomputing Programme
+Spanish National Cancer Centre (CNIO)
+http://ligarto.org/rdiaz
+Phone: +34-91-732-8000 ext. 3019
+
+
+From vqnguyen at uci.edu  Sat Nov 21 09:21:34 2009
+From: vqnguyen at uci.edu (Vinh Nguyen)
+Date: Sat, 21 Nov 2009 00:21:34 -0800
+Subject: [R-sig-hpc] snow/snowfall: outputting iteration number
+Message-ID: <13c5a0ae0911210021y480606a6g7ee2e8ef4b6daecf@mail.gmail.com>
+
+hi all,
+
+in a loop, i normally output the iteration number every 10 or 100 to
+know my progress.  however, when doing parallel computing using
+snow/snowfall, putting the print() or cat() statement into the wrapper
+function does not output into the main R console.  does anyone know
+how one would be able to output the iteration (argument into the
+wrapper function from sfLapply) into the main console?
+
+thanks.
+
+vinh
+
+
+From brian at braverock.com  Sat Nov 21 11:28:39 2009
+From: brian at braverock.com (Brian G. Peterson)
+Date: Sat, 21 Nov 2009 04:28:39 -0600
+Subject: [R-sig-hpc] snow/snowfall: outputting iteration number
+In-Reply-To: <13c5a0ae0911210021y480606a6g7ee2e8ef4b6daecf@mail.gmail.com>
+References: <13c5a0ae0911210021y480606a6g7ee2e8ef4b6daecf@mail.gmail.com>
+Message-ID: <4B07C0D7.2030906@braverock.com>
+
+Vinh Nguyen wrote:
+> hi all,
+>
+> in a loop, i normally output the iteration number every 10 or 100 to
+> know my progress.  however, when doing parallel computing using
+> snow/snowfall, putting the print() or cat() statement into the wrapper
+> function does not output into the main R console.  does anyone know
+> how one would be able to output the iteration (argument into the
+> wrapper function from sfLapply) into the main console?
+>   
+Try using message() instead of print() or cat()
+
+Regards,
+
+    - Brian
+
+-- 
+Brian G. Peterson
+http://braverock.com/brian/
+Ph: 773-459-4973
+IM: bgpbraverock
+
+
+From vqnguyen at uci.edu  Sat Nov 21 21:59:28 2009
+From: vqnguyen at uci.edu (Vinh Nguyen)
+Date: Sat, 21 Nov 2009 12:59:28 -0800
+Subject: [R-sig-hpc] snow/snowfall: outputting iteration number
+In-Reply-To: <4B07C0D7.2030906@braverock.com>
+References: <13c5a0ae0911210021y480606a6g7ee2e8ef4b6daecf@mail.gmail.com> 
+	<4B07C0D7.2030906@braverock.com>
+Message-ID: <13c5a0ae0911211259i34595738s2685b09642304aaf@mail.gmail.com>
+
+hmm, tried message(iter) in my wrapper function, and nothing get's printed.
+
+my wrapper function is named Iteration() and takes in the iteration
+number as it's argument, and get's executed in snowfall as:
+result <- sfLapply( 1:nsim, Iteration, n=100)
+
+any other suggestions?
+
+vinh
+
+On Sat, Nov 21, 2009 at 2:28 AM, Brian G. Peterson <brian at braverock.com> wrote:
+> Vinh Nguyen wrote:
+>>
+>> hi all,
+>>
+>> in a loop, i normally output the iteration number every 10 or 100 to
+>> know my progress. ?however, when doing parallel computing using
+>> snow/snowfall, putting the print() or cat() statement into the wrapper
+>> function does not output into the main R console. ?does anyone know
+>> how one would be able to output the iteration (argument into the
+>> wrapper function from sfLapply) into the main console?
+>>
+>
+> Try using message() instead of print() or cat()
+>
+> Regards,
+>
+> ? - Brian
+>
+> --
+> Brian G. Peterson
+> http://braverock.com/brian/
+> Ph: 773-459-4973
+> IM: bgpbraverock
+>
+>
+>
+
+
+From matthieu.stigler at gmail.com  Mon Nov 23 11:03:17 2009
+From: matthieu.stigler at gmail.com (Matthieu Stigler)
+Date: Mon, 23 Nov 2009 11:03:17 +0100
+Subject: [R-sig-hpc] Multicore processors alternatives
+Message-ID: <111060c20911230203m18a09d34xaeac6a592b99a276@mail.gmail.com>
+
+Hi
+
+I'm sorry my question is a little bit off topic as it concerns
+hardware, but as I'm buying material in order to use it with R, I
+permit to ask the question.
+
+Having to buy a new laptop, I want one which enables to do parallel
+computation. Simplest solution would be to have an intel dual core,
+but I would be interested in having more computing power. Solutions
+would be:
+
+-the Intel core i7 processor, which has 4 cores/8 threads, and would
+increase the price of the laptop by around 500$.
+-the AMD Phenom II X4, with 4 cores and cheaper, but less available on laptops.
+-...
+
+Did anyone use R parallel packages on machines with such processors?
+Are some special complications likely to arise compared to a Intel
+dual core? Would for example the multicore package be able to run on
+those 8 threads with the Intel i7 or would be only 4 cores effective?
+Any advice otherwise on alternative solutions? Just want to make sure
+not to spend supplementary 500$ for nothing :-)
+
+Thanks a lot!!
+
+Matthieu Stigler
+
+
+From mvalle at cscs.ch  Mon Nov 23 11:31:45 2009
+From: mvalle at cscs.ch (Mario Valle)
+Date: Mon, 23 Nov 2009 11:31:45 +0100
+Subject: [R-sig-hpc] Multicore processors alternatives
+Message-ID: <4B0A6491.5010308@cscs.ch>
+
+Hi Matthieu,
+off topic on off topic. On my laptop under Windows Vista I have problems with 'multicore'.
+There are problems in shutting down the worker processes. So I switched to snowfall+snow
+using sockets. No problem since then with my two cores laptop, except the temperature
+rise. Somewhere else I read that Windows is not very good at this kind of parallel
+processing (R mail list? OpenSceneGraph mail list?), so I use the laptop only for testing
+and the serious jobs moved to a Linux cluster (snowfall+snow+Rmpi on 64 cores).
+Hope it helps. Ciao!
+				mario
+
+-- 
+Ing. Mario Valle
+Data Analysis and Visualization Group            | http://www.cscs.ch/~mvalle
+Swiss National Supercomputing Centre (CSCS)      | Tel:  +41 (91) 610.82.60
+v. Cantonale Galleria 2, 6928 Manno, Switzerland | Fax:  +41 (91) 610.82.82
+
+
+From mvalle at cscs.ch  Mon Nov 23 11:45:13 2009
+From: mvalle at cscs.ch (Mario Valle)
+Date: Mon, 23 Nov 2009 11:45:13 +0100
+Subject: [R-sig-hpc] snowfall: missing MPI node
+Message-ID: <4B0A67B9.6040807@cscs.ch>
+
+
+Hello,
+I don't know if the question pertains to Rmpi, snow or snowfall.
+
+I run my job on Linux by:
+
+    mpirun -np N -hostfile $PBS_NODEFILE RMPISNOW -f my-script.r --slave
+
+First thing the script load Rmpi and snowfall.
+
+Then in the snowfall sfInit call I have to specify one less CPU respect to
+the mpirun call:
+
+    sfInit(parallel=TRUE, cpus=N-1, type="MPI")
+
+otherwise I receive an error similar to: "cluster size N-1 already
+running" (sorry I don't remember the exact message)
+
+Is this normal? If yes and I want to call my script with --cpus
+option I have to resort to inelegant shell scripting to obtain N-1 from
+the -mp argument.
+Another alternative could be to obtain in the script the number of
+processes (-np #) requested to mpirun. Is it possible?
+
+Thanks for your time!
+                                              mario
+
+-- 
+Ing. Mario Valle
+Data Analysis and Visualization Group            | http://www.cscs.ch/~mvalle
+Swiss National Supercomputing Centre (CSCS)      | Tel:  +41 (91) 610.82.60
+v. Cantonale Galleria 2, 6928 Manno, Switzerland | Fax:  +41 (91) 610.82.82
+
+

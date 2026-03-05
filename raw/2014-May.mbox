@@ -1,0 +1,275 @@
+From christian.kamenik at astra.admin.ch  Wed May  7 16:58:57 2014
+From: christian.kamenik at astra.admin.ch (christian.kamenik at astra.admin.ch)
+Date: Wed, 7 May 2014 14:58:57 +0000
+Subject: [R-sig-hpc] Trouble with subset.ff
+In-Reply-To: <5361731B.6050807@web.de>
+References: <F3DDE626408063448975429A27B423DC385388B5@sb00114a.adb.intra.admin.ch>
+	<5361731B.6050807@web.de>
+Message-ID: <F3DDE626408063448975429A27B423DC3E3601C5@sb00114a.adb.intra.admin.ch>
+
+Jens,
+
+I tested and implemented your code - works like a charm!
+
+Many thanks
+Christian
+
+
+-----Urspr?ngliche Nachricht-----
+Von: "Dr. Jens Oehlschl?gel" [mailto:joehl at web.de] 
+Gesendet: Donnerstag, 1. Mai 2014 00:03
+An: Kamenik Christian ASTRA
+Cc: r-sig-hpc at r-project.org
+Betreff: Re: [R-sig-hpc] Trouble with subset.ff
+
+Christian,
+
+1. package ff has no subset method for ff or ffdf. ffbase has, but that is creating a physical copy of the subsetted  object on disk, which is expensive, is that what you want?
+
+2. indexing with logical ff is neither implemented nor said to be implemented, only indexing with integer ff
+
+3. the recommended way of doing logical indexing of ff or ffdf is using bit vectors. For converting your logical ff to bit you can use
+as.bit(logical_ff[]) or a chunked version thereof, consider
+
+l <- sample(c(FALSE,TRUE), 100, TRUE)
+f <- as.ff(l)
+b <- bit(length(f))
+for (i in chunk(f)){
+  b[i] <- f[i]
+}
+identical(as.logical(b), l)
+f[b]
+
+
+Jens
+
+Am 23.04.2014 14:54, schrieb christian.kamenik at astra.admin.ch:
+> Dear all
+>
+> I am having trouble with subsetting an ffdf object, hopefully somebody can help...
+>
+> I have an index, which is a ff object of vmode "logical":
+>
+>> index.SAS
+> ff (open) logical length=4977231 (4977231)
+>        [1]       [2]       [3]       [4]       [5]       [6]       [7]       [8]           [4977224] [4977225] [4977226] [4977227] [4977228] [4977229]
+>       TRUE      TRUE      TRUE      TRUE      TRUE      TRUE      TRUE      TRUE         :      TRUE      TRUE      TRUE      TRUE      TRUE      TRUE
+> [4977230] [4977231]
+>       TRUE      TRUE
+>
+> I would like to use this index to subset the ffdf object "data.SAS". 
+> The number of rows in data.SAS equals the length of index.SAS. 
+> However, the command
+>
+>
+>> Missing.data <- subset(data.SAS, !index.SAS)
+>
+>
+> gives me the following error:
+>
+> Error in ffdf(x = x) : ffdf components must be atomic ff objects
+>
+> A similar command also results in an error:
+>
+>> Missing.data <- data.SAS[!index.SAS,]
+>
+> Error: vmode(index) == "integer" is not TRUE
+>
+> I do not want to use "index.SAS[]" (which works in many cases, but sometimes crashes), because - as far as I understand - this will cause trouble with really large index vectors (I would prefer using ff objects).
+>
+> So I came up with the following syntax, which seems to work:
+>
+>> Missing.data <- data.SAS[ffwhich(index.SAS,index.SAS==FALSE),]
+>
+> ...I am just not sure if this is the right approach.
+>
+> I am running
+>
+>
+> platform       i386-w64-mingw32
+>
+> arch           i386
+>
+> os             mingw32
+>
+> system         i386, mingw32
+>
+> status
+>
+> major          3
+>
+> minor          0.3
+>
+> year           2014
+>
+> month          03
+>
+> day            06
+>
+> svn rev        65126
+>
+> language       R
+>
+> version.string R version 3.0.3 (2014-03-06)
+>
+> nickname       Warm Puppy
+>
+>
+> with ffbase_0.11.3 and ff_2.2-12
+>
+>
+> Many thanks in advance
+> Christian
+>
+> 	[[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From ahschulz at ifib.de  Fri May 16 09:31:37 2014
+From: ahschulz at ifib.de (Arne Hendrik Schulz)
+Date: Fri, 16 May 2014 07:31:37 +0000
+Subject: [R-sig-hpc] Rmpi: -lopa parameter on compiling needed? Works
+ without
+In-Reply-To: <d0c15ab30bf80fc17045ec3759e6626e.squirrel@www.stats.uwo.ca>
+References: <039f2517ec064959b999b21f835146fc@DB4PR03MB572.eurprd03.prod.outlook.com>,
+	<d0c15ab30bf80fc17045ec3759e6626e.squirrel@www.stats.uwo.ca>
+Message-ID: <1400225492815.64829@ifib.de>
+
+Dear Hao,
+after getting some help from Cray directly, Rmpi compiles and works perfectly.
+I had to comment out line 3786 in configure, so that there won't be any given parameter.
+#PKG_LIBS="-L${MPI_LIBPATH} -lmpich_cray_default64 -lmpl -lopa ${MPI_LIBS}"
+Additionally, I had to switch to the gnu-environement and build the C-Code using cc (Cray's own wrapper, cf [1]) instead of gcc. My whole command looks like this:
+MAKEFLAGS="CC=cc" R2/bin/R CMD INSTALL Rmpi_0.6-4_cray.tar.gz --configure-args="--with-mpi=$MPICH_DIR --with-Rmpi-type=CRAY" --no-test-load
+
+If you still run into error, you have to build R again using cc, CC and ftn instead of gcc, cpp and gfortran. Nevertheless, my setup worked like this.
+
+Kind regards
+Arne
+
+
+[1] http://docs.cray.com/books/004-2179-001/html-004-2179-001/lymwlrwh.html
+________________________________________
+Von: Hao Yu <hyu at stats.uwo.ca>
+Gesendet: Donnerstag, 17. April 2014 18:44
+An: Arne Hendrik Schulz
+Cc: r-sig-hpc at r-project.org
+Betreff: Re: [R-sig-hpc] Rmpi: -lopa parameter on compiling needed? Works without
+
+Hi Arne,
+
+Last year, I was given an access of a Cray cluster to make Rmpi work.
+After many tries and errors, -lmpich_cray_default64 -lmpl -lopa were used
+eventually. Whether -lopa is necessary or not for other Cray cluster, I
+have no answer. But it is good to know that some Cray clusters, -lopa is
+not necessary.
+
+Hao
+
+Arne Hendrik Schulz wrote:
+> Hi all,
+> I am using the current development version of Rmpi (0.6-4) on a Cray
+> Cluster. The problem is that it does not compile with the -lopa parameter
+> as
+> opa.c/libopa.c is not installed on the cluster (see attachted output
+> below).
+> Compiling Rmpi without the -lopa parameter works and using the cluster
+> with
+> MPI works, too. Is it really necessary to include libopa? I cannot see any
+> drawbacks so far.
+>
+> Kind regards,
+> Arne
+>
+> P.S.: If anyone would like to test without -lopa, I uploaded a branch of
+> Rmpi-0.6-4: http://www.ahschulz.de/pub/R/packages/Rmpi_0.6-4_branch.tar.gz
+> --with-Rmpi-type=CRAY uses the -lopa parameter,
+> --with-Rmpi-type=CRAY_NOLOPA
+> dies not.
+>
+> Installing Rmpi with -lopa:
+> R/bin/R CMD INSTALL temp/packages/Rmpi_0.6-4.tar.gz
+> --configure-args="--with-Rmpi-include=/opt/cray/mpt/6.1.1/gni/mpich2-cray64/
+> 81/include
+> --with-Rmpi-libpath=/opt/cray/mpt/6.1.1/gni/mpich2-cray64/81/lib
+> --with-Rmpi-type=CRAY" --no-test-load
+> * installing to library '/gfs1/work/hbmahs32/R/lib64/R/library'
+> * installing *source* package 'Rmpi' ...
+> checking for openpty in -lutil... no
+> checking for main in -lpthread... no
+> configure: creating ./config.status
+> config.status: creating src/Makevars
+> ** libs
+> (...)
+> gcc -std=gnu99 -shared -L/usr/local/lib64 -o Rmpi.so RegQuery.o Rmpi.o
+> conversion.o internal.o -L/opt/cray/mpt/6.1.1/gni/mpich2-cray64/81/lib
+> -lmpich_cray_default64 -lmpl -lopa
+> /usr/bin/ld: cannot find -lopa
+> collect2: error: ld returned 1 exit status
+> make: *** [Rmpi.so] Error 1
+> ERROR: compilation failed for package 'Rmpi'
+>
+>
+> Installing Rmpi without -lopa
+> R/bin/R CMD INSTALL temp/packages/Rmpi_0.6-4_branch.tar.gz
+> --configure-args="--with-Rmpi-include=/opt/cray/mpt/6.1.1/gni/mpich2-cray64/
+> 81/include
+> --with-Rmpi-libpath=/opt/cray/mpt/6.1.1/gni/mpich2-cray64/81/lib
+> --with-Rmpi-type=CRAY_NOLOPA" --no-test-load
+> * installing to library '/gfs1/work/hbmahs32/R/lib64/R/library'
+> * installing *source* package 'Rmpi' ...
+> checking for openpty in -lutil... no
+> checking for main in -lpthread... no
+> configure: creating ./config.status
+> config.status: creating src/Makevars
+> ** libs
+> (...)
+> gcc -std=gnu99 -shared -L/usr/local/lib64 -o Rmpi.so RegQuery.o Rmpi.o
+> conversion.o internal.o -L/opt/cray/mpt/6.1.1/gni/mpich2-cray64/81/lib
+> -lmpich_cray_default64 -lmpl
+> installing to /gfs1/work/hbmahs32/R/lib64/R/library/Rmpi/libs
+> ** R
+> ** demo
+> ** inst
+> ** preparing package for lazy loading
+> ** help
+> *** installing help indices
+> ** building package indices
+> * DONE (Rmpi)
+>
+> --
+> Arne Hendrik Schulz
+>
+> ifib: Institute for Information Managment Bremen
+> Am Fallturm 1 (entrance F)
+> 28359 Bremen
+> Germany
+>
+> Tel.: +49 (0)421 218 56585
+> Fax: +49 (0)421 218 56599
+> E-Mail: ahschulz at ifib.de
+>
+> Web: www.ifib.de
+>
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+--
+Department of Statistics & Actuarial Sciences
+Office Phone#:(519)-661-3622
+Fax Phone#:(519)-661-3813
+The University of Western Ontario
+London, Ontario N6A 5B7
+http://www.stats.uwo.ca/yu
+
+

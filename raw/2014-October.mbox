@@ -1,0 +1,488 @@
+From rfajriyah at yahoo.com  Fri Oct  3 20:24:02 2014
+From: rfajriyah at yahoo.com (Rohmatul Fajriyah)
+Date: Fri, 3 Oct 2014 18:24:02 +0000 (UTC)
+Subject: [R-sig-hpc] suggestion in parallelisation, please.
+Message-ID: <1518216216.369140.1412360642891.JavaMail.yahoo@jws10712.mail.gq1.yahoo.com>
+
+Dear All,
+I am doing simulation in R and using parallel package in it.As some inputs (M1, M2, and M3) get larger then the simulation getting slow.
+I really appreciate if anyone wants to give me ?suggestion how to make the paralellization better in my program (as below),since I still learn how to do it.
+Apologise if this is not an appropriate place to ask some question/suggestion.
+Thank you very much in advance.
+With kind regards,Rohmatul
+===========================================sdata<-function(M3,k,me,sx,sy){? ? a<-matrix(0,ncol=M3,nrow=2*k)? ? for (i in 1: M3)? ? {? ? ? a[,i]<-rbind(rnorm(k,mean=me,sd=sx),rnorm(k,mean=me,sd=sy))? ? }? ? return(a)? }Xt<-sdata(10000,25,0,1)X<-as.list(data.frame(Xt))f1<-function(x,M1,M2,n){? X2<-x[1:n]? Y2<-x[(n+1):(2*n)]? Mx<-mean(X2)? Vx<-var(X2)? My<-mean(Y2)? Vy<-var(Y2)?? Rac0=seq(0,0,length=M1)? for (i in 1:M1)? {?? ? Z10=seq(0,0,length=M2)? ? Z20=seq(0,0,length=M2)? ? for (j in 1:M2)? ? {? ? ? x0=rnorm(n,mean=Mx,sd=Sx)? ? ? y0=rnorm(n,mean=My,sd=Sy)? ? ? mx0=mean(x0)? ? ? Vx0=var(x0)? ? ? my0=mean(y0)? ? ? Vy0=var(y0)? ? ? Z10[j]= (Vx0/Vx)+(my0-mx0)? ? ? Z20[j]= (Vy0/Vy)+(my0-mx0)?? ? }? ? Z10<-rank(Z10)/M1? ? Z20<-rank(Z20)/M1? ? Rmc0<-summary(lm(Z10~Z20))? ? Rac0[i]<-Rmc0[[8]]? }?? cat(Rac0,"\n")}
+library(parallel)co<-detectCores()
+sink("~/Documents/try0.R",append=TRUE)out<-mclapply(X,FUN=f1,M1=10000,M2=1000,n=25,mc.cores=(co-1))sink()
+
+
+	[[alternative HTML version deleted]]
+
+
+From rfajriyah at yahoo.com  Sat Oct  4 16:13:32 2014
+From: rfajriyah at yahoo.com (Rohmatul Fajriyah)
+Date: Sat, 4 Oct 2014 14:13:32 +0000 (UTC)
+Subject: [R-sig-hpc] link of the program for the suggestion of
+	parallelisation
+Message-ID: <1438730910.145825.1412432012373.JavaMail.yahoo@jws10793.mail.gq1.yahoo.com>
+
+Dear All,
+It seems the program was broken.Here?is the link of the program to make it more clear.
+Thank you very much in advance.
+With kind regards,Rohmatul
+	[[alternative HTML version deleted]]
+
+
+From sluedtke at gfz-potsdam.de  Wed Oct 15 11:11:55 2014
+From: sluedtke at gfz-potsdam.de (=?UTF-8?B?U3RlZmFuIEzDvGR0a2U=?=)
+Date: Wed, 15 Oct 2014 11:11:55 +0200
+Subject: [R-sig-hpc] foreach on HPC
+Message-ID: <543E3A5B.6090507@gfz-potsdam.de>
+
+Dear friends,
+
+we run an application on a HPC using the foreach package linked with
+doMPI. Each iteration is quite RAM hungry, so we have been touching the
+limit of 128GB. At the moment, the admin is figuring out whether an "out
+of memory" killed the job or not, so apparently it did not finish
+successfully.
+
+Now coming to my question: A couple of iterations run fine and I was
+checking the load of the host every now and then using "htop". I was
+observing that htop listed R processes that did not use any cpu at all
+but have been occupying up to 4% of RAM. So, what are these processes?
+Do I still see finished iterations that eat RAM from the system, and if
+so, how do I get rid of them??
+
+Thanks in advance!
+
+Stefan
+
+
+-- 
+Stefan L?dtke
+
+Section 5.4-  Hydrology
+Tel.: +49 331 288 2821 <https://rz-vm54.gfz-potsdam.de:443>
+Fax: +49 331 288 1570 <https://rz-vm54.gfz-potsdam.de:443>
+Email: sluedtke at gfz-potsdam.de
+
+Helmholtz-Zentrum Potsdam
+Deutsches GeoForschungsZentrum GFZ
+(GFZ German Research Centre for Geoscience)
+Stiftung des ?ff. Rechts Land Brandenburg
+Telegrafenberg, 14473 Potsdam
+-------------------
+
+PGP Public Key: http://bit.ly/13d9Sca
+
+
+From brian at braverock.com  Wed Oct 15 11:46:54 2014
+From: brian at braverock.com (Brian G. Peterson)
+Date: Wed, 15 Oct 2014 04:46:54 -0500
+Subject: [R-sig-hpc] foreach on HPC
+In-Reply-To: <543E3A5B.6090507@gfz-potsdam.de>
+References: <543E3A5B.6090507@gfz-potsdam.de>
+Message-ID: <543E428E.3060306@braverock.com>
+
+On 10/15/2014 04:11 AM, Stefan L?dtke wrote:
+> Dear friends,
+>
+> we run an application on a HPC using the foreach package linked with
+> doMPI. Each iteration is quite RAM hungry, so we have been touching the
+> limit of 128GB. At the moment, the admin is figuring out whether an "out
+> of memory" killed the job or not, so apparently it did not finish
+> successfully.
+>
+> Now coming to my question: A couple of iterations run fine and I was
+> checking the load of the host every now and then using "htop". I was
+> observing that htop listed R processes that did not use any cpu at all
+> but have been occupying up to 4% of RAM. So, what are these processes?
+> Do I still see finished iterations that eat RAM from the system, and if
+> so, how do I get rid of them??
+
+If you're on a single machine, you will have much more efficient RAM 
+usage if you use doMC or doParallel with a fork cluster than using doMPI.
+
+The workers in an MPI cluster will not be torn down and released until 
+everything is done in an MPI cluster.  The fork cluster is more efficient.
+
+If you're on multiple machines, then doMPI or doRedis (or zmq or 
+similar) are necessary, but on one machine fork will have far less overhead.
+
+Regards,
+
+Brian
+
+-- 
+Brian G. Peterson
+http://braverock.com/brian/
+Ph: 773-459-4973
+IM: bgpbraverock
+
+
+From sluedtke at gfz-potsdam.de  Wed Oct 15 13:41:13 2014
+From: sluedtke at gfz-potsdam.de (=?UTF-8?B?U3RlZmFuIEzDvGR0a2U=?=)
+Date: Wed, 15 Oct 2014 13:41:13 +0200
+Subject: [R-sig-hpc] foreach on HPC
+In-Reply-To: <543E428E.3060306@braverock.com>
+References: <543E3A5B.6090507@gfz-potsdam.de> <543E428E.3060306@braverock.com>
+Message-ID: <543E5D59.7000004@gfz-potsdam.de>
+
+Hi,
+
+thanks for your answer. I am aware of this difference, but on a long
+term we want to use multiple node, thus MPI is necessary.
+
+Cheers,
+
+stefan
+
+On 10/15/2014 11:46 AM, Brian G. Peterson wrote:
+> On 10/15/2014 04:11 AM, Stefan L?dtke wrote:
+>> Dear friends,
+>>
+>> we run an application on a HPC using the foreach package linked with
+>> doMPI. Each iteration is quite RAM hungry, so we have been touching the
+>> limit of 128GB. At the moment, the admin is figuring out whether an "out
+>> of memory" killed the job or not, so apparently it did not finish
+>> successfully.
+>>
+>> Now coming to my question: A couple of iterations run fine and I was
+>> checking the load of the host every now and then using "htop". I was
+>> observing that htop listed R processes that did not use any cpu at all
+>> but have been occupying up to 4% of RAM. So, what are these processes?
+>> Do I still see finished iterations that eat RAM from the system, and if
+>> so, how do I get rid of them??
+> 
+> If you're on a single machine, you will have much more efficient RAM
+> usage if you use doMC or doParallel with a fork cluster than using doMPI.
+> 
+> The workers in an MPI cluster will not be torn down and released until
+> everything is done in an MPI cluster.  The fork cluster is more efficient.
+> 
+> If you're on multiple machines, then doMPI or doRedis (or zmq or
+> similar) are necessary, but on one machine fork will have far less
+> overhead.
+> 
+> Regards,
+> 
+> Brian
+> 
+
+-- 
+Stefan L?dtke
+
+Section 5.4-  Hydrology
+Tel.: +49 331 288 2821
+Fax: +49 331 288 1570
+Email: sluedtke at gfz-potsdam.de
+
+Helmholtz-Zentrum Potsdam
+Deutsches GeoForschungsZentrum GFZ
+(GFZ German Research Centre for Geoscience)
+Stiftung des ?ff. Rechts Land Brandenburg
+Telegrafenberg, 14473 Potsdam
+-------------------
+
+PGP Public Key: http://bit.ly/13d9Sca
+
+
+From sluedtke at gfz-potsdam.de  Wed Oct 15 21:29:48 2014
+From: sluedtke at gfz-potsdam.de (=?UTF-8?B?U3RlZmFuIEzDvGR0a2U=?=)
+Date: Wed, 15 Oct 2014 21:29:48 +0200
+Subject: [R-sig-hpc] (R)mpi and '<U+FEFF>'
+Message-ID: <543ECB2C.5040204@gfz-potsdam.de>
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+Dear friends,
+
+I got kind of weird problem and no idea how to approach it. First,
+what I do.
+
+Again, on a HPC with Rmpi we run a script that does, at very first,
+fetches some data from a PostGreSQL DB. The SQL query is read from a
+file via 'readLines()'.
+
+What does work.
+
+1) the query itself from psql or pgadmin.
+2) the query within the R -script on my local machine and on the cluster
+
+but (and that is the part why I am writing to the list), as soon as
+the number of requested cores is that large, that batch system (lsf in
+this case) spread the tasks over 2 host, the script fails.
+
+I tried with pure Rmpi, doMPI and foreach and RODBCext and RPostGreSQL
+and always encountered the same problem.
+
+Comming back to my subject stated above, the error is:
+
+ERROR:  syntax error at or near "<U+FEFF>WITH"
+
+where my actual query starts with 'WITH'.
+
+Those guys ...
+http://postgresql.1045698.n5.nabble.com/BUG-6271-psql-f-reporting-unexpected-syntax-errors-on-first-command-td4940320.html
+
+.... talk about a BOM at the beginning of the line, but somehow this
+BOM must be introduced to my file by MPI or Rmpi or whatever .. I have
+no idea.
+
+So, any hint is very welcome.
+
+Stefan
+
+
+- --
+Stefan L?dtke
+
+Section 5.4-  Hydrology
+Tel.: +49 331 288 2821 <https://rz-vm54.gfz-potsdam.de:443>
+Fax: +49 331 288 1570 <https://rz-vm54.gfz-potsdam.de:443>
+Email: sluedtke at gfz-potsdam.de
+
+Helmholtz-Zentrum Potsdam
+Deutsches GeoForschungsZentrum GFZ
+(GFZ German Research Centre for Geoscience)
+Stiftung des ?ff. Rechts Land Brandenburg
+Telegrafenberg, 14473 Potsdam
+- -------------------
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.11 (GNU/Linux)
+
+iQEcBAEBAgAGBQJUPssnAAoJEB5GAbKcg+D8LEIIAL3hxnOdjMVAIBYldP6bcOqk
+A2/CJ40luKkx3wVOxBEYwXgKnt+7PEWGS3q6/gEdalvH0nskpm8cThGxhjnfPz6w
+sdQKPQzq3SpPv6RTOchohXWRDKcyPWIZOAenJu05QXvnYenmj/NIWCAQKUb7ad+8
+0N4o6a/ITAc8x2nfuc6H+EJmxSn79YW/PJRNgmemOedray3FT9HtTx+LcFmsTBlD
+H0DkSL+0YJsbssRg7I56JOy3HzM9k3zZN8w/vXFejW56A0aLREB4245SlaAulKrk
+sSY3Alz1sKr0GtDFjJBdEacsbzZCpoYuEOSpOv6y/clw6Q5JQxy+Q7c2l17p6sY=
+=FDkr
+-----END PGP SIGNATURE-----
+
+
+From jpolmsted at gmail.com  Wed Oct 15 23:21:06 2014
+From: jpolmsted at gmail.com (Jonathan Olmsted)
+Date: Wed, 15 Oct 2014 17:21:06 -0400
+Subject: [R-sig-hpc] (R)mpi and '<U+FEFF>'
+In-Reply-To: <543ECB2C.5040204@gfz-potsdam.de>
+References: <543ECB2C.5040204@gfz-potsdam.de>
+Message-ID: <CABMO4ouYsKXbm=Nsog9bhmTr1zS+z-=WCp7XV7=XDRcsAS+XOw@mail.gmail.com>
+
+Hi, Stefan.
+
+I can't replicate the BOM showing up that way even when I'm using a file
+which I'm deliberately inserting a BOM into, so this is all speculation...
+
+But
+?wouldn't?
+?
+ just strip
+?ping?
+leading "<U+FEFF>" from the
+? ?first element of the vector do the trick? This doesn't resolve the
+reason for the mysterious BOM; that might require more info about platforms
+and versions.
+
+-Jonathan
+
+On Wed, Oct 15, 2014 at 3:29 PM, Stefan L?dtke <sluedtke at gfz-potsdam.de>
+wrote:
+
+> -----BEGIN PGP SIGNED MESSAGE-----
+> Hash: SHA1
+>
+> Dear friends,
+>
+> I got kind of weird problem and no idea how to approach it. First,
+> what I do.
+>
+> Again, on a HPC with Rmpi we run a script that does, at very first,
+> fetches some data from a PostGreSQL DB. The SQL query is read from a
+> file via 'readLines()'.
+>
+> What does work.
+>
+> 1) the query itself from psql or pgadmin.
+> 2) the query within the R -script on my local machine and on the cluster
+>
+> but (and that is the part why I am writing to the list), as soon as
+> the number of requested cores is that large, that batch system (lsf in
+> this case) spread the tasks over 2 host, the script fails.
+>
+> I tried with pure Rmpi, doMPI and foreach and RODBCext and RPostGreSQL
+> and always encountered the same problem.
+>
+> Comming back to my subject stated above, the error is:
+>
+> ERROR:  syntax error at or near "<U+FEFF>WITH"
+>
+> where my actual query starts with 'WITH'.
+>
+> Those guys ...
+>
+> http://postgresql.1045698.n5.nabble.com/BUG-6271-psql-f-reporting-unexpected-syntax-errors-on-first-command-td4940320.html
+>
+> .... talk about a BOM at the beginning of the line, but somehow this
+> BOM must be introduced to my file by MPI or Rmpi or whatever .. I have
+> no idea.
+>
+> So, any hint is very welcome.
+>
+> Stefan
+>
+>
+> - --
+> Stefan L?dtke
+>
+> Section 5.4-  Hydrology
+> Tel.: +49 331 288 2821 <https://rz-vm54.gfz-potsdam.de:443>
+> Fax: +49 331 288 1570 <https://rz-vm54.gfz-potsdam.de:443>
+> Email: sluedtke at gfz-potsdam.de
+>
+> Helmholtz-Zentrum Potsdam
+> Deutsches GeoForschungsZentrum GFZ
+> (GFZ German Research Centre for Geoscience)
+> Stiftung des ?ff. Rechts Land Brandenburg
+> Telegrafenberg, 14473 Potsdam
+> - -------------------
+>
+> -----BEGIN PGP SIGNATURE-----
+> Version: GnuPG v1.4.11 (GNU/Linux)
+>
+> iQEcBAEBAgAGBQJUPssnAAoJEB5GAbKcg+D8LEIIAL3hxnOdjMVAIBYldP6bcOqk
+> A2/CJ40luKkx3wVOxBEYwXgKnt+7PEWGS3q6/gEdalvH0nskpm8cThGxhjnfPz6w
+> sdQKPQzq3SpPv6RTOchohXWRDKcyPWIZOAenJu05QXvnYenmj/NIWCAQKUb7ad+8
+> 0N4o6a/ITAc8x2nfuc6H+EJmxSn79YW/PJRNgmemOedray3FT9HtTx+LcFmsTBlD
+> H0DkSL+0YJsbssRg7I56JOy3HzM9k3zZN8w/vXFejW56A0aLREB4245SlaAulKrk
+> sSY3Alz1sKr0GtDFjJBdEacsbzZCpoYuEOSpOv6y/clw6Q5JQxy+Q7c2l17p6sY=
+> =FDkr
+> -----END PGP SIGNATURE-----
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+
+-- 
+
+J.P. Olmsted
+j.p.olmsted at gmail.com
+
+	[[alternative HTML version deleted]]
+
+
+From sluedtke at gfz-potsdam.de  Wed Oct 15 23:29:33 2014
+From: sluedtke at gfz-potsdam.de (=?UTF-8?B?U3RlZmFuIEzDvGR0a2U=?=)
+Date: Wed, 15 Oct 2014 23:29:33 +0200
+Subject: [R-sig-hpc] (R)mpi and '<U+FEFF>'
+In-Reply-To: <CABMO4ouYsKXbm=Nsog9bhmTr1zS+z-=WCp7XV7=XDRcsAS+XOw@mail.gmail.com>
+References: <543ECB2C.5040204@gfz-potsdam.de>
+	<CABMO4ouYsKXbm=Nsog9bhmTr1zS+z-=WCp7XV7=XDRcsAS+XOw@mail.gmail.com>
+Message-ID: <543EE73D.9050108@gfz-potsdam.de>
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+
+
+On 10/15/2014 11:21 PM, Jonathan Olmsted wrote:
+> Hi, Stefan.
+> 
+> I can't replicate the BOM showing up that way even when I'm using a
+> file which I'm deliberately inserting a BOM into, so this is all
+> speculation...
+> 
+> But ?wouldn't? ? just strip ?ping? leading "<U+FEFF>" from the ? ?
+> first element of the vector do the trick? This doesn't resolve the 
+> reason for the mysterious BOM; that might require more info about
+> platforms and versions.
+> 
+> -Jonathan
+> 
+> On Wed, Oct 15, 2014 at 3:29 PM, Stefan L?dtke
+> <sluedtke at gfz-potsdam.de> wrote:
+> 
+> Dear friends,
+> 
+> I got kind of weird problem and no idea how to approach it. First, 
+> what I do.
+> 
+> Again, on a HPC with Rmpi we run a script that does, at very
+> first, fetches some data from a PostGreSQL DB. The SQL query is
+> read from a file via 'readLines()'.
+> 
+> What does work.
+> 
+> 1) the query itself from psql or pgadmin. 2) the query within the R
+> -script on my local machine and on the cluster
+> 
+> but (and that is the part why I am writing to the list), as soon
+> as the number of requested cores is that large, that batch system
+> (lsf in this case) spread the tasks over 2 host, the script fails.
+> 
+> I tried with pure Rmpi, doMPI and foreach and RODBCext and
+> RPostGreSQL and always encountered the same problem.
+> 
+> Comming back to my subject stated above, the error is:
+> 
+> ERROR:  syntax error at or near "<U+FEFF>WITH"
+> 
+> where my actual query starts with 'WITH'.
+> 
+> Those guys ...
+> 
+> http://postgresql.1045698.n5.nabble.com/BUG-6271-psql-f-reporting-unexpected-syntax-errors-on-first-command-td4940320.html
+>
+>  .... talk about a BOM at the beginning of the line, but somehow
+> this BOM must be introduced to my file by MPI or Rmpi or whatever
+> .. I have no idea.
+> 
+> So, any hint is very welcome.
+> 
+> Stefan
+> 
+> 
+>> 
+>> _______________________________________________ R-sig-hpc mailing
+>> list R-sig-hpc at r-project.org 
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>> 
+> 
+> 
+> 
+
+- -- 
+Stefan L?dtke
+
+Section 5.4-  Hydrology
+Tel.: +49 331 288 2821
+Fax: +49 331 288 1570
+Email: sluedtke at gfz-potsdam.de
+
+Helmholtz-Zentrum Potsdam
+Deutsches GeoForschungsZentrum GFZ
+(GFZ German Research Centre for Geoscience)
+Stiftung des ?ff. Rechts Land Brandenburg
+Telegrafenberg, 14473 Potsdam
+- -------------------
+
+PGP Public Key: http://bit.ly/13d9Sca
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.11 (GNU/Linux)
+
+iQEcBAEBAgAGBQJUPuc9AAoJEB5GAbKcg+D8V2wH/iKGFu3LnYU6IVd68GpRrqth
+qSRxBVwepSYFT87VE0NEOTPJDSarERT5SPXq1VlKQJhyCgSrFemFGxYaMKntnB4/
+YYhJTIXsHpyhP1JXFEvvHaaD1tcSh7mo7y9ycSIjQuwFAwsngKiO1b26jMDGkPT7
+ljers80jKqYZ2EqZM7gmuwA+5Pw70rCIGZ2LIQiMvT2fVvkBdxu7a3OIYhdF0Nw7
+AULWGh8jiqpBBr9w618y9MLV2G2YPCEYsg6ATcJbP1tkHturd/CCCxpY9THzPRv6
+SbsHop4BLTFeXM0TfXiQo5f9hDQ/7dD7YBLLs2iIGAj9xDsjEOfRnCATRdzqJ0A=
+=HYj8
+-----END PGP SIGNATURE-----
+
+

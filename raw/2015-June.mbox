@@ -1,0 +1,547 @@
+From ecacarva at gmail.com  Mon Jun  8 03:24:37 2015
+From: ecacarva at gmail.com (Elias Carvalho)
+Date: Sun, 7 Jun 2015 22:24:37 -0300
+Subject: [R-sig-hpc] R Cluster
+Message-ID: <CAH8E6UtsMwRUZFDU9DdfOVj-T=LEtiVt9NdEAEmmTtu_btKqXA@mail.gmail.com>
+
+Hello Guys
+
+I installed a Cluster with OpenMPI with support to TORQUE in a CENTOS 6,
+tested it with 1 master and two slaves and cluster works fine.
+
+Installed R and RStudio and executed the code below, an error occurred when
+trying to load package, somebody can help, please ?
+
+*# Clean environment*
+*closeAllConnections()*
+*rm(list=ls())*
+
+*# Adjust environment variables*
+*Sys.setenv(PATH="/usr/local/openmpi-1.4.5-tm/bin:/usr/local/openmpi-1.4.5-tm/include:/usr/lib64/qt-3.3/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin:/usr/local/maui/sbin:/usr/local/maui/bin")*
+*Sys.setenv(LD_LIBRARY_PATH="/usr/lib64/R/lib:/lib:/usr/local/lib64:/usr/lib/jvm/jre/lib/amd64/server:/usr/lib/jvm/jre/lib/amd64:/usr/lib/jvm/java/lib/amd64:/usr/java/packages/lib/amd64:/lib:/usr/lib:/usr/local/openmpi-1.4.5-tm/lib/:/usr/local/opemmpi-1.4.5/lib:")*
+*Sys.setenv(LD_PRELOAD="/usr/lib64/libutil.so")*
+
+*# Install Package*
+*install.packages("Rmpi", configure.args = c*
+*                 (*
+*
+"--with-Rmpi-include=/usr/local/openmpi-1.4.5-tm/include/",*
+*                  "--with-Rmpi-libpath=/usr/local/openmpi-1.4.5-tm/lib/", *
+*                  "--with-Rmpi-type=OPENMPI",*
+*                  "--with-mpi=/usr/local/openmpi-1.4.5-tm/"*
+*                 )*
+*                )*
+
+*# Load Package*
+*library(Rmpi)*
+
+The package installed without problems, but when loading it the error below
+occursr:
+
+*** building package indices
+** testing if installed package can be loaded
+* DONE (Rmpi)
+
+The downloaded source packages are in ?/tmp/RtmpVk8euT/downloaded_packages?
+> # Load Package
+> library(Rmpi)
+Error : .onLoad failed in loadNamespace() to 'Rmpi', details:
+  call: dyn.load(file, DLLpath = DLLpath, ...)
+  error: imposs?ble load object shared
+'/home/hpc/R/x86_64-redhat-linux-gnu-library/3.2/Rmpi/libs/Rmpi.so':
+  libmpi.so.0: cannot open shared object file: file or directory not found
+Erro: package or namespace load failed for ?Rmpi?*
+
+
+
+
+*-- *
+*Best regards... 8^)*
+
+?*A mente que se abre a novas ideias jamais voltar? *
+*a seu tamanho original*?  *Albert Einstein*
+
+
+_____________________________________________
+Prof. Elias C?sar Ara?jo de Carvalho
+CV: http://lattes.cnpq.br/4248328961021251
+
+	[[alternative HTML version deleted]]
+
+
+From jpolmsted at gmail.com  Mon Jun  8 04:18:02 2015
+From: jpolmsted at gmail.com (Jonathan Olmsted)
+Date: Sun, 7 Jun 2015 22:18:02 -0400
+Subject: [R-sig-hpc] R Cluster
+In-Reply-To: <CAH8E6UtsMwRUZFDU9DdfOVj-T=LEtiVt9NdEAEmmTtu_btKqXA@mail.gmail.com>
+References: <CAH8E6UtsMwRUZFDU9DdfOVj-T=LEtiVt9NdEAEmmTtu_btKqXA@mail.gmail.com>
+Message-ID: <CABMO4ouPhQOKzW1-hmEgcp0asDncvU+qHSUbV+3xYV+ThXLVFg@mail.gmail.com>
+
+Hi, Elias.
+
+This is a shot in the dark since I've not tried it out on my own end, but
+does the problem persist if the setting of the environmental variables
+happens prior to the starting of R?
+
+So, in a world where you were using BASH, you might define LD_LIBRARY_PATH
+in "~/.bashrc".
+
+If that does not work, have you confirmed that MPI is working as you'd
+expect with a standard MPI "hello world" example? Not suggesting you come
+up with one yourself, but I'll link one only if you don't already know what
+I'm talking about.
+
+
+-Jonathan
+
+
+On Sun, Jun 7, 2015 at 9:24 PM, Elias Carvalho <ecacarva at gmail.com> wrote:
+
+> Hello Guys
+>
+> I installed a Cluster with OpenMPI with support to TORQUE in a CENTOS 6,
+> tested it with 1 master and two slaves and cluster works fine.
+>
+> Installed R and RStudio and executed the code below, an error occurred when
+> trying to load package, somebody can help, please ?
+>
+> *# Clean environment*
+> *closeAllConnections()*
+> *rm(list=ls())*
+>
+> *# Adjust environment variables*
+>
+> *Sys.setenv(PATH="/usr/local/openmpi-1.4.5-tm/bin:/usr/local/openmpi-1.4.5-tm/include:/usr/lib64/qt-3.3/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin:/usr/local/maui/sbin:/usr/local/maui/bin")*
+>
+> *Sys.setenv(LD_LIBRARY_PATH="/usr/lib64/R/lib:/lib:/usr/local/lib64:/usr/lib/jvm/jre/lib/amd64/server:/usr/lib/jvm/jre/lib/amd64:/usr/lib/jvm/java/lib/amd64:/usr/java/packages/lib/amd64:/lib:/usr/lib:/usr/local/openmpi-1.4.5-tm/lib/:/usr/local/opemmpi-1.4.5/lib:")*
+> *Sys.setenv(LD_PRELOAD="/usr/lib64/libutil.so")*
+>
+> *# Install Package*
+> *install.packages("Rmpi", configure.args = c*
+> *                 (*
+> *
+> "--with-Rmpi-include=/usr/local/openmpi-1.4.5-tm/include/",*
+> *                  "--with-Rmpi-libpath=/usr/local/openmpi-1.4.5-tm/lib/",
+> *
+> *                  "--with-Rmpi-type=OPENMPI",*
+> *                  "--with-mpi=/usr/local/openmpi-1.4.5-tm/"*
+> *                 )*
+> *                )*
+>
+> *# Load Package*
+> *library(Rmpi)*
+>
+> The package installed without problems, but when loading it the error below
+> occursr:
+>
+> *** building package indices
+> ** testing if installed package can be loaded
+> * DONE (Rmpi)
+>
+> The downloaded source packages are in ?/tmp/RtmpVk8euT/downloaded_packages?
+> > # Load Package
+> > library(Rmpi)
+> Error : .onLoad failed in loadNamespace() to 'Rmpi', details:
+>   call: dyn.load(file, DLLpath = DLLpath, ...)
+>   error: imposs?ble load object shared
+> '/home/hpc/R/x86_64-redhat-linux-gnu-library/3.2/Rmpi/libs/Rmpi.so':
+>   libmpi.so.0: cannot open shared object file: file or directory not found
+> Erro: package or namespace load failed for ?Rmpi?*
+>
+>
+>
+>
+> *-- *
+> *Best regards... 8^)*
+>
+> ?*A mente que se abre a novas ideias jamais voltar? *
+> *a seu tamanho original*?  *Albert Einstein*
+>
+>
+> _____________________________________________
+> Prof. Elias C?sar Ara?jo de Carvalho
+> CV: http://lattes.cnpq.br/4248328961021251
+>
+>         [[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+
+
+-- 
+
+J.P. Olmsted
+j.p.olmsted at gmail.com
+olmjo.com
+
+	[[alternative HTML version deleted]]
+
+
+From ecacarva at gmail.com  Mon Jun  8 04:53:23 2015
+From: ecacarva at gmail.com (Elias Carvalho)
+Date: Sun, 7 Jun 2015 23:53:23 -0300
+Subject: [R-sig-hpc] R Cluster
+In-Reply-To: <CABMO4ouPhQOKzW1-hmEgcp0asDncvU+qHSUbV+3xYV+ThXLVFg@mail.gmail.com>
+References: <CAH8E6UtsMwRUZFDU9DdfOVj-T=LEtiVt9NdEAEmmTtu_btKqXA@mail.gmail.com>
+	<CABMO4ouPhQOKzW1-hmEgcp0asDncvU+qHSUbV+3xYV+ThXLVFg@mail.gmail.com>
+Message-ID: <CAH8E6Ut_D62K=dxhWRmXYQEgGZSMc3gcUXTt9BQiB0mQjDbHrg@mail.gmail.com>
+
+Thank you Jonathan
+
+I executed the following commando with succes on OpemMPI:
+
+mpirun -np 2 --hostfile myHosts hostname
+
+
+I am thinking about try to install it on ubuntu server instead of centos,
+it looks like to be more easy to install Rmpi
+
+2015-06-07 23:18 GMT-03:00 Jonathan Olmsted <jpolmsted at gmail.com>:
+
+> Hi, Elias.
+>
+> This is a shot in the dark since I've not tried it out on my own end, but
+> does the problem persist if the setting of the environmental variables
+> happens prior to the starting of R?
+>
+> So, in a world where you were using BASH, you might define LD_LIBRARY_PATH
+> in "~/.bashrc".
+>
+> If that does not work, have you confirmed that MPI is working as you'd
+> expect with a standard MPI "hello world" example? Not suggesting you come
+> up with one yourself, but I'll link one only if you don't already know what
+> I'm talking about.
+>
+>
+> -Jonathan
+>
+>
+> On Sun, Jun 7, 2015 at 9:24 PM, Elias Carvalho <ecacarva at gmail.com> wrote:
+>
+>> Hello Guys
+>>
+>> I installed a Cluster with OpenMPI with support to TORQUE in a CENTOS 6,
+>> tested it with 1 master and two slaves and cluster works fine.
+>>
+>> Installed R and RStudio and executed the code below, an error occurred
+>> when
+>> trying to load package, somebody can help, please ?
+>>
+>> *# Clean environment*
+>> *closeAllConnections()*
+>> *rm(list=ls())*
+>>
+>> *# Adjust environment variables*
+>>
+>> *Sys.setenv(PATH="/usr/local/openmpi-1.4.5-tm/bin:/usr/local/openmpi-1.4.5-tm/include:/usr/lib64/qt-3.3/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin:/usr/local/maui/sbin:/usr/local/maui/bin")*
+>>
+>> *Sys.setenv(LD_LIBRARY_PATH="/usr/lib64/R/lib:/lib:/usr/local/lib64:/usr/lib/jvm/jre/lib/amd64/server:/usr/lib/jvm/jre/lib/amd64:/usr/lib/jvm/java/lib/amd64:/usr/java/packages/lib/amd64:/lib:/usr/lib:/usr/local/openmpi-1.4.5-tm/lib/:/usr/local/opemmpi-1.4.5/lib:")*
+>> *Sys.setenv(LD_PRELOAD="/usr/lib64/libutil.so")*
+>>
+>> *# Install Package*
+>> *install.packages("Rmpi", configure.args = c*
+>> *                 (*
+>> *
+>> "--with-Rmpi-include=/usr/local/openmpi-1.4.5-tm/include/",*
+>> *
+>> "--with-Rmpi-libpath=/usr/local/openmpi-1.4.5-tm/lib/", *
+>> *                  "--with-Rmpi-type=OPENMPI",*
+>> *                  "--with-mpi=/usr/local/openmpi-1.4.5-tm/"*
+>> *                 )*
+>> *                )*
+>>
+>> *# Load Package*
+>> *library(Rmpi)*
+>>
+>> The package installed without problems, but when loading it the error
+>> below
+>> occursr:
+>>
+>> *** building package indices
+>> ** testing if installed package can be loaded
+>> * DONE (Rmpi)
+>>
+>> The downloaded source packages are in
+>> ?/tmp/RtmpVk8euT/downloaded_packages?
+>> > # Load Package
+>> > library(Rmpi)
+>> Error : .onLoad failed in loadNamespace() to 'Rmpi', details:
+>>   call: dyn.load(file, DLLpath = DLLpath, ...)
+>>   error: imposs?ble load object shared
+>> '/home/hpc/R/x86_64-redhat-linux-gnu-library/3.2/Rmpi/libs/Rmpi.so':
+>>   libmpi.so.0: cannot open shared object file: file or directory not found
+>> Erro: package or namespace load failed for ?Rmpi?*
+>>
+>>
+>>
+>>
+>> *-- *
+>> *Best regards... 8^)*
+>>
+>> ?*A mente que se abre a novas ideias jamais voltar? *
+>> *a seu tamanho original*?  *Albert Einstein*
+>>
+>>
+>> _____________________________________________
+>> Prof. Elias C?sar Ara?jo de Carvalho
+>> CV: http://lattes.cnpq.br/4248328961021251
+>>
+>>         [[alternative HTML version deleted]]
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+>
+>
+>
+> --
+>
+> J.P. Olmsted
+> j.p.olmsted at gmail.com
+> olmjo.com
+>
+
+
+
+-- 
+Best regards... 8^)
+
+?*A mente que se abre a novas ideias jamais voltar? *
+*a seu tamanho original*?  *Albert Einstein*
+
+
+_____________________________________________
+Prof. Elias C?sar Ara?jo de Carvalho
+CV: http://lattes.cnpq.br/4248328961021251
+
+	[[alternative HTML version deleted]]
+
+
+From vramakr1 at uwyo.edu  Wed Jun 10 22:06:52 2015
+From: vramakr1 at uwyo.edu (Vinay Bharadwaj Ramakrishnaiah)
+Date: Wed, 10 Jun 2015 20:06:52 +0000
+Subject: [R-sig-hpc] Pinned Memory allocation in R
+Message-ID: <BF068794-039C-4D86-9D9C-CF9D483122FC@uwyo.edu>
+
+Hello,
+I am trying to accelerate the ?fields? package using MAGMA. Is there a way to allocate pinned memory in R which will increase the performance of MAGMA functions?
+
+Thank you,
+Vinay
+
+From jgrn at illinois.edu  Thu Jun 18 18:20:28 2015
+From: jgrn at illinois.edu (Jonathan Greenberg)
+Date: Thu, 18 Jun 2015 16:20:28 +0000
+Subject: [R-sig-hpc] parallel and "nicing" on Windows
+Message-ID: <CABG0rfvrRtfmQ7aVBPoJdfyUG6u+fiPRynd5f6yNWCRAvk7iVA@mail.gmail.com>
+
+R-sig-hpc'ers:
+
+We recently ran into an issue on our Windows application server where a
+researcher spawned more workers than cores via parallel backend + a foreach
+job, and, of course, this made the server more or less unusable to anyone
+else while they were running.  We were able to solve this by manually
+changing the priority on the spawned processes to low priority, but this
+brought up a question -- is there a way to set the spawned processes to low
+priority on Windows (or renice them on linux/pc) from within R?  Ideally
+this would be when the parallel cluster is launched.  Thoughts?
+
+--j
+
+	[[alternative HTML version deleted]]
+
+
+From russell.s.pierce at gmail.com  Mon Jun 22 01:27:05 2015
+From: russell.s.pierce at gmail.com (Russell Pierce)
+Date: Sun, 21 Jun 2015 23:27:05 +0000
+Subject: [R-sig-hpc] parallel and "nicing" on Windows
+In-Reply-To: <mailman.5.1434708002.14044.r-sig-hpc@r-project.org>
+References: <mailman.5.1434708002.14044.r-sig-hpc@r-project.org>
+Message-ID: <CALXon6XYx2eqqVGg4bOXzAvyBvzY8GYbrYW+dFXkt8T9gydQRQ@mail.gmail.com>
+
+Maybe you'd already looked this far, but if not, there is almost always a
+hackish way to interact with other bits of the system via system/system2
+and the right external utility.  So, what I offer is not entirely in R, but
+it uses what R does easily expose.  Specifically, Sys.getpid() in base will
+give you the pid of the current session.  From there you can use system or
+system2 to issue a command to change the priority, e.g.
+
+system(paste0('wmic process where ProcessId=',Sys.getpid(),' CALL
+setpriority "Idle"'))
+
+Best,
+
+Russell
+
+On Fri, Jun 19, 2015 at 6:03 AM <r-sig-hpc-request at r-project.org> wrote:
+
+> Send R-sig-hpc mailing list submissions to
+>         r-sig-hpc at r-project.org
+>
+> To subscribe or unsubscribe via the World Wide Web, visit
+>         https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> or, via email, send a message with subject or body 'help' to
+>         r-sig-hpc-request at r-project.org
+>
+> You can reach the person managing the list at
+>         r-sig-hpc-owner at r-project.org
+>
+> When replying, please edit your Subject line so it is more specific
+> than "Re: Contents of R-sig-hpc digest..."
+>
+>
+> Today's Topics:
+>
+>    1. parallel and "nicing" on Windows (Jonathan Greenberg)
+>
+>
+> ----------------------------------------------------------------------
+>
+> Message: 1
+> Date: Thu, 18 Jun 2015 16:20:28 +0000
+> From: Jonathan Greenberg <jgrn at illinois.edu>
+> To: "r-sig-hpc at r-project.org" <r-sig-hpc at r-project.org>
+> Subject: [R-sig-hpc]
+> Message-ID:
+>         <
+> CABG0rfvrRtfmQ7aVBPoJdfyUG6u+fiPRynd5f6yNWCRAvk7iVA at mail.gmail.com>
+> Content-Type: text/plain; charset="UTF-8"
+>
+> R-sig-hpc'ers:
+>
+> We recently ran into an issue on our Windows application server where a
+> researcher spawned more workers than cores via parallel backend + a foreach
+> job, and, of course, this made the server more or less unusable to anyone
+> else while they were running.  We were able to solve this by manually
+> changing the priority on the spawned processes to low priority, but this
+> brought up a question -- is there a way to set the spawned processes to low
+> priority on Windows (or renice them on linux/pc) from within R?  Ideally
+> this would be when the parallel cluster is launched.  Thoughts?
+>
+> --j
+>
+>         [[alternative HTML version deleted]]
+>
+>
+>
+> ------------------------------
+>
+> Subject: Digest Footer
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+> ------------------------------
+>
+> End of R-sig-hpc Digest, Vol 78, Issue 3
+> ****************************************
+>
+
+	[[alternative HTML version deleted]]
+
+
+From Jens.Oehlschlaegel at truecluster.com  Fri Jun 26 12:31:29 2015
+From: Jens.Oehlschlaegel at truecluster.com (=?UTF-8?B?SmVucyBPZWhsc2NobMOkZ2Vs?=)
+Date: Fri, 26 Jun 2015 12:31:29 +0200
+Subject: [R-sig-hpc] how to change the "ff" properties of a "ff"-related
+ R object after the original "ff" output folder has been moved
+In-Reply-To: <1874071689.1386771.1435273459583.JavaMail.yahoo@mail.yahoo.com>
+References: <1874071689.1386771.1435273459583.JavaMail.yahoo@mail.yahoo.com>
+Message-ID: <558D2A01.1070008@truecluster.com>
+
+Tao,
+
+I do assume that the ff-files are still at some location and not deleted 
+by a finalizer. The following explains how to manipulate file locations 
+with ff and ffdf objects.
+
+Kind regards
+jens
+
+library(ff)
+path1 <- "c:/tmp"
+path2 <- "c:/tmp2"
+# create ffdf,
+# using non-standard path sets finalizer to 'close' instead of 'delete'
+fdf1 <- as.ffdf(iris, col_args=list(pattern=file.path(path1,"iris")))
+# let's copy the old metadata (but not the files, useclone for that)
+# using ffs hybrid copying semantics
+fdf2 <- fdf1
+# note both are open
+is.open(fdf1)
+is.open(fdf2)
+# close the files
+close(fdf1)
+# and note that
+is.open(fdf1)
+is.open(fdf2)
+# the magic has kept physical metadata in synch even in the copy
+# (virtual metadata is not kept in synch
+# which allows different virtual views into the same files
+# not unlike SQL VIEWs virtualize dastabase TABLEs)
+
+# filename on a ffdf
+filename(fdf2)
+# is a shortcut for
+lapply(physical(fdf2), filename)
+# so filename is a physical attribute
+# actually moving the files can be done with the filename<- method
+lapply(physical(fdf2), function(x)filename(x) <- sub(path1, path2, 
+filename(x)))
+# check this
+filename(fdf1)
+filename(fdf2)
+
+# filename on ff
+filename(fdf1$Species)
+# is a shortcut for
+attr(attr(fdf1$Species, "physical"), "filename")
+# and if you directly manipulate this attribute
+# you circummvent the filename method
+# and the file itself will not be moved
+attr(attr(fdf1$Species, "physical"), "filename") <- sub(path2, path1, 
+filename(fdf1$Species))
+# now the metadata points to a different location
+filename(fdf1$Species)
+# note that this physical attribute was also changed
+# for the copy
+filename(fdf2$Species)
+# of course you can fix the erroneous metadata by
+attr(attr(fdf1$Species, "physical"), "filename") <- sub(path1, path2, 
+filename(fdf1$Species))
+# or for all columns in a ffdf by
+lapply(physical(fdf2), function(x)attr(attr(x, "physical"), "filename") 
+<- sub(path2, path1, filename(x)))
+# now we have your situation with broken metadata
+open(fdf2)
+# and can fix that by
+lapply(physical(fdf2), function(x)attr(attr(x, "physical"), "filename") 
+<- sub(path1, path2, filename(x)))
+# check
+open(fdf2)
+
+
+
+Am 26.06.2015 um 01:04 schrieb Shi, Tao:
+> Hi all,
+>
+> I'm new to "ff" package through the using Bioconductor package "crlmm".  Here is my problem:
+>
+> I've created a few R objects (e.g. an CNSet) using crlmm based on my data and save them in a .RData file.  crlmm heavily uses ff package to store results on a local folder.  For certain reasons, I have moved the ff output folder to somewhere else.  Now when I go back to R, I can't open those CNSet, for example, anymore, as the file has a property still storing the old ff output folder path.
+>
+> My question is: is there a quick way to change these paths to the new one, so I don't have to re-run the own analysis.
+>
+> Many thanks!
+>
+> Tao
+>
+
+

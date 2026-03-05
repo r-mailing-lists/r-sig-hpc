@@ -1,0 +1,362 @@
+From ez466 at nyu.edu  Fri Dec 26 01:31:49 2014
+From: ez466 at nyu.edu (Elad Zippory)
+Date: Thu, 25 Dec 2014 19:31:49 -0500
+Subject: [R-sig-hpc] Inconsistent behavior by open mpi
+Message-ID: <CABta3RVmDGLHh9f1nfrN+_Lc6gcqUQ5+q80HxYn69p4S_acHHA@mail.gmail.com>
+
+Hi,
+
+Happy New Year.
+
+This is my first experience with MPI and I am experiencing behavior that is
+not consistent (sometimes it works...)  and my debugging abilities are
+exhausted. As I'm a newbie, please be patient...
+
+1. I am using the doMPI package to communicate with the Rmpi package to run
+R on NYU's HPC which uses Centos 6.3.
+2. I installed my copy of R on /scrach, and I installed the doMPI and Rmpi
+packages using the login node after I loaded  gcc/4.9.2 and
+openmpi/intel13/1.6.5 modules. All good here.
+3. The gist of the PBS file is:
+
+module purge
+module load gcc/4.9.2 openmpi/intel13/1.6.5
+module list
+
+mpirun -np 1 /scratch/ez466/R/bin/R --slave -f
+/scratch/ez466/data_ces/multiple_poly_kernel.R > multiple_poly_kernel.txt
+
+4. This job actually worked once.
+
+5. I am trying to run the job again, almost identical R code, and it does
+not survive the communication with the workers.
+
+The errors that I get in the std error file are not consisted (as far as
+I'm understanding...)
+
+A - The first error:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+std error:
+########################################
+--------------------------------------------------------------------------
+_orterun has exited due to process rank 20 with PID 3753 on
+node compute-19-4.local exiting improperly. There are two reasons this
+could occur:
+
+1. this process did not call "init" before exiting, but others in
+the job did. This can cause a job to hang indefinitely while it waits
+for all processes to call "init". By rule, if one process calls "init",
+then ALL processes must call "init" prior to termination.
+
+2. this process called "init", but exited without calling "finalize".
+By rule, all processes that call "init" MUST call "finalize" prior to
+exiting or it will be considered an "abnormal termination"
+
+This may have caused other processes in the application to be
+terminated by signals sent by _orterun (as reported here).
+--------------------------------------------------------------------------
+[compute-17-6.local:09445] 58 more processes have sent help message
+help-mpi-runtime.txt / mpi_init:warn-fork
+[compute-17-6.local:09445] Set MCA parameter "orte_base_help_aggregate" to
+0 to see all help / error messages
+########################################
+
+
+while the R output is:
+########################################
+
+[1] "going to load packages"
+[1] "finished loading packages, now trying to get workers"
+Master processor name: compute-17-6; nodename: compute-17-6.local
+Size of MPI universe: 60
+Spawning 59 workers using the command:
+  /scratch/ez466/R/lib64/R/bin/Rscript
+/scratch/ez466/R/lib64/R/library/doMPI/RMPIworker.R
+WORKDIR=/scratch/ez466/logs/poly_kernel-2474551
+LOGDIR=/scratch/ez466/logs/poly_kernel-2474551 MAXCORES=1 COMM=3
+INTERCOMM=4 MTAG=10 WTAG=11 INCLUDEMASTER=TRUE BCAST=TRUE VERBOSE=TRUE
+    59 slaves are spawned successfully. 0 failed.
+########################################
+
+So it crushed before it reached any of the R code beyond the initialization.
+I am setting the cluster with:
+cl <- startMPIcluster(verbose=TRUE)
+registerDoMPI(cl)
+
+
+And a closer inspection of the MPI log files show that some workers print
+this:
+########################################
+Starting MPI worker
+Worker processor name: compute-19-4; nodename: compute-19-4.local
+Error in if (numcores > 1) { : missing value where TRUE/FALSE needed
+Calls: local -> eval.parent -> eval -> eval -> eval -> eval
+Execution halted
+########################################
+
+While others print
+########################################
+Starting MPI worker
+Worker processor name: compute-19-5; nodename: compute-19-5.local
+parallel package is not being used
+starting worker loop: cores = 1
+waiting for a taskchunk...
+########################################
+
+B - The second error:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+std error:
+########################################
+An invalid physical processor ID was returned when attempting to bind
+an MPI process to a unique processor on node:
+
+  Node: compute-14-10.local
+
+This usually means that you requested binding to more processors than
+exist (e.g., trying to bind N MPI processes to M processors, where N >
+M), or that the node has an unexpectedly different topology.
+
+Double check that you have enough unique processors for all the
+MPI processes that you are launching on this host, and that all nodes
+have identical topologies.
+
+You job will now abort.
+--------------------------------------------------------------------------
+[compute-15-3.local:11382] [[49684,0],0] ORTE_ERROR_LOG: Fatal in file
+base/plm_base_receive.c at line 253
+--------------------------------------------------------------------------
+_orterun was unable to start the specified application as it encountered an
+error:
+
+Error name: Unknown error: 1
+Node: compute-14-10.local
+
+when attempting to start process rank 44.
+--------------------------------------------------------------------------
+[compute-15-3.local:11383] [[49684,1],0] ORTE_ERROR_LOG: The specified
+application failed to start in file dpm_orte.c at line 785
+Error in mpi.comm.spawn(slave = rscript, slavearg = args, nslaves = count,
+:
+  MPI_ERR_SPAWN: could not spawn processes
+Calls: startMPIcluster -> mpi.comm.spawn -> .Call
+Execution halted
+########################################
+
+This time R fails short of spawnning the workers
+########################################
+[1] "going to load packages"
+[1] "finished loading packages, now trying to get workers"
+Master processor name: compute-15-3; nodename: compute-15-3.local
+Size of MPI universe: 60
+Spawning 59 workers using the command:
+  /scratch/ez466/R/lib64/R/bin/Rscript
+/scratch/ez466/R/lib64/R/library/doMPI/RMPIworker.R
+WORKDIR=/scratch/ez466/logs/poly_kernel-2474555
+LOGDIR=/scratch/ez466/logs/poly_kernel-2474555 MAXCORES=1 COMM=3
+INTERCOMM=4 MTAG=10 WTAG=11 INCLUDEMASTER=TRUE BCAST=TRUE VERBOSE=TRUE
+########################################
+
+No MPI logs are created, as expected.
+
+
+Here is where I am stuck. I tried re-installing the packages and the really
+inconsistent part is that sometimes it works, such as with the example from
+the beginning of the e-mail.
+I tried 'googling' the error, but the discussions I saw were far too
+technical. The suggestion I saw was to work with openmpi 1.8.4 for better
+socket detection...
+
+Thank you for surviving this e-mail and I really appreciate your help.
+Kind regards,
+Elad Zippory
+
+	[[alternative HTML version deleted]]
+
+
+From ez466 at nyu.edu  Fri Dec 26 05:23:50 2014
+From: ez466 at nyu.edu (Elad Zippory)
+Date: Thu, 25 Dec 2014 23:23:50 -0500
+Subject: [R-sig-hpc] Inconsistent behavior by open mpi
+In-Reply-To: <CABta3RVmDGLHh9f1nfrN+_Lc6gcqUQ5+q80HxYn69p4S_acHHA@mail.gmail.com>
+References: <CABta3RVmDGLHh9f1nfrN+_Lc6gcqUQ5+q80HxYn69p4S_acHHA@mail.gmail.com>
+Message-ID: <CABta3RVFcrByU=W7ku8A6CPA6rF+zsGbtdhsq=u-prp5QvXy+A@mail.gmail.com>
+
+Please Ignore. Sorry. Elad
+
+On Thu, Dec 25, 2014 at 7:31 PM, Elad Zippory <ez466 at nyu.edu> wrote:
+
+> Hi,
+>
+> Happy New Year.
+>
+> This is my first experience with MPI and I am experiencing behavior that
+> is not consistent (sometimes it works...)  and my debugging abilities are
+> exhausted. As I'm a newbie, please be patient...
+>
+> 1. I am using the doMPI package to communicate with the Rmpi package to
+> run R on NYU's HPC which uses Centos 6.3.
+> 2. I installed my copy of R on /scrach, and I installed the doMPI and Rmpi
+> packages using the login node after I loaded  gcc/4.9.2 and
+> openmpi/intel13/1.6.5 modules. All good here.
+> 3. The gist of the PBS file is:
+>
+> module purge
+> module load gcc/4.9.2 openmpi/intel13/1.6.5
+> module list
+>
+> mpirun -np 1 /scratch/ez466/R/bin/R --slave -f
+> /scratch/ez466/data_ces/multiple_poly_kernel.R > multiple_poly_kernel.txt
+>
+> 4. This job actually worked once.
+>
+> 5. I am trying to run the job again, almost identical R code, and it does
+> not survive the communication with the workers.
+>
+> The errors that I get in the std error file are not consisted (as far as
+> I'm understanding...)
+>
+> A - The first error:
+>
+> %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+> std error:
+> ########################################
+> --------------------------------------------------------------------------
+> _orterun has exited due to process rank 20 with PID 3753 on
+> node compute-19-4.local exiting improperly. There are two reasons this
+> could occur:
+>
+> 1. this process did not call "init" before exiting, but others in
+> the job did. This can cause a job to hang indefinitely while it waits
+> for all processes to call "init". By rule, if one process calls "init",
+> then ALL processes must call "init" prior to termination.
+>
+> 2. this process called "init", but exited without calling "finalize".
+> By rule, all processes that call "init" MUST call "finalize" prior to
+> exiting or it will be considered an "abnormal termination"
+>
+> This may have caused other processes in the application to be
+> terminated by signals sent by _orterun (as reported here).
+> --------------------------------------------------------------------------
+> [compute-17-6.local:09445] 58 more processes have sent help message
+> help-mpi-runtime.txt / mpi_init:warn-fork
+> [compute-17-6.local:09445] Set MCA parameter "orte_base_help_aggregate" to
+> 0 to see all help / error messages
+> ########################################
+>
+>
+> while the R output is:
+> ########################################
+>
+> [1] "going to load packages"
+> [1] "finished loading packages, now trying to get workers"
+> Master processor name: compute-17-6; nodename: compute-17-6.local
+> Size of MPI universe: 60
+> Spawning 59 workers using the command:
+>   /scratch/ez466/R/lib64/R/bin/Rscript
+> /scratch/ez466/R/lib64/R/library/doMPI/RMPIworker.R
+> WORKDIR=/scratch/ez466/logs/poly_kernel-2474551
+> LOGDIR=/scratch/ez466/logs/poly_kernel-2474551 MAXCORES=1 COMM=3
+> INTERCOMM=4 MTAG=10 WTAG=11 INCLUDEMASTER=TRUE BCAST=TRUE VERBOSE=TRUE
+>     59 slaves are spawned successfully. 0 failed.
+> ########################################
+>
+> So it crushed before it reached any of the R code beyond the
+> initialization.
+> I am setting the cluster with:
+> cl <- startMPIcluster(verbose=TRUE)
+> registerDoMPI(cl)
+>
+>
+> And a closer inspection of the MPI log files show that some workers print
+> this:
+> ########################################
+> Starting MPI worker
+> Worker processor name: compute-19-4; nodename: compute-19-4.local
+> Error in if (numcores > 1) { : missing value where TRUE/FALSE needed
+> Calls: local -> eval.parent -> eval -> eval -> eval -> eval
+> Execution halted
+> ########################################
+>
+> While others print
+> ########################################
+> Starting MPI worker
+> Worker processor name: compute-19-5; nodename: compute-19-5.local
+> parallel package is not being used
+> starting worker loop: cores = 1
+> waiting for a taskchunk...
+> ########################################
+>
+> B - The second error:
+>
+> %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+>
+> std error:
+> ########################################
+> An invalid physical processor ID was returned when attempting to bind
+> an MPI process to a unique processor on node:
+>
+>   Node: compute-14-10.local
+>
+> This usually means that you requested binding to more processors than
+> exist (e.g., trying to bind N MPI processes to M processors, where N >
+> M), or that the node has an unexpectedly different topology.
+>
+> Double check that you have enough unique processors for all the
+> MPI processes that you are launching on this host, and that all nodes
+> have identical topologies.
+>
+> You job will now abort.
+> --------------------------------------------------------------------------
+> [compute-15-3.local:11382] [[49684,0],0] ORTE_ERROR_LOG: Fatal in file
+> base/plm_base_receive.c at line 253
+> --------------------------------------------------------------------------
+> _orterun was unable to start the specified application as it encountered
+> an error:
+>
+> Error name: Unknown error: 1
+> Node: compute-14-10.local
+>
+> when attempting to start process rank 44.
+> --------------------------------------------------------------------------
+> [compute-15-3.local:11383] [[49684,1],0] ORTE_ERROR_LOG: The specified
+> application failed to start in file dpm_orte.c at line 785
+> Error in mpi.comm.spawn(slave = rscript, slavearg = args, nslaves =
+> count,  :
+>   MPI_ERR_SPAWN: could not spawn processes
+> Calls: startMPIcluster -> mpi.comm.spawn -> .Call
+> Execution halted
+> ########################################
+>
+> This time R fails short of spawnning the workers
+> ########################################
+> [1] "going to load packages"
+> [1] "finished loading packages, now trying to get workers"
+> Master processor name: compute-15-3; nodename: compute-15-3.local
+> Size of MPI universe: 60
+> Spawning 59 workers using the command:
+>   /scratch/ez466/R/lib64/R/bin/Rscript
+> /scratch/ez466/R/lib64/R/library/doMPI/RMPIworker.R
+> WORKDIR=/scratch/ez466/logs/poly_kernel-2474555
+> LOGDIR=/scratch/ez466/logs/poly_kernel-2474555 MAXCORES=1 COMM=3
+> INTERCOMM=4 MTAG=10 WTAG=11 INCLUDEMASTER=TRUE BCAST=TRUE VERBOSE=TRUE
+> ########################################
+>
+> No MPI logs are created, as expected.
+>
+>
+> Here is where I am stuck. I tried re-installing the packages and the
+> really inconsistent part is that sometimes it works, such as with the
+> example from the beginning of the e-mail.
+> I tried 'googling' the error, but the discussions I saw were far too
+> technical. The suggestion I saw was to work with openmpi 1.8.4 for better
+> socket detection...
+>
+> Thank you for surviving this e-mail and I really appreciate your help.
+> Kind regards,
+> Elad Zippory
+>
+
+	[[alternative HTML version deleted]]
+
+

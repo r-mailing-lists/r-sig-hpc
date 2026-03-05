@@ -1,0 +1,1473 @@
+From pauljohn32 at gmail.com  Thu Jan  5 05:09:37 2012
+From: pauljohn32 at gmail.com (Paul Johnson)
+Date: Wed, 4 Jan 2012 22:09:37 -0600
+Subject: [R-sig-hpc] digesting "parallel" package in R-2.14. how about you?
+Message-ID: <CAErODj9Y8G68qt=c2JRKW07fqC6nn9NZMs6o8wk7=FVEksZ6Ug@mail.gmail.com>
+
+Have you been testing out R's new parallel package? I'm getting
+started and wonder about your experience.  The help page is very brief
+because most of the functions are not exported, so I'm finding it a
+bit difficult to use.
+
+Our cluster runs RMPI over OpenMPI.  Initially, I thought that would
+be a bad problem because parallel is intended for "sock" and "fork"
+clusters.  That seemed bad,  but parallel's makeCluster help page says
+it will call snow to make the cluster.  So I think that's OK for me,
+if I were using a snow cluster.  The parallel vignette also says its
+functions will work with clusters created by snow, so that's hopeful.
+
+In the past, I've blundered into conflicts between OpenMPI and the
+other frameworks that are drawn in by some packages.  OpenMPI doesn't
+play well with libraries that want to spawn thread, for example.
+OpenMPI is not compatible with OpenMP and the multicore package, but
+the parallel package uses those things. I worry they will slide in
+where I don't want them.
+
+Here's an example of an error I got today, I don't know yet what
+causes it, but I'm suspicious :)
+
+--------------------------------------------------------------------------
+An MPI process has executed an operation involving a call to the
+"fork()" system call to create a child process.  Open MPI is currently
+operating in a condition that could result in memory corruption or
+other system errors; your MPI job may hang, crash, or produce silent
+data corruption.  The use of fork() (or system() or other calls that
+create child processes) is strongly discouraged.
+
+The process that invoked fork was:
+
+  Local host:          compute-2-11.local (PID 8290)
+  MPI_COMM_WORLD rank: 0
+
+If you are *absolutely sure* that your application will successfully
+and correctly survive a call to fork(), you may disable this warning
+by setting the mpi_warn_on_fork MCA parameter to 0.
+--------------------------------------------------------------------------
+
+
+
+-- 
+Paul E. Johnson
+Professor, Political Science
+1541 Lilac Lane, Room 504
+University of Kansas
+
+
+From dutangc at gmail.com  Thu Jan  5 09:25:01 2012
+From: dutangc at gmail.com (Christophe Dutang)
+Date: Thu, 5 Jan 2012 09:25:01 +0100
+Subject: [R-sig-hpc] digesting "parallel" package in R-2.14. how about
+	you?
+In-Reply-To: <CAErODj9Y8G68qt=c2JRKW07fqC6nn9NZMs6o8wk7=FVEksZ6Ug@mail.gmail.com>
+References: <CAErODj9Y8G68qt=c2JRKW07fqC6nn9NZMs6o8wk7=FVEksZ6Ug@mail.gmail.com>
+Message-ID: <7C52B819-1034-467E-BE23-038AD0A540CE@gmail.com>
+
+Dear Paul,
+
+I have also started HPC few days ago. Please see my post https://stat.ethz.ch/pipermail/r-sig-hpc/2011-December/001186.html 
+where I have tested an example from http://www.informatik.uni-ulm.de/ni/staff/HKestler/Reisensburg2009/PDF/multicore.pdf .
+
+See also, my reply here https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20111205/dbba522a/attachment.pl for HPC on windows 7.
+
+Hope it helps
+
+Christophe
+
+--
+Christophe Dutang
+Ph.D. student at ISFA, Lyon, France
+website: http://dutangc.free.fr
+
+Le 5 janv. 2012 ? 05:09, Paul Johnson a ?crit :
+
+> Have you been testing out R's new parallel package? I'm getting
+> started and wonder about your experience.  The help page is very brief
+> because most of the functions are not exported, so I'm finding it a
+> bit difficult to use.
+> 
+> Our cluster runs RMPI over OpenMPI.  Initially, I thought that would
+> be a bad problem because parallel is intended for "sock" and "fork"
+> clusters.  That seemed bad,  but parallel's makeCluster help page says
+> it will call snow to make the cluster.  So I think that's OK for me,
+> if I were using a snow cluster.  The parallel vignette also says its
+> functions will work with clusters created by snow, so that's hopeful.
+> 
+> In the past, I've blundered into conflicts between OpenMPI and the
+> other frameworks that are drawn in by some packages.  OpenMPI doesn't
+> play well with libraries that want to spawn thread, for example.
+> OpenMPI is not compatible with OpenMP and the multicore package, but
+> the parallel package uses those things. I worry they will slide in
+> where I don't want them.
+> 
+> Here's an example of an error I got today, I don't know yet what
+> causes it, but I'm suspicious :)
+> 
+> --------------------------------------------------------------------------
+> An MPI process has executed an operation involving a call to the
+> "fork()" system call to create a child process.  Open MPI is currently
+> operating in a condition that could result in memory corruption or
+> other system errors; your MPI job may hang, crash, or produce silent
+> data corruption.  The use of fork() (or system() or other calls that
+> create child processes) is strongly discouraged.
+> 
+> The process that invoked fork was:
+> 
+>  Local host:          compute-2-11.local (PID 8290)
+>  MPI_COMM_WORLD rank: 0
+> 
+> If you are *absolutely sure* that your application will successfully
+> and correctly survive a call to fork(), you may disable this warning
+> by setting the mpi_warn_on_fork MCA parameter to 0.
+> --------------------------------------------------------------------------
+> 
+> 
+> 
+> -- 
+> Paul E. Johnson
+> Professor, Political Science
+> 1541 Lilac Lane, Room 504
+> University of Kansas
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From pauljohn32 at gmail.com  Wed Jan 11 05:21:30 2012
+From: pauljohn32 at gmail.com (Paul Johnson)
+Date: Tue, 10 Jan 2012 22:21:30 -0600
+Subject: [R-sig-hpc] R parallel package <-> stopCluster method needed for
+	mpi cluster
+Message-ID: <CAErODj9Bzt2ytn_maY0j4LwbzRU0ibtFQAAbu4q0HOodZSwgaQ@mail.gmail.com>
+
+hi, everybody in r-sig-hpc land.  hopefully this year is bringing you
+good news.
+
+I'm trying to digest the fact that R now has a parallel package.  I'm
+pretty sure I've run into something that is on the TODO list. Briefly,
+the stopCluster method from R parallel doesn't lead back to the
+stopCluster methods from snow to shut down  an MPI cluster.
+
+Now, the long version:
+
+We have an OpenMPI based cluster, I've been working up examples that
+use Rmpi, snow, snowft, and now R parallel.  Here's my parallel
+effort.
+
+http://winstat.quant.ku.edu/svn/hpcexample/trunk/Ex65-R-parallel
+
+Its just a submission script and an example cluster usage.
+
+I'm stuck on (at least) one detail.  If you examine
+
+http://winstat.quant.ku.edu/svn/hpcexample/trunk/Ex65-R-parallel/parallel-hello.R
+
+you see the cluster is created like so
+
+library(parallel)
+## Causes the snow package's MPI support to be invoked,
+cl <- makeCluster(10, type="MPI")
+
+That actually seems to be fine. the parallel makeCluster method refers
+the work to snow::makeCluster. Works fine.
+
+After that, how to close the thing down?   When I run
+
+stopCluster(cl)
+
+processing crashes, and the error output has this:
+
+Loading required package: Rmpi
+Error in UseMethod("stopCluster") :
+  no applicable method for 'stopCluster' applied to an object of class
+"c('spawnedMPIcluster', 'MPIcluster', 'cluster')"
+Calls: <Anonymous>
+Execution halted
+--------------------------------------------------------------------------
+orterun has exited due to process rank 0 with PID 28684 on
+node compute-2-11.local exiting without calling "finalize". This may
+have caused other processes in the application to be
+terminated by signals sent by orterun (as reported here).
+--------------------------------------------------------------------------
+
+
+
+I *think* I need to call the stopCluster method from snow.  It seems
+like this should have worked:
+
+snow::stopCluster(cl)
+
+or this:
+
+snow::stopCluster.MPIcluster(cl)
+
+but it gives the same error.
+
+But if I load the snow package, all is good.
+
+library(snow)
+stopCluster(cl)
+mpi.quit()
+
+The error log has a warning, but otherwise it appears OK.
+
+Attaching package: 'snow'
+
+The following object(s) are masked from 'package:parallel':
+
+    clusterApply, clusterApplyLB, clusterCall, clusterEvalQ,
+    clusterExport, clusterMap, clusterSplit, makeCluster, parApply,
+    parCapply, parLapply, parRapply, parSapply, splitIndices,
+    stopCluster
+
+What do you think.  This is a known issue?  Should I bother somebody
+about it? I mean somebody besides  you, of course.
+
+-- 
+Paul E. Johnson
+Professor, Political Science
+1541 Lilac Lane, Room 504
+University of Kansas
+
+
+From stefan.theussl at wu.ac.at  Wed Jan 11 20:22:27 2012
+From: stefan.theussl at wu.ac.at (Stefan Theussl)
+Date: Wed, 11 Jan 2012 20:22:27 +0100
+Subject: [R-sig-hpc] R parallel package <-> stopCluster method needed
+	for	mpi cluster
+In-Reply-To: <mailman.27.1326279609.19915.r-sig-hpc@r-project.org>
+References: <mailman.27.1326279609.19915.r-sig-hpc@r-project.org>
+Message-ID: <4F0DE173.10801@wu.ac.at>
+
+Dear Paul,
+
+I observe the some behavior with an almost identical setting (OpenMPI 
+1.4.3, R 2.14.1, parallel, snow 0.3.8, Rmpi 0.5-9).
+
+This seems to be a NAMESPACE issue in snow. It does not define any S3 
+methods, it rather exports all functions "as is". This works just fine 
+if snow is attached but fails for S3 methods if not.
+
+I cc'ed the maintainer of snow, Luke Tierney, to let him know.
+
+Best,
+Stefan
+
+
+On 01/11/2012 12:00 PM, r-sig-hpc-request at r-project.org wrote:
+> Send R-sig-hpc mailing list submissions to
+> 	r-sig-hpc at r-project.org
+>
+> To subscribe or unsubscribe via the World Wide Web, visit
+> 	https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> or, via email, send a message with subject or body 'help' to
+> 	r-sig-hpc-request at r-project.org
+>
+> You can reach the person managing the list at
+> 	r-sig-hpc-owner at r-project.org
+>
+> When replying, please edit your Subject line so it is more specific
+> than "Re: Contents of R-sig-hpc digest..."
+>
+>
+> Today's Topics:
+>
+>     1. R parallel package<->  stopCluster method needed for	mpi
+>        cluster (Paul Johnson)
+>
+>
+> ----------------------------------------------------------------------
+>
+> Message: 1
+> Date: Tue, 10 Jan 2012 22:21:30 -0600
+> From: Paul Johnson<pauljohn32 at gmail.com>
+> To: R SIG High Performance Computing<r-sig-hpc at r-project.org>
+> Subject: [R-sig-hpc] R parallel package<->  stopCluster method needed
+> 	for	mpi cluster
+> Message-ID:
+> 	<CAErODj9Bzt2ytn_maY0j4LwbzRU0ibtFQAAbu4q0HOodZSwgaQ at mail.gmail.com>
+> Content-Type: text/plain; charset=ISO-8859-1
+>
+> hi, everybody in r-sig-hpc land.  hopefully this year is bringing you
+> good news.
+>
+> I'm trying to digest the fact that R now has a parallel package.  I'm
+> pretty sure I've run into something that is on the TODO list. Briefly,
+> the stopCluster method from R parallel doesn't lead back to the
+> stopCluster methods from snow to shut down  an MPI cluster.
+>
+> Now, the long version:
+>
+> We have an OpenMPI based cluster, I've been working up examples that
+> use Rmpi, snow, snowft, and now R parallel.  Here's my parallel
+> effort.
+>
+> http://winstat.quant.ku.edu/svn/hpcexample/trunk/Ex65-R-parallel
+>
+> Its just a submission script and an example cluster usage.
+>
+> I'm stuck on (at least) one detail.  If you examine
+>
+> http://winstat.quant.ku.edu/svn/hpcexample/trunk/Ex65-R-parallel/parallel-hello.R
+>
+> you see the cluster is created like so
+>
+> library(parallel)
+> ## Causes the snow package's MPI support to be invoked,
+> cl<- makeCluster(10, type="MPI")
+>
+> That actually seems to be fine. the parallel makeCluster method refers
+> the work to snow::makeCluster. Works fine.
+>
+> After that, how to close the thing down?   When I run
+>
+> stopCluster(cl)
+>
+> processing crashes, and the error output has this:
+>
+> Loading required package: Rmpi
+> Error in UseMethod("stopCluster") :
+>    no applicable method for 'stopCluster' applied to an object of class
+> "c('spawnedMPIcluster', 'MPIcluster', 'cluster')"
+> Calls:<Anonymous>
+> Execution halted
+> --------------------------------------------------------------------------
+> orterun has exited due to process rank 0 with PID 28684 on
+> node compute-2-11.local exiting without calling "finalize". This may
+> have caused other processes in the application to be
+> terminated by signals sent by orterun (as reported here).
+> --------------------------------------------------------------------------
+>
+>
+>
+> I *think* I need to call the stopCluster method from snow.  It seems
+> like this should have worked:
+>
+> snow::stopCluster(cl)
+>
+> or this:
+>
+> snow::stopCluster.MPIcluster(cl)
+>
+> but it gives the same error.
+>
+> But if I load the snow package, all is good.
+>
+> library(snow)
+> stopCluster(cl)
+> mpi.quit()
+>
+> The error log has a warning, but otherwise it appears OK.
+>
+> Attaching package: 'snow'
+>
+> The following object(s) are masked from 'package:parallel':
+>
+>      clusterApply, clusterApplyLB, clusterCall, clusterEvalQ,
+>      clusterExport, clusterMap, clusterSplit, makeCluster, parApply,
+>      parCapply, parLapply, parRapply, parSapply, splitIndices,
+>      stopCluster
+>
+> What do you think.  This is a known issue?  Should I bother somebody
+> about it? I mean somebody besides  you, of course.
+>
+
+
+From prashantha.hebbar at yahoo.com  Mon Jan 16 15:02:51 2012
+From: prashantha.hebbar at yahoo.com (Prashantha Hebbar)
+Date: Mon, 16 Jan 2012 06:02:51 -0800 (PST)
+Subject: [R-sig-hpc] About Multicore: mclapply
+Message-ID: <1326722571.90315.YahooMailNeo@web110114.mail.gq1.yahoo.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120116/ee6106fc/attachment.pl>
+
+From simon.urbanek at r-project.org  Mon Jan 16 17:00:02 2012
+From: simon.urbanek at r-project.org (Simon Urbanek)
+Date: Mon, 16 Jan 2012 11:00:02 -0500
+Subject: [R-sig-hpc] About Multicore: mclapply
+In-Reply-To: <1326722571.90315.YahooMailNeo@web110114.mail.gq1.yahoo.com>
+References: <1326722571.90315.YahooMailNeo@web110114.mail.gq1.yahoo.com>
+Message-ID: <AF4E315C-8C41-4E31-B2B9-31E48559AAFC@r-project.org>
+
+On Jan 16, 2012, at 9:02 AM, Prashantha Hebbar wrote:
+
+> Hello friends,
+> I was tryig to parallize a function using mclapply. But I find lapply() executes in lesser time than mclapply(). I have given here my system time taken for both the functions.
+>> library(ShortRead)
+>> library(multicore)> fqFiles <- list.files("./test")
+>> system.time(lapply(fqFiles, function(fqFiles){
+>   readsFq <- readFastq(dirPath="./test",pattern=fqFiles)
+>   }))
+>    user  system elapsed 
+>   0.399   0.021   0.419 
+>> system.time(mclapply(fqFiles, function(fqFiles){
+>    readsFq <- readFastq(dirPath="./test",pattern=fqFiles)},mc.cores=3))
+>    user  system elapsed 
+>   0.830   0.151   0.261 
+> 
+> Since the ./test directory contains three fastq files. I have used mc.cores = 3.
+> 
+> here is my mpstat output for mclapply()
+> 
+> 04:47:55 PM  CPU   %user   %nice    %sys %iowait    %irq   %soft  %steal   %idle    intr/s
+> 04:47:56 PM  all   13.86    0.00    1.37    0.00    0.00    0.00    0.00   84.77   1023.23
+> 04:47:56 PM    0   21.21    0.00    2.02    0.00    0.00    0.00    0.00   76.77   1011.11
+> 04:47:56 PM    1   33.00    0.00    2.00    0.00    0.00    0.00    0.00   65.00      9.09
+> 04:47:56 PM    2    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00      0.00
+> 04:47:56 PM    3    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00      3.03
+> 04:47:56 PM    4    3.03    0.00    2.02    0.00    0.00    0.00    0.00   94.95      0.00
+> 04:47:56 PM    5    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00      0.00
+> 04:47:56 PM    6    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00      0.00
+> 04:47:56 PM    7   53.00    0.00    4.00    0.00    0.00    0.00    0.00   43.00      0.00
+> 
+> Hence,Can you please suggest me, why mclapply has taken more time than lapply()?
+> 
+
+multicore is designed for parallel *computing* which is not what you do. For serial tasks (like yours) it will be always slower, because it needs to a) spawn processes b) read the data (serially since you use the same location) c) serialize all the data and send it to the master process, d) unserialize and concatenate all the data in the master process to a list. If you run lapply it does only b) which is in your case not the slowest part. Using multicore makes only sense if you actually perform computations (or any parallel task).
+
+Cheers,
+Simon
+
+
+> Thanking you in anticipation.
+> Regards,
+> Prashantha
+> Prashantha Hebbar Kiradi,
+> 
+> E-mail: prashantha.hebbar at dasmaninstitute.org
+> 
+> 	[[alternative HTML version deleted]]
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From mtmorgan at fhcrc.org  Mon Jan 16 19:06:56 2012
+From: mtmorgan at fhcrc.org (Martin Morgan)
+Date: Mon, 16 Jan 2012 10:06:56 -0800
+Subject: [R-sig-hpc] About Multicore: mclapply
+In-Reply-To: <AF4E315C-8C41-4E31-B2B9-31E48559AAFC@r-project.org>
+References: <1326722571.90315.YahooMailNeo@web110114.mail.gq1.yahoo.com>
+	<AF4E315C-8C41-4E31-B2B9-31E48559AAFC@r-project.org>
+Message-ID: <4F146740.5010906@fhcrc.org>
+
+On 01/16/2012 08:00 AM, Simon Urbanek wrote:
+> On Jan 16, 2012, at 9:02 AM, Prashantha Hebbar wrote:
+>
+>> Hello friends,
+>> I was tryig to parallize a function using mclapply. But I find lapply() executes in lesser time than mclapply(). I have given here my system time taken for both the functions.
+>>> library(ShortRead)
+>>> library(multicore)>  fqFiles<- list.files("./test")
+>>> system.time(lapply(fqFiles, function(fqFiles){
+>>    readsFq<- readFastq(dirPath="./test",pattern=fqFiles)
+>>    }))
+>>     user  system elapsed
+>>    0.399   0.021   0.419
+>>> system.time(mclapply(fqFiles, function(fqFiles){
+>>     readsFq<- readFastq(dirPath="./test",pattern=fqFiles)},mc.cores=3))
+>>     user  system elapsed
+>>    0.830   0.151   0.261
+>>
+>> Since the ./test directory contains three fastq files. I have used mc.cores = 3.
+>>
+>> here is my mpstat output for mclapply()
+>>
+>> 04:47:55 PM  CPU   %user   %nice    %sys %iowait    %irq   %soft  %steal   %idle    intr/s
+>> 04:47:56 PM  all   13.86    0.00    1.37    0.00    0.00    0.00    0.00   84.77   1023.23
+>> 04:47:56 PM    0   21.21    0.00    2.02    0.00    0.00    0.00    0.00   76.77   1011.11
+>> 04:47:56 PM    1   33.00    0.00    2.00    0.00    0.00    0.00    0.00   65.00      9.09
+>> 04:47:56 PM    2    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00      0.00
+>> 04:47:56 PM    3    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00      3.03
+>> 04:47:56 PM    4    3.03    0.00    2.02    0.00    0.00    0.00    0.00   94.95      0.00
+>> 04:47:56 PM    5    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00      0.00
+>> 04:47:56 PM    6    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00      0.00
+>> 04:47:56 PM    7   53.00    0.00    4.00    0.00    0.00    0.00    0.00   43.00      0.00
+>>
+>> Hence,Can you please suggest me, why mclapply has taken more time than lapply()?
+
+In case it's not clear, the system.time 'elapsed' time shows that 
+mclapply *is* faster overall ('wall clock') -- I would have only .261 
+seconds to go for coffee, compared to .419 with lapply.
+
+As Simon suggests, a much more common paradigm is to put more work in to 
+the function evaluated by lapply --, e.g., calculating qa() -- and then 
+returning the result of the computation, typically a much smaller 
+summary of the bigger data. Even in this case, your computer will need 
+to have enough memory to hold all the fastq data in memory; for some 
+purposes it will make more sense to use FastqSampler and FastqStreamer 
+to iterate over your file.
+
+Martin
+
+>
+> multicore is designed for parallel *computing* which is not what you do. For serial tasks (like yours) it will be always slower, because it needs to a) spawn processes b) read the data (serially since you use the same location) c) serialize all the data and send it to the master process, d) unserialize and concatenate all the data in the master process to a list. If you run lapply it does only b) which is in your case not the slowest part. Using multicore makes only sense if you actually perform computations (or any parallel task).
+>
+> Cheers,
+> Simon
+>
+>
+>> Thanking you in anticipation.
+>> Regards,
+>> Prashantha
+>> Prashantha Hebbar Kiradi,
+>>
+>> E-mail: prashantha.hebbar at dasmaninstitute.org
+>>
+>> 	[[alternative HTML version deleted]]
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+-- 
+Computational Biology
+Fred Hutchinson Cancer Research Center
+1100 Fairview Ave. N. PO Box 19024 Seattle, WA 98109
+
+Location: M1-B861
+Telephone: 206 667-2793
+
+
+From lists at jdadesign.net  Fri Jan 20 22:53:51 2012
+From: lists at jdadesign.net (Jeff Allen)
+Date: Fri, 20 Jan 2012 15:53:51 -0600
+Subject: [R-sig-hpc] Snow Not Distributing
+Message-ID: <4F19E26F.4000408@jdadesign.net>
+
+I have been able to successfully setup snow (0.3-5) and Rmpi (0.5-9) on 
+my RedHat 5 cluster, and have it working perfectly for jobs that don't 
+span multiple nodes.
+
+We're using Torque for resource management, so I start a job with access 
+to multiple nodes and load Snow. Unfortunately, not matter what size 
+cluster I try to make, all of the workers end up running on the same 
+host -- leaving the other hosts idle.
+
+I'm no expert with MPI or snow, so I'm really not sure how to approach 
+debugging this.
+
+Any input would be much appreciated!
+
+Jeff
+
+
+From brian at braverock.com  Sat Jan 21 00:19:32 2012
+From: brian at braverock.com (Brian G. Peterson)
+Date: Fri, 20 Jan 2012 17:19:32 -0600
+Subject: [R-sig-hpc] Snow Not Distributing
+In-Reply-To: <4F19E26F.4000408@jdadesign.net>
+References: <4F19E26F.4000408@jdadesign.net>
+Message-ID: <1327101572.4697.2.camel@brian-desktop>
+
+On Fri, 2012-01-20 at 15:53 -0600, Jeff Allen wrote:
+> I have been able to successfully setup snow (0.3-5) and Rmpi (0.5-9) on 
+> my RedHat 5 cluster, and have it working perfectly for jobs that don't 
+> span multiple nodes.
+> 
+> We're using Torque for resource management, so I start a job with access 
+> to multiple nodes and load Snow. Unfortunately, not matter what size 
+> cluster I try to make, all of the workers end up running on the same 
+> host -- leaving the other hosts idle.
+> 
+> I'm no expert with MPI or snow, so I'm really not sure how to approach 
+> debugging this.
+> 
+> Any input would be much appreciated!
+
+I would suggest trying a simple 'hello world' type script just using
+Rmpi, e.g. one of the examples from Dirk's Intro to HPC with R
+presentation (I'm not somewhere I can easily search for it, but you
+should be able to find it on Dirk's site or a link in the list archives
+here).
+
+Regards,
+
+   - Brian
+
+-- 
+Brian G. Peterson
+http://braverock.com/brian/
+Ph: 773-459-4973
+IM: bgpbraverock
+
+
+From stephen.b.weston at gmail.com  Sun Jan 22 20:41:18 2012
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Sun, 22 Jan 2012 14:41:18 -0500
+Subject: [R-sig-hpc] Snow Not Distributing
+In-Reply-To: <4F19E26F.4000408@jdadesign.net>
+References: <4F19E26F.4000408@jdadesign.net>
+Message-ID: <CALh21iLY62EJyMwi-eGxTc9MqY56508ndfuidUOGKLbKUqVbiw@mail.gmail.com>
+
+Have you verified that Torque is allocating multiple nodes for your job?
+If so, are you using some sort of mpirun command to execute your
+R script?  Are you using one of the mpirun --hostfile or --machinefile
+options to tell mpirun what nodes to execute on, or are you depending
+on MPI/Torque integration to get the allocated hosts?  Open MPI must
+be configured with the --with-tm option for Torque integration, for example.
+
+- Steve
+
+
+On Fri, Jan 20, 2012 at 4:53 PM, Jeff Allen <lists at jdadesign.net> wrote:
+> I have been able to successfully setup snow (0.3-5) and Rmpi (0.5-9) on my
+> RedHat 5 cluster, and have it working perfectly for jobs that don't span
+> multiple nodes.
+>
+> We're using Torque for resource management, so I start a job with access to
+> multiple nodes and load Snow. Unfortunately, not matter what size cluster I
+> try to make, all of the workers end up running on the same host -- leaving
+> the other hosts idle.
+>
+> I'm no expert with MPI or snow, so I'm really not sure how to approach
+> debugging this.
+>
+> Any input would be much appreciated!
+>
+> Jeff
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From zepu.zhang at gmail.com  Mon Jan 23 01:33:34 2012
+From: zepu.zhang at gmail.com (Zepu Zhang)
+Date: Sun, 22 Jan 2012 15:33:34 -0900
+Subject: [R-sig-hpc] Warning "closing unused connection..." with package
+	parallel
+Message-ID: <CAG5L0QVPNnPdysmRhCUFye5f-ad=9uxQzFdeNR6foBOh+tOd0w@mail.gmail.com>
+
+Dear list,
+
+After running the following chunk of code repeatedly in a package
+
+library(parellel)
+
+f <- function(nsim, ...)
+{
+        cl <- makeCluster(detectCores())
+        on.exit(stopCluster(cl))
+        rng.kind <- RNGkind()
+        on.exit(RNGkind(rng.kind[1], rng.kind[2]))
+        RNGkind("L'Ecuyer-CMRG")
+        clusterSetRNGStream(cl, trunc(runif(1) * 10000))
+
+        z <- clusterApply(cl, seq_len(nsim),
+                function(dummy, ...)
+                   { #some custom function that does simulation
+                   },
+                # additional arguments passed into function
+                )
+      # other stuff
+}
+
+I got > 50 warnings like
+
+34: closing unused connection 3 (<-localhost.localdomain:10187)
+35: closing unused connection 4 (<-localhost.localdomain:10187)
+36: closing unused connection 3 (<-localhost.localdomain:10187)
+37: closing unused connection 4 (<-localhost.localdomain:10187)
+38: closing unused connection 3 (<-localhost.localdomain:10187)
+
+I've tested this on two Linux boxes with detectCores() returning 2 and
+4, respectively, getting the same type of warnings. Although 2 and 4
+cores seem to be few, I need this parallel capabilities so that it's
+beneficial when the code is run on machines with more cores. It will
+be run on both Linux and Windows.
+
+The function called by 'clusterApply' calls package 'RandomFields' for
+simulations. It is not apparent that 'RandomFields' does parallel
+computations (which might interfere with R).
+
+Any idea what caused these warning messages? If they are harmless, I
+really want to avoid them b/c they can mask other useful warnings.
+
+Thanks!
+
+Zepu Zhang
+
+
+From edd at debian.org  Mon Jan 23 03:14:38 2012
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Sun, 22 Jan 2012 20:14:38 -0600
+Subject: [R-sig-hpc] Warning "closing unused connection..." with
+	package	parallel
+In-Reply-To: <CAG5L0QVPNnPdysmRhCUFye5f-ad=9uxQzFdeNR6foBOh+tOd0w@mail.gmail.com>
+References: <CAG5L0QVPNnPdysmRhCUFye5f-ad=9uxQzFdeNR6foBOh+tOd0w@mail.gmail.com>
+Message-ID: <20252.49806.750012.315736@max.nulle.part>
+
+
+On 22 January 2012 at 15:33, Zepu Zhang wrote:
+| Dear list,
+| 
+| After running the following chunk of code repeatedly in a package
+| 
+| library(parellel)
+| 
+| f <- function(nsim, ...)
+| {
+|         cl <- makeCluster(detectCores())
+|         on.exit(stopCluster(cl))
+|         rng.kind <- RNGkind()
+|         on.exit(RNGkind(rng.kind[1], rng.kind[2]))
+|         RNGkind("L'Ecuyer-CMRG")
+|         clusterSetRNGStream(cl, trunc(runif(1) * 10000))
+| 
+|         z <- clusterApply(cl, seq_len(nsim),
+|                 function(dummy, ...)
+|                    { #some custom function that does simulation
+|                    },
+|                 # additional arguments passed into function
+|                 )
+|       # other stuff
+| }
+| 
+| I got > 50 warnings like
+| 
+| 34: closing unused connection 3 (<-localhost.localdomain:10187)
+| 35: closing unused connection 4 (<-localhost.localdomain:10187)
+| 36: closing unused connection 3 (<-localhost.localdomain:10187)
+| 37: closing unused connection 4 (<-localhost.localdomain:10187)
+| 38: closing unused connection 3 (<-localhost.localdomain:10187)
+| 
+| I've tested this on two Linux boxes with detectCores() returning 2 and
+| 4, respectively, getting the same type of warnings. Although 2 and 4
+| cores seem to be few, I need this parallel capabilities so that it's
+| beneficial when the code is run on machines with more cores. It will
+| be run on both Linux and Windows.
+| 
+| The function called by 'clusterApply' calls package 'RandomFields' for
+| simulations. It is not apparent that 'RandomFields' does parallel
+| computations (which might interfere with R).
+| 
+| Any idea what caused these warning messages? If they are harmless, I
+| really want to avoid them b/c they can mask other useful warnings.
+
+Try calling stopCluster(cl) when you're done. The documentation, accessible
+via help(makeCluster,package="parallel") states this:
+
+     It is good practice to shut down the workers by calling
+     ?stopCluster?: however the workers will terminate themselves once
+     the socket on which they are listening for commands becomes
+     unavailable, which it should if the master R session is completed
+     (or its process dies).
+
+Dirk
+
+| 
+| Thanks!
+| 
+| Zepu Zhang
+| 
+| _______________________________________________
+| R-sig-hpc mailing list
+| R-sig-hpc at r-project.org
+| https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+-- 
+"Outside of a dog, a book is a man's best friend. Inside of a dog, it is too
+dark to read." -- Groucho Marx
+
+
+From lists at jdadesign.net  Mon Jan 23 16:31:31 2012
+From: lists at jdadesign.net (Jeff Allen)
+Date: Mon, 23 Jan 2012 09:31:31 -0600
+Subject: [R-sig-hpc] Snow Not Distributing
+In-Reply-To: <1327101572.4697.2.camel@brian-desktop>
+References: <4F19E26F.4000408@jdadesign.net>
+	<1327101572.4697.2.camel@brian-desktop>
+Message-ID: <4F1D7D53.6060206@jdadesign.net>
+
+On 1/20/2012 5:19 PM, Brian G. Peterson wrote:
+> On Fri, 2012-01-20 at 15:53 -0600, Jeff Allen wrote:
+>> I have been able to successfully setup snow (0.3-5) and Rmpi (0.5-9) on
+>> my RedHat 5 cluster, and have it working perfectly for jobs that don't
+>> span multiple nodes.
+>>
+>> We're using Torque for resource management, so I start a job with access
+>> to multiple nodes and load Snow. Unfortunately, not matter what size
+>> cluster I try to make, all of the workers end up running on the same
+>> host -- leaving the other hosts idle.
+>>
+>> I'm no expert with MPI or snow, so I'm really not sure how to approach
+>> debugging this.
+>>
+>> Any input would be much appreciated!
+> I would suggest trying a simple 'hello world' type script just using
+> Rmpi, e.g. one of the examples from Dirk's Intro to HPC with R
+> presentation (I'm not somewhere I can easily search for it, but you
+> should be able to find it on Dirk's site or a link in the list archives
+> here).
+>
+> Regards,
+>
+>     - Brian
+>
+
+Thanks for the suggestion, Brian. I've gone through the following "Hello 
+World" steps and don't get the desired result.
+
+qsub -I -l nodes=2:ppn=12 #spawn a 2 node, 12 core/node job
+
+I then went through the following R session:
+
+ > library(Rmpi)
+ > mpi.spawn.Rslaves()
+         1 slaves are spawned successfully. 0 failed.
+master (rank 0, comm 1) of size 2 is running on: n004
+slave1 (rank 1, comm 1) of size 2 is running on: n004
+ > mpi.remote.exec(paste("I am",mpi.comm.rank(),"of",mpi.comm.size()))
+$slave1
+[1] "I am 1 of 2"
+
+ > mpi.close.Rslaves()
+[1] 1
+ > mpi.quit()
+
+I get the same results in interactive and batch (Rscript) submissions of 
+this job. My expectation was that it would spawn 1 worker per core (24 
+of which are available), or at least one worker per node (n004 and n013 
+were allocated by Torque for this request).
+
+Let me know what additional information/output I can provide.
+
+Jeff
+
+
+From lists at jdadesign.net  Mon Jan 23 16:38:53 2012
+From: lists at jdadesign.net (Jeff Allen)
+Date: Mon, 23 Jan 2012 09:38:53 -0600
+Subject: [R-sig-hpc] Snow Not Distributing
+In-Reply-To: <CALh21iLY62EJyMwi-eGxTc9MqY56508ndfuidUOGKLbKUqVbiw@mail.gmail.com>
+References: <4F19E26F.4000408@jdadesign.net>
+	<CALh21iLY62EJyMwi-eGxTc9MqY56508ndfuidUOGKLbKUqVbiw@mail.gmail.com>
+Message-ID: <4F1D7F0D.4020300@jdadesign.net>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120123/e960f48f/attachment.pl>
+
+From patrik.waldmann at boku.ac.at  Mon Jan 23 17:36:05 2012
+From: patrik.waldmann at boku.ac.at (Patrik Waldmann)
+Date: Mon, 23 Jan 2012 17:36:05 +0100
+Subject: [R-sig-hpc] snow-bootstrap correlation ranking
+Message-ID: <4F1D9A85020000F900008693@gwia1.boku.ac.at>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120123/0a91c485/attachment.pl>
+
+From nabila.bounceur at uclouvain.be  Mon Jan 23 19:46:38 2012
+From: nabila.bounceur at uclouvain.be (Nabila Bounceur)
+Date: Mon, 23 Jan 2012 19:46:38 +0100
+Subject: [R-sig-hpc] R on a server
+Message-ID: <80E85455-20B2-4096-B45B-B06B94DDF445@uclouvain.be>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120123/450ece94/attachment.pl>
+
+From zepu.zhang at gmail.com  Tue Jan 24 01:23:37 2012
+From: zepu.zhang at gmail.com (Zepu Zhang)
+Date: Mon, 23 Jan 2012 15:23:37 -0900
+Subject: [R-sig-hpc] Warning "closing unused connection..." with package
+	parallel
+In-Reply-To: <20252.49806.750012.315736@max.nulle.part>
+References: <CAG5L0QVPNnPdysmRhCUFye5f-ad=9uxQzFdeNR6foBOh+tOd0w@mail.gmail.com>
+	<20252.49806.750012.315736@max.nulle.part>
+Message-ID: <CAG5L0QUEOU97v1HEO+ZkrV4AjxjouRvxu7KC3R5DNuuq0O_1vg@mail.gmail.com>
+
+Thanks for the response. Olaf pointed out my second 'on.exit'
+overwrote the first 'on.exit'; that fixed the problem.
+
+Zepu
+
+On Sun, Jan 22, 2012 at 5:14 PM, Dirk Eddelbuettel <edd at debian.org> wrote:
+>
+> On 22 January 2012 at 15:33, Zepu Zhang wrote:
+> | Dear list,
+> |
+> | After running the following chunk of code repeatedly in a package
+> |
+> | library(parellel)
+> |
+> | f <- function(nsim, ...)
+> | {
+> | ? ? ? ? cl <- makeCluster(detectCores())
+> | ? ? ? ? on.exit(stopCluster(cl))
+> | ? ? ? ? rng.kind <- RNGkind()
+> | ? ? ? ? on.exit(RNGkind(rng.kind[1], rng.kind[2]))
+> | ? ? ? ? RNGkind("L'Ecuyer-CMRG")
+> | ? ? ? ? clusterSetRNGStream(cl, trunc(runif(1) * 10000))
+> |
+> | ? ? ? ? z <- clusterApply(cl, seq_len(nsim),
+> | ? ? ? ? ? ? ? ? function(dummy, ...)
+> | ? ? ? ? ? ? ? ? ? ?{ #some custom function that does simulation
+> | ? ? ? ? ? ? ? ? ? ?},
+> | ? ? ? ? ? ? ? ? # additional arguments passed into function
+> | ? ? ? ? ? ? ? ? )
+> | ? ? ? # other stuff
+> | }
+> |
+> | I got > 50 warnings like
+> |
+> | 34: closing unused connection 3 (<-localhost.localdomain:10187)
+> | 35: closing unused connection 4 (<-localhost.localdomain:10187)
+> | 36: closing unused connection 3 (<-localhost.localdomain:10187)
+> | 37: closing unused connection 4 (<-localhost.localdomain:10187)
+> | 38: closing unused connection 3 (<-localhost.localdomain:10187)
+> |
+> | I've tested this on two Linux boxes with detectCores() returning 2 and
+> | 4, respectively, getting the same type of warnings. Although 2 and 4
+> | cores seem to be few, I need this parallel capabilities so that it's
+> | beneficial when the code is run on machines with more cores. It will
+> | be run on both Linux and Windows.
+> |
+> | The function called by 'clusterApply' calls package 'RandomFields' for
+> | simulations. It is not apparent that 'RandomFields' does parallel
+> | computations (which might interfere with R).
+> |
+> | Any idea what caused these warning messages? If they are harmless, I
+> | really want to avoid them b/c they can mask other useful warnings.
+>
+> Try calling stopCluster(cl) when you're done. The documentation, accessible
+> via help(makeCluster,package="parallel") states this:
+>
+> ? ? It is good practice to shut down the workers by calling
+> ? ? ?stopCluster?: however the workers will terminate themselves once
+> ? ? the socket on which they are listening for commands becomes
+> ? ? unavailable, which it should if the master R session is completed
+> ? ? (or its process dies).
+>
+> Dirk
+>
+> |
+> | Thanks!
+> |
+> | Zepu Zhang
+> |
+> | _______________________________________________
+> | R-sig-hpc mailing list
+> | R-sig-hpc at r-project.org
+> | https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+> --
+> "Outside of a dog, a book is a man's best friend. Inside of a dog, it is too
+> dark to read." -- Groucho Marx
+
+
+From zepu.zhang at gmail.com  Tue Jan 24 01:31:38 2012
+From: zepu.zhang at gmail.com (Zepu Zhang)
+Date: Mon, 23 Jan 2012 15:31:38 -0900
+Subject: [R-sig-hpc] Conflicts between 'parallel' and 'Rprof',
+	and between two parallel R sessions
+Message-ID: <CAG5L0QWqkg0zAMgqSKd5vzREiW0kDfRyymdy4O9Zo=Awf17V3Q@mail.gmail.com>
+
+Dear list,
+
+I observed two problems that I suppose are generic.
+
+First, using 'Rprof' to profile a parallel (based on the package
+'parallel') code caused
+
+.... Error in unserialize(node$con) : error reading from connection....
+
+Second, on a multicore desktop, I concurrently opened two separate
+terminals and ran two separate R sessions, both running (actually
+identical) parallel code (which sets up a cluster with as many nodes
+as there are cores). I got
+
+ ...Error in socketConnection("localhost", port = port, server = TRUE,
+blocking = TRUE,  :   cannot open the connection
+In addition: Warning message:
+In socketConnection("localhost", port = port, server = TRUE, blocking = TRUE,  :
+  port 10187 cannot be opened
+
+Are there ways to do the two things above without problems?
+
+Thanks!
+
+Zepu
+
+
+From pauljohn32 at gmail.com  Wed Jan 25 05:29:49 2012
+From: pauljohn32 at gmail.com (Paul Johnson)
+Date: Tue, 24 Jan 2012 22:29:49 -0600
+Subject: [R-sig-hpc] R on a server
+In-Reply-To: <80E85455-20B2-4096-B45B-B06B94DDF445@uclouvain.be>
+References: <80E85455-20B2-4096-B45B-B06B94DDF445@uclouvain.be>
+Message-ID: <CAErODj9Y=-40NjvC6Cm0ULd3b0HRhbiQGKGiCtajeZtD9LbYfQ@mail.gmail.com>
+
+On Mon, Jan 23, 2012 at 12:46 PM, Nabila Bounceur
+<nabila.bounceur at uclouvain.be> wrote:
+> How to launch Rcmd on a server?
+>
+
+Answer. Same as on a workstation. library(Rcmdr).
+
+But you should ask in r-help, this is not an r-sig-hpc question.
+
+pj
+
+> Many Thanks,
+>
+>
+
+-- 
+Paul E. Johnson
+Professor, Political Science
+1541 Lilac Lane, Room 504
+University of Kansas
+
+
+From pauljohn32 at gmail.com  Thu Jan 26 18:34:54 2012
+From: pauljohn32 at gmail.com (Paul Johnson)
+Date: Thu, 26 Jan 2012 11:34:54 -0600
+Subject: [R-sig-hpc] Snow Not Distributing
+In-Reply-To: <4F19E26F.4000408@jdadesign.net>
+References: <4F19E26F.4000408@jdadesign.net>
+Message-ID: <CAErODj9Pjxebu=wgTCsv7CJvsa9jw=-AxH2NpGP4rHfTZFheOw@mail.gmail.com>
+
+On Fri, Jan 20, 2012 at 3:53 PM, Jeff Allen <lists at jdadesign.net> wrote:
+> I have been able to successfully setup snow (0.3-5) and Rmpi (0.5-9) on my
+> RedHat 5 cluster, and have it working perfectly for jobs that don't span
+> multiple nodes.
+>
+> We're using Torque for resource management, so I start a job with access to
+> multiple nodes and load Snow. Unfortunately, not matter what size cluster I
+> try to make, all of the workers end up running on the same host -- leaving
+> the other hosts idle.
+
+Have you solved the problem yet?  If not, I can help. I have exactly
+your setup and I have been through EXACTLY the same problems you are
+seeing.
+
+I've been developing a collection of Rmpi programs that actually work,
+some with Snow, some with parallel.
+
+This is the cluster main page
+
+http://web.ku.edu/~quant/cgi-bin/mw1/index.php?title=Cluster:Main
+
+and about 2/3 down, you see a link to my collection of working programs.
+
+That is an SVN repo that has http access
+
+http://winstat.quant.ku.edu/svn/hpcexample/trunk
+
+In case you are impatient, here is what I suggest.  This should be
+your submission script. I mean this works for us.
+
+#!/bin/sh
+#
+#This is an example script example.sh
+#
+#These commands set up the Grid Environment for your job:
+#PBS -N SnowHelloWorld
+#PBS -l nodes=11:ppn=1
+#PBS -l walltime=00:50:00
+#PBS -M pauljohn at ku.edu
+#PBS -m bea
+
+cd $PBS_O_WORKDIR
+
+### This RUNS, and because I give it a machine list, it uses them.
+orterun --hostfile $PBS_NODEFILE -n 1 R --no-save --vanilla -f snow-hello.R
+
+###############################
+
+note that in the orterun command (same as mpirun) I am ONLY REQUESTING
+one node. We let R do the spawning of the jobs.  THe PBS command asks
+for 11 nodes
+
+Then the job for snow-hello.R creates the cluster.
+
+Why am I pasting this in. I'm crazy. Just go look here for the sub
+script, the program, an explanation, and example output.
+
+http://winstat.quant.ku.edu/svn/hpcexample/trunk/Ex60-HelloWorldSnow/
+
+>
+> I'm no expert with MPI or snow, so I'm really not sure how to approach
+> debugging this.
+>
+> Any input would be much appreciated!
+>
+> Jeff
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+
+-- 
+Paul E. Johnson
+Professor, Political Science
+1541 Lilac Lane, Room 504
+University of Kansas
+
+
+From lists at jdadesign.net  Thu Jan 26 20:05:49 2012
+From: lists at jdadesign.net (Jeff Allen)
+Date: Thu, 26 Jan 2012 13:05:49 -0600
+Subject: [R-sig-hpc] Snow Not Distributing
+In-Reply-To: <CAErODj9Pjxebu=wgTCsv7CJvsa9jw=-AxH2NpGP4rHfTZFheOw@mail.gmail.com>
+References: <4F19E26F.4000408@jdadesign.net>
+	<CAErODj9Pjxebu=wgTCsv7CJvsa9jw=-AxH2NpGP4rHfTZFheOw@mail.gmail.com>
+Message-ID: <4F21A40D.6040703@jdadesign.net>
+
+THANK YOU! I followed your summary and was able to produce the output 
+included below.
+
+I updated the reference to the hostfile, as you suggested, ensuring that 
+n was set to only 1.
+
+I really can't thank you enough for posting this -- saved me a TON of time.
+
+Jeff
+
+[jalle6 at qbri ecoli]$ qsub -I -l nodes=2:ppn=12
+qsub: waiting for job 6839.qbri to start
+qsub: job 6839.qbri ready
+
+[jalle6 at n010 ~]$ ./Temp/shmpi.sh
+         24 slaves are spawned successfully. 0 failed.
+master  (rank 0 , comm 1) of size 25 is running on: n010
+slave1  (rank 1 , comm 1) of size 25 is running on: n010
+slave2  (rank 2 , comm 1) of size 25 is running on: n010
+slave3  (rank 3 , comm 1) of size 25 is running on: n010
+... ... ...
+slave23 (rank 23, comm 1) of size 25 is running on: n001
+slave24 (rank 24, comm 1) of size 25 is running on: n010
+$slave1
+[1] "n010"
+
+$slave2
+[1] "n010"
+
+$slave3
+[1] "n010"
+
+$slave4
+[1] "n010"
+
+$slave5
+[1] "n010"
+
+$slave6
+[1] "n010"
+
+$slave7
+[1] "n010"
+
+$slave8
+[1] "n010"
+
+$slave9
+[1] "n010"
+
+$slave10
+[1] "n010"
+
+$slave11
+[1] "n010"
+
+$slave12
+[1] "n001"
+
+$slave13
+[1] "n001"
+
+$slave14
+[1] "n001"
+
+$slave15
+[1] "n001"
+
+$slave16
+[1] "n001"
+
+$slave17
+[1] "n001"
+
+$slave18
+[1] "n001"
+
+$slave19
+[1] "n001"
+
+$slave20
+[1] "n001"
+
+$slave21
+[1] "n001"
+
+$slave22
+[1] "n001"
+
+$slave23
+[1] "n001"
+
+$slave24
+[1] "n010"
+
+[1] 1
+
+
+
+On 1/26/2012 11:34 AM, Paul Johnson wrote:
+> On Fri, Jan 20, 2012 at 3:53 PM, Jeff Allen<lists at jdadesign.net>  wrote:
+>> I have been able to successfully setup snow (0.3-5) and Rmpi (0.5-9) on my
+>> RedHat 5 cluster, and have it working perfectly for jobs that don't span
+>> multiple nodes.
+>>
+>> We're using Torque for resource management, so I start a job with access to
+>> multiple nodes and load Snow. Unfortunately, not matter what size cluster I
+>> try to make, all of the workers end up running on the same host -- leaving
+>> the other hosts idle.
+> Have you solved the problem yet?  If not, I can help. I have exactly
+> your setup and I have been through EXACTLY the same problems you are
+> seeing.
+>
+> I've been developing a collection of Rmpi programs that actually work,
+> some with Snow, some with parallel.
+>
+> This is the cluster main page
+>
+> http://web.ku.edu/~quant/cgi-bin/mw1/index.php?title=Cluster:Main
+>
+> and about 2/3 down, you see a link to my collection of working programs.
+>
+> That is an SVN repo that has http access
+>
+> http://winstat.quant.ku.edu/svn/hpcexample/trunk
+>
+> In case you are impatient, here is what I suggest.  This should be
+> your submission script. I mean this works for us.
+>
+> #!/bin/sh
+> #
+> #This is an example script example.sh
+> #
+> #These commands set up the Grid Environment for your job:
+> #PBS -N SnowHelloWorld
+> #PBS -l nodes=11:ppn=1
+> #PBS -l walltime=00:50:00
+> #PBS -M pauljohn at ku.edu
+> #PBS -m bea
+>
+> cd $PBS_O_WORKDIR
+>
+> ### This RUNS, and because I give it a machine list, it uses them.
+> orterun --hostfile $PBS_NODEFILE -n 1 R --no-save --vanilla -f snow-hello.R
+>
+> ###############################
+>
+> note that in the orterun command (same as mpirun) I am ONLY REQUESTING
+> one node. We let R do the spawning of the jobs.  THe PBS command asks
+> for 11 nodes
+>
+> Then the job for snow-hello.R creates the cluster.
+>
+> Why am I pasting this in. I'm crazy. Just go look here for the sub
+> script, the program, an explanation, and example output.
+>
+> http://winstat.quant.ku.edu/svn/hpcexample/trunk/Ex60-HelloWorldSnow/
+>
+>> I'm no expert with MPI or snow, so I'm really not sure how to approach
+>> debugging this.
+>>
+>> Any input would be much appreciated!
+>>
+>> Jeff
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+>
+
+
+From khalfala at math.mcmaster.ca  Tue Jan 31 23:27:28 2012
+From: khalfala at math.mcmaster.ca (khalfala at math.mcmaster.ca)
+Date: Tue, 31 Jan 2012 17:27:28 -0500
+Subject: [R-sig-hpc] Rmpi for non matrices results
+Message-ID: <404a8b4dd13451f5705ca9d6e45d522a.squirrel@ms.mcmaster.ca>
+
+Hi there,
+I am facing some problems in transforming my R code in order to be used as
+a parallel code. The main idea of my code is to get 1000 bootstrap
+confidence interval. It works by using a boot sample at each loop of the
+CI. I do have first a loop of size 1000 and at each loop we call a
+bootsample of size 500. This could last for 6-16 hours to get a set of
+1000 CI. Now I am interested in transforming my code using the task push
+method. The thing that I dont get is how to relate my loop with each
+slave. I mean if I want to divide the work to be 100 CI at 10 slaves then
+how to relate the rank of the slave in my loop??
+I found this example:
+
+# Initialize MPI
+library("Rmpi")
+
+# Notice we just say "give us all the slaves you've got."
+mpi.spawn.Rslaves()
+
+if (mpi.comm.size() < 2) {
+    print("More slave processes are required.")
+    mpi.quit()
+    }
+
+.Last <- function(){
+    if (is.loaded("mpi_initialize")){
+        if (mpi.comm.size(1) > 0){
+            print("Please use mpi.close.Rslaves() to close slaves.")
+            mpi.close.Rslaves()
+        }
+        print("Please use mpi.quit() to quit R")
+        .Call("mpi_finalize")
+    }
+}
+
+# Function the slaves will call to perform a validation on the
+# fold equal to their slave number.
+# Assumes: thedata,fold,foldNumber,p
+foldslave <- function() {
+    # Get a task
+    task <- mpi.recv.Robj(mpi.any.source(),mpi.any.tag())
+    task_info <- mpi.get.sourcetag()
+    tag <- task_info[2]
+
+    # While task is not a "done" message. Note the use of the tag to indicate
+    # the type of message
+    while (tag != 2) {
+        # Perform the task.
+        foldNumber <- task$foldNumber
+
+        rss <- double(p)
+        for (i in 1:p) {
+            # produce a linear model on the first i variables on training
+data
+            templm <- lm(y~.,data=thedata[fold!=foldNumber,1:(i+1)])
+
+            # produce predicted data from test data
+            yhat <- predict(templm,newdata=thedata[fold==foldNumber,1:(i+1)])
+
+            # get rss of yhat-y
+            localrssresult <- sum((yhat-thedata[fold==foldNumber,1])^2)
+            rss[i] <- localrssresult
+            }
+
+        # Construct and send message back to master
+        result <- list(result=rss,foldNumber=foldNumber)
+        mpi.send.Robj(result,0,1)
+
+        # Get a task
+        task <- mpi.recv.Robj(mpi.any.source(),mpi.any.tag())
+        task_info <- mpi.get.sourcetag()
+        tag <- task_info[2]
+        }
+
+    junk <- 0
+    mpi.send.Robj(junk,0,2)
+    }
+
+# We're in the parent.
+# first make some data
+n <- 1000	# number of obs
+p <- 30		# number of variables
+
+# Create data as a set of n samples of p independent variables,
+# make a "random" beta with higher weights in the front.
+# Generate y's as y = beta*x + random
+x <- matrix(rnorm(n*p),n,p)
+beta <- c(rnorm(p/2,0,5),rnorm(p/2,0,.25))
+y <- x %*% beta + rnorm(n,0,20)
+thedata <- data.frame(y=y,x=x)
+
+fold <- rep(1:10,length=n)
+fold <- sample(fold)
+
+summary(lm(y~x))
+
+# Now, send the data to the slaves
+mpi.bcast.Robj2slave(thedata)
+mpi.bcast.Robj2slave(fold)
+mpi.bcast.Robj2slave(p)
+
+# Send the function to the slaves
+mpi.bcast.Robj2slave(foldslave)
+
+# Call the function in all the slaves to get them ready to
+# undertake tasks
+mpi.bcast.cmd(foldslave())
+
+
+# Create task list
+tasks <- vector('list')
+for (i in 1:10) {
+    tasks[[i]] <- list(foldNumber=i)
+    }
+
+# Make the round-robin list for slaves
+n_slaves <- mpi.comm.size()-1
+slave_ids <- rep(1:n_slaves, length=length(tasks))
+
+# Send tasks
+for (i in 1:length(tasks)) {
+    slave_id <- slave_ids[i]
+    mpi.send.Robj(tasks[[i]],slave_id,1)
+    }
+
+# Collect results
+rssresult <- matrix(0,p,10)
+for (i in 1:length(tasks)) {
+    message <- mpi.recv.Robj(mpi.any.source(),mpi.any.tag())
+    foldNumber <- message$foldNumber
+    results    <- message$result
+    rssresult[,foldNumber] <- results
+    }
+
+# Perform closing handshake
+for (i in 1:n_slaves) {
+    junk <- 0
+    mpi.send.Robj(junk,i,2)
+    }
+
+for (i in 1:n_slaves) {
+    mpi.recv.Robj(mpi.any.source(),2)
+    }
+
+# plot the results
+plot(apply(rssresult,1,mean))
+
+mpi.close.Rslaves()
+mpi.quit(save="no")
+
+In this example the result is given by 30x10 matrix in which they used 10
+slaves which represents the number of columns of the matrix. I tried
+looking for another example that dont deal with matrices but couldnt find
+any. I am wondering if the interest was let say in this case to get a
+column of 300 numbers and each slave will give a column of 30 numbers then
+how would we write the foldslave function and in this case how would we
+call the result from each slave and arrange it in one column?
+Thank you in advance.
+Laila
+
+

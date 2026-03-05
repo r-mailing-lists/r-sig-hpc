@@ -1,0 +1,293 @@
+{
+  "list": "r-sig-hpc",
+  "description": "",
+  "month": "2013-07",
+  "messages": [
+    {
+      "id": "msg-1b8bd16228be",
+      "message_id": "<CAMo=faoodcYmbeiyDVvusFsPjryjP9kSYgE9dXuYptWZafo3YQ@mail.gmail.com>",
+      "from_name": "Alistair Perry",
+      "from_email_hash": "b4815751359f8ae95b54aa581443c0e25a861cc90746f3d530caa78b7d072ce1",
+      "date": "2013-07-15T13:13:03+10:00",
+      "subject": "[R-sig-hpc] Parallel multi-core processing for complex R functions",
+      "subject_clean": "Parallel multi-core processing for complex R functions",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130715/756b85df/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130715/756b85df/attachment.pl>",
+      "thread_id": "thread-1b8bd16228be",
+      "thread_depth": 0,
+      "month": "2013-07"
+    },
+    {
+      "id": "msg-5d6821e1b375",
+      "message_id": "<84DC733B-7B6E-476E-A160-16953D3908BD@r-project.org>",
+      "from_name": "Simon Urbanek",
+      "from_email_hash": "4b8015e605c1e8a78e0fc166d7f94d0bc9cab6230366ee1dfdd8a0de17b4b371",
+      "date": "2013-07-15T09:32:46-04:00",
+      "subject": "[R-sig-hpc] Parallel multi-core processing for complex R functions",
+      "subject_clean": "Parallel multi-core processing for complex R functions",
+      "in_reply_to": "<CAMo=faoodcYmbeiyDVvusFsPjryjP9kSYgE9dXuYptWZafo3YQ@mail.gmail.com>",
+      "references": [
+        "<CAMo=faoodcYmbeiyDVvusFsPjryjP9kSYgE9dXuYptWZafo3YQ@mail.gmail.com>"
+      ],
+      "body_plain": "On Jul 14, 2013, at 11:13 PM, Alistair Perry wrote:\n\n> As you know R doesn't explicitly allow parallel processing on multiple\n> cores.\n> \n> I have two complex functions called \"test\" and \"rcc\". I did not write these\n> codes.\n> \n> The basic premise of the function code \"test\" is to calculate the rich-club\n> members of a weighted matrix (a certain group of nodes [one node = one\n> matrix definition] are more connected to each other than other nodes- see\n> http://toreopsahl.com/tnet/weighted-networks/weighted-rich-club-effect/).\n> \n> In short, the code is designed to calculate the strength of the ties\n> between prominent nodes. However, to test whether there is a significant\n> effect, the input matrix (argument \"net\" in the code \"test\") must be\n> compared to a randomized matrix (the links of the input matrix are\n> reshuffled) reshuffled 1000 times. The randomized matrix is created by the\n> function code \"rcc\". This code is embedded in the function code \"test\". You\n> can set how many times the input matrix is to be reshuffled using the\n> argument \"NR\" (i.e NR = 1000 - means input matrix will be reshuffled 1000\n> times)\n> \n> The issue here is that as R does not explicitly allow multi-core parallel\n> processing, so the computation for one matrix (500x500) using the \"test\"\n> code can take over a week. I am using a quad-core processer with a linux\n> OS, but only one core is being used. I am aware that there is the base\n> package \"parallel\" and \"mclapply\" to multi-thread the function, but these\n> commands require an input argument (\"X\"), along with the function I wish to\n> process using all cores. However, the functions I am using require an input\n> (equivalent to X) within the argument variables, so it would mean setting\n> the input matrix twice as an input argument variable.\n> \n\nThat's not true, you can use the matrix directly from the parallel code, because everything is shared. If you wrote your code using apply instead of a loop, you would have seen that all you need to do is to replace lapply with mclapply: You have\n\n rphi <- matrix(data = 0, nrow = nrow(ophi), ncol = NR)\n for (i in 1:NR) {    \n    rnet <- rcc(net, option = reshuffle)\n    rphi[, i] <- phi(rnet)\n}\n\nwhich can be simplified to\n\nrphi <- sapply(seq.int(NR), function(i) phi(rcc(net, option=reshuffle)))\n\nand thus the parallel version is simply\n\nrphi <- simplify2array(mclapply(seq.int(NR), function(i) phi(rcc(net, option=reshuffle))))\n\nCheers,\nSimon\n\n\n> Does anyone have an idea of how I could multi-thread the code.\n> Particularly, the section of the code where the matrix is reshuffled, so\n> the matrix could be reshuffled 250 times on one core (if there were 4\n> cores)? This would speed up the computation dramtically.\n> \n> The codes are available to be viewed on\n> http://stackoverflow.com/questions/17646190/parallel-and-multicore-processing-for-complex-r-function\n> \n> \t[[alternative HTML version deleted]]\n> \n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n> \n>",
+      "body_snippet": "On Jul 14, 2013, at 11:13 PM, Alistair Perry wrote:\n\n> As you know R doesn't explicitly allow parallel processing on multiple\n> cores.\n> \n> I have two complex functions called \"test\" and \"rcc\". I did ",
+      "thread_id": "thread-1b8bd16228be",
+      "thread_depth": 1,
+      "month": "2013-07"
+    },
+    {
+      "id": "msg-bea98e05ff8b",
+      "message_id": "<FF9DB805FC41CC4E95825A50F680630217A25D3D@columbia.uhd.campus>",
+      "from_name": "Hodgess, Erin",
+      "from_email_hash": "9a43d72d3c5a93c98a7b509fb8aef328797f49fac98830a099e885b965325eac",
+      "date": "2013-07-18T03:16:21Z",
+      "subject": "[R-sig-hpc] Using R and CUDA",
+      "subject_clean": "Using R and CUDA",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130718/507ff37a/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130718/507ff37a/attachment.pl>",
+      "thread_id": "thread-bea98e05ff8b",
+      "thread_depth": 0,
+      "month": "2013-07"
+    },
+    {
+      "id": "msg-8a9d14fba206",
+      "message_id": "<51E7D788.2030908@bordeaux.inra.fr>",
+      "from_name": "Amen Alyaari",
+      "from_email_hash": "8f7439ac9b09cef47708dd645c0dbcedd6fc610e90508f09f4bb181e7c55daff",
+      "date": "2013-07-18T13:54:48+02:00",
+      "subject": "[R-sig-hpc] number of combinations",
+      "subject_clean": "number of combinations",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Hello All,\n\nI have three datasets and would like to know how much N was used in my \ncalculations.\n\nI read the data into a multi-dimensional array with dimensions (nx, ny, \nntsteps, ndatasets), e.g. with a smaller example dataset:\n\n                               # nx   ny   nsteps ndatasets\n             dat = runif(20 * 30 * 100 *  3)\n         dim(dat) = c(20, 30, 100, 3)\n > str(dat)\n     num [1:20, 1:30, 1:100, 1:3] 0.1834 0.8537 0.0672 0.0734 0.8078 ...\nwe take advantage of the cor functions and build this function to \ncompute how many N we have:\n\n     cor_withN <- function(...) {\n         res <- try(cor.test(...)$parameter+2, silent=TRUE)\n         ifelse(class(res)==\"try-error\", NA, res)}\nNow we take advantage of the fact that apply also works on \nmulti-dimensional arrays, not only matrices:\nWe use apply to iterate over all the x,y,z triples.\n\n       result = apply(dat, c(1,2), function(x) cor_withN(x[,1], \nx[,2],x[,3]))\n > str(cor_result)\n      logi [1:20, 1:30] NA NA NA NA NA NA ..\nso something is wrong by getting NA NA NA NA\nif the last line went well! then:      str(cor_result)                   \nshould be:\n\n      logi [1:20, 1:30] 100 100 100 100 100 ..(nsteps)\nAny idea on why I am getting NA or is there another way to do it?\n\nWhen I tested it with 2 datsets,it went well!\n\n       cor_result = apply(dat, c(1,2), function(x) cor_withN(x[,1], x[,2]))\n > str(cor_result)\n      num [1:20, 1:30] 100 100 100 100 100 100 100 100 100 100\nso the problem is when I added x[,3]!! Thanks\n\nThanks alot",
+      "body_snippet": "Hello All,\n\nI have three datasets and would like to know how much N was used in my \ncalculations.\n\nI read the data into a multi-dimensional array with dimensions (nx, ny, \nntsteps, ndatasets), e.g. wi",
+      "thread_id": "thread-8a9d14fba206",
+      "thread_depth": 0,
+      "month": "2013-07"
+    },
+    {
+      "id": "msg-7ba22645fe73",
+      "message_id": "<FF9DB805FC41CC4E95825A50F680630217A34355@challenger.uhd.campus>",
+      "from_name": "Hodgess, Erin",
+      "from_email_hash": "9a43d72d3c5a93c98a7b509fb8aef328797f49fac98830a099e885b965325eac",
+      "date": "2013-07-19T21:30:42Z",
+      "subject": "[R-sig-hpc] Rmpi and random number generation",
+      "subject_clean": "Rmpi and random number generation",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130719/2cfd5493/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130719/2cfd5493/attachment.pl>",
+      "thread_id": "thread-7ba22645fe73",
+      "thread_depth": 0,
+      "month": "2013-07"
+    },
+    {
+      "id": "msg-06b157b5fcbc",
+      "message_id": "<CAJDot1pfhN-_e-NVmJp5Z5MFRBqE+y5HGzPUsVSJOLYxDwwXig@mail.gmail.com>",
+      "from_name": "Saptarshi Guha",
+      "from_email_hash": "f3fa9b0abd707e159d1fe38cdb884e6cc1f97b24720d75e16e850ce663b0f519",
+      "date": "2013-07-19T14:43:05-07:00",
+      "subject": "[R-sig-hpc] Rmpi and random number generation",
+      "subject_clean": "Rmpi and random number generation",
+      "in_reply_to": "<FF9DB805FC41CC4E95825A50F680630217A34355@challenger.uhd.campus>",
+      "references": [
+        "<FF9DB805FC41CC4E95825A50F680630217A34355@challenger.uhd.campus>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130719/7fc4ebb2/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130719/7fc4ebb2/attachment.pl>",
+      "thread_id": "thread-7ba22645fe73",
+      "thread_depth": 1,
+      "month": "2013-07"
+    },
+    {
+      "id": "msg-d4781d208035",
+      "message_id": "<20969.46705.79809.261617@max.nulle.part>",
+      "from_name": "Dirk Eddelbuettel",
+      "from_email_hash": "447d8de83a7b9c5d61116890bacb6dc0c76aee31b3011a41fb7d3c62dac9042f",
+      "date": "2013-07-19T16:58:09-05:00",
+      "subject": "[R-sig-hpc] Rmpi and random number generation",
+      "subject_clean": "Rmpi and random number generation",
+      "in_reply_to": "<FF9DB805FC41CC4E95825A50F680630217A34355@challenger.uhd.campus>",
+      "references": [
+        "<FF9DB805FC41CC4E95825A50F680630217A34355@challenger.uhd.campus>"
+      ],
+      "body_plain": "On 19 July 2013 at 21:30, Hodgess, Erin wrote:\n| Here is an Rmpi question, please:  I am trying to do a little demo program in which I generate a few random numbers.\n[...]\n| All of the random numbers are the same across the various variables.  Has anyone run into this, please?\n\n1) See eg 'Section 6: Random-number generation' in the vignette of the\n   package \"parallel\" (part of base R) for an introduction.\n\n2) Even the most naive Google search for 'Rmpi parallel RNG' (and you surely\n   tried something like that first, yes?) leads to this fine poster by the\n   author of the Rmpi package:\n\n      http://www.stats.uwo.ca/faculty/yu/Rmpi/download/rsr/poster.pdf\n\n   which contains an example. \n\nDirk\n\n-- \nDirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com",
+      "body_snippet": "On 19 July 2013 at 21:30, Hodgess, Erin wrote:\n| Here is an Rmpi question, please:  I am trying to do a little demo program in which I generate a few random numbers.\n[...]\n| All of the random numbers ",
+      "thread_id": "thread-7ba22645fe73",
+      "thread_depth": 1,
+      "month": "2013-07"
+    },
+    {
+      "id": "msg-ba0335e80ea7",
+      "message_id": "<FF9DB805FC41CC4E95825A50F680630217A3438F@challenger.uhd.campus>",
+      "from_name": "Hodgess, Erin",
+      "from_email_hash": "9a43d72d3c5a93c98a7b509fb8aef328797f49fac98830a099e885b965325eac",
+      "date": "2013-07-19T22:51:54Z",
+      "subject": "[R-sig-hpc] Rmpi and random number generation",
+      "subject_clean": "Rmpi and random number generation",
+      "in_reply_to": "<20969.46705.79809.261617@max.nulle.part>",
+      "references": [
+        "<FF9DB805FC41CC4E95825A50F680630217A34355@challenger.uhd.campus>",
+        "<20969.46705.79809.261617@max.nulle.part>"
+      ],
+      "body_plain": "I had tried the mpi.setup.rngstream but still obtained the same results.\n\n________________________________________\nFrom: Dirk Eddelbuettel [edd at debian.org]\nSent: Friday, July 19, 2013 4:58 PM\nTo: Hodgess, Erin\nCc: r-sig-hpc at r-project.org\nSubject: Re: [R-sig-hpc] Rmpi and random number generation\n\nOn 19 July 2013 at 21:30, Hodgess, Erin wrote:\n| Here is an Rmpi question, please:  I am trying to do a little demo program in which I generate a few random numbers.\n[...]\n| All of the random numbers are the same across the various variables.  Has anyone run into this, please?\n\n1) See eg 'Section 6: Random-number generation' in the vignette of the\n   package \"parallel\" (part of base R) for an introduction.\n\n2) Even the most naive Google search for 'Rmpi parallel RNG' (and you surely\n   tried something like that first, yes?) leads to this fine poster by the\n   author of the Rmpi package:\n\n      http://www.stats.uwo.ca/faculty/yu/Rmpi/download/rsr/poster.pdf\n\n   which contains an example.\n\nDirk\n\n--\nDirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com",
+      "body_snippet": "I had tried the mpi.setup.rngstream but still obtained the same results.\n\n________________________________________\nFrom: Dirk Eddelbuettel [edd at debian.org]\nSent: Friday, July 19, 2013 4:58 PM\nTo: H",
+      "thread_id": "thread-7ba22645fe73",
+      "thread_depth": 2,
+      "month": "2013-07"
+    },
+    {
+      "id": "msg-534a568f071c",
+      "message_id": "<FF9DB805FC41CC4E95825A50F680630217A343D5@challenger.uhd.campus>",
+      "from_name": "Hodgess, Erin",
+      "from_email_hash": "9a43d72d3c5a93c98a7b509fb8aef328797f49fac98830a099e885b965325eac",
+      "date": "2013-07-19T23:41:29Z",
+      "subject": "[R-sig-hpc] Rmpi and random number generation",
+      "subject_clean": "Rmpi and random number generation",
+      "in_reply_to": "<20969.46705.79809.261617@max.nulle.part>",
+      "references": [
+        "<FF9DB805FC41CC4E95825A50F680630217A34355@challenger.uhd.campus>",
+        "<20969.46705.79809.261617@max.nulle.part>"
+      ],
+      "body_plain": "Apologies to all...I had changed the function name!\n\n\n________________________________________\nFrom: Dirk Eddelbuettel [edd at debian.org]\nSent: Friday, July 19, 2013 4:58 PM\nTo: Hodgess, Erin\nCc: r-sig-hpc at r-project.org\nSubject: Re: [R-sig-hpc] Rmpi and random number generation\n\nOn 19 July 2013 at 21:30, Hodgess, Erin wrote:\n| Here is an Rmpi question, please:  I am trying to do a little demo program in which I generate a few random numbers.\n[...]\n| All of the random numbers are the same across the various variables.  Has anyone run into this, please?\n\n1) See eg 'Section 6: Random-number generation' in the vignette of the\n   package \"parallel\" (part of base R) for an introduction.\n\n2) Even the most naive Google search for 'Rmpi parallel RNG' (and you surely\n   tried something like that first, yes?) leads to this fine poster by the\n   author of the Rmpi package:\n\n      http://www.stats.uwo.ca/faculty/yu/Rmpi/download/rsr/poster.pdf\n\n   which contains an example.\n\nDirk\n\n--\nDirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com",
+      "body_snippet": "Apologies to all...I had changed the function name!\n\n\n________________________________________\nFrom: Dirk Eddelbuettel [edd at debian.org]\nSent: Friday, July 19, 2013 4:58 PM\nTo: Hodgess, Erin\nCc: r-s",
+      "thread_id": "thread-7ba22645fe73",
+      "thread_depth": 2,
+      "month": "2013-07"
+    },
+    {
+      "id": "msg-02038c6fc2ba",
+      "message_id": "<FF9DB805FC41CC4E95825A50F680630217A34623@challenger.uhd.campus>",
+      "from_name": "Hodgess, Erin",
+      "from_email_hash": "9a43d72d3c5a93c98a7b509fb8aef328797f49fac98830a099e885b965325eac",
+      "date": "2013-07-20T14:55:15Z",
+      "subject": "[R-sig-hpc] An Rmpi and CGI question, please",
+      "subject_clean": "An Rmpi and CGI question, please",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130720/28da0816/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130720/28da0816/attachment.pl>",
+      "thread_id": "thread-02038c6fc2ba",
+      "thread_depth": 0,
+      "month": "2013-07"
+    },
+    {
+      "id": "msg-ca3aa2b1501b",
+      "message_id": "<121684176.7339344.1374427567334.JavaMail.app@ela4-app0129.prod>",
+      "from_name": "Michel Lutz",
+      "from_email_hash": "a2ec4d4ee31b3d284a02c5181ab9b58959a1edf5e45699883c3bb08d7c1cabbd",
+      "date": "2013-07-21T17:26:07Z",
+      "subject": "[R-sig-hpc] Consultez mon profil LinkedIn",
+      "subject_clean": "Consultez mon profil LinkedIn",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130721/958608ad/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130721/958608ad/attachment.pl>",
+      "thread_id": "thread-ca3aa2b1501b",
+      "thread_depth": 0,
+      "month": "2013-07"
+    },
+    {
+      "id": "msg-0936d49913a9",
+      "message_id": "<CAPr7RtVw090FeDdOrTZkY6oXitnPiHKE1BXaQ6q5Q7auPraK=g@mail.gmail.com>",
+      "from_name": "ivo welch",
+      "from_email_hash": "ef4c39378c57218619b828a80ce244784dd00a6d480a77cf22d23707af2a968f",
+      "date": "2013-07-26T20:49:39-07:00",
+      "subject": "[R-sig-hpc] intel phi access?",
+      "subject_clean": "intel phi access?",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "does anyone have R up and running on an intel phi?  if so, I would\nlove to find out how the R benchmark in\n\nhttp://r.ivo-welch.info/\n\nperforms...\n\n/iaw",
+      "body_snippet": "does anyone have R up and running on an intel phi?  if so, I would\nlove to find out how the R benchmark in\n\nhttp://r.ivo-welch.info/\n\nperforms...\n\n/iaw",
+      "thread_id": "thread-0936d49913a9",
+      "thread_depth": 0,
+      "month": "2013-07"
+    }
+  ],
+  "threads": [
+    {
+      "id": "thread-1b8bd16228be",
+      "subject": "Parallel multi-core processing for complex R functions",
+      "message_count": 2,
+      "participants": [
+        "Alistair Perry",
+        "Simon Urbanek"
+      ],
+      "started": "2013-07-15T13:13:03+10:00",
+      "last_reply": "2013-07-15T09:32:46-04:00",
+      "root_message_id": "msg-1b8bd16228be"
+    },
+    {
+      "id": "thread-bea98e05ff8b",
+      "subject": "Using R and CUDA",
+      "message_count": 1,
+      "participants": [
+        "Hodgess, Erin"
+      ],
+      "started": "2013-07-18T03:16:21+00:00",
+      "last_reply": "2013-07-18T03:16:21+00:00",
+      "root_message_id": "msg-bea98e05ff8b"
+    },
+    {
+      "id": "thread-8a9d14fba206",
+      "subject": "number of combinations",
+      "message_count": 1,
+      "participants": [
+        "Amen Alyaari"
+      ],
+      "started": "2013-07-18T13:54:48+02:00",
+      "last_reply": "2013-07-18T13:54:48+02:00",
+      "root_message_id": "msg-8a9d14fba206"
+    },
+    {
+      "id": "thread-7ba22645fe73",
+      "subject": "Rmpi and random number generation",
+      "message_count": 5,
+      "participants": [
+        "Dirk Eddelbuettel",
+        "Hodgess, Erin",
+        "Saptarshi Guha"
+      ],
+      "started": "2013-07-19T21:30:42+00:00",
+      "last_reply": "2013-07-19T23:41:29+00:00",
+      "root_message_id": "msg-7ba22645fe73"
+    },
+    {
+      "id": "thread-02038c6fc2ba",
+      "subject": "An Rmpi and CGI question, please",
+      "message_count": 1,
+      "participants": [
+        "Hodgess, Erin"
+      ],
+      "started": "2013-07-20T14:55:15+00:00",
+      "last_reply": "2013-07-20T14:55:15+00:00",
+      "root_message_id": "msg-02038c6fc2ba"
+    },
+    {
+      "id": "thread-ca3aa2b1501b",
+      "subject": "Consultez mon profil LinkedIn",
+      "message_count": 1,
+      "participants": [
+        "Michel Lutz"
+      ],
+      "started": "2013-07-21T17:26:07+00:00",
+      "last_reply": "2013-07-21T17:26:07+00:00",
+      "root_message_id": "msg-ca3aa2b1501b"
+    },
+    {
+      "id": "thread-0936d49913a9",
+      "subject": "intel phi access?",
+      "message_count": 1,
+      "participants": [
+        "ivo welch"
+      ],
+      "started": "2013-07-26T20:49:39-07:00",
+      "last_reply": "2013-07-26T20:49:39-07:00",
+      "root_message_id": "msg-0936d49913a9"
+    }
+  ]
+}

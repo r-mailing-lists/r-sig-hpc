@@ -1,0 +1,1002 @@
+{
+  "list": "r-sig-hpc",
+  "description": "",
+  "month": "2012-09",
+  "messages": [
+    {
+      "id": "msg-e240e3ef12a8",
+      "message_id": "<1464b6fa4ac006dd9a564695e59bdaa2.squirrel@www.stats.uwo.ca>",
+      "from_name": "Hao Yu",
+      "from_email_hash": "f90343116b4a1720ab706b8b458137d0f188602a07689c3a137d7f8799e4a179",
+      "date": "2012-09-05T09:16:59-04:00",
+      "subject": "[R-sig-hpc] Possible memory leak for serialize?",
+      "subject_clean": "Possible memory leak for serialize?",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Hi.\n\nserialize may have memory leak issue. When I run the following codes\n\nx=split(1:40000, rep(1:8, 5000))\nfun=function(x)lapply(x, serialize, NULL)\nout =replicate(5000, fun(x))\n\nAfter using gc() severally times, R reports about 800MB memory usage\n(objects fun, out and x) but the real memory usage is 2.4GB (reported from\nOS). After deleting all objects, R reports about 12MB usage but real\nmemory usage is reduced to 1.7GB and will stay there.\n\nDon't try with big size. I used up all my 16GB ram on my windows PC and\ncaused other programs to crash.\n\nI can reproduce this behave on both Windows and Debian with R 2.15.1\n64bit. If this memory leak does exist, it may have impact on jobs with\nlots of R objects exchanges among nodes, in particularly master node.\n\nHao\n\nPS: Changing fun to fun2=function(x)lapply(1:8,\n    function(i)serialize(x[[i]],NULL)) has no effect.\n\n\n-- \nDepartment of Statistics & Actuarial Sciences\nOffice Phone#:(519)-661-3622\nFax Phone#:(519)-661-3813\nThe University of Western Ontario\nLondon, Ontario N6A 5B7\nhttp://www.stats.uwo.ca/yu",
+      "body_snippet": "Hi.\n\nserialize may have memory leak issue. When I run the following codes\n\nx=split(1:40000, rep(1:8, 5000))\nfun=function(x)lapply(x, serialize, NULL)\nout =replicate(5000, fun(x))\n\nAfter using gc() sev",
+      "thread_id": "thread-e240e3ef12a8",
+      "thread_depth": 0,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-7f0ffb40b8ab",
+      "message_id": "<CF1FA701-6910-4FAF-9A87-8AF27C41F452@r-project.org>",
+      "from_name": "Simon Urbanek",
+      "from_email_hash": "4b8015e605c1e8a78e0fc166d7f94d0bc9cab6230366ee1dfdd8a0de17b4b371",
+      "date": "2012-09-05T10:27:06-04:00",
+      "subject": "[R-sig-hpc] Possible memory leak for serialize?",
+      "subject_clean": "Possible memory leak for serialize?",
+      "in_reply_to": "<1464b6fa4ac006dd9a564695e59bdaa2.squirrel@www.stats.uwo.ca>",
+      "references": [
+        "<1464b6fa4ac006dd9a564695e59bdaa2.squirrel@www.stats.uwo.ca>"
+      ],
+      "body_plain": "On Sep 5, 2012, at 9:16 AM, Hao Yu <hyu at stats.uwo.ca> wrote:\n\n> Hi.\n> \n> serialize may have memory leak issue. When I run the following codes\n> \n> x=split(1:40000, rep(1:8, 5000))\n> fun=function(x)lapply(x, serialize, NULL)\n> out =replicate(5000, fun(x))\n> \n> After using gc() severally times, R reports about 800MB memory usage\n> (objects fun, out and x) but the real memory usage is 2.4GB (reported from\n> OS). After deleting all objects, R reports about 12MB usage but real\n> memory usage is reduced to 1.7GB and will stay there.\n> \n\nPlease consider reading FAQ 7.42.\n\nCheers,\nSimon\n\n\n\n\n\n> Don't try with big size. I used up all my 16GB ram on my windows PC and\n> caused other programs to crash.\n> \n> I can reproduce this behave on both Windows and Debian with R 2.15.1\n> 64bit. If this memory leak does exist, it may have impact on jobs with\n> lots of R objects exchanges among nodes, in particularly master node.\n> \n> Hao\n> \n> PS: Changing fun to fun2=function(x)lapply(1:8,\n>    function(i)serialize(x[[i]],NULL)) has no effect.\n> \n> \n> -- \n> Department of Statistics & Actuarial Sciences\n> Office Phone#:(519)-661-3622\n> Fax Phone#:(519)-661-3813\n> The University of Western Ontario\n> London, Ontario N6A 5B7\n> http://www.stats.uwo.ca/yu\n> \n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n> \n>",
+      "body_snippet": "On Sep 5, 2012, at 9:16 AM, Hao Yu <hyu at stats.uwo.ca> wrote:\n\n> Hi.\n> \n> serialize may have memory leak issue. When I run the following codes\n> \n> x=split(1:40000, rep(1:8, 5000))\n> fun=function(x)",
+      "thread_id": "thread-e240e3ef12a8",
+      "thread_depth": 1,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-a4769f6e19d5",
+      "message_id": "<alpine.LFD.2.02.1209050956410.1891@nokomis.stat.uiowa.edu>",
+      "from_name": "luke-tierney at uiowa.edu",
+      "from_email_hash": "fd87c994f74e0db3eb4746b5041d9c21c4b45ec2e8a16acbcb99f7a3f6e651dc",
+      "date": "2012-09-05T09:59:37-05:00",
+      "subject": "[R-sig-hpc] Possible memory leak for serialize?",
+      "subject_clean": "Possible memory leak for serialize?",
+      "in_reply_to": "<1464b6fa4ac006dd9a564695e59bdaa2.squirrel@www.stats.uwo.ca>",
+      "references": [
+        "<1464b6fa4ac006dd9a564695e59bdaa2.squirrel@www.stats.uwo.ca>"
+      ],
+      "body_plain": "Clearly no memory leak as such: if you rm(out) and gc() then OS usage\ndrops down and repeating your example/rm(out) stays stable.\n\nIt does seem that 'out' is holding on to more memory than it should;\nI'll try to have a look when I get a chance.\n\nBest,\n\nluke\n\nOn Wed, 5 Sep 2012, Hao Yu wrote:\n\n> Hi.\n>\n> serialize may have memory leak issue. When I run the following codes\n>\n> x=split(1:40000, rep(1:8, 5000))\n> fun=function(x)lapply(x, serialize, NULL)\n> out =replicate(5000, fun(x))\n>\n> After using gc() severally times, R reports about 800MB memory usage\n> (objects fun, out and x) but the real memory usage is 2.4GB (reported from\n> OS). After deleting all objects, R reports about 12MB usage but real\n> memory usage is reduced to 1.7GB and will stay there.\n>\n> Don't try with big size. I used up all my 16GB ram on my windows PC and\n> caused other programs to crash.\n>\n> I can reproduce this behave on both Windows and Debian with R 2.15.1\n> 64bit. If this memory leak does exist, it may have impact on jobs with\n> lots of R objects exchanges among nodes, in particularly master node.\n>\n> Hao\n>\n> PS: Changing fun to fun2=function(x)lapply(1:8,\n>    function(i)serialize(x[[i]],NULL)) has no effect.\n>\n>\n>\n\n-- \nLuke Tierney\nChair, Statistics and Actuarial Science\nRalph E. Wareham Professor of Mathematical Sciences\nUniversity of Iowa                  Phone:             319-335-3386\nDepartment of Statistics and        Fax:               319-335-3017\n    Actuarial Science\n241 Schaeffer Hall                  email:   luke-tierney at uiowa.edu\nIowa City, IA 52242                 WWW:  http://www.stat.uiowa.edu",
+      "body_snippet": "Clearly no memory leak as such: if you rm(out) and gc() then OS usage\ndrops down and repeating your example/rm(out) stays stable.\n\nIt does seem that 'out' is holding on to more memory than it should;\n",
+      "thread_id": "thread-e240e3ef12a8",
+      "thread_depth": 1,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-3a1c289a3417",
+      "message_id": "<5048E265020000F90000AFE3@gwia1.boku.ac.at>",
+      "from_name": "Patrik Waldmann",
+      "from_email_hash": "5422de27106a441456dee56c7875899e9cf1a66baf324006c91c4e68a62851f0",
+      "date": "2012-09-06T17:50:29+02:00",
+      "subject": "[R-sig-hpc] Problems parallelizing glmnet",
+      "subject_clean": "Problems parallelizing glmnet",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120906/f8a5ef49/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120906/f8a5ef49/attachment.pl>",
+      "thread_id": "thread-3a1c289a3417",
+      "thread_depth": 0,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-95b3a0e73df9",
+      "message_id": "<-4442539574663485536@unknownmsgid>",
+      "from_name": "Zachary Mayer",
+      "from_email_hash": "a92309f013bbc69b004ca76e9ef606f64a43c7bb1b2b17c3e741595d707cd38e",
+      "date": "2012-09-06T11:58:56-04:00",
+      "subject": "[R-sig-hpc] Problems parallelizing glmnet",
+      "subject_clean": "Problems parallelizing glmnet",
+      "in_reply_to": "<5048E265020000F90000AFE3@gwia1.boku.ac.at>",
+      "references": [
+        "<5048E265020000F90000AFE3@gwia1.boku.ac.at>"
+      ],
+      "body_plain": "Hasn't the caret package already solved this problem?\n\nYou can pass the tuneGrid parameter to specify your custom alpha and\nlambda sequence, an the trainControl parameter to specify what kind of\ncross-validation you wish to use.\n\nCaret uses foreach, so you can register a parallel backend of your choice.\n\nSent from my iPhone\n\nOn Sep 6, 2012, at 11:56 AM, Patrik Waldmann <patrik.waldmann at boku.ac.at> wrote:\n\n> I want to run the cv.glmnet function with the same data (y and x) with different values on the alpha parameter determined by the number of cores, but the result is absurd. What is wrong in the code below?\n>\n> Patrik Waldmann\n>\n> x <- matrix(rnorm(2000*10000),ncol=10000)\n> y <- matrix(rnorm(2000),ncol=1)\n>\n> library(parallel)\n> cvglmnet <- function(...) {\n> library(glmnet)\n> cv.glmnet(x,y,alpha=alphasplit)\n> }\n> system.time(cores<-detectCores())\n> system.time(cl <- makeCluster(cores, methods=FALSE))\n> alpha<-seq(0, 1,by=1/(cores-1))\n> alphasplit<-clusterSplit(cl,alpha)\n> system.time(clusterExport(cl, c(\"x\",\"y\",\"cvglmnet\",\"alphasplit\")))\n> system.time(outbrlist<-clusterEvalQ(cl, cvglmnet(x,y,alphasplit)))\n> system.time(totoutbr<-do.call(cbind,outbrlist))\n> stopCluster(cl)\n>\n>    [[alternative HTML version deleted]]\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc",
+      "body_snippet": "Hasn't the caret package already solved this problem?\n\nYou can pass the tuneGrid parameter to specify your custom alpha and\nlambda sequence, an the trainControl parameter to specify what kind of\ncross",
+      "thread_id": "thread-3a1c289a3417",
+      "thread_depth": 1,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-610a91f4ef35",
+      "message_id": "<CAEr64e8C5uNL5M=OnD08BWgbBFyPmd7xd=c+XkWJBekrXBTWxA@mail.gmail.com>",
+      "from_name": "Zachary Mayer",
+      "from_email_hash": "a92309f013bbc69b004ca76e9ef606f64a43c7bb1b2b17c3e741595d707cd38e",
+      "date": "2012-09-06T12:09:23-04:00",
+      "subject": "[R-sig-hpc] Problems parallelizing glmnet",
+      "subject_clean": "Problems parallelizing glmnet",
+      "in_reply_to": "<-4442539574663485536@unknownmsgid>",
+      "references": [
+        "<5048E265020000F90000AFE3@gwia1.boku.ac.at>",
+        "<-4442539574663485536@unknownmsgid>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120906/ec375ecc/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120906/ec375ecc/attachment.pl>",
+      "thread_id": "thread-3a1c289a3417",
+      "thread_depth": 2,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-36a14d57d966",
+      "message_id": "<5048F63B020000F90000AFE7@gwia1.boku.ac.at>",
+      "from_name": "Patrik Waldmann",
+      "from_email_hash": "5422de27106a441456dee56c7875899e9cf1a66baf324006c91c4e68a62851f0",
+      "date": "2012-09-06T19:15:07+02:00",
+      "subject": "[R-sig-hpc] Problems parallelizing glmnet",
+      "subject_clean": "Problems parallelizing glmnet",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "I would like to avoid foreach since we showed earlier that it is VERY slow.\n\nPatrik\n\n>>> Zachary Mayer <zach.mayer at gmail.com> 09/06/12 18:09 PM >>>\nYou could also use the foreach package, if you do not wish to use caret,\ne.g.:\n\ntuneAlpha <- function(..., alphas){\n  stopifnot(require(foreach))\n #Run Models\nmodelList <- foreach(alpha=alphas) %dopar% {\n  stopifnot(require(glmnet))\ncv.glmnet(..., alpha=alpha)\n}\n #Choose best model\nerrors <- unlist(lapply(modelList, function(x) min(sqrt(x$cvm))))\nreturn(modelList[[which.min(errors)]])\n}\n\nx <- matrix(rnorm(2000*100),ncol=100)\ny <- matrix(rnorm(2000),ncol=1)\nmodel <- tuneAlpha(x, y, alphas=c(0,1), family=\"gaussian\", nfolds=10,\ntype.measure=\"mse\")\n\nYou should probably pass an explicit \"foldid\" parameter as well, so each\nmodel uses the same cross-validation folds.\n\nOn Thu, Sep 6, 2012 at 11:58 AM, Zachary Mayer <zach.mayer at gmail.com> wrote:\n\n> Hasn't the caret package already solved this problem?\n>\n> You can pass the tuneGrid parameter to specify your custom alpha and\n> lambda sequence, an the trainControl parameter to specify what kind of\n> cross-validation you wish to use.\n>\n> Caret uses foreach, so you can register a parallel backend of your choice.\n>\n> Sent from my iPhone\n>\n> On Sep 6, 2012, at 11:56 AM, Patrik Waldmann <patrik.waldmann at boku.ac.at>\n> wrote:\n>\n> > I want to run the cv.glmnet function with the same data (y and x) with\n> different values on the alpha parameter determined by the number of cores,\n> but the result is absurd. What is wrong in the code below?\n> >\n> > Patrik Waldmann\n> >\n> > x <- matrix(rnorm(2000*10000),ncol=10000)\n> > y <- matrix(rnorm(2000),ncol=1)\n> >\n> > library(parallel)\n> > cvglmnet <- function(...) {\n> > library(glmnet)\n> > cv.glmnet(x,y,alpha=alphasplit)\n> > }\n> > system.time(cores<-detectCores())\n> > system.time(cl <- makeCluster(cores, methods=FALSE))\n> > alpha<-seq(0, 1,by=1/(cores-1))\n> > alphasplit<-clusterSplit(cl,alpha)\n> > system.time(clusterExport(cl, c(\"x\",\"y\",\"cvglmnet\",\"alphasplit\")))\n> > system.time(outbrlist<-clusterEvalQ(cl, cvglmnet(x,y,alphasplit)))\n> > system.time(totoutbr<-do.call(cbind,outbrlist))\n> > stopCluster(cl)\n> >\n> >    [[alternative HTML version deleted]]\n> >\n> > _______________________________________________\n> > R-sig-hpc mailing list\n> > R-sig-hpc at r-project.org\n> > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>",
+      "body_snippet": "I would like to avoid foreach since we showed earlier that it is VERY slow.\n\nPatrik\n\n>>> Zachary Mayer <zach.mayer at gmail.com> 09/06/12 18:09 PM >>>\nYou could also use the foreach package, if you do",
+      "thread_id": "thread-36a14d57d966",
+      "thread_depth": 0,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-604c4d88ba73",
+      "message_id": "<CAEr64e_o0wqfb=dzT3D+LP3iQtzxbgmbYcQQa5FVF_MFUe01Lg@mail.gmail.com>",
+      "from_name": "Zachary Mayer",
+      "from_email_hash": "a92309f013bbc69b004ca76e9ef606f64a43c7bb1b2b17c3e741595d707cd38e",
+      "date": "2012-09-06T13:20:24-04:00",
+      "subject": "[R-sig-hpc] Problems parallelizing glmnet",
+      "subject_clean": "Problems parallelizing glmnet",
+      "in_reply_to": "<5048F63B020000F90000AFE7@gwia1.boku.ac.at>",
+      "references": [
+        "<5048F63B020000F90000AFE7@gwia1.boku.ac.at>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120906/f1ef90ce/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120906/f1ef90ce/attachment.pl>",
+      "thread_id": "thread-36a14d57d966",
+      "thread_depth": 1,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-05c8ee47199c",
+      "message_id": "<ADB7A283-C4EA-48F4-B1F2-AB1EF64C56BF@r-project.org>",
+      "from_name": "Simon Urbanek",
+      "from_email_hash": "4b8015e605c1e8a78e0fc166d7f94d0bc9cab6230366ee1dfdd8a0de17b4b371",
+      "date": "2012-09-06T13:41:06-04:00",
+      "subject": "[R-sig-hpc] Problems parallelizing glmnet",
+      "subject_clean": "Problems parallelizing glmnet",
+      "in_reply_to": "<5048E265020000F90000AFE3@gwia1.boku.ac.at>",
+      "references": [
+        "<5048E265020000F90000AFE3@gwia1.boku.ac.at>"
+      ],
+      "body_plain": "On Sep 6, 2012, at 11:50 AM, Patrik Waldmann <patrik.waldmann at boku.ac.at> wrote:\n\n> I want to run the cv.glmnet function with the same data (y and x) with different values on the alpha parameter determined by the number of cores, but the result is absurd. What is wrong in the code below?\n> \n\nYou're evaluating exactly the same expression on all nodes ... I don't think you intended that (you are passing the alphasplit list as alpha to all of them - I don't think that makes sense). Isn't this closer to the intention:\n\nalphas <- seq(0, 1, length.out= cores)\nout <- clusterApply(cl, alphas, function(alpha) cv.glmnet(x,y,alpha=alpha))\n\nCheers,\nSimon\n\n\n\n> Patrik Waldmann\n> \n> x <- matrix(rnorm(2000*10000),ncol=10000)\n> y <- matrix(rnorm(2000),ncol=1)\n> \n> library(parallel)\n> cvglmnet <- function(...) {\n> library(glmnet)\n> cv.glmnet(x,y,alpha=alphasplit)\n> }\n> system.time(cores<-detectCores())\n> system.time(cl <- makeCluster(cores, methods=FALSE))\n> alpha<-seq(0, 1,by=1/(cores-1))\n> alphasplit<-clusterSplit(cl,alpha)\n> system.time(clusterExport(cl, c(\"x\",\"y\",\"cvglmnet\",\"alphasplit\")))\n> system.time(outbrlist<-clusterEvalQ(cl, cvglmnet(x,y,alphasplit)))\n> system.time(totoutbr<-do.call(cbind,outbrlist))\n> stopCluster(cl)\n> \n> \t[[alternative HTML version deleted]]\n> \n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n> \n>",
+      "body_snippet": "On Sep 6, 2012, at 11:50 AM, Patrik Waldmann <patrik.waldmann at boku.ac.at> wrote:\n\n> I want to run the cv.glmnet function with the same data (y and x) with different values on the alpha parameter de",
+      "thread_id": "thread-3a1c289a3417",
+      "thread_depth": 1,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-264e0edc64ff",
+      "message_id": "<5048E134.9090804@braverock.com>",
+      "from_name": "Brian G. Peterson",
+      "from_email_hash": "2d44e89a02cb2a9eb2f2113de72098dcb74d077b13b61958f1336c3292aa0254",
+      "date": "2012-09-06T12:45:24-05:00",
+      "subject": "[R-sig-hpc] Problems parallelizing glmnet",
+      "subject_clean": "Problems parallelizing glmnet",
+      "in_reply_to": "<CAEr64e_o0wqfb=dzT3D+LP3iQtzxbgmbYcQQa5FVF_MFUe01Lg@mail.gmail.com>",
+      "references": [
+        "<5048F63B020000F90000AFE7@gwia1.boku.ac.at>",
+        "<CAEr64e_o0wqfb=dzT3D+LP3iQtzxbgmbYcQQa5FVF_MFUe01Lg@mail.gmail.com>"
+      ],
+      "body_plain": "On 09/06/2012 12:20 PM, Zachary Mayer wrote:\n> I was not aware of this unfortunate limitation.  Was it specific to a\n> particular back-end, or just foreach in general?\n>\n> On Thu, Sep 6, 2012 at 1:15 PM, Patrik Waldmann\n> <patrik.waldmann at boku.ac.at>wrote:\n>\n>> >I would like to avoid foreach since we showed earlier that it is VERY slow.\n\nForeach is 'very slow' (i.e. has a lot of overhead) if your function \nevaluation to be parallelized in computationally trivial,  in which case \nthe benefits of parallelization are rather questionable.\n\nIn the case where your function evaluation is not trivial, the overhead \nof foreach is marginal in comparison to the various *apply* methods that \nit wraps, and almost certainly worth the flexibility to not change code \nas your parallel backend changes.\n\n-- \nBrian G. Peterson\nhttp://braverock.com/brian/\nPh: 773-459-4973\nIM: bgpbraverock",
+      "body_snippet": "On 09/06/2012 12:20 PM, Zachary Mayer wrote:\n> I was not aware of this unfortunate limitation.  Was it specific to a\n> particular back-end, or just foreach in general?\n>\n> On Thu, Sep 6, 2012 at 1:15 ",
+      "thread_id": "thread-36a14d57d966",
+      "thread_depth": 2,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-de07fee3f375",
+      "message_id": "<5048FD71020000F90000AFED@gwia1.boku.ac.at>",
+      "from_name": "Patrik Waldmann",
+      "from_email_hash": "5422de27106a441456dee56c7875899e9cf1a66baf324006c91c4e68a62851f0",
+      "date": "2012-09-06T19:45:53+02:00",
+      "subject": "[R-sig-hpc] Problems parallelizing glmnet",
+      "subject_clean": "Problems parallelizing glmnet",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Have a look at 'Parallel linear model', foreach was ten times slower (at that specific example). I don't know the reason.\n\nPatrik\n\n>>> Zachary Mayer <zach.mayer at gmail.com> 09/06/12 19:20 PM >>>\nI was not aware of this unfortunate limitation.  Was it specific to a\nparticular back-end, or just foreach in general?\n\nOn Thu, Sep 6, 2012 at 1:15 PM, Patrik Waldmann\n<patrik.waldmann at boku.ac.at>wrote:\n\n> I would like to avoid foreach since we showed earlier that it is VERY slow.\n>\n> Patrik\n>\n> >>> Zachary Mayer <zach.mayer at gmail.com> 09/06/12 18:09 PM >>>\n> You could also use the foreach package, if you do not wish to use caret,\n> e.g.:\n>\n> tuneAlpha <- function(..., alphas){\n>   stopifnot(require(foreach))\n>  #Run Models\n> modelList <- foreach(alpha=alphas) %dopar% {\n>   stopifnot(require(glmnet))\n> cv.glmnet(..., alpha=alpha)\n> }\n>  #Choose best model\n> errors <- unlist(lapply(modelList, function(x) min(sqrt(x$cvm))))\n> return(modelList[[which.min(errors)]])\n> }\n>\n> x <- matrix(rnorm(2000*100),ncol=100)\n> y <- matrix(rnorm(2000),ncol=1)\n> model <- tuneAlpha(x, y, alphas=c(0,1), family=\"gaussian\", nfolds=10,\n> type.measure=\"mse\")\n>\n> You should probably pass an explicit \"foldid\" parameter as well, so each\n> model uses the same cross-validation folds.\n>\n> On Thu, Sep 6, 2012 at 11:58 AM, Zachary Mayer <zach.mayer at gmail.com>\n> wrote:\n>\n> > Hasn't the caret package already solved this problem?\n> >\n> > You can pass the tuneGrid parameter to specify your custom alpha and\n> > lambda sequence, an the trainControl parameter to specify what kind of\n> > cross-validation you wish to use.\n> >\n> > Caret uses foreach, so you can register a parallel backend of your\n> choice.\n> >\n> > Sent from my iPhone\n> >\n> > On Sep 6, 2012, at 11:56 AM, Patrik Waldmann <patrik.waldmann at boku.ac.at\n> >\n> > wrote:\n> >\n> > > I want to run the cv.glmnet function with the same data (y and x) with\n> > different values on the alpha parameter determined by the number of\n> cores,\n> > but the result is absurd. What is wrong in the code below?\n> > >\n> > > Patrik Waldmann\n> > >\n> > > x <- matrix(rnorm(2000*10000),ncol=10000)\n> > > y <- matrix(rnorm(2000),ncol=1)\n> > >\n> > > library(parallel)\n> > > cvglmnet <- function(...) {\n> > > library(glmnet)\n> > > cv.glmnet(x,y,alpha=alphasplit)\n> > > }\n> > > system.time(cores<-detectCores())\n> > > system.time(cl <- makeCluster(cores, methods=FALSE))\n> > > alpha<-seq(0, 1,by=1/(cores-1))\n> > > alphasplit<-clusterSplit(cl,alpha)\n> > > system.time(clusterExport(cl, c(\"x\",\"y\",\"cvglmnet\",\"alphasplit\")))\n> > > system.time(outbrlist<-clusterEvalQ(cl, cvglmnet(x,y,alphasplit)))\n> > > system.time(totoutbr<-do.call(cbind,outbrlist))\n> > > stopCluster(cl)\n> > >\n> > >    [[alternative HTML version deleted]]\n> > >\n> > > _______________________________________________\n> > > R-sig-hpc mailing list\n> > > R-sig-hpc at r-project.org\n> > > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n> >\n>\n>",
+      "body_snippet": "Have a look at 'Parallel linear model', foreach was ten times slower (at that specific example). I don't know the reason.\n\nPatrik\n\n>>> Zachary Mayer <zach.mayer at gmail.com> 09/06/12 19:20 PM >>>\nI w",
+      "thread_id": "thread-de07fee3f375",
+      "thread_depth": 0,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-28d30898ae60",
+      "message_id": "<5048E2A0.20401@braverock.com>",
+      "from_name": "Brian G. Peterson",
+      "from_email_hash": "2d44e89a02cb2a9eb2f2113de72098dcb74d077b13b61958f1336c3292aa0254",
+      "date": "2012-09-06T12:51:28-05:00",
+      "subject": "[R-sig-hpc] Problems parallelizing glmnet",
+      "subject_clean": "Problems parallelizing glmnet",
+      "in_reply_to": "<5048F63B020000F90000AFE7@gwia1.boku.ac.at>",
+      "references": [
+        "<5048F63B020000F90000AFE7@gwia1.boku.ac.at>"
+      ],
+      "body_plain": "On 09/06/2012 12:15 PM, Patrik Waldmann wrote:\n> I would like to avoid foreach since we showed earlier that it is VERY slow.\n\nA search of the list archives doesn't provide any backup that you have \n'showed' anything.\n\nThe only other post by you that I can see on the list shows the total \nelapsed time decreasing with the use of foreach, even though it was, \nindeed, a trivial function evaluation.\n\n-- \nBrian",
+      "body_snippet": "On 09/06/2012 12:15 PM, Patrik Waldmann wrote:\n> I would like to avoid foreach since we showed earlier that it is VERY slow.\n\nA search of the list archives doesn't provide any backup that you have \n's",
+      "thread_id": "thread-36a14d57d966",
+      "thread_depth": 1,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-2c8125f44cbb",
+      "message_id": "<CAEr64e9CyExn6G6Z1Lu2vrUH2Myn-qgCSftJbCuWE=iqMuQG1A@mail.gmail.com>",
+      "from_name": "Zachary Mayer",
+      "from_email_hash": "a92309f013bbc69b004ca76e9ef606f64a43c7bb1b2b17c3e741595d707cd38e",
+      "date": "2012-09-06T14:11:00-04:00",
+      "subject": "[R-sig-hpc] Problems parallelizing glmnet",
+      "subject_clean": "Problems parallelizing glmnet",
+      "in_reply_to": "<5048FD71020000F90000AFED@gwia1.boku.ac.at>",
+      "references": [
+        "<5048FD71020000F90000AFED@gwia1.boku.ac.at>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120906/49823010/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120906/49823010/attachment.pl>",
+      "thread_id": "thread-de07fee3f375",
+      "thread_depth": 1,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-76d08a2e20cc",
+      "message_id": "<504920C8020000F90000AFF5@gwia1.boku.ac.at>",
+      "from_name": "Patrik Waldmann",
+      "from_email_hash": "5422de27106a441456dee56c7875899e9cf1a66baf324006c91c4e68a62851f0",
+      "date": "2012-09-06T22:16:40+02:00",
+      "subject": "[R-sig-hpc] Problems parallelizing glmnet",
+      "subject_clean": "Problems parallelizing glmnet",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "y<-rnorm(1000)\nx<-matrix(rnorm(1000*10000),ncol=10000)\ndimx<-dim(x)\n\nlibrary(doParallel)\nlibrary(foreach)\ncl <- makeCluster(8, methods=FALSE)\nregisterDoParallel(cl)\nprint(system.time(\npval <- foreach (i =1:dimx[2], .combine=c) %dopar% {\nmod <- lm(y ~ x[,i])\nsummary(mod)$coefficients[2,4]\n}\n))\n\n  user  system elapsed \n 12.28    2.75  231.93 \n\nstopCluster(cl)\n\nlibrary(parallel)\ncl <- makeCluster(8, methods=FALSE)\nprint(system.time(\npval <- unlist(mclapply(1:dimx[2], function(i) summary(lm(y ~ x[,i]))$coefficients[2,4]))\n))\n\n  user  system elapsed \n 21.80    1.33   25.78 \n\nstopCluster(cl)\n\n>>> \"Brian G. Peterson\" <brian at braverock.com> 09/06/12 20:03 PM >>>\nOn 09/06/2012 12:15 PM, Patrik Waldmann wrote:\n> I would like to avoid foreach since we showed earlier that it is VERY slow.\n\nA search of the list archives doesn't provide any backup that you have \n'showed' anything.\n\nThe only other post by you that I can see on the list shows the total \nelapsed time decreasing with the use of foreach, even though it was, \nindeed, a trivial function evaluation.\n\n-- \nBrian\n\n_______________________________________________\nR-sig-hpc mailing list\nR-sig-hpc at r-project.org\nhttps://stat.ethz.ch/mailman/listinfo/r-sig-hpc",
+      "body_snippet": "y<-rnorm(1000)\nx<-matrix(rnorm(1000*10000),ncol=10000)\ndimx<-dim(x)\n\nlibrary(doParallel)\nlibrary(foreach)\ncl <- makeCluster(8, methods=FALSE)\nregisterDoParallel(cl)\nprint(system.time(\npval <- foreach ",
+      "thread_id": "thread-76d08a2e20cc",
+      "thread_depth": 0,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-847369257653",
+      "message_id": "<CAEr64e8nB6AT0w_w=QFFVz2RF_65uYvy4+SxGH6Uxg=tRSfqyA@mail.gmail.com>",
+      "from_name": "Zachary Mayer",
+      "from_email_hash": "a92309f013bbc69b004ca76e9ef606f64a43c7bb1b2b17c3e741595d707cd38e",
+      "date": "2012-09-06T16:58:29-04:00",
+      "subject": "[R-sig-hpc] Problems parallelizing glmnet",
+      "subject_clean": "Problems parallelizing glmnet",
+      "in_reply_to": "<504920C8020000F90000AFF5@gwia1.boku.ac.at>",
+      "references": [
+        "<504920C8020000F90000AFF5@gwia1.boku.ac.at>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120906/1af128bf/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120906/1af128bf/attachment.pl>",
+      "thread_id": "thread-76d08a2e20cc",
+      "thread_depth": 1,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-213657c49b39",
+      "message_id": "<CALh21iK-H9BL77HOUqV76BLhrrTPTJkd7ve8iwt0CyPnvJJb2A@mail.gmail.com>",
+      "from_name": "Stephen Weston",
+      "from_email_hash": "507fe1aedccd9cb1c2bba1715ac24f959abe255adeeb866f82b6c8a1896cbd15",
+      "date": "2012-09-06T16:59:31-04:00",
+      "subject": "[R-sig-hpc] Problems parallelizing glmnet",
+      "subject_clean": "Problems parallelizing glmnet",
+      "in_reply_to": "<504920C8020000F90000AFF5@gwia1.boku.ac.at>",
+      "references": [
+        "<504920C8020000F90000AFF5@gwia1.boku.ac.at>"
+      ],
+      "body_plain": "In this example, you're comparing doParallel using a\nPSOCK cluster with mclapply.  A better comparison would\nuse doParallel with mclapply by registering doParallel\nwith:\n\nregisterDoParallel(cores=8)\n\nThat will give performance much closer to mclapply,\nalthough still not as good due to the extremely short\ntasks.  With very short tasks, the overhead is\nmagnified.\n\nFor a single (non-Windows) machine, there's no need to\ncreate a cluster object at all, either for doParallel or for\nmclapply.  You should only create a cluster object\nif you're running on multiple nodes or a Windows\nmachine, but in those cases, you can't use mclapply.\n\n- Steve\n\n\nOn Thu, Sep 6, 2012 at 4:16 PM, Patrik Waldmann\n<patrik.waldmann at boku.ac.at> wrote:\n> y<-rnorm(1000)\n> x<-matrix(rnorm(1000*10000),ncol=10000)\n> dimx<-dim(x)\n>\n> library(doParallel)\n> library(foreach)\n> cl <- makeCluster(8, methods=FALSE)\n> registerDoParallel(cl)\n> print(system.time(\n> pval <- foreach (i =1:dimx[2], .combine=c) %dopar% {\n> mod <- lm(y ~ x[,i])\n> summary(mod)$coefficients[2,4]\n> }\n> ))\n>\n>   user  system elapsed\n>  12.28    2.75  231.93\n>\n> stopCluster(cl)\n>\n> library(parallel)\n> cl <- makeCluster(8, methods=FALSE)\n> print(system.time(\n> pval <- unlist(mclapply(1:dimx[2], function(i) summary(lm(y ~ x[,i]))$coefficients[2,4]))\n> ))\n>\n>   user  system elapsed\n>  21.80    1.33   25.78\n>\n> stopCluster(cl)\n>\n>>>> \"Brian G. Peterson\" <brian at braverock.com> 09/06/12 20:03 PM >>>\n> On 09/06/2012 12:15 PM, Patrik Waldmann wrote:\n>> I would like to avoid foreach since we showed earlier that it is VERY slow.\n>\n> A search of the list archives doesn't provide any backup that you have\n> 'showed' anything.\n>\n> The only other post by you that I can see on the list shows the total\n> elapsed time decreasing with the use of foreach, even though it was,\n> indeed, a trivial function evaluation.\n>\n> --\n> Brian\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc",
+      "body_snippet": "In this example, you're comparing doParallel using a\nPSOCK cluster with mclapply.  A better comparison would\nuse doParallel with mclapply by registering doParallel\nwith:\n\nregisterDoParallel(cores=8)\n\n",
+      "thread_id": "thread-76d08a2e20cc",
+      "thread_depth": 1,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-5de4e9f19ca2",
+      "message_id": "<CA+hbrhXuqqnGXUvXG7ZK9vOL=x5ApE3PdR6QcPEq2VBOQ6s5-Q@mail.gmail.com>",
+      "from_name": "Peter Langfelder",
+      "from_email_hash": "3744676ae29cb7c74d1e451fd4074c638de7249507d66700c3663b4b8db6be68",
+      "date": "2012-09-06T14:09:13-07:00",
+      "subject": "[R-sig-hpc] Problems parallelizing glmnet",
+      "subject_clean": "Problems parallelizing glmnet",
+      "in_reply_to": "<CAEr64e8nB6AT0w_w=QFFVz2RF_65uYvy4+SxGH6Uxg=tRSfqyA@mail.gmail.com>",
+      "references": [
+        "<504920C8020000F90000AFF5@gwia1.boku.ac.at>",
+        "<CAEr64e8nB6AT0w_w=QFFVz2RF_65uYvy4+SxGH6Uxg=tRSfqyA@mail.gmail.com>"
+      ],
+      "body_plain": "On Thu, Sep 6, 2012 at 1:58 PM, Zachary Mayer <zach.mayer at gmail.com> wrote:\n> In this case, each iteration of the function is very quick:\n>> system.time(summary(lm(y ~ x[,1]))$coefficients[2,4])\n>    user  system elapsed\n>    0.01    0.00    0.02\n>\n> And you are doing 10,000 iterations, so overhead matters a lot.  In the\n> glmnet problem, each iteration of the function is very slow, and you are\n> doing 8 iterations, so overhead doesn't matter at all.\n>\n> Finally, I suspect that using the doMC foreach backend will improve things\n> considerably, but I can't currently test that.\n\nFWIW, the foreach construct itself (without any parallel backend) is\nquite slow and I would not use to loop over a large number of quick\ncalculations.\n\nPeter",
+      "body_snippet": "On Thu, Sep 6, 2012 at 1:58 PM, Zachary Mayer <zach.mayer at gmail.com> wrote:\n> In this case, each iteration of the function is very quick:\n>> system.time(summary(lm(y ~ x[,1]))$coefficients[2,4])\n> ",
+      "thread_id": "thread-76d08a2e20cc",
+      "thread_depth": 2,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-ca0c6c4c5343",
+      "message_id": "<CAJ9CoWkxH7XkuvRDdB_6JmbaJ0VowmBFaVgyO+g5Qmtc398ZEw@mail.gmail.com>",
+      "from_name": "Max Kuhn",
+      "from_email_hash": "3588dfda283917c3772455ab1c0353851f9d1c038018811529c94e046489b5cb",
+      "date": "2012-09-06T18:55:26-04:00",
+      "subject": "[R-sig-hpc] Problems parallelizing glmnet",
+      "subject_clean": "Problems parallelizing glmnet",
+      "in_reply_to": "<CA+hbrhXuqqnGXUvXG7ZK9vOL=x5ApE3PdR6QcPEq2VBOQ6s5-Q@mail.gmail.com>",
+      "references": [
+        "<504920C8020000F90000AFF5@gwia1.boku.ac.at>",
+        "<CAEr64e8nB6AT0w_w=QFFVz2RF_65uYvy4+SxGH6Uxg=tRSfqyA@mail.gmail.com>",
+        "<CA+hbrhXuqqnGXUvXG7ZK9vOL=x5ApE3PdR6QcPEq2VBOQ6s5-Q@mail.gmail.com>"
+      ],
+      "body_plain": "I can tell you from my testing with caret that there is considerable\nspeedup using foreach. See Figure 3 of\n\n  http://cran.r-project.org/web/packages/caret/vignettes/caretTrain.pdf\n\nOf course it is model dependent but I have yet to see it slow down\ncomputations (but I' sure it is possible).\n\nMax\n\nOn Thu, Sep 6, 2012 at 5:09 PM, Peter Langfelder\n<peter.langfelder at gmail.com> wrote:\n> On Thu, Sep 6, 2012 at 1:58 PM, Zachary Mayer <zach.mayer at gmail.com> wrote:\n>> In this case, each iteration of the function is very quick:\n>>> system.time(summary(lm(y ~ x[,1]))$coefficients[2,4])\n>>    user  system elapsed\n>>    0.01    0.00    0.02\n>>\n>> And you are doing 10,000 iterations, so overhead matters a lot.  In the\n>> glmnet problem, each iteration of the function is very slow, and you are\n>> doing 8 iterations, so overhead doesn't matter at all.\n>>\n>> Finally, I suspect that using the doMC foreach backend will improve things\n>> considerably, but I can't currently test that.\n>\n> FWIW, the foreach construct itself (without any parallel backend) is\n> quite slow and I would not use to loop over a large number of quick\n> calculations.\n>\n> Peter\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n\n\n\n-- \n\nMax",
+      "body_snippet": "I can tell you from my testing with caret that there is considerable\nspeedup using foreach. See Figure 3 of\n\n  http://cran.r-project.org/web/packages/caret/vignettes/caretTrain.pdf\n\nOf course it is mo",
+      "thread_id": "thread-76d08a2e20cc",
+      "thread_depth": 3,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-d445c3804262",
+      "message_id": "<50494073.9050909@braverock.com>",
+      "from_name": "Brian G. Peterson",
+      "from_email_hash": "2d44e89a02cb2a9eb2f2113de72098dcb74d077b13b61958f1336c3292aa0254",
+      "date": "2012-09-06T19:31:47-05:00",
+      "subject": "[R-sig-hpc] Problems parallelizing glmnet",
+      "subject_clean": "Problems parallelizing glmnet",
+      "in_reply_to": "<CA+hbrhXuqqnGXUvXG7ZK9vOL=x5ApE3PdR6QcPEq2VBOQ6s5-Q@mail.gmail.com>",
+      "references": [
+        "<504920C8020000F90000AFF5@gwia1.boku.ac.at>",
+        "<CAEr64e8nB6AT0w_w=QFFVz2RF_65uYvy4+SxGH6Uxg=tRSfqyA@mail.gmail.com>",
+        "<CA+hbrhXuqqnGXUvXG7ZK9vOL=x5ApE3PdR6QcPEq2VBOQ6s5-Q@mail.gmail.com>"
+      ],
+      "body_plain": "On 09/06/2012 04:09 PM, Peter Langfelder wrote:\n> FWIW, the foreach construct itself (without any parallel backend) is\n> quite slow and I would not use to loop over a large number of quick\n> calculations.\n\nPeter, this is right.  It is not a general replacement for a for \nloop.... there's too much infrastructure involved.  However, we \ntypically write all of our code that will be parallelized for deployment \nusing %dopar% and then use registerDoSEQ() and run single threaded on a \nsmaller test set while debugging.\n\nRegards,\n\n    - Brian\n\n-- \nBrian G. Peterson\nhttp://braverock.com/brian/\nPh: 773-459-4973\nIM: bgpbraverock",
+      "body_snippet": "On 09/06/2012 04:09 PM, Peter Langfelder wrote:\n> FWIW, the foreach construct itself (without any parallel backend) is\n> quite slow and I would not use to loop over a large number of quick\n> calculati",
+      "thread_id": "thread-76d08a2e20cc",
+      "thread_depth": 3,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-5d6b449dbb82",
+      "message_id": "<CAEP58iBnoUYwqo1t7U-VAVW+tjePH+AAxkVQjc9nN=u3aj=Vjw@mail.gmail.com>",
+      "from_name": "Jeffrey Arnold",
+      "from_email_hash": "be9d72307ca6e77b7532e3d807587378a4c2e68e65f2f5af392c73893c351490",
+      "date": "2012-09-13T15:41:05-04:00",
+      "subject": "[R-sig-hpc] gputools for Windows",
+      "subject_clean": "gputools for Windows",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120913/f0c91114/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120913/f0c91114/attachment.pl>",
+      "thread_id": "thread-5d6b449dbb82",
+      "thread_depth": 0,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-4ae566ce53ef",
+      "message_id": "<CAHkRx6EcM6LXs=qWzhT6Rm3_CKVpMFMNvVx76R4HBSeCDpc0_w@mail.gmail.com>",
+      "from_name": "M. Edward (Ed) Borasky",
+      "from_email_hash": "ef6e49c1dc23b41e55bee428092d31c3661e716db693e4cc11966cc2632cb2b6",
+      "date": "2012-09-13T14:25:30-07:00",
+      "subject": "[R-sig-hpc] gputools for Windows",
+      "subject_clean": "gputools for Windows",
+      "in_reply_to": "<CAEP58iBnoUYwqo1t7U-VAVW+tjePH+AAxkVQjc9nN=u3aj=Vjw@mail.gmail.com>",
+      "references": [
+        "<CAEP58iBnoUYwqo1t7U-VAVW+tjePH+AAxkVQjc9nN=u3aj=Vjw@mail.gmail.com>"
+      ],
+      "body_plain": "R runs under CygWin now, so perhaps it could be done that way.\n\nOn Thu, Sep 13, 2012 at 12:41 PM, Jeffrey Arnold\n<jeffrey.arnold at gmail.com> wrote:\n> Has anyone ported gputools to windows? Or installed one of the other gpu\n> packages (magma or OpenCL) on windows?\n>\n> Thanks, Jeff\n>\n> ---\n> Jeffrey Arnold\n> Department of Political Science\n> University of Rochester\n> http://jrnold.me\n> jeffrey.arnold at gmail.com\n> jeffrey.arnold at rochester.edu\n>\n>         [[alternative HTML version deleted]]\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n\n\n\n-- \nTwitter: http://twitter.com/znmeb; Computational Journalism Publishers\nWorkbench: http://j.mp/QCsXOr\n\nHow the Hell can the lion sleep with all those people singing \"A weem\noh way!\" at the top of their lungs?",
+      "body_snippet": "R runs under CygWin now, so perhaps it could be done that way.\n\nOn Thu, Sep 13, 2012 at 12:41 PM, Jeffrey Arnold\n<jeffrey.arnold at gmail.com> wrote:\n> Has anyone ported gputools to windows? Or instal",
+      "thread_id": "thread-5d6b449dbb82",
+      "thread_depth": 1,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-77f7a0028cc3",
+      "message_id": "<20562.21821.220120.894067@max.nulle.part>",
+      "from_name": "Dirk Eddelbuettel",
+      "from_email_hash": "447d8de83a7b9c5d61116890bacb6dc0c76aee31b3011a41fb7d3c62dac9042f",
+      "date": "2012-09-13T16:50:53-05:00",
+      "subject": "[R-sig-hpc] gputools for Windows",
+      "subject_clean": "gputools for Windows",
+      "in_reply_to": "<CAHkRx6EcM6LXs=qWzhT6Rm3_CKVpMFMNvVx76R4HBSeCDpc0_w@mail.gmail.com>",
+      "references": [
+        "<CAEP58iBnoUYwqo1t7U-VAVW+tjePH+AAxkVQjc9nN=u3aj=Vjw@mail.gmail.com>",
+        "<CAHkRx6EcM6LXs=qWzhT6Rm3_CKVpMFMNvVx76R4HBSeCDpc0_w@mail.gmail.com>"
+      ],
+      "body_plain": "On 13 September 2012 at 14:25, M. Edward (Ed) Borasky wrote:\n| R runs under CygWin now, so perhaps it could be done that way.\n\nI would hasten to add that according to R Core, there is precisely one way to\nuse R on Windows: using MinGW.  \n\nFor the rest, you're on your own.  And on Windows I have never found that to\nbe a good starting position.\n\nAs for gputools: these are pretty compiler-dependent because of way Nvidia\nwraps its stuff up, and I would be almost certain that on that particular OS\nyou are required to use the compiler by the same firm, which pretty much\nprecludes using R object code with it. Unless you are really detemined, and\nreally know the toolchain.\n\nSo in short, I'd stick to Linux if you want to work with GPUs from R.\n\nDirk\n\n\n \n| On Thu, Sep 13, 2012 at 12:41 PM, Jeffrey Arnold\n| <jeffrey.arnold at gmail.com> wrote:\n| > Has anyone ported gputools to windows? Or installed one of the other gpu\n| > packages (magma or OpenCL) on windows?\n| >\n| > Thanks, Jeff\n| >\n| > ---\n| > Jeffrey Arnold\n| > Department of Political Science\n| > University of Rochester\n| > http://jrnold.me\n| > jeffrey.arnold at gmail.com\n| > jeffrey.arnold at rochester.edu\n| >\n| >         [[alternative HTML version deleted]]\n| >\n| > _______________________________________________\n| > R-sig-hpc mailing list\n| > R-sig-hpc at r-project.org\n| > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n| \n| \n| \n| -- \n| Twitter: http://twitter.com/znmeb; Computational Journalism Publishers\n| Workbench: http://j.mp/QCsXOr\n| \n| How the Hell can the lion sleep with all those people singing \"A weem\n| oh way!\" at the top of their lungs?\n| \n| _______________________________________________\n| R-sig-hpc mailing list\n| R-sig-hpc at r-project.org\n| https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n\n-- \nDirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com",
+      "body_snippet": "On 13 September 2012 at 14:25, M. Edward (Ed) Borasky wrote:\n| R runs under CygWin now, so perhaps it could be done that way.\n\nI would hasten to add that according to R Core, there is precisely one wa",
+      "thread_id": "thread-5d6b449dbb82",
+      "thread_depth": 2,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-e1d0fb6f2bc1",
+      "message_id": "<CAEP58iC5YuOJL2buaOTottPC6Re0BETH1n0kmvyTZi8O3hKv8g@mail.gmail.com>",
+      "from_name": "Jeffrey Arnold",
+      "from_email_hash": "be9d72307ca6e77b7532e3d807587378a4c2e68e65f2f5af392c73893c351490",
+      "date": "2012-09-13T19:14:01-04:00",
+      "subject": "[R-sig-hpc] gputools for Windows",
+      "subject_clean": "gputools for Windows",
+      "in_reply_to": "<20562.21821.220120.894067@max.nulle.part>",
+      "references": [
+        "<CAEP58iBnoUYwqo1t7U-VAVW+tjePH+AAxkVQjc9nN=u3aj=Vjw@mail.gmail.com>",
+        "<CAHkRx6EcM6LXs=qWzhT6Rm3_CKVpMFMNvVx76R4HBSeCDpc0_w@mail.gmail.com>",
+        "<20562.21821.220120.894067@max.nulle.part>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120913/53fe83e0/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120913/53fe83e0/attachment.pl>",
+      "thread_id": "thread-5d6b449dbb82",
+      "thread_depth": 3,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-5fbd89ca6865",
+      "message_id": "<CAHkRx6FFw-YRGcXN+847D-hpZcsXLg1NYG3-sD6FCVKNMXw_Rg@mail.gmail.com>",
+      "from_name": "M. Edward (Ed) Borasky",
+      "from_email_hash": "ef6e49c1dc23b41e55bee428092d31c3661e716db693e4cc11966cc2632cb2b6",
+      "date": "2012-09-13T16:21:57-07:00",
+      "subject": "[R-sig-hpc] gputools for Windows",
+      "subject_clean": "gputools for Windows",
+      "in_reply_to": "<20562.21821.220120.894067@max.nulle.part>",
+      "references": [
+        "<CAEP58iBnoUYwqo1t7U-VAVW+tjePH+AAxkVQjc9nN=u3aj=Vjw@mail.gmail.com>",
+        "<CAHkRx6EcM6LXs=qWzhT6Rm3_CKVpMFMNvVx76R4HBSeCDpc0_w@mail.gmail.com>",
+        "<20562.21821.220120.894067@max.nulle.part>"
+      ],
+      "body_plain": "On Thu, Sep 13, 2012 at 2:50 PM, Dirk Eddelbuettel <edd at debian.org> wrote:\n>\n> On 13 September 2012 at 14:25, M. Edward (Ed) Borasky wrote:\n> | R runs under CygWin now, so perhaps it could be done that way.\n>\n> I would hasten to add that according to R Core, there is precisely one way to\n> use R on Windows: using MinGW.\n\nYes, I know ... it shocked me when I saw R in CygWin myself. But that\nmeans \"someone\" is \"supporting\" it. ;-)\n\n[snip]\n\n> So in short, I'd stick to Linux if you want to work with GPUs from R.\n\nAnd the window seems to be closing on non-Ubuntu versions of Linux for\na variety of purposes. I recently had to make my tools \"portable\" -\ni.e., find all the dependencies in openSUSE, Fedora, Ubuntu and Mageia\nrepositories. It ain't pretty.\n\nIt seems at first glance it would be easy to automate, but once I\nstarted looking into what's required to package some \"simple\" audio\nsoftware for Fedora, I was shocked at how many different things have\ndifferent names and different places between Ubuntu and Fedora. As far\nas I can tell, only Fedora (and maybe RHEL) and Ubuntu/Debian have\n*any* of the R library packages in their repositories.\n\n\n-- \nTwitter: http://twitter.com/znmeb; Computational Journalism Publishers\nWorkbench: http://j.mp/QCsXOr\n\nHow the Hell can the lion sleep with all those people singing \"A weem\noh way!\" at the top of their lungs?",
+      "body_snippet": "On Thu, Sep 13, 2012 at 2:50 PM, Dirk Eddelbuettel <edd at debian.org> wrote:\n>\n> On 13 September 2012 at 14:25, M. Edward (Ed) Borasky wrote:\n> | R runs under CygWin now, so perhaps it could be done ",
+      "thread_id": "thread-5d6b449dbb82",
+      "thread_depth": 3,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-8b150d1413d4",
+      "message_id": "<586A4828D7AAA04CA9B258C50A28DA200BF5977E@BALI.uhd.campus>",
+      "from_name": "Hodgess, Erin",
+      "from_email_hash": "9a43d72d3c5a93c98a7b509fb8aef328797f49fac98830a099e885b965325eac",
+      "date": "2012-09-18T19:04:53-05:00",
+      "subject": "[R-sig-hpc] Trying to replicate an example",
+      "subject_clean": "Trying to replicate an example",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Hello all!\n\nI'm trying to replicate an example in CUDA from this summer from Raymond.\n\nI am still trying to get the files to compile.  There is one CUDA file and one C file.\n\n\nnvcc -c -arch=sm_13 VecAdd_kernel.cu VecAdd_kernel.o\nbccd at node000:~/CUDA$ R CMD SHLIB -o VecAdd_cuda.so VecAdd_cuda.c VecAdd_kernel.o\ngcc -std=gnu99 -shared -o VecAdd_cuda.so VecAdd_cuda.o VecAdd_kernel.o -L/usr/lib/R/lib -lR\n/usr/bin/ld: VecAdd_kernel.o: relocation R_X86_64_32 against `VecAdd(double*, double*, double*, int)' can not be used when making a shared object; recompile with -fPIC\nVecAdd_kernel.o: could not read symbols: Bad value\ncollect2: ld returned 1 exit status\nmake: *** [VecAdd_cuda.so] Error 1\n\nI have attached the files.\n\nAny help would be much appreciated.\n\nThanks,\nSincerely,\nErin\n\n\n\nErin M. Hodgess, PhD\nAssociate Professor\nDepartment of Computer and Mathematical Sciences\nUniversity of Houston - Downtown\nmailto: hodgesse at uhd.edu\n\n-------------- next part --------------\nAn HTML attachment was scrubbed...\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120918/38da0b05/attachment.html>\n-------------- next part --------------\nA non-text attachment was scrubbed...\nName: VecAdd_kernel.cu\nType: application/cu-seeme\nSize: 1376 bytes\nDesc: VecAdd_kernel.cu\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120918/38da0b05/attachment.bin>\n-------------- next part --------------\nA non-text attachment was scrubbed...\nName: VecAdd_cuda.c\nType: text/x-csrc\nSize: 835 bytes\nDesc: VecAdd_cuda.c\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120918/38da0b05/attachment-0001.bin>",
+      "body_snippet": "Hello all!\n\nI'm trying to replicate an example in CUDA from this summer from Raymond.\n\nI am still trying to get the files to compile.  There is one CUDA file and one C file.\n\n\nnvcc -c -arch=sm_13 VecA",
+      "thread_id": "thread-8b150d1413d4",
+      "thread_depth": 0,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-e6b2764c60d2",
+      "message_id": "<87mx0jlsuy.fsf@sklar.v.cablecom.net>",
+      "from_name": "Marius Hofert",
+      "from_email_hash": "107dd5604c160aea8fabb36c11ac73fd65cf9783196324bbf66c357295f157e9",
+      "date": "2012-09-21T08:47:49+01:00",
+      "subject": "[R-sig-hpc] Error in UseMethod(\"stopCluster\") : no applicable method for 'stopCluster' ...",
+      "subject_clean": "Error in UseMethod(\"stopCluster\") : no applicable method for 'stopCluster' ...",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Dear expeRts,\n\nIf I run the minimal example below, I obtain:\n\nLoading required package: Rmpi\nLoading required package: grDevices\nLoading required package: grDevices\nLoading required package: grDevices\nLoading required package: grDevices\n\t4 slaves are spawned successfully. 0 failed.\nError in UseMethod(\"stopCluster\") :\n  no applicable method for 'stopCluster' applied to an object of class \"c('spawnedMPIcluster', 'MPIcluster', 'cluster')\"\n\nHowever, if I run the body of the function (linewise; without calling the\nfunction), everything works. Why is that so?\n\nCheers,\n\nMarius\n\n\ngrid <- expand.grid(a=1:4, b=2:10)\nngrid <- nrow(grid)\nf <- function(x) sum(x)\n\nex <- function() {\n    cl <- snow::makeCluster(parallel::detectCores(), type=\"MPI\")\n    on.exit(snow::stopCluster(cl))\n    RNGkind(\"L'Ecuyer-CMRG\")\n    parallel::clusterExport(cl, varlist=c(\"f\", \"grid\"))\n    parallel::clusterApply(cl, seq_len(ngrid), function(i) f(grid[i,]))\n}\n\nres <- ex()",
+      "body_snippet": "Dear expeRts,\n\nIf I run the minimal example below, I obtain:\n\nLoading required package: Rmpi\nLoading required package: grDevices\nLoading required package: grDevices\nLoading required package: grDevices",
+      "thread_id": "thread-e6b2764c60d2",
+      "thread_depth": 0,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-76a6dd5ee664",
+      "message_id": "<505C953B.4090305@fhcrc.org>",
+      "from_name": "Martin Morgan",
+      "from_email_hash": "9f5a643078023be7f11cfed10069ce2b31d0a2cc98705fa84c2ae0e157a1fb93",
+      "date": "2012-09-21T09:26:35-07:00",
+      "subject": "[R-sig-hpc] Error in UseMethod(\"stopCluster\") : no applicable method for 'stopCluster' ...",
+      "subject_clean": "Error in UseMethod(\"stopCluster\") : no applicable method for 'stopCluster' ...",
+      "in_reply_to": "<87mx0jlsuy.fsf@sklar.v.cablecom.net>",
+      "references": [
+        "<87mx0jlsuy.fsf@sklar.v.cablecom.net>"
+      ],
+      "body_plain": "On 09/21/2012 12:47 AM, Marius Hofert wrote:\n> Dear expeRts,\n>\n> If I run the minimal example below, I obtain:\n>\n> Loading required package: Rmpi\n> Loading required package: grDevices\n> Loading required package: grDevices\n> Loading required package: grDevices\n> Loading required package: grDevices\n> \t4 slaves are spawned successfully. 0 failed.\n> Error in UseMethod(\"stopCluster\") :\n>    no applicable method for 'stopCluster' applied to an object of class \"c('spawnedMPIcluster', 'MPIcluster', 'cluster')\"\n>\n> However, if I run the body of the function (linewise; without calling the\n> function), everything works. Why is that so?\n>\n> Cheers,\n>\n> Marius\n>\n>\n> grid <- expand.grid(a=1:4, b=2:10)\n> ngrid <- nrow(grid)\n> f <- function(x) sum(x)\n>\n> ex <- function() {\n>      cl <- snow::makeCluster(parallel::detectCores(), type=\"MPI\")\n>      on.exit(snow::stopCluster(cl))\n>      RNGkind(\"L'Ecuyer-CMRG\")\n>      parallel::clusterExport(cl, varlist=c(\"f\", \"grid\"))\n>      parallel::clusterApply(cl, seq_len(ngrid), function(i) f(grid[i,]))\n> }\n>\n> res <- ex()\n\nAn even more minimal example is\n\n   ex <- function() {\n       cl <- snow::makeCluster(parallel::detectCores(), type=\"MPI\")\n       snow::stopCluster(cl)\n   }\n   res <- ex()\n\nTo be clear, there is no library(snow) in the script, and on.exit() is \nnot relevant. The reason is that snow::stopCluster is an S3 generic, and \non the help page ?NextMethod we have\n\n\n      Namespaces can register methods for generic functions.  To support\n      this, 'UseMethod' and 'NextMethod' search for methods in two\n      places: first in the environment in which the generic function is\n      called, and then in the registration data base for the environment\n      in which the generic is defined (typically a namespace).  So\n      methods for a generic function need to be available in the\n      environment of the call to the generic, or they must be\n      registered.  (It does not matter whether they are visible in the\n      environment in which the generic is defined.)\n\nThere are no stopCluster methods defined in the calling namespace (i.e., \nyour script) and since there has been no call to library(snow), there is \nno snow namespace to search and hence no method to be found.\n\nThe solution is to add\n\n   library(snow)\n\nto the script (or better library(parallel) and use the 'parallel' \nlibrary throughout).\n\nMartin\n\n\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>\n\n\n-- \nComputational Biology / Fred Hutchinson Cancer Research Center\n1100 Fairview Ave. N.\nPO Box 19024 Seattle, WA 98109\n\nLocation: Arnold Building M1 B861\nPhone: (206) 667-2793",
+      "body_snippet": "On 09/21/2012 12:47 AM, Marius Hofert wrote:\n> Dear expeRts,\n>\n> If I run the minimal example below, I obtain:\n>\n> Loading required package: Rmpi\n> Loading required package: grDevices\n> Loading requir",
+      "thread_id": "thread-e6b2764c60d2",
+      "thread_depth": 1,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-581c7cd58412",
+      "message_id": "<CABX-FmroAQ3TsLsgRW1mEKftRR8Nkp=12ZB8wqy7sgdrXqTQ4A@mail.gmail.com>",
+      "from_name": "semra yalcin",
+      "from_email_hash": "00bd4726f308f965876d7a8a048b1ff0ab7fe11b90371767fbcab269c52df899",
+      "date": "2012-09-21T20:23:06+03:00",
+      "subject": "[R-sig-hpc] Install Rmpi as a user of HPC",
+      "subject_clean": "Install Rmpi as a user of HPC",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120921/cc5d556e/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120921/cc5d556e/attachment.pl>",
+      "thread_id": "thread-581c7cd58412",
+      "thread_depth": 0,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-274c8804857d",
+      "message_id": "<CAHkRx6E7=Js+QBezX642CqWjc_Nj0U3S0SoPNReB3K0xMTvH1A@mail.gmail.com>",
+      "from_name": "M. Edward (Ed) Borasky",
+      "from_email_hash": "ef6e49c1dc23b41e55bee428092d31c3661e716db693e4cc11966cc2632cb2b6",
+      "date": "2012-09-21T11:55:46-07:00",
+      "subject": "[R-sig-hpc] Install Rmpi as a user of HPC",
+      "subject_clean": "Install Rmpi as a user of HPC",
+      "in_reply_to": "<CABX-FmroAQ3TsLsgRW1mEKftRR8Nkp=12ZB8wqy7sgdrXqTQ4A@mail.gmail.com>",
+      "references": [
+        "<CABX-FmroAQ3TsLsgRW1mEKftRR8Nkp=12ZB8wqy7sgdrXqTQ4A@mail.gmail.com>"
+      ],
+      "body_plain": "Installing Rmpi is tricky. I don't know about RHEL/CentOS/Scientific\nLinux, but I had to write a special script to get it to work on\nopenSUSE 12.1:\n\nhttps://github.com/znmeb/Computational-Journalism-Server/tree/master/HighPerformanceComputing\n\nNote in particular that I had to set up a configuration file for\nOpenMPI as 'root' and I had to install Rmpi using \"R CMD install\"\nafter downloading the package from CRAN.\n\nOn Fri, Sep 21, 2012 at 10:23 AM, semra yalcin <semra.yalcin at gmail.com> wrote:\n> Hi all,\n>\n> I have a problem with installation of Rmpi on my account at the hpc. I've\n> tried to install Rmpi with different ways, but unfortunately I couldn't\n> achieve it.\n>\n> OS of hpc is Scientific Linux v5.2 64 bit. Installed version of openMPI is\n> 1.2.8. I have R 2.15.1 installed on my home folder. And I have no access to\n> the root.\n>\n> When searching the web, I saw that before installing Rmpi, I should modify\n> LD_LIBRARY_PATH  to include the path to the Open MPI libraries. I checked\n> /usr/lib64 folder of the hpc. There is no folder called openmpi. So I think\n> that there is no default link to OpenMPI libraries on the system.\n>\n> If admins run *Idconfig /usr/lib64/openmpi/lib/*, could I install Rmpi\n> properly after indicating the path to openmpi lib?\n>\n>\n> Moreover, there are many other users who are working on the system and\n> using openmpi. Will this command run affect them?\n>\n>\n> Also I have to say that almost everything (Linux, HPC, parallel R...) is\n> new to me. I hope that my questions and thoughts aren't nonsense.\n>\n>\n> Thanks in advance for any advice.\n>\n>\n>\n> Semra\n>\n>         [[alternative HTML version deleted]]\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n\n\n\n-- \nTwitter: http://twitter.com/znmeb; Computational Journalism Publishers\nWorkbench: http://j.mp/QCsXOr\n\nHow the Hell can the lion sleep with all those people singing \"A weem\noh way!\" at the top of their lungs?",
+      "body_snippet": "Installing Rmpi is tricky. I don't know about RHEL/CentOS/Scientific\nLinux, but I had to write a special script to get it to work on\nopenSUSE 12.1:\n\nhttps://github.com/znmeb/Computational-Journalism-S",
+      "thread_id": "thread-581c7cd58412",
+      "thread_depth": 1,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-ebfaad99b554",
+      "message_id": "<87pq5ffaoo.fsf@sklar.v.cablecom.net>",
+      "from_name": "Marius Hofert",
+      "from_email_hash": "107dd5604c160aea8fabb36c11ac73fd65cf9783196324bbf66c357295f157e9",
+      "date": "2012-09-21T20:16:55+01:00",
+      "subject": "[R-sig-hpc] Error in UseMethod(\"stopCluster\") : no applicable method for 'stopCluster' ...",
+      "subject_clean": "Error in UseMethod(\"stopCluster\") : no applicable method for 'stopCluster' ...",
+      "in_reply_to": "<505C953B.4090305@fhcrc.org> (Martin Morgan's message of \"Fri, 21 Sep 2012 09:26:35 -0700\")",
+      "references": [
+        "<87mx0jlsuy.fsf@sklar.v.cablecom.net>",
+        "<505C953B.4090305@fhcrc.org>"
+      ],
+      "body_plain": "Dear Martin,\n\nthanks for helping. Is there a solution without explicitly loading snow/parallel\nwith library()/require()? I forgot to say, I was hoping for such a solution.\n\nCheers,\n\nMarius\n\nMartin Morgan <mtmorgan at fhcrc.org> writes:\n\n> On 09/21/2012 12:47 AM, Marius Hofert wrote:\n>> Dear expeRts,\n>>\n>> If I run the minimal example below, I obtain:\n>>\n>> Loading required package: Rmpi\n>> Loading required package: grDevices\n>> Loading required package: grDevices\n>> Loading required package: grDevices\n>> Loading required package: grDevices\n>> \t4 slaves are spawned successfully. 0 failed.\n>> Error in UseMethod(\"stopCluster\") :\n>>    no applicable method for 'stopCluster' applied to an object of class \"c('spawnedMPIcluster', 'MPIcluster', 'cluster')\"\n>>\n>> However, if I run the body of the function (linewise; without calling the\n>> function), everything works. Why is that so?\n>>\n>> Cheers,\n>>\n>> Marius\n>>\n>>\n>> grid <- expand.grid(a=1:4, b=2:10)\n>> ngrid <- nrow(grid)\n>> f <- function(x) sum(x)\n>>\n>> ex <- function() {\n>>      cl <- snow::makeCluster(parallel::detectCores(), type=\"MPI\")\n>>      on.exit(snow::stopCluster(cl))\n>>      RNGkind(\"L'Ecuyer-CMRG\")\n>>      parallel::clusterExport(cl, varlist=c(\"f\", \"grid\"))\n>>      parallel::clusterApply(cl, seq_len(ngrid), function(i) f(grid[i,]))\n>> }\n>>\n>> res <- ex()\n>\n> An even more minimal example is\n>\n>   ex <- function() {\n>       cl <- snow::makeCluster(parallel::detectCores(), type=\"MPI\")\n>       snow::stopCluster(cl)\n>   }\n>   res <- ex()\n>\n> To be clear, there is no library(snow) in the script, and on.exit() is not\n> relevant. The reason is that snow::stopCluster is an S3 generic, and on the help\n> page ?NextMethod we have\n>\n>\n>      Namespaces can register methods for generic functions.  To support\n>      this, 'UseMethod' and 'NextMethod' search for methods in two\n>      places: first in the environment in which the generic function is\n>      called, and then in the registration data base for the environment\n>      in which the generic is defined (typically a namespace).  So\n>      methods for a generic function need to be available in the\n>      environment of the call to the generic, or they must be\n>      registered.  (It does not matter whether they are visible in the\n>      environment in which the generic is defined.)\n>\n> There are no stopCluster methods defined in the calling namespace (i.e., your\n> script) and since there has been no call to library(snow), there is no snow\n> namespace to search and hence no method to be found.\n>\n> The solution is to add\n>\n>   library(snow)\n>\n> to the script (or better library(parallel) and use the 'parallel' library\n> throughout).\n>\n> Martin\n>\n>\n>>\n>> _______________________________________________\n>> R-sig-hpc mailing list\n>> R-sig-hpc at r-project.org\n>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>>",
+      "body_snippet": "Dear Martin,\n\nthanks for helping. Is there a solution without explicitly loading snow/parallel\nwith library()/require()? I forgot to say, I was hoping for such a solution.\n\nCheers,\n\nMarius\n\nMartin Mor",
+      "thread_id": "thread-e6b2764c60d2",
+      "thread_depth": 2,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-b7b2465c8373",
+      "message_id": "<505CDA17.5060708@fhcrc.org>",
+      "from_name": "Martin Morgan",
+      "from_email_hash": "9f5a643078023be7f11cfed10069ce2b31d0a2cc98705fa84c2ae0e157a1fb93",
+      "date": "2012-09-21T14:20:23-07:00",
+      "subject": "[R-sig-hpc] Error in UseMethod(\"stopCluster\") : no applicable method for 'stopCluster' ...",
+      "subject_clean": "Error in UseMethod(\"stopCluster\") : no applicable method for 'stopCluster' ...",
+      "in_reply_to": "<87pq5ffaoo.fsf@sklar.v.cablecom.net>",
+      "references": [
+        "<87mx0jlsuy.fsf@sklar.v.cablecom.net>",
+        "<505C953B.4090305@fhcrc.org>",
+        "<87pq5ffaoo.fsf@sklar.v.cablecom.net>"
+      ],
+      "body_plain": "On 9/21/2012 12:16 PM, Marius Hofert wrote:\n> Dear Martin,\n>\n> thanks for helping. Is there a solution without explicitly loading snow/parallel\n> with library()/require()? I forgot to say, I was hoping for such a solution.\n\nNot that I know of. Write a package and importFrom(parallel, \nstopCluster)? Martin\n\n>\n> Cheers,\n>\n> Marius\n>\n> Martin Morgan <mtmorgan at fhcrc.org> writes:\n>\n>> On 09/21/2012 12:47 AM, Marius Hofert wrote:\n>>> Dear expeRts,\n>>>\n>>> If I run the minimal example below, I obtain:\n>>>\n>>> Loading required package: Rmpi\n>>> Loading required package: grDevices\n>>> Loading required package: grDevices\n>>> Loading required package: grDevices\n>>> Loading required package: grDevices\n>>> \t4 slaves are spawned successfully. 0 failed.\n>>> Error in UseMethod(\"stopCluster\") :\n>>>     no applicable method for 'stopCluster' applied to an object of class \"c('spawnedMPIcluster', 'MPIcluster', 'cluster')\"\n>>>\n>>> However, if I run the body of the function (linewise; without calling the\n>>> function), everything works. Why is that so?\n>>>\n>>> Cheers,\n>>>\n>>> Marius\n>>>\n>>>\n>>> grid <- expand.grid(a=1:4, b=2:10)\n>>> ngrid <- nrow(grid)\n>>> f <- function(x) sum(x)\n>>>\n>>> ex <- function() {\n>>>       cl <- snow::makeCluster(parallel::detectCores(), type=\"MPI\")\n>>>       on.exit(snow::stopCluster(cl))\n>>>       RNGkind(\"L'Ecuyer-CMRG\")\n>>>       parallel::clusterExport(cl, varlist=c(\"f\", \"grid\"))\n>>>       parallel::clusterApply(cl, seq_len(ngrid), function(i) f(grid[i,]))\n>>> }\n>>>\n>>> res <- ex()\n>>\n>> An even more minimal example is\n>>\n>>    ex <- function() {\n>>        cl <- snow::makeCluster(parallel::detectCores(), type=\"MPI\")\n>>        snow::stopCluster(cl)\n>>    }\n>>    res <- ex()\n>>\n>> To be clear, there is no library(snow) in the script, and on.exit() is not\n>> relevant. The reason is that snow::stopCluster is an S3 generic, and on the help\n>> page ?NextMethod we have\n>>\n>>\n>>       Namespaces can register methods for generic functions.  To support\n>>       this, 'UseMethod' and 'NextMethod' search for methods in two\n>>       places: first in the environment in which the generic function is\n>>       called, and then in the registration data base for the environment\n>>       in which the generic is defined (typically a namespace).  So\n>>       methods for a generic function need to be available in the\n>>       environment of the call to the generic, or they must be\n>>       registered.  (It does not matter whether they are visible in the\n>>       environment in which the generic is defined.)\n>>\n>> There are no stopCluster methods defined in the calling namespace (i.e., your\n>> script) and since there has been no call to library(snow), there is no snow\n>> namespace to search and hence no method to be found.\n>>\n>> The solution is to add\n>>\n>>    library(snow)\n>>\n>> to the script (or better library(parallel) and use the 'parallel' library\n>> throughout).\n>>\n>> Martin\n>>\n>>\n>>>\n>>> _______________________________________________\n>>> R-sig-hpc mailing list\n>>> R-sig-hpc at r-project.org\n>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>>>\n>\n\n\n-- \nDr. Martin Morgan, PhD\nFred Hutchinson Cancer Research Center\n1100 Fairview Ave. N.\nPO Box 19024 Seattle, WA 98109",
+      "body_snippet": "On 9/21/2012 12:16 PM, Marius Hofert wrote:\n> Dear Martin,\n>\n> thanks for helping. Is there a solution without explicitly loading snow/parallel\n> with library()/require()? I forgot to say, I was hopin",
+      "thread_id": "thread-e6b2764c60d2",
+      "thread_depth": 3,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-3b2489d74c3f",
+      "message_id": "<87k3vm5a2d.fsf@sklar.v.cablecom.net>",
+      "from_name": "Marius Hofert",
+      "from_email_hash": "107dd5604c160aea8fabb36c11ac73fd65cf9783196324bbf66c357295f157e9",
+      "date": "2012-09-22T17:52:42+02:00",
+      "subject": "[R-sig-hpc] Error in UseMethod(\"stopCluster\") : no applicable method for 'stopCluster' ...",
+      "subject_clean": "Error in UseMethod(\"stopCluster\") : no applicable method for 'stopCluster' ...",
+      "in_reply_to": "<505CDA17.5060708@fhcrc.org> (Martin Morgan's message of \"Fri, 21 Sep 2012 14:20:23 -0700\")",
+      "references": [
+        "<87mx0jlsuy.fsf@sklar.v.cablecom.net>",
+        "<505C953B.4090305@fhcrc.org>",
+        "<87pq5ffaoo.fsf@sklar.v.cablecom.net>",
+        "<505CDA17.5060708@fhcrc.org>"
+      ],
+      "body_plain": "Dear Martin,\n\nThanks for your help. I tried to put in library(parallel) in your example (see\nbelow), but I still obtain\n\n,----\n| Error in NextMethod() : 'NextMethod' called from an anonymous function\n`----\n\nDo you know why?\n\nCheers,\n\nMarius\n\ngrid <- expand.grid(a=1:4, b=2:10)\nngrid <- nrow(grid)\nf <- function(x) sum(x)\n\nlibrary(parallel)\n\nex <- function() {\n    cl <- makeCluster(detectCores(), type=\"MPI\")\n    stopCluster(cl)\n}\n\nres <- ex()\n\n\n\nMartin Morgan <mtmorgan at fhcrc.org> writes:\n\n> On 9/21/2012 12:16 PM, Marius Hofert wrote:\n>> Dear Martin,\n>>\n>> thanks for helping. Is there a solution without explicitly loading snow/parallel\n>> with library()/require()? I forgot to say, I was hoping for such a solution.\n>\n> Not that I know of. Write a package and importFrom(parallel, stopCluster)?\n> Martin\n>\n>>\n>> Cheers,\n>>\n>> Marius\n>>\n>> Martin Morgan <mtmorgan at fhcrc.org> writes:\n>>\n>>> On 09/21/2012 12:47 AM, Marius Hofert wrote:\n>>>> Dear expeRts,\n>>>>\n>>>> If I run the minimal example below, I obtain:\n>>>>\n>>>> Loading required package: Rmpi\n>>>> Loading required package: grDevices\n>>>> Loading required package: grDevices\n>>>> Loading required package: grDevices\n>>>> Loading required package: grDevices\n>>>> \t4 slaves are spawned successfully. 0 failed.\n>>>> Error in UseMethod(\"stopCluster\") :\n>>>>     no applicable method for 'stopCluster' applied to an object of class \"c('spawnedMPIcluster', 'MPIcluster', 'cluster')\"\n>>>>\n>>>> However, if I run the body of the function (linewise; without calling the\n>>>> function), everything works. Why is that so?\n>>>>\n>>>> Cheers,\n>>>>\n>>>> Marius\n>>>>\n>>>>\n>>>> grid <- expand.grid(a=1:4, b=2:10)\n>>>> ngrid <- nrow(grid)\n>>>> f <- function(x) sum(x)\n>>>>\n>>>> ex <- function() {\n>>>>       cl <- snow::makeCluster(parallel::detectCores(), type=\"MPI\")\n>>>>       on.exit(snow::stopCluster(cl))\n>>>>       RNGkind(\"L'Ecuyer-CMRG\")\n>>>>       parallel::clusterExport(cl, varlist=c(\"f\", \"grid\"))\n>>>>       parallel::clusterApply(cl, seq_len(ngrid), function(i) f(grid[i,]))\n>>>> }\n>>>>\n>>>> res <- ex()\n>>>\n>>> An even more minimal example is\n>>>\n>>>    ex <- function() {\n>>>        cl <- snow::makeCluster(parallel::detectCores(), type=\"MPI\")\n>>>        snow::stopCluster(cl)\n>>>    }\n>>>    res <- ex()\n>>>\n>>> To be clear, there is no library(snow) in the script, and on.exit() is not\n>>> relevant. The reason is that snow::stopCluster is an S3 generic, and on the help\n>>> page ?NextMethod we have\n>>>\n>>>\n>>>       Namespaces can register methods for generic functions.  To support\n>>>       this, 'UseMethod' and 'NextMethod' search for methods in two\n>>>       places: first in the environment in which the generic function is\n>>>       called, and then in the registration data base for the environment\n>>>       in which the generic is defined (typically a namespace).  So\n>>>       methods for a generic function need to be available in the\n>>>       environment of the call to the generic, or they must be\n>>>       registered.  (It does not matter whether they are visible in the\n>>>       environment in which the generic is defined.)\n>>>\n>>> There are no stopCluster methods defined in the calling namespace (i.e., your\n>>> script) and since there has been no call to library(snow), there is no snow\n>>> namespace to search and hence no method to be found.\n>>>\n>>> The solution is to add\n>>>\n>>>    library(snow)\n>>>\n>>> to the script (or better library(parallel) and use the 'parallel' library\n>>> throughout).\n>>>\n>>> Martin\n>>>\n>>>\n>>>>\n>>>> _______________________________________________\n>>>> R-sig-hpc mailing list\n>>>> R-sig-hpc at r-project.org\n>>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>>>>\n>>\n\n--\nETH Zurich\nDr. Marius Hofert\nRiskLab, Department of Mathematics\nHG E 65.2\nR?mistrasse 101\n8092 Zurich\nSwitzerland\n\nPhone +41 44 632 2423\nhttp://www.math.ethz.ch/~hofertj",
+      "body_snippet": "Dear Martin,\n\nThanks for your help. I tried to put in library(parallel) in your example (see\nbelow), but I still obtain\n\n,----\n| Error in NextMethod() : 'NextMethod' called from an anonymous function\n",
+      "thread_id": "thread-e6b2764c60d2",
+      "thread_depth": 4,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-eb51d2c371b0",
+      "message_id": "<505DE241.2060502@fhcrc.org>",
+      "from_name": "Martin Morgan",
+      "from_email_hash": "9f5a643078023be7f11cfed10069ce2b31d0a2cc98705fa84c2ae0e157a1fb93",
+      "date": "2012-09-22T09:07:29-07:00",
+      "subject": "[R-sig-hpc] Error in UseMethod(\"stopCluster\") : no applicable method for 'stopCluster' ...",
+      "subject_clean": "Error in UseMethod(\"stopCluster\") : no applicable method for 'stopCluster' ...",
+      "in_reply_to": "<87k3vm5a2d.fsf@sklar.v.cablecom.net>",
+      "references": [
+        "<87mx0jlsuy.fsf@sklar.v.cablecom.net>",
+        "<505C953B.4090305@fhcrc.org>",
+        "<87pq5ffaoo.fsf@sklar.v.cablecom.net>",
+        "<505CDA17.5060708@fhcrc.org>",
+        "<87k3vm5a2d.fsf@sklar.v.cablecom.net>"
+      ],
+      "body_plain": "On 09/22/2012 08:52 AM, Marius Hofert wrote:\n> Dear Martin,\n>\n> Thanks for your help. I tried to put in library(parallel) in your example (see\n> below), but I still obtain\n>\n> ,----\n> | Error in NextMethod() : 'NextMethod' called from an anonymous function\n> `----\n>\n> Do you know why?\n>\n> Cheers,\n>\n> Marius\n>\n> grid <- expand.grid(a=1:4, b=2:10)\n> ngrid <- nrow(grid)\n> f <- function(x) sum(x)\n>\n> library(parallel)\n>\n> ex <- function() {\n>      cl <- makeCluster(detectCores(), type=\"MPI\")\n>      stopCluster(cl)\n> }\n>\n> res <- ex()\n\nFor the file script.R\n\nlibrary(parallel)\nex <- function() {\n     cl <- makeCluster(detectCores(), type=\"MPI\")\n     stopCluster(cl)\n}\nres <- ex()\nsessionInfo()\n\nThe command\n\n   R --vanilla -f script.R\n\n'works for me' with\n\n > sessionInfo()\nR version 2.15.1 Patched (2012-08-26 r60438)\nPlatform: x86_64-unknown-linux-gnu (64-bit)\n\nlocale:\n  [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C\n  [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8\n  [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8\n  [7] LC_PAPER=C                 LC_NAME=C\n  [9] LC_ADDRESS=C               LC_TELEPHONE=C\n[11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C\n\nattached base packages:\n[1] parallel  stats     graphics  grDevices utils     datasets  methods\n[8] base\n\nother attached packages:\n[1] Rmpi_0.6-1\n\nloaded via a namespace (and not attached):\n[1] snow_0.3-10\n\n>\n>\n>\n> Martin Morgan <mtmorgan at fhcrc.org> writes:\n>\n>> On 9/21/2012 12:16 PM, Marius Hofert wrote:\n>>> Dear Martin,\n>>>\n>>> thanks for helping. Is there a solution without explicitly loading snow/parallel\n>>> with library()/require()? I forgot to say, I was hoping for such a solution.\n>>\n>> Not that I know of. Write a package and importFrom(parallel, stopCluster)?\n>> Martin\n>>\n>>>\n>>> Cheers,\n>>>\n>>> Marius\n>>>\n>>> Martin Morgan <mtmorgan at fhcrc.org> writes:\n>>>\n>>>> On 09/21/2012 12:47 AM, Marius Hofert wrote:\n>>>>> Dear expeRts,\n>>>>>\n>>>>> If I run the minimal example below, I obtain:\n>>>>>\n>>>>> Loading required package: Rmpi\n>>>>> Loading required package: grDevices\n>>>>> Loading required package: grDevices\n>>>>> Loading required package: grDevices\n>>>>> Loading required package: grDevices\n>>>>> \t4 slaves are spawned successfully. 0 failed.\n>>>>> Error in UseMethod(\"stopCluster\") :\n>>>>>      no applicable method for 'stopCluster' applied to an object of class \"c('spawnedMPIcluster', 'MPIcluster', 'cluster')\"\n>>>>>\n>>>>> However, if I run the body of the function (linewise; without calling the\n>>>>> function), everything works. Why is that so?\n>>>>>\n>>>>> Cheers,\n>>>>>\n>>>>> Marius\n>>>>>\n>>>>>\n>>>>> grid <- expand.grid(a=1:4, b=2:10)\n>>>>> ngrid <- nrow(grid)\n>>>>> f <- function(x) sum(x)\n>>>>>\n>>>>> ex <- function() {\n>>>>>        cl <- snow::makeCluster(parallel::detectCores(), type=\"MPI\")\n>>>>>        on.exit(snow::stopCluster(cl))\n>>>>>        RNGkind(\"L'Ecuyer-CMRG\")\n>>>>>        parallel::clusterExport(cl, varlist=c(\"f\", \"grid\"))\n>>>>>        parallel::clusterApply(cl, seq_len(ngrid), function(i) f(grid[i,]))\n>>>>> }\n>>>>>\n>>>>> res <- ex()\n>>>>\n>>>> An even more minimal example is\n>>>>\n>>>>     ex <- function() {\n>>>>         cl <- snow::makeCluster(parallel::detectCores(), type=\"MPI\")\n>>>>         snow::stopCluster(cl)\n>>>>     }\n>>>>     res <- ex()\n>>>>\n>>>> To be clear, there is no library(snow) in the script, and on.exit() is not\n>>>> relevant. The reason is that snow::stopCluster is an S3 generic, and on the help\n>>>> page ?NextMethod we have\n>>>>\n>>>>\n>>>>        Namespaces can register methods for generic functions.  To support\n>>>>        this, 'UseMethod' and 'NextMethod' search for methods in two\n>>>>        places: first in the environment in which the generic function is\n>>>>        called, and then in the registration data base for the environment\n>>>>        in which the generic is defined (typically a namespace).  So\n>>>>        methods for a generic function need to be available in the\n>>>>        environment of the call to the generic, or they must be\n>>>>        registered.  (It does not matter whether they are visible in the\n>>>>        environment in which the generic is defined.)\n>>>>\n>>>> There are no stopCluster methods defined in the calling namespace (i.e., your\n>>>> script) and since there has been no call to library(snow), there is no snow\n>>>> namespace to search and hence no method to be found.\n>>>>\n>>>> The solution is to add\n>>>>\n>>>>     library(snow)\n>>>>\n>>>> to the script (or better library(parallel) and use the 'parallel' library\n>>>> throughout).\n>>>>\n>>>> Martin\n>>>>\n>>>>\n>>>>>\n>>>>> _______________________________________________\n>>>>> R-sig-hpc mailing list\n>>>>> R-sig-hpc at r-project.org\n>>>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>>>>>\n>>>\n>\n> --\n> ETH Zurich\n> Dr. Marius Hofert\n> RiskLab, Department of Mathematics\n> HG E 65.2\n> R?mistrasse 101\n> 8092 Zurich\n> Switzerland\n>\n> Phone +41 44 632 2423\n> http://www.math.ethz.ch/~hofertj\n>\n\n\n-- \nComputational Biology / Fred Hutchinson Cancer Research Center\n1100 Fairview Ave. N.\nPO Box 19024 Seattle, WA 98109\n\nLocation: Arnold Building M1 B861\nPhone: (206) 667-2793",
+      "body_snippet": "On 09/22/2012 08:52 AM, Marius Hofert wrote:\n> Dear Martin,\n>\n> Thanks for your help. I tried to put in library(parallel) in your example (see\n> below), but I still obtain\n>\n> ,----\n> | Error in NextM",
+      "thread_id": "thread-e6b2764c60d2",
+      "thread_depth": 5,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-5d8bf36d525b",
+      "message_id": "<87bogy58qc.fsf@sklar.v.cablecom.net>",
+      "from_name": "Marius Hofert",
+      "from_email_hash": "107dd5604c160aea8fabb36c11ac73fd65cf9783196324bbf66c357295f157e9",
+      "date": "2012-09-22T18:21:31+02:00",
+      "subject": "[R-sig-hpc] Error in UseMethod(\"stopCluster\") : no applicable method for 'stopCluster' ...",
+      "subject_clean": "Error in UseMethod(\"stopCluster\") : no applicable method for 'stopCluster' ...",
+      "in_reply_to": "<505DE241.2060502@fhcrc.org> (Martin Morgan's message of \"Sat, 22 Sep 2012 09:07:29 -0700\")",
+      "references": [
+        "<87mx0jlsuy.fsf@sklar.v.cablecom.net>",
+        "<505C953B.4090305@fhcrc.org>",
+        "<87pq5ffaoo.fsf@sklar.v.cablecom.net>",
+        "<505CDA17.5060708@fhcrc.org>",
+        "<87k3vm5a2d.fsf@sklar.v.cablecom.net>",
+        "<505DE241.2060502@fhcrc.org>"
+      ],
+      "body_plain": "That's interesting, the same script (with the same call) fails for me. I had to\nput sessionInfo() earlier in the script so that it is printed. Below is the\noutput of the script. \n\nI further experimented with it, it runs if I additionally put in\n'library(snow)'. I thought I don't need that if I use 'parallel' (?). Hmmm...\n\nCheers,\n\nMarius\n\n> library(parallel)\n> \n> sessionInfo()\nR version 2.15.1 (2012-06-22)\nPlatform: x86_64-pc-linux-gnu (64-bit)\n\nlocale:\n [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              \n [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    \n [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   \n [7] LC_PAPER=C                 LC_NAME=C                 \n [9] LC_ADDRESS=C               LC_TELEPHONE=C            \n[11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       \n\nattached base packages:\n[1] parallel  stats     graphics  grDevices utils     datasets  methods  \n[8] base     \n> \n> ex <- function() {\n+      cl <- makeCluster(detectCores(), type=\"MPI\")\n+      stopCluster(cl)\n+ }\n> res <- ex()\nLoading required package: Rmpi\n\t4 slaves are spawned successfully. 0 failed.\nError in NextMethod() : 'NextMethod' called from an anonymous function\nCalls: ex ... stopCluster.spawnedMPIcluster -> <Anonymous> -> NextMethod\nExecution halted\n\n\nMartin Morgan <mtmorgan at fhcrc.org> writes:\n\n> On 09/22/2012 08:52 AM, Marius Hofert wrote:\n>> Dear Martin,\n>>\n>> Thanks for your help. I tried to put in library(parallel) in your example (see\n>> below), but I still obtain\n>>\n>> ,----\n>> | Error in NextMethod() : 'NextMethod' called from an anonymous function\n>> `----\n>>\n>> Do you know why?\n>>\n>> Cheers,\n>>\n>> Marius\n>>\n>> grid <- expand.grid(a=1:4, b=2:10)\n>> ngrid <- nrow(grid)\n>> f <- function(x) sum(x)\n>>\n>> library(parallel)\n>>\n>> ex <- function() {\n>>      cl <- makeCluster(detectCores(), type=\"MPI\")\n>>      stopCluster(cl)\n>> }\n>>\n>> res <- ex()\n>\n> For the file script.R\n>\n> library(parallel)\n> ex <- function() {\n>     cl <- makeCluster(detectCores(), type=\"MPI\")\n>     stopCluster(cl)\n> }\n> res <- ex()\n> sessionInfo()\n>\n> The command\n>\n>   R --vanilla -f script.R\n>\n> 'works for me' with\n>\n>> sessionInfo()\n> R version 2.15.1 Patched (2012-08-26 r60438)\n> Platform: x86_64-unknown-linux-gnu (64-bit)\n>\n> locale:\n>  [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C\n>  [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8\n>  [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8\n>  [7] LC_PAPER=C                 LC_NAME=C\n>  [9] LC_ADDRESS=C               LC_TELEPHONE=C\n> [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C\n>\n> attached base packages:\n> [1] parallel  stats     graphics  grDevices utils     datasets  methods\n> [8] base\n>\n> other attached packages:\n> [1] Rmpi_0.6-1\n>\n> loaded via a namespace (and not attached):\n> [1] snow_0.3-10\n>\n>>\n>>\n>>\n>> Martin Morgan <mtmorgan at fhcrc.org> writes:\n>>\n>>> On 9/21/2012 12:16 PM, Marius Hofert wrote:\n>>>> Dear Martin,\n>>>>\n>>>> thanks for helping. Is there a solution without explicitly loading snow/parallel\n>>>> with library()/require()? I forgot to say, I was hoping for such a solution.\n>>>\n>>> Not that I know of. Write a package and importFrom(parallel, stopCluster)?\n>>> Martin\n>>>\n>>>>\n>>>> Cheers,\n>>>>\n>>>> Marius\n>>>>\n>>>> Martin Morgan <mtmorgan at fhcrc.org> writes:\n>>>>\n>>>>> On 09/21/2012 12:47 AM, Marius Hofert wrote:\n>>>>>> Dear expeRts,\n>>>>>>\n>>>>>> If I run the minimal example below, I obtain:\n>>>>>>\n>>>>>> Loading required package: Rmpi\n>>>>>> Loading required package: grDevices\n>>>>>> Loading required package: grDevices\n>>>>>> Loading required package: grDevices\n>>>>>> Loading required package: grDevices\n>>>>>> \t4 slaves are spawned successfully. 0 failed.\n>>>>>> Error in UseMethod(\"stopCluster\") :\n>>>>>>      no applicable method for 'stopCluster' applied to an object of class \"c('spawnedMPIcluster', 'MPIcluster', 'cluster')\"\n>>>>>>\n>>>>>> However, if I run the body of the function (linewise; without calling the\n>>>>>> function), everything works. Why is that so?\n>>>>>>\n>>>>>> Cheers,\n>>>>>>\n>>>>>> Marius\n>>>>>>\n>>>>>>\n>>>>>> grid <- expand.grid(a=1:4, b=2:10)\n>>>>>> ngrid <- nrow(grid)\n>>>>>> f <- function(x) sum(x)\n>>>>>>\n>>>>>> ex <- function() {\n>>>>>>        cl <- snow::makeCluster(parallel::detectCores(), type=\"MPI\")\n>>>>>>        on.exit(snow::stopCluster(cl))\n>>>>>>        RNGkind(\"L'Ecuyer-CMRG\")\n>>>>>>        parallel::clusterExport(cl, varlist=c(\"f\", \"grid\"))\n>>>>>>        parallel::clusterApply(cl, seq_len(ngrid), function(i) f(grid[i,]))\n>>>>>> }\n>>>>>>\n>>>>>> res <- ex()\n>>>>>\n>>>>> An even more minimal example is\n>>>>>\n>>>>>     ex <- function() {\n>>>>>         cl <- snow::makeCluster(parallel::detectCores(), type=\"MPI\")\n>>>>>         snow::stopCluster(cl)\n>>>>>     }\n>>>>>     res <- ex()\n>>>>>\n>>>>> To be clear, there is no library(snow) in the script, and on.exit() is not\n>>>>> relevant. The reason is that snow::stopCluster is an S3 generic, and on the help\n>>>>> page ?NextMethod we have\n>>>>>\n>>>>>\n>>>>>        Namespaces can register methods for generic functions.  To support\n>>>>>        this, 'UseMethod' and 'NextMethod' search for methods in two\n>>>>>        places: first in the environment in which the generic function is\n>>>>>        called, and then in the registration data base for the environment\n>>>>>        in which the generic is defined (typically a namespace).  So\n>>>>>        methods for a generic function need to be available in the\n>>>>>        environment of the call to the generic, or they must be\n>>>>>        registered.  (It does not matter whether they are visible in the\n>>>>>        environment in which the generic is defined.)\n>>>>>\n>>>>> There are no stopCluster methods defined in the calling namespace (i.e., your\n>>>>> script) and since there has been no call to library(snow), there is no snow\n>>>>> namespace to search and hence no method to be found.\n>>>>>\n>>>>> The solution is to add\n>>>>>\n>>>>>     library(snow)\n>>>>>\n>>>>> to the script (or better library(parallel) and use the 'parallel' library\n>>>>> throughout).\n>>>>>\n>>>>> Martin\n>>>>>\n>>>>>\n>>>>>>\n>>>>>> _______________________________________________\n>>>>>> R-sig-hpc mailing list\n>>>>>> R-sig-hpc at r-project.org\n>>>>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>>>>>>",
+      "body_snippet": "That's interesting, the same script (with the same call) fails for me. I had to\nput sessionInfo() earlier in the script so that it is printed. Below is the\noutput of the script. \n\nI further experiment",
+      "thread_id": "thread-e6b2764c60d2",
+      "thread_depth": 6,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-2709d947ee41",
+      "message_id": "<87392a57sa.fsf@sklar.v.cablecom.net>",
+      "from_name": "Marius Hofert",
+      "from_email_hash": "107dd5604c160aea8fabb36c11ac73fd65cf9783196324bbf66c357295f157e9",
+      "date": "2012-09-22T18:41:57+02:00",
+      "subject": "[R-sig-hpc] Error in UseMethod(\"stopCluster\") : no applicable method for 'stopCluster' ...",
+      "subject_clean": "Error in UseMethod(\"stopCluster\") : no applicable method for 'stopCluster' ...",
+      "in_reply_to": "<87bogy58qc.fsf@sklar.v.cablecom.net> (Marius Hofert's message of \"Sat, 22 Sep 2012 18:21:31 +0200\")",
+      "references": [
+        "<87mx0jlsuy.fsf@sklar.v.cablecom.net>",
+        "<505C953B.4090305@fhcrc.org>",
+        "<87pq5ffaoo.fsf@sklar.v.cablecom.net>",
+        "<505CDA17.5060708@fhcrc.org>",
+        "<87k3vm5a2d.fsf@sklar.v.cablecom.net>",
+        "<505DE241.2060502@fhcrc.org>",
+        "<87bogy58qc.fsf@sklar.v.cablecom.net>"
+      ],
+      "body_plain": "Dear Martin,\n\nOn http://stat.ethz.ch/R-manual/R-patched/NEWS it says\n\n,----\n| parallel::stopCluster() now works with MPI clusters without snow\n|       being on the search path.\n`----\n\nso that clarifies it :-)\n\nCheers,\n\nMarius\n\nMarius Hofert <marius.hofert at math.ethz.ch> writes:\n\n> That's interesting, the same script (with the same call) fails for me. I had to\n> put sessionInfo() earlier in the script so that it is printed. Below is the\n> output of the script. \n>\n> I further experimented with it, it runs if I additionally put in\n> 'library(snow)'. I thought I don't need that if I use 'parallel' (?). Hmmm...\n>\n> Cheers,\n>\n> Marius\n>\n>> library(parallel)\n>> \n>> sessionInfo()\n> R version 2.15.1 (2012-06-22)\n> Platform: x86_64-pc-linux-gnu (64-bit)\n>\n> locale:\n>  [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              \n>  [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    \n>  [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   \n>  [7] LC_PAPER=C                 LC_NAME=C                 \n>  [9] LC_ADDRESS=C               LC_TELEPHONE=C            \n> [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       \n>\n> attached base packages:\n> [1] parallel  stats     graphics  grDevices utils     datasets  methods  \n> [8] base     \n>> \n>> ex <- function() {\n> +      cl <- makeCluster(detectCores(), type=\"MPI\")\n> +      stopCluster(cl)\n> + }\n>> res <- ex()\n> Loading required package: Rmpi\n> \t4 slaves are spawned successfully. 0 failed.\n> Error in NextMethod() : 'NextMethod' called from an anonymous function\n> Calls: ex ... stopCluster.spawnedMPIcluster -> <Anonymous> -> NextMethod\n> Execution halted\n>\n>\n> Martin Morgan <mtmorgan at fhcrc.org> writes:\n>\n>> On 09/22/2012 08:52 AM, Marius Hofert wrote:\n>>> Dear Martin,\n>>>\n>>> Thanks for your help. I tried to put in library(parallel) in your example (see\n>>> below), but I still obtain\n>>>\n>>> ,----\n>>> | Error in NextMethod() : 'NextMethod' called from an anonymous function\n>>> `----\n>>>\n>>> Do you know why?\n>>>\n>>> Cheers,\n>>>\n>>> Marius\n>>>\n>>> grid <- expand.grid(a=1:4, b=2:10)\n>>> ngrid <- nrow(grid)\n>>> f <- function(x) sum(x)\n>>>\n>>> library(parallel)\n>>>\n>>> ex <- function() {\n>>>      cl <- makeCluster(detectCores(), type=\"MPI\")\n>>>      stopCluster(cl)\n>>> }\n>>>\n>>> res <- ex()\n>>\n>> For the file script.R\n>>\n>> library(parallel)\n>> ex <- function() {\n>>     cl <- makeCluster(detectCores(), type=\"MPI\")\n>>     stopCluster(cl)\n>> }\n>> res <- ex()\n>> sessionInfo()\n>>\n>> The command\n>>\n>>   R --vanilla -f script.R\n>>\n>> 'works for me' with\n>>\n>>> sessionInfo()\n>> R version 2.15.1 Patched (2012-08-26 r60438)\n>> Platform: x86_64-unknown-linux-gnu (64-bit)\n>>\n>> locale:\n>>  [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C\n>>  [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8\n>>  [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8\n>>  [7] LC_PAPER=C                 LC_NAME=C\n>>  [9] LC_ADDRESS=C               LC_TELEPHONE=C\n>> [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C\n>>\n>> attached base packages:\n>> [1] parallel  stats     graphics  grDevices utils     datasets  methods\n>> [8] base\n>>\n>> other attached packages:\n>> [1] Rmpi_0.6-1\n>>\n>> loaded via a namespace (and not attached):\n>> [1] snow_0.3-10\n>>\n>>>\n>>>\n>>>\n>>> Martin Morgan <mtmorgan at fhcrc.org> writes:\n>>>\n>>>> On 9/21/2012 12:16 PM, Marius Hofert wrote:\n>>>>> Dear Martin,\n>>>>>\n>>>>> thanks for helping. Is there a solution without explicitly loading snow/parallel\n>>>>> with library()/require()? I forgot to say, I was hoping for such a solution.\n>>>>\n>>>> Not that I know of. Write a package and importFrom(parallel, stopCluster)?\n>>>> Martin\n>>>>\n>>>>>\n>>>>> Cheers,\n>>>>>\n>>>>> Marius\n>>>>>\n>>>>> Martin Morgan <mtmorgan at fhcrc.org> writes:\n>>>>>\n>>>>>> On 09/21/2012 12:47 AM, Marius Hofert wrote:\n>>>>>>> Dear expeRts,\n>>>>>>>\n>>>>>>> If I run the minimal example below, I obtain:\n>>>>>>>\n>>>>>>> Loading required package: Rmpi\n>>>>>>> Loading required package: grDevices\n>>>>>>> Loading required package: grDevices\n>>>>>>> Loading required package: grDevices\n>>>>>>> Loading required package: grDevices\n>>>>>>> \t4 slaves are spawned successfully. 0 failed.\n>>>>>>> Error in UseMethod(\"stopCluster\") :\n>>>>>>>      no applicable method for 'stopCluster' applied to an object of class \"c('spawnedMPIcluster', 'MPIcluster', 'cluster')\"\n>>>>>>>\n>>>>>>> However, if I run the body of the function (linewise; without calling the\n>>>>>>> function), everything works. Why is that so?\n>>>>>>>\n>>>>>>> Cheers,\n>>>>>>>\n>>>>>>> Marius\n>>>>>>>\n>>>>>>>\n>>>>>>> grid <- expand.grid(a=1:4, b=2:10)\n>>>>>>> ngrid <- nrow(grid)\n>>>>>>> f <- function(x) sum(x)\n>>>>>>>\n>>>>>>> ex <- function() {\n>>>>>>>        cl <- snow::makeCluster(parallel::detectCores(), type=\"MPI\")\n>>>>>>>        on.exit(snow::stopCluster(cl))\n>>>>>>>        RNGkind(\"L'Ecuyer-CMRG\")\n>>>>>>>        parallel::clusterExport(cl, varlist=c(\"f\", \"grid\"))\n>>>>>>>        parallel::clusterApply(cl, seq_len(ngrid), function(i) f(grid[i,]))\n>>>>>>> }\n>>>>>>>\n>>>>>>> res <- ex()\n>>>>>>\n>>>>>> An even more minimal example is\n>>>>>>\n>>>>>>     ex <- function() {\n>>>>>>         cl <- snow::makeCluster(parallel::detectCores(), type=\"MPI\")\n>>>>>>         snow::stopCluster(cl)\n>>>>>>     }\n>>>>>>     res <- ex()\n>>>>>>\n>>>>>> To be clear, there is no library(snow) in the script, and on.exit() is not\n>>>>>> relevant. The reason is that snow::stopCluster is an S3 generic, and on the help\n>>>>>> page ?NextMethod we have\n>>>>>>\n>>>>>>\n>>>>>>        Namespaces can register methods for generic functions.  To support\n>>>>>>        this, 'UseMethod' and 'NextMethod' search for methods in two\n>>>>>>        places: first in the environment in which the generic function is\n>>>>>>        called, and then in the registration data base for the environment\n>>>>>>        in which the generic is defined (typically a namespace).  So\n>>>>>>        methods for a generic function need to be available in the\n>>>>>>        environment of the call to the generic, or they must be\n>>>>>>        registered.  (It does not matter whether they are visible in the\n>>>>>>        environment in which the generic is defined.)\n>>>>>>\n>>>>>> There are no stopCluster methods defined in the calling namespace (i.e., your\n>>>>>> script) and since there has been no call to library(snow), there is no snow\n>>>>>> namespace to search and hence no method to be found.\n>>>>>>\n>>>>>> The solution is to add\n>>>>>>\n>>>>>>     library(snow)\n>>>>>>\n>>>>>> to the script (or better library(parallel) and use the 'parallel' library\n>>>>>> throughout).\n>>>>>>\n>>>>>> Martin\n>>>>>>\n>>>>>>\n>>>>>>>\n>>>>>>> _______________________________________________\n>>>>>>> R-sig-hpc mailing list\n>>>>>>> R-sig-hpc at r-project.org\n>>>>>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>>>>>>>",
+      "body_snippet": "Dear Martin,\n\nOn http://stat.ethz.ch/R-manual/R-patched/NEWS it says\n\n,----\n| parallel::stopCluster() now works with MPI clusters without snow\n|       being on the search path.\n`----\n\nso that clarifie",
+      "thread_id": "thread-e6b2764c60d2",
+      "thread_depth": 7,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-799bc560e308",
+      "message_id": "<s3smx0f1ye6.fsf@slagelg.uio.no>",
+      "from_name": "Bjørn-Helge Mevik",
+      "from_email_hash": "e683c689fda764872d70736db8209cc75202e1ec4275d966442cbde07cc19cb8",
+      "date": "2012-09-24T12:57:37+02:00",
+      "subject": "[R-sig-hpc] Install Rmpi as a user of HPC",
+      "subject_clean": "Install Rmpi as a user of HPC",
+      "in_reply_to": "<CABX-FmroAQ3TsLsgRW1mEKftRR8Nkp=12ZB8wqy7sgdrXqTQ4A@mail.gmail.com> (semra yalcin's message of \"Fri\\, 21 Sep 2012 20\\:23\\:06 +0300\")",
+      "references": [
+        "<CABX-FmroAQ3TsLsgRW1mEKftRR8Nkp=12ZB8wqy7sgdrXqTQ4A@mail.gmail.com>"
+      ],
+      "body_plain": "semra yalcin <semra.yalcin at gmail.com> writes:\n\n> I have a problem with installation of Rmpi on my account at the hpc. I've\n> tried to install Rmpi with different ways, but unfortunately I couldn't\n> achieve it.\n>\n> OS of hpc is Scientific Linux v5.2 64 bit. Installed version of openMPI is\n> 1.2.8. I have R 2.15.1 installed on my home folder. And I have no access to\n> the root.\n\n(OpenMPI 1.2.8 is quite old.  I think the current version is 1.6.1.)\n\nI've just installed Rmpi on our cluster, running Rocks 6.0 (based on\nCentOS 6.2).  We have installed OpenMPI in\n/cluster/software/VERSIONS/openmpi-1.6.1.\n\nI did the following to install Rmpi:\n\nMake sure the following variables are set before installing Rmpi or\nusing it later on:\n\nAdd /cluster/software/VERSIONS/openmpi-1.6.1/bin to $PATH\nAdd /cluster/software/VERSIONS/openmpi-1.6.1/lib to $LD_LIBRARY_PATH\nAdd /cluster/software/VERSIONS/openmpi-1.6.1/share/man to $MANPATH\nAdd /cluster/software/VERSIONS/openmpi-1.6.1/include to $CPATH\n\n(We use the Modules package for this.)\n\nThen I started R and installed Rmpi with\n\ninstall.packages(\"Rmpi\", configure.args = \"--with-mpi=/cluster/software/VERSIONS/openmpi-1.6.1\")\n\n\n-- \nRegards,\nBj?rn-Helge Mevik, dr. scient,\nResearch Computing Services, University of Oslo",
+      "body_snippet": "semra yalcin <semra.yalcin at gmail.com> writes:\n\n> I have a problem with installation of Rmpi on my account at the hpc. I've\n> tried to install Rmpi with different ways, but unfortunately I couldn't\n",
+      "thread_id": "thread-581c7cd58412",
+      "thread_depth": 1,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-771aad4f3aa0",
+      "message_id": "<CABX-FmodBFhJ6t2fqc4i2FSsq=HvqskmY2V38Cct2ucJoFbf8g@mail.gmail.com>",
+      "from_name": "semra yalcin",
+      "from_email_hash": "00bd4726f308f965876d7a8a048b1ff0ab7fe11b90371767fbcab269c52df899",
+      "date": "2012-09-25T11:42:59+03:00",
+      "subject": "[R-sig-hpc] Install Rmpi as a user of HPC",
+      "subject_clean": "Install Rmpi as a user of HPC",
+      "in_reply_to": "<s3smx0f1ye6.fsf@slagelg.uio.no>",
+      "references": [
+        "<CABX-FmroAQ3TsLsgRW1mEKftRR8Nkp=12ZB8wqy7sgdrXqTQ4A@mail.gmail.com>",
+        "<s3smx0f1ye6.fsf@slagelg.uio.no>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120925/d6afe7dc/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120925/d6afe7dc/attachment.pl>",
+      "thread_id": "thread-581c7cd58412",
+      "thread_depth": 2,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-26883a872b50",
+      "message_id": "<CABG0rfvEYeBD=374ERch=oEaa80RBQ98VAqqM+4wyoAhg0TMGw@mail.gmail.com>",
+      "from_name": "Jonathan Greenberg",
+      "from_email_hash": "ee98ba3ee4b2c616e18289a81d9dae24466b13e60e03ce28f4f5a12def4b3589",
+      "date": "2012-09-27T14:17:28-05:00",
+      "subject": "[R-sig-hpc] Quickest way to make a large \"empty\" file on disk?",
+      "subject_clean": "Quickest way to make a large \"empty\" file on disk?",
+      "in_reply_to": "<CABG0rft54J-VXsYMrNBorbW+aLXsEwDazc_xr_9z95LZQWhYUQ@mail.gmail.com>",
+      "references": [
+        "<CABG0rfvUhXzNZ3m6vE09qKcrEb+N1QUkV2feeubmUfmsKqa5mw@mail.gmail.com>",
+        "<trinity-d95487bc-c8b4-4bc4-b938-c339b557fcac-1336044532709@3capp-webde-bs30.dlan.cinetic.de>",
+        "<CABG0rft54J-VXsYMrNBorbW+aLXsEwDazc_xr_9z95LZQWhYUQ@mail.gmail.com>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120927/59b0c1b0/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120927/59b0c1b0/attachment.pl>",
+      "thread_id": "thread-26883a872b50",
+      "thread_depth": 0,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-7c9d530a2eaf",
+      "message_id": "<CALp0JQCbgs6pDRj+9etUgJDb9pc4VYRQYoFAiphhejaXmE4jnA@mail.gmail.com>",
+      "from_name": "Elena Grassi",
+      "from_email_hash": "e25ae174663d87a75b7df4cc802da2d71a3a78032a025ca1297b5efb5ce235c8",
+      "date": "2012-09-28T13:02:13+02:00",
+      "subject": "[R-sig-hpc] Snow, parApply computational times",
+      "subject_clean": "Snow, parApply computational times",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Hello,\n\nI'm trying to use snow and parApply to parallelize a litte script of\nmine that computes fisher\ntests but I'm puzzled by the timing results. Maybe I should use a matrix\nand other functions like parRapply/parCapply?\nOn a fairly big data set (413795 tests to be done) the simple version\ntook 449m33.496s,\nwhile the parallel one (with 4 nodes of a socket cluster) 486m24.006s.\nWhile running it begins with 4 processes and after a short time only\none remains active. This\nprocess occupies a bunch of memory so I'm guessing that it's the one\ntaking care of the \"reduce\"\nstep that puts together the results, but I would have hoped in better\nperformances. [On\na smaller subset of data the parallel results were better than the serial ones].\nI'm trying now with mpi but it seems to be aiming at the same results.\n\nMaybe I'm doing something wrong, chosen the wrong data structure or\nsomething like that,\nas long as I'm not an experienced R programmer at all, so\nI'm pasting here the relevant part of the source code:\n\nget_fisher <- function(counts){\n  mat <- matrix(as.numeric(counts[c(\"a\",\"b\", \"c\", \"d\")]), ncol=2)\n  colnames(mat) <- c('1', '2')\n  rownames(mat) <- c('f', 'g')\n  f <- fisher.test(as.table(mat), alt=\"two.sided\")\n  return(c(counts[\"id\"], f$p.value))\n}\n\nif (!is.null(opt$parallel)) {\n        library(\"snow\")\n        library(\"Rmpi\")\n        cl <- makeMPIcluster(opt$parallel)\n        #cl <- makeSOCKcluster(rep(\"localhost\", opt$parallel))\n}\n\ncounts <- read.table(\"stdin\", sep=\"\\t\")\ncolnames(counts) <- c(\"id\", \"exon1\",\"gene1\", \"exon2\", \"gene2\")\nif (!is.null(opt$parallel)) {\n        fishers <- parApply(cl, counts, 1,  get_fisher)\n        stopCluster(cl)\n} else {\n        fishers <- apply(counts, 1,  get_fisher)\n}\ndf <- as.data.frame(fishers)\nwrite.table(df, file=\"\", sep=\"\\t\", quote=FALSE, col=F, append=T, row.names=F)\n\nThank you for your help,\nElena Grassi\n-- \nhttp://www.biocut.unito.it/",
+      "body_snippet": "Hello,\n\nI'm trying to use snow and parApply to parallelize a litte script of\nmine that computes fisher\ntests but I'm puzzled by the timing results. Maybe I should use a matrix\nand other functions like",
+      "thread_id": "thread-7c9d530a2eaf",
+      "thread_depth": 0,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-fa31d3b9d398",
+      "message_id": "<5065A483.6010409@fhcrc.org>",
+      "from_name": "Martin Morgan",
+      "from_email_hash": "9f5a643078023be7f11cfed10069ce2b31d0a2cc98705fa84c2ae0e157a1fb93",
+      "date": "2012-09-28T06:22:11-07:00",
+      "subject": "[R-sig-hpc] Snow, parApply computational times",
+      "subject_clean": "Snow, parApply computational times",
+      "in_reply_to": "<CALp0JQCbgs6pDRj+9etUgJDb9pc4VYRQYoFAiphhejaXmE4jnA@mail.gmail.com>",
+      "references": [
+        "<CALp0JQCbgs6pDRj+9etUgJDb9pc4VYRQYoFAiphhejaXmE4jnA@mail.gmail.com>"
+      ],
+      "body_plain": "Hi Elena --\n\nOn 09/28/2012 04:02 AM, Elena Grassi wrote:\n> Hello,\n>\n> I'm trying to use snow and parApply to parallelize a litte script of\n> mine that computes fisher\n> tests but I'm puzzled by the timing results. Maybe I should use a matrix\n> and other functions like parRapply/parCapply?\n> On a fairly big data set (413795 tests to be done) the simple version\n> took 449m33.496s,\n> while the parallel one (with 4 nodes of a socket cluster) 486m24.006s.\n> While running it begins with 4 processes and after a short time only\n> one remains active. This\n> process occupies a bunch of memory so I'm guessing that it's the one\n> taking care of the \"reduce\"\n> step that puts together the results, but I would have hoped in better\n> performances. [On\n> a smaller subset of data the parallel results were better than the serial ones].\n> I'm trying now with mpi but it seems to be aiming at the same results.\n>\n> Maybe I'm doing something wrong, chosen the wrong data structure or\n> something like that,\n> as long as I'm not an experienced R programmer at all, so\n> I'm pasting here the relevant part of the source code:\n>\n> get_fisher <- function(counts){\n>    mat <- matrix(as.numeric(counts[c(\"a\",\"b\", \"c\", \"d\")]), ncol=2)\n>    colnames(mat) <- c('1', '2')\n>    rownames(mat) <- c('f', 'g')\n>    f <- fisher.test(as.table(mat), alt=\"two.sided\")\n>    return(c(counts[\"id\"], f$p.value))\n> }\n>\n> if (!is.null(opt$parallel)) {\n>          library(\"snow\")\n>          library(\"Rmpi\")\n>          cl <- makeMPIcluster(opt$parallel)\n>          #cl <- makeSOCKcluster(rep(\"localhost\", opt$parallel))\n> }\n>\n> counts <- read.table(\"stdin\", sep=\"\\t\")\n> colnames(counts) <- c(\"id\", \"exon1\",\"gene1\", \"exon2\", \"gene2\")\n> if (!is.null(opt$parallel)) {\n>          fishers <- parApply(cl, counts, 1,  get_fisher)\n\nthe problem is that the amount of 'work' for each calculation is small, \nso that any gain from parallel calculation is offset by the cost of \nsending data back and forth, etc. Try to group the work into a list of \ntasks, and do each element on the task list on a separate processor. \nHere is some data\n\n     opt <- list(parallel = 8)\n     df <- data.frame(a=3, b=1, c=1, d=3, id=seq_len(1000))\n\nwe use the 'parallel' package, which comes with base R. On a non-windows \nmachine we'd rather use mclapply without explicitly making a cluster.\n\n     library(parallel)\n     cl <- makeCluster(opt$parallel, \"SOCK\")\n\nhere's the function we want to apply to each row; I changed the return \nvalue so that it's a numeric vector rather than a list\n\n     get_fisher <- function(counts){\n       mat <- matrix(as.numeric(counts[c(\"a\",\"b\", \"c\", \"d\")]), ncol=2)\n       colnames(mat) <- c('1', '2')\n       rownames(mat) <- c('f', 'g')\n       f <- fisher.test(as.table(mat), alt=\"two.sided\")\n       return(c(counts[[\"id\"]], f$p.value))\n     }\n\nhere we divide the work in to a list of tasks\n\n     idx <- splitIndices(nrow(df), opt$parallel)\n\nworth taking a look at idx -- str(idx) -- a list of length opt$parallel, \nwith each element containing a vector of indices representing the rows \nthat a cluster node will operate on. Now send the elements of idx to the \nprocessor nodes, one vector of indices to each processor. On the \nprocessors, do the work using apply.\n\n     result0 <- parLapply(cl, idx, function(i, df, FUN) {\n         apply(df[i,,drop=FALSE], 1, FUN)\n     }, df, get_fisher)\n\nWe need to knit our tasks back together, which in this case can be done with\n\n     result <- do.call(rbind, lapply(result0, t))\n\nHope this helps,\n\nMartin\n\n>          stopCluster(cl)\n> } else {\n>          fishers <- apply(counts, 1,  get_fisher)\n> }\n> df <- as.data.frame(fishers)\n> write.table(df, file=\"\", sep=\"\\t\", quote=FALSE, col=F, append=T, row.names=F)\n>\n> Thank you for your help,\n> Elena Grassi\n>\n\n\n-- \nComputational Biology / Fred Hutchinson Cancer Research Center\n1100 Fairview Ave. N.\nPO Box 19024 Seattle, WA 98109\n\nLocation: Arnold Building M1 B861\nPhone: (206) 667-2793",
+      "body_snippet": "Hi Elena --\n\nOn 09/28/2012 04:02 AM, Elena Grassi wrote:\n> Hello,\n>\n> I'm trying to use snow and parApply to parallelize a litte script of\n> mine that computes fisher\n> tests but I'm puzzled by the ti",
+      "thread_id": "thread-7c9d530a2eaf",
+      "thread_depth": 1,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-9014f16f3c5f",
+      "message_id": "<trinity-cd35b9ae-aaf9-46d0-91d6-0814685342e0-1348839381006@3capp-webde-bs11>",
+      "from_name": "jens.oehlschlaegel at truecluster.com",
+      "from_email_hash": "f073adaa565bb1d2ee057e84a39a987c70da1df4938e3d4d5a72e0cc3cffbdc1",
+      "date": "2012-09-28T15:36:21+02:00",
+      "subject": "[R-sig-hpc] Quickest way to make a large \"empty\" file on disk?",
+      "subject_clean": "Quickest way to make a large \"empty\" file on disk?",
+      "in_reply_to": "<CABG0rfvEYeBD=374ERch=oEaa80RBQ98VAqqM+4wyoAhg0TMGw@mail.gmail.com>",
+      "references": [
+        "<CABG0rfvUhXzNZ3m6vE09qKcrEb+N1QUkV2feeubmUfmsKqa5mw@mail.gmail.com>",
+        "<trinity-d95487bc-c8b4-4bc4-b938-c339b557fcac-1336044532709@3capp-webde-bs30.dlan.cinetic.de>",
+        "<CABG0rft54J-VXsYMrNBorbW+aLXsEwDazc_xr_9z95LZQWhYUQ@mail.gmail.com>",
+        "<CABG0rfvEYeBD=374ERch=oEaa80RBQ98VAqqM+4wyoAhg0TMGw@mail.gmail.com>"
+      ],
+      "body_plain": "An HTML attachment was scrubbed...\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120928/ae268b60/attachment.html>",
+      "body_snippet": "An HTML attachment was scrubbed...\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120928/ae268b60/attachment.html>",
+      "thread_id": "thread-26883a872b50",
+      "thread_depth": 1,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-f1664c115176",
+      "message_id": "<CALp0JQCw+aLYiCxCOesHrDfe=fTJZetsM6svkDNKS_CiWAfTYQ@mail.gmail.com>",
+      "from_name": "Elena Grassi",
+      "from_email_hash": "e25ae174663d87a75b7df4cc802da2d71a3a78032a025ca1297b5efb5ce235c8",
+      "date": "2012-09-28T16:28:21+02:00",
+      "subject": "[R-sig-hpc] Snow, parApply computational times",
+      "subject_clean": "Snow, parApply computational times",
+      "in_reply_to": "<5065A483.6010409@fhcrc.org>",
+      "references": [
+        "<CALp0JQCbgs6pDRj+9etUgJDb9pc4VYRQYoFAiphhejaXmE4jnA@mail.gmail.com>",
+        "<5065A483.6010409@fhcrc.org>"
+      ],
+      "body_plain": "On Fri, Sep 28, 2012 at 3:22 PM, Martin Morgan <mtmorgan at fhcrc.org> wrote:\n\n> the problem is that the amount of 'work' for each calculation is small, so\n> that any gain from parallel calculation is offset by the cost of sending\n> data back and forth, etc.\n\nYup, that's a sensible explanation, even if having only a single\nprocess alive for the majority\nof the computational time was an hint of something slightly different\nfrom my point of view, maybe wrong :)\n\nThank you very much for your suggestion, I will give it a try right\naway (as soon as our computational resources are free, at least :) ).\n\nE.",
+      "body_snippet": "On Fri, Sep 28, 2012 at 3:22 PM, Martin Morgan <mtmorgan at fhcrc.org> wrote:\n\n> the problem is that the amount of 'work' for each calculation is small, so\n> that any gain from parallel calculation is",
+      "thread_id": "thread-7c9d530a2eaf",
+      "thread_depth": 2,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-460270a17059",
+      "message_id": "<CALp0JQAqy+gnY+gEepkXVfe3T6996cB25go0jNhr8XQc=fuUSQ@mail.gmail.com>",
+      "from_name": "Elena Grassi",
+      "from_email_hash": "e25ae174663d87a75b7df4cc802da2d71a3a78032a025ca1297b5efb5ce235c8",
+      "date": "2012-09-28T18:29:17+02:00",
+      "subject": "[R-sig-hpc] Snow, parApply computational times",
+      "subject_clean": "Snow, parApply computational times",
+      "in_reply_to": "<CALp0JQCw+aLYiCxCOesHrDfe=fTJZetsM6svkDNKS_CiWAfTYQ@mail.gmail.com>",
+      "references": [
+        "<CALp0JQCbgs6pDRj+9etUgJDb9pc4VYRQYoFAiphhejaXmE4jnA@mail.gmail.com>",
+        "<5065A483.6010409@fhcrc.org>",
+        "<CALp0JQCw+aLYiCxCOesHrDfe=fTJZetsM6svkDNKS_CiWAfTYQ@mail.gmail.com>"
+      ],
+      "body_plain": "Ok, I could not resist, and bang!, big improvement:\n18m16.856s\n\nWith only 4 nodes, that's a huge improvement (even better than I expected).\n\nThank you very much,\nE.",
+      "body_snippet": "Ok, I could not resist, and bang!, big improvement:\n18m16.856s\n\nWith only 4 nodes, that's a huge improvement (even better than I expected).\n\nThank you very much,\nE.",
+      "thread_id": "thread-7c9d530a2eaf",
+      "thread_depth": 3,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-53f7a51baff1",
+      "message_id": "<CABG0rfucfLyL69t3cejYSYheBiHUcpgtDHAqYwaWoL4fQBnq+A@mail.gmail.com>",
+      "from_name": "Jonathan Greenberg",
+      "from_email_hash": "ee98ba3ee4b2c616e18289a81d9dae24466b13e60e03ce28f4f5a12def4b3589",
+      "date": "2012-09-28T11:44:27-05:00",
+      "subject": "[R-sig-hpc] [R] Quickest way to make a large \"empty\" file on disk?",
+      "subject_clean": "Quickest way to make a large \"empty\" file on disk?",
+      "in_reply_to": "<5064BBD2.3020206@sapo.pt>",
+      "references": [
+        "<CABG0rfvUhXzNZ3m6vE09qKcrEb+N1QUkV2feeubmUfmsKqa5mw@mail.gmail.com>",
+        "<trinity-d95487bc-c8b4-4bc4-b938-c339b557fcac-1336044532709@3capp-webde-bs30.dlan.cinetic.de>",
+        "<CABG0rft54J-VXsYMrNBorbW+aLXsEwDazc_xr_9z95LZQWhYUQ@mail.gmail.com>",
+        "<CABG0rfvEYeBD=374ERch=oEaa80RBQ98VAqqM+4wyoAhg0TMGw@mail.gmail.com>",
+        "<5064BBD2.3020206@sapo.pt>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120928/25fc4cec/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120928/25fc4cec/attachment.pl>",
+      "thread_id": "thread-53f7a51baff1",
+      "thread_depth": 0,
+      "month": "2012-09"
+    },
+    {
+      "id": "msg-3db02be150d6",
+      "message_id": "<14C3E083-B664-49E5-8F9E-3F796DA2B57A@r-project.org>",
+      "from_name": "Simon Urbanek",
+      "from_email_hash": "4b8015e605c1e8a78e0fc166d7f94d0bc9cab6230366ee1dfdd8a0de17b4b371",
+      "date": "2012-09-28T15:33:41-04:00",
+      "subject": "[R-sig-hpc] [R] Quickest way to make a large \"empty\" file on disk?",
+      "subject_clean": "Quickest way to make a large \"empty\" file on disk?",
+      "in_reply_to": "<CABG0rfucfLyL69t3cejYSYheBiHUcpgtDHAqYwaWoL4fQBnq+A@mail.gmail.com>",
+      "references": [
+        "<CABG0rfvUhXzNZ3m6vE09qKcrEb+N1QUkV2feeubmUfmsKqa5mw@mail.gmail.com>",
+        "<trinity-d95487bc-c8b4-4bc4-b938-c339b557fcac-1336044532709@3capp-webde-bs30.dlan.cinetic.de>",
+        "<CABG0rft54J-VXsYMrNBorbW+aLXsEwDazc_xr_9z95LZQWhYUQ@mail.gmail.com>",
+        "<CABG0rfvEYeBD=374ERch=oEaa80RBQ98VAqqM+4wyoAhg0TMGw@mail.gmail.com>",
+        "<5064BBD2.3020206@sapo.pt>",
+        "<CABG0rfucfLyL69t3cejYSYheBiHUcpgtDHAqYwaWoL4fQBnq+A@mail.gmail.com>"
+      ],
+      "body_plain": "On Sep 28, 2012, at 12:44 PM, Jonathan Greenberg wrote:\n\n> Rui:\n> \n> Quick follow-up -- it looks like seek does do what I want (I see Simon\n> suggested it some time ago) -- what do mean by \"trash your disk\"?  \n\nI can't speak for Rui, but the difference between seeking and explicit write is that the FS can optimize the former by not actually writing anything to disk (which is why it's so fast on some OS/FS combos). However, what this means that the layout on the disk may not be sequential depending on the write patterns of the actual data blocks, because the FS may keep a mask of unused blocks and don't write them. But that is just a FS issue and thus varies vasty by OS and FS. For your use this probably doesn't matter as you probably don't need to stream the resulting file at the end.\n\n\n> What I'm\n> trying to accomplish is getting parallel, asynchronous writes to a large\n> binary image (just a binary file) working.  Each node writes to a different\n> sector of the file via mmap, \"filling in\" the values as the process runs,\n> but the file needs to be pre-created before I can mmap it.  Running a\n> writeBin with a bunch of 0s would mean I'd basically have to write the file\n> twice, but the seek/ff trick seems to be much faster.\n> \n> Do I risk doing some damage to my filesystem if I use seek?  I see there is\n> a strongly worded warning in the help for ?seek:\n> \n> \"Use of seek on Windows is discouraged. We have found so many errors in the\n> Windows implementation of file positioning that users are advised to use it\n> only at their own risk, and asked not to waste the *R* developers' time\n> with bug reports on Windows' deficiencies.\" --> there's no detail here on\n> which errors people have experienced, so I'm not sure if doing something as\n> simple as just \"creating\" a file using seek falls under the \"discouraging\"\n> category.\n> \n\nQuick search in my mail shows issues that were related to what Windows reports as the seek location on text files when querying. AFAICS it did not affect the side-effect of seek which is what you're interested in.\n\nCheers,\nSimon\n\n\n> As a note, we are trying to work this up on both Windows and *nix systems,\n> hence our wanting to have a single approach that works on both OSs.\n> \n> --j\n> \n> \n> On Thu, Sep 27, 2012 at 3:49 PM, Rui Barradas <ruipbarradas at sapo.pt> wrote:\n> \n>> Hello,\n>> \n>> If you really need to trash your disk, why not use seek()?\n>> \n>>> fl <- file(\"Test.txt\", open = \"wb\")\n>>> seek(fl, where = 1024, origin = \"start\", rw = \"write\")\n>> [1] 0\n>>> writeChar(character(1), fl, nchars = 1, useBytes = TRUE)\n>> Warning message:\n>> In writeChar(character(1), fl, nchars = 1, useBytes = TRUE) :\n>>  writeChar: more characters requested than are in the string - will\n>> zero-pad\n>>> close(fl)\n>> \n>> \n>> File \"Test.txt\" is now 1Kb in size.\n>> \n>> Hope this helps,\n>> \n>> Rui Barradas\n>> Em 27-09-2012 20:17, Jonathan Greenberg escreveu:\n>> \n>> Folks:\n>> \n>> Asked this question some time ago, and found what appeared (at first) to be\n>> the best solution, but I'm now finding a new problem.  First off, it seemed\n>> like ff as Jens suggested worked:\n>> \n>> # outdata_ncells = the number of rows * number of columns * number of bands\n>> in an image:\n>> out<-ff(vmode=\"double\",length=outdata_ncells,filename=filename)\n>> finalizer(out) <- close\n>> close(out)\n>> \n>> This was working fine until I attempted to set length to a VERY large\n>> number: outdata_ncells = 17711913600.  This would create a file that is\n>> 131.964GB.  Big, but not obscenely so (and certainly not larger than the\n>> filesystem can handle).  However, length appears to be restricted\n>> by .Machine$integer.max (I'm on a 64-bit windows box):\n>> \n>> .Machine$integer.max\n>> \n>> [1] 2147483647\n>> \n>> Any suggestions on how to solve this problem for much larger file sizes?\n>> \n>> --j\n>> \n>> \n>> On Thu, May 3, 2012 at 10:44 AM, Jonathan Greenberg <jgrn at illinois.edu> <jgrn at illinois.edu>wrote:\n>> \n>> \n>> Thanks, all!  I'll try these out.  I'm trying to work up something that is\n>> platform independent (if possible) for use with mmap.  I'll do some tests\n>> on these suggestions and see which works best. I'll try to report back in a\n>> few days.  Cheers!\n>> \n>> --j\n>> \n>> \n>> \n>> 2012/5/3 \"Jens Oehlschl?gel\" <jens.oehlschlaegel at truecluster.com> <jens.oehlschlaegel at truecluster.com>\n>> \n>> Jonathan,\n>> \n>> On some filesystems (e.g. NTFS, see below) it is possible to create\n>> 'sparse' memory-mapped files, i.e. reserving the space without the cost of\n>> actually writing initial values.\n>> Package 'ff' does this automatically and also allows to access the file\n>> in parallel. Check the example below and see how big file creation is\n>> immediate.\n>> \n>> Jens Oehlschl?gel\n>> \n>> \n>> \n>> library(ff)\n>> library(snowfall)\n>> ncpus <- 2\n>> n <- 1e8\n>> system.time(\n>> \n>> + x <- ff(vmode=\"double\", length=n, filename=\"c:/Temp/x.ff\")\n>> + )\n>>       User      System verstrichen\n>>       0.01        0.00        0.02\n>> \n>> # check finalizer, with an explicit filename we should have a 'close'\n>> \n>> finalizer\n>> \n>> finalizer(x)\n>> \n>> [1] \"close\"\n>> \n>> # if not, set it to 'close' inorder to not let slaves delete x on slave\n>> \n>> shutdown\n>> \n>> finalizer(x) <- \"close\"\n>> sfInit(parallel=TRUE, cpus=ncpus, type=\"SOCK\")\n>> \n>> R Version:  R version 2.15.0 (2012-03-30)\n>> \n>> snowfall 1.84 initialized (using snow 0.3-9): parallel execution on 2\n>> CPUs.\n>> \n>> \n>> sfLibrary(ff)\n>> \n>> Library ff loaded.\n>> Library ff loaded in cluster.\n>> \n>> Warnmeldung:\n>> In library(package = \"ff\", character.only = TRUE, pos = 2, warn.conflicts\n>> = TRUE,  :\n>>  'keep.source' is deprecated and will be ignored\n>> \n>> sfExport(\"x\") # note: do not export the same ff multiple times\n>> # explicitely opening avoids a gc problem\n>> sfClusterEval(open(x, caching=\"mmeachflush\")) # opening with\n>> \n>> 'mmeachflush' inststead of 'mmnoflush' is a bit slower but prevents OS\n>> write storms when the file is larger than RAM\n>> [[1]]\n>> [1] TRUE\n>> \n>> [[2]]\n>> [1] TRUE\n>> \n>> \n>> system.time(\n>> \n>> + sfLapply( chunk(x, length=ncpus), function(i){\n>> +   x[i] <- runif(sum(i))\n>> +   invisible()\n>> + })\n>> + )\n>>       User      System verstrichen\n>>       0.00        0.00       30.78\n>> \n>> system.time(\n>> \n>> + s <- sfLapply( chunk(x, length=ncpus), function(i) quantile(x[i],\n>> c(0.05, 0.95)) )\n>> + )\n>>       User      System verstrichen\n>>       0.00        0.00        4.38\n>> \n>> # for completeness\n>> sfClusterEval(close(x))\n>> \n>> [[1]]\n>> [1] TRUE\n>> \n>> [[2]]\n>> [1] TRUE\n>> \n>> \n>> csummary(s)\n>> \n>>              5%  95%\n>> Min.    0.04998 0.95\n>> 1st Qu. 0.04999 0.95\n>> Median  0.05001 0.95\n>> Mean    0.05001 0.95\n>> 3rd Qu. 0.05002 0.95\n>> Max.    0.05003 0.95\n>> \n>> # stop slaves\n>> sfStop()\n>> \n>> Stopping cluster\n>> \n>> \n>> # with the close finalizer we are responsible for deleting the file\n>> \n>> explicitely (unless we want to keep it)\n>> \n>> delete(x)\n>> \n>> [1] TRUE\n>> \n>> # remove r-side metadata\n>> rm(x)\n>> # truly free memory\n>> gc()\n>> \n>>  *Gesendet:* Donnerstag, 03. Mai 2012 um 00:23 Uhr\n>> *Von:* \"Jonathan Greenberg\" <jgrn at illinois.edu> <jgrn at illinois.edu>\n>> *An:* r-help <r-help at r-project.org> <r-help at r-project.org>, r-sig-hpc at r-project.org\n>> *Betreff:* [R-sig-hpc] Quickest way to make a large \"empty\" file on\n>> disk?\n>> R-helpers:\n>> \n>> What would be the absolute fastest way to make a large \"empty\" file (e.g.\n>> filled with all zeroes) on disk, given a byte size and a given number\n>> number of empty values. I know I can use writeBin, but the \"object\" in\n>> this case may be far too large to store in main memory. I'm asking because\n>> I'm going to use this file in conjunction with mmap to do parallel writes\n>> to this file. Say, I want to create a blank file of 10,000 floating point\n>> numbers.\n>> \n>> Thanks!\n>> \n>> --j\n>> \n>> --\n>> Jonathan A. Greenberg, PhD\n>> Assistant Professor\n>> Department of Geography and Geographic Information Science\n>> University of Illinois at Urbana-Champaign\n>> 607 South Mathews Avenue, MC 150\n>> Urbana, IL 61801\n>> Phone: 415-763-5476\n>> \n>> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007http://www.geog.illinois.edu/people/JonathanGreenberg.html\n>> \n>> [[alternative HTML version deleted]]\n>> \n>> _______________________________________________\n>> R-sig-hpc mailing listR-sig-hpc at r-project.orghttps://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>> \n>> \n>> --\n>> Jonathan A. Greenberg, PhD\n>> Assistant Professor\n>> Department of Geography and Geographic Information Science\n>> University of Illinois at Urbana-Champaign\n>> 607 South Mathews Avenue, MC 150\n>> Urbana, IL 61801\n>> Phone: 415-763-5476\n>> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007http://www.geog.illinois.edu/people/JonathanGreenberg.html\n>> \n>> \n>> \n>> ______________________________________________R-help at r-project.org mailing listhttps://stat.ethz.ch/mailman/listinfo/r-help\n>> PLEASE do read the posting guide http://www.R-project.org/posting-guide.html\n>> and provide commented, minimal, self-contained, reproducible code.\n>> \n>> \n>> \n> \n> \n> -- \n> Jonathan A. Greenberg, PhD\n> Assistant Professor\n> Department of Geography and Geographic Information Science\n> University of Illinois at Urbana-Champaign\n> 607 South Mathews Avenue, MC 150\n> Urbana, IL 61801\n> Phone: 217-300-1924\n> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007\n> http://www.geog.illinois.edu/people/JonathanGreenberg.html\n> \n> \t[[alternative HTML version deleted]]\n> \n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc",
+      "body_snippet": "On Sep 28, 2012, at 12:44 PM, Jonathan Greenberg wrote:\n\n> Rui:\n> \n> Quick follow-up -- it looks like seek does do what I want (I see Simon\n> suggested it some time ago) -- what do mean by \"trash your",
+      "thread_id": "thread-53f7a51baff1",
+      "thread_depth": 1,
+      "month": "2012-09"
+    }
+  ],
+  "threads": [
+    {
+      "id": "thread-e240e3ef12a8",
+      "subject": "Possible memory leak for serialize?",
+      "message_count": 3,
+      "participants": [
+        "Hao Yu",
+        "Simon Urbanek",
+        "luke-tierney at uiowa.edu"
+      ],
+      "started": "2012-09-05T09:16:59-04:00",
+      "last_reply": "2012-09-05T09:59:37-05:00",
+      "root_message_id": "msg-e240e3ef12a8"
+    },
+    {
+      "id": "thread-3a1c289a3417",
+      "subject": "Problems parallelizing glmnet",
+      "message_count": 4,
+      "participants": [
+        "Patrik Waldmann",
+        "Simon Urbanek",
+        "Zachary Mayer"
+      ],
+      "started": "2012-09-06T17:50:29+02:00",
+      "last_reply": "2012-09-06T13:41:06-04:00",
+      "root_message_id": "msg-3a1c289a3417"
+    },
+    {
+      "id": "thread-36a14d57d966",
+      "subject": "Problems parallelizing glmnet",
+      "message_count": 4,
+      "participants": [
+        "Brian G. Peterson",
+        "Patrik Waldmann",
+        "Zachary Mayer"
+      ],
+      "started": "2012-09-06T19:15:07+02:00",
+      "last_reply": "2012-09-06T12:51:28-05:00",
+      "root_message_id": "msg-36a14d57d966"
+    },
+    {
+      "id": "thread-de07fee3f375",
+      "subject": "Problems parallelizing glmnet",
+      "message_count": 2,
+      "participants": [
+        "Patrik Waldmann",
+        "Zachary Mayer"
+      ],
+      "started": "2012-09-06T19:45:53+02:00",
+      "last_reply": "2012-09-06T14:11:00-04:00",
+      "root_message_id": "msg-de07fee3f375"
+    },
+    {
+      "id": "thread-76d08a2e20cc",
+      "subject": "Problems parallelizing glmnet",
+      "message_count": 6,
+      "participants": [
+        "Brian G. Peterson",
+        "Max Kuhn",
+        "Patrik Waldmann",
+        "Peter Langfelder",
+        "Stephen Weston",
+        "Zachary Mayer"
+      ],
+      "started": "2012-09-06T22:16:40+02:00",
+      "last_reply": "2012-09-06T19:31:47-05:00",
+      "root_message_id": "msg-76d08a2e20cc"
+    },
+    {
+      "id": "thread-5d6b449dbb82",
+      "subject": "gputools for Windows",
+      "message_count": 5,
+      "participants": [
+        "Dirk Eddelbuettel",
+        "Jeffrey Arnold",
+        "M. Edward (Ed) Borasky"
+      ],
+      "started": "2012-09-13T15:41:05-04:00",
+      "last_reply": "2012-09-13T16:21:57-07:00",
+      "root_message_id": "msg-5d6b449dbb82"
+    },
+    {
+      "id": "thread-8b150d1413d4",
+      "subject": "Trying to replicate an example",
+      "message_count": 1,
+      "participants": [
+        "Hodgess, Erin"
+      ],
+      "started": "2012-09-18T19:04:53-05:00",
+      "last_reply": "2012-09-18T19:04:53-05:00",
+      "root_message_id": "msg-8b150d1413d4"
+    },
+    {
+      "id": "thread-e6b2764c60d2",
+      "subject": "Error in UseMethod(\"stopCluster\") : no applicable method for 'stopCluster' ...",
+      "message_count": 8,
+      "participants": [
+        "Marius Hofert",
+        "Martin Morgan"
+      ],
+      "started": "2012-09-21T08:47:49+01:00",
+      "last_reply": "2012-09-22T18:41:57+02:00",
+      "root_message_id": "msg-e6b2764c60d2"
+    },
+    {
+      "id": "thread-581c7cd58412",
+      "subject": "Install Rmpi as a user of HPC",
+      "message_count": 4,
+      "participants": [
+        "Bjørn-Helge Mevik",
+        "M. Edward (Ed) Borasky",
+        "semra yalcin"
+      ],
+      "started": "2012-09-21T20:23:06+03:00",
+      "last_reply": "2012-09-25T11:42:59+03:00",
+      "root_message_id": "msg-581c7cd58412"
+    },
+    {
+      "id": "thread-26883a872b50",
+      "subject": "Quickest way to make a large \"empty\" file on disk?",
+      "message_count": 2,
+      "participants": [
+        "Jonathan Greenberg",
+        "jens.oehlschlaegel at truecluster.com"
+      ],
+      "started": "2012-09-27T14:17:28-05:00",
+      "last_reply": "2012-09-28T15:36:21+02:00",
+      "root_message_id": "msg-26883a872b50"
+    },
+    {
+      "id": "thread-53f7a51baff1",
+      "subject": "Quickest way to make a large \"empty\" file on disk?",
+      "message_count": 2,
+      "participants": [
+        "Jonathan Greenberg",
+        "Simon Urbanek"
+      ],
+      "started": "2012-09-28T11:44:27-05:00",
+      "last_reply": "2012-09-28T15:33:41-04:00",
+      "root_message_id": "msg-53f7a51baff1"
+    },
+    {
+      "id": "thread-7c9d530a2eaf",
+      "subject": "Snow, parApply computational times",
+      "message_count": 4,
+      "participants": [
+        "Elena Grassi",
+        "Martin Morgan"
+      ],
+      "started": "2012-09-28T13:02:13+02:00",
+      "last_reply": "2012-09-28T18:29:17+02:00",
+      "root_message_id": "msg-7c9d530a2eaf"
+    }
+  ]
+}

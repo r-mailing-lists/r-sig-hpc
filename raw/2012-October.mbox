@@ -1,0 +1,786 @@
+From HodgessE at uhd.edu  Tue Oct  2 06:16:46 2012
+From: HodgessE at uhd.edu (Hodgess, Erin)
+Date: Mon, 1 Oct 2012 23:16:46 -0500
+Subject: [R-sig-hpc] Matrix/Vector Multiplication error with CUDA
+Message-ID: <586A4828D7AAA04CA9B258C50A28DA200BF597E1@BALI.uhd.campus>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121001/fd2d526e/attachment.pl>
+
+From pchausse at uwaterloo.ca  Tue Oct  2 19:41:05 2012
+From: pchausse at uwaterloo.ca (Pierre Chausse)
+Date: Tue, 02 Oct 2012 13:41:05 -0400
+Subject: [R-sig-hpc] gputools and CULA
+Message-ID: <506B2731.4070901@mailservices.uwaterloo.ca>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121002/743bd90a/attachment.pl>
+
+From pchausse at uwaterloo.ca  Thu Oct  4 19:40:03 2012
+From: pchausse at uwaterloo.ca (Pierre Chausse)
+Date: Thu, 04 Oct 2012 13:40:03 -0400
+Subject: [R-sig-hpc] gputools and CULA
+In-Reply-To: <CAErODj_Ya64vCZD7qPz6JxJAHt3s3tNeOZzez8Yd1QPB2GpfiA@mail.gmail.com>
+References: <506B2731.4070901@mailservices.uwaterloo.ca>
+	<CAErODj_Ya64vCZD7qPz6JxJAHt3s3tNeOZzez8Yd1QPB2GpfiA@mail.gmail.com>
+Message-ID: <506DC9F3.9030608@mailservices.uwaterloo.ca>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121004/9041584d/attachment.pl>
+
+From matthew.douglas.gilbert at gmail.com  Sun Oct  7 20:20:54 2012
+From: matthew.douglas.gilbert at gmail.com (Matthew Gilbert)
+Date: Sun, 07 Oct 2012 14:20:54 -0400
+Subject: [R-sig-hpc] randomForest and foreach plotting issue
+Message-ID: <5071C806.8060909@gmail.com>
+
+Hi,
+
+When I run randomForest sequentially I am able to plot the errors using 
+plot() however when I try to perform randomForest within a foreach loop 
+the resulting object throws errors when I try to plot it. mse seems to 
+not be returned in the parallel structure. Has anyone run into this 
+problem before? Below is an example of the issue
+
+Thanks,
+Matt
+
+library(randomForest)
+library(foreach)
+library(doMC)
+registerDoMC()
+
+data(mtcars)
+rf <- randomForest(mpg ~ ., mtcars, keep.forest=FALSE, ntree=100)
+plot(rf)
+
+rf.par <- foreach(ntree=rep(50, 2), .combine=combine, 
+.packages='randomForest') %dopar% randomForest(mpg ~ ., mtcars, 
+keep.forest=FALSE, ntree=ntree)
+plot(rf.par)
+
+Error in array(x, c(length(x), 1L), if (!is.null(names(x))) 
+list(names(x),  :
+   attempt to set an attribute on NULL
+
+traceback()
+
+7: array(x, c(length(x), 1L), if (!is.null(names(x))) list(names(x),
+        NULL) else NULL)
+6: as.matrix.default(y)
+5: as.matrix(y)
+4: ncol(y <- as.matrix(y))
+3: matplot(1:x$ntree, err, type = type, xlab = "trees", ylab = "Error",
+        main = main, ...)
+2: plot.randomForest(rf.par)
+1: plot(rf.par)
+
+
+From andy_liaw at merck.com  Mon Oct  8 13:58:31 2012
+From: andy_liaw at merck.com (Liaw, Andy)
+Date: Mon, 8 Oct 2012 07:58:31 -0400
+Subject: [R-sig-hpc] randomForest and foreach plotting issue
+In-Reply-To: <5071C806.8060909@gmail.com>
+References: <5071C806.8060909@gmail.com>
+Message-ID: <D5FA03935F7418419332B61CA255F65F81790FEDE2@USCTMXP51012.merck.com>
+
+The plot() method for randomForest plots the sequence of MSEs as trees are added to the ensemble sequentially.  Such numbers are impossible to compute when trees are grown in parallel.  That's why the combine() function removes those numbers when combining several randomForest objects into one.
+
+Best,
+Andy 
+
+-----Original Message-----
+From: r-sig-hpc-bounces at r-project.org [mailto:r-sig-hpc-bounces at r-project.org] On Behalf Of Matthew Gilbert
+Sent: Sunday, October 07, 2012 2:21 PM
+To: r-sig-hpc at r-project.org
+Subject: [R-sig-hpc] randomForest and foreach plotting issue
+
+Hi,
+
+When I run randomForest sequentially I am able to plot the errors using 
+plot() however when I try to perform randomForest within a foreach loop 
+the resulting object throws errors when I try to plot it. mse seems to 
+not be returned in the parallel structure. Has anyone run into this 
+problem before? Below is an example of the issue
+
+Thanks,
+Matt
+
+library(randomForest)
+library(foreach)
+library(doMC)
+registerDoMC()
+
+data(mtcars)
+rf <- randomForest(mpg ~ ., mtcars, keep.forest=FALSE, ntree=100)
+plot(rf)
+
+rf.par <- foreach(ntree=rep(50, 2), .combine=combine, 
+.packages='randomForest') %dopar% randomForest(mpg ~ ., mtcars, 
+keep.forest=FALSE, ntree=ntree)
+plot(rf.par)
+
+Error in array(x, c(length(x), 1L), if (!is.null(names(x))) 
+list(names(x),  :
+   attempt to set an attribute on NULL
+
+traceback()
+
+7: array(x, c(length(x), 1L), if (!is.null(names(x))) list(names(x),
+        NULL) else NULL)
+6: as.matrix.default(y)
+5: as.matrix(y)
+4: ncol(y <- as.matrix(y))
+3: matplot(1:x$ntree, err, type = type, xlab = "trees", ylab = "Error",
+        main = main, ...)
+2: plot.randomForest(rf.par)
+1: plot(rf.par)
+
+_______________________________________________
+R-sig-hpc mailing list
+R-sig-hpc at r-project.org
+https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+Notice:  This e-mail message, together with any attachme...{{dropped:11}}
+
+
+From gabraham at csse.unimelb.edu.au  Sat Oct 13 07:29:38 2012
+From: gabraham at csse.unimelb.edu.au (Gad Abraham)
+Date: Sat, 13 Oct 2012 16:29:38 +1100
+Subject: [R-sig-hpc] Debian/Ubuntu + threaded BLAS/ATLAS (solved)
+In-Reply-To: <369E2286-5A0A-4D6D-8890-2349E51D961F@r-project.org>
+References: <369E2286-5A0A-4D6D-8890-2349E51D961F@r-project.org>
+Message-ID: <CAOTmaJE4DeJBg4MoP25fJRkkpZjBvHWPfpUkX4taZD0MhQS6zg@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121013/8c7edd00/attachment.pl>
+
+From rdiaz02 at gmail.com  Mon Oct 15 16:47:03 2012
+From: rdiaz02 at gmail.com (Ramon Diaz-Uriarte)
+Date: Mon, 15 Oct 2012 16:47:03 +0200
+Subject: [R-sig-hpc] mclapply: rm intermediate objects and returning memory
+Message-ID: <87hapvrdw8.wl%rdiaz02@gmail.com>
+
+
+
+Dear All,
+
+
+It seems that, in some cases, mclapply can result in out of memory
+conditions that can be avoided by having the "X" argument split into smaller
+pieces, and running mclapply several times.  This is an example (on a
+machine with 12 cores and 64 Gb of RAM [similar examples can be created
+for different numbers of cores and RAM]):
+
+
+#########################
+library(parallel)
+data.500 <- matrix(1.1, nrow = 3*10^6, ncol = 500)
+print(object.size(data.500), units = "Mb")
+
+f1 <- function(index, data) {
+  x <- data[, index]
+  u <- 2 * x
+  return(u)
+}
+
+## This will not run
+tmp1 <- mclapply(1:500, f1, data.500,
+                 mc.cores = detectCores())
+
+
+## These will run
+
+
+tmp1a <- mclapply(1:100, f1, data.500,
+                 mc.cores = detectCores())
+tmp1b <- mclapply(101:200, f1, data.500,
+                 mc.cores = detectCores())
+tmp1c <- mclapply(201:300, f1, data.500,
+                 mc.cores = detectCores())
+tmp1d <- mclapply(301:400, f1, data.500,
+                 mc.cores = detectCores())
+tmp1e <- mclapply(401:500, f1, data.500,
+                 mc.cores = detectCores())
+
+tmp <- c(tmp1a, tmp1b, tmp1c, tmp1d, tmp1e)
+
+########################
+
+Notice that the problem is not simply memory usage by the master, since
+the last concatenation of the five lists works.
+
+
+However, if we delete intermediate objects as in:
+
+##############
+
+f1 <- function(index, data) {
+  x <- data[, index]
+  u <- 2 * x
+  rm(x); gc() ### This is the only change
+  return(u)
+}
+#############
+
+then it does run.
+
+
+
+
+It also runs if we use the original function (i.e., we do not delete
+intermediate results) but change the scheduling:
+
+
+#################
+
+f1 <- function(index, data) {
+  x <- data[, index]
+  u <- 2 * x
+  return(u)
+}
+
+tmp1 <- mclapply(1:500, f1, data.500,
+                 mc.cores = detectCores(),
+                 mc.preschedule = FALSE)
+
+###################
+
+
+
+
+So it seems that, with preschedule = TRUE, each slave does not return the
+memory to the OS until all the jobs are collected by the master. Before
+that, in terms of memory, it is as if a list as long as X is kept, but not
+just with the return objects, but also with all the intermediate (and non
+deleted) objects (i.e., it is as if each function invocation has not
+really fully returned?).
+
+
+In the help file, mc.preschedule = TRUE is the recommended setting for
+large number of values in X (and in my experiments setting it to FALSE
+makes things slower). I guess, then, that the recommended way of dealing
+with these issues is carefully deleting (and gc'ing) any non-needed
+intermediate result? Is this correct?
+
+
+
+Best,
+
+R.
+
+
+-- 
+Ramon Diaz-Uriarte
+Department of Biochemistry, Lab B-25
+Facultad de Medicina 
+Universidad Aut?noma de Madrid 
+Arzobispo Morcillo, 4
+28029 Madrid
+Spain
+
+Phone: +34-91-497-2412
+
+Email: rdiaz02 at gmail.com
+       ramon.diaz at iib.uam.es
+
+http://ligarto.org/rdiaz
+
+
+From simon.urbanek at r-project.org  Mon Oct 15 18:17:20 2012
+From: simon.urbanek at r-project.org (Simon Urbanek)
+Date: Mon, 15 Oct 2012 12:17:20 -0400
+Subject: [R-sig-hpc] mclapply: rm intermediate objects and returning
+	memory
+In-Reply-To: <87hapvrdw8.wl%rdiaz02@gmail.com>
+References: <87hapvrdw8.wl%rdiaz02@gmail.com>
+Message-ID: <4CCBE8E3-77F3-4F05-9A30-7D323A418627@r-project.org>
+
+Ramon,
+
+On Oct 15, 2012, at 10:47 AM, Ramon Diaz-Uriarte wrote:
+
+> Dear All,
+> 
+> 
+> It seems that, in some cases, mclapply can result in out of memory
+> conditions that can be avoided by having the "X" argument split into smaller
+> pieces, and running mclapply several times.  This is an example (on a
+> machine with 12 cores and 64 Gb of RAM [similar examples can be created
+> for different numbers of cores and RAM]):
+> 
+> 
+> #########################
+> library(parallel)
+> data.500 <- matrix(1.1, nrow = 3*10^6, ncol = 500)
+> print(object.size(data.500), units = "Mb")
+> 
+> f1 <- function(index, data) {
+>  x <- data[, index]
+>  u <- 2 * x
+>  return(u)
+> }
+> 
+> ## This will not run
+> tmp1 <- mclapply(1:500, f1, data.500,
+>                 mc.cores = detectCores())
+> 
+> 
+> ## These will run
+> 
+> 
+> tmp1a <- mclapply(1:100, f1, data.500,
+>                 mc.cores = detectCores())
+> tmp1b <- mclapply(101:200, f1, data.500,
+>                 mc.cores = detectCores())
+> tmp1c <- mclapply(201:300, f1, data.500,
+>                 mc.cores = detectCores())
+> tmp1d <- mclapply(301:400, f1, data.500,
+>                 mc.cores = detectCores())
+> tmp1e <- mclapply(401:500, f1, data.500,
+>                 mc.cores = detectCores())
+> 
+> tmp <- c(tmp1a, tmp1b, tmp1c, tmp1d, tmp1e)
+> 
+> ########################
+> 
+> Notice that the problem is not simply memory usage by the master, since
+> the last concatenation of the five lists works.
+> 
+> 
+> However, if we delete intermediate objects as in:
+> 
+> ##############
+> 
+> f1 <- function(index, data) {
+>  x <- data[, index]
+>  u <- 2 * x
+>  rm(x); gc() ### This is the only change
+>  return(u)
+> }
+> #############
+> 
+> then it does run.
+> 
+> 
+> 
+> 
+> It also runs if we use the original function (i.e., we do not delete
+> intermediate results) but change the scheduling:
+> 
+> 
+> #################
+> 
+> f1 <- function(index, data) {
+>  x <- data[, index]
+>  u <- 2 * x
+>  return(u)
+> }
+> 
+> tmp1 <- mclapply(1:500, f1, data.500,
+>                 mc.cores = detectCores(),
+>                 mc.preschedule = FALSE)
+> 
+> ###################
+> 
+> 
+> 
+> 
+> So it seems that, with preschedule = TRUE, each slave does not return the
+> memory to the OS until all the jobs are collected by the master. Before
+> that, in terms of memory, it is as if a list as long as X is kept, but not
+> just with the return objects, but also with all the intermediate (and non
+> deleted) objects (i.e., it is as if each function invocation has not
+> really fully returned?).
+> 
+
+That should not be the case since x goes out of scope, it is not stored by mclapply (NB: each job is a simple lapply()). However, you may be running into something else: note that the jobs are all independent, so they are not aware of each other's memory usage. One job cannot trigger garbage collection in another one. So what probably happens is that the faster jobs feel just fine, because they are not running out of memory so they don't trigger garbage collection. However, another job may be strapped for memory, it will run its own garbage collection, but that won't free enough memory. It cannot trigger gc in the other job, so it is stuck. By forcing gc() you're making sure that all jobs will be running the garbage collector and thus it's less likely that they will push each other out of memory.
+
+
+> In the help file, mc.preschedule = TRUE is the recommended setting for
+> large number of values in X (and in my experiments setting it to FALSE
+> makes things slower). I guess, then, that the recommended way of dealing
+> with these issues is carefully deleting (and gc'ing) any non-needed
+> intermediate result? Is this correct?
+> 
+
+The intermediate result itself is harmless, it will be collected eventually, but not necessarily right after the function returns. However, depending on your machine's memory usage that delay may be enough to trigger the above. I cannot replicate your problem on my machine, so try just adding gc() alone - it should make sure that at least all temporary objects from previous iterations are gone and I would hope that it solves your problem. If you are on the edge with your memory usage, you may want to run something like {x <- local({ ... }); gc(); x} - but in your case it should not be necessary since the temporary objects are small per iteration.
+
+
+Re. your suggestion, I agree that mclapply offers two extremes: either work size of 1 or n/cores, nothing in between. For some applications it may be beneficial to use other sizes - if someone would be willing to give it a shot, I could review it.
+
+Cheers,
+Simon
+
+
+> 
+> 
+> Best,
+> 
+> R.
+> 
+> 
+> -- 
+> Ramon Diaz-Uriarte
+> Department of Biochemistry, Lab B-25
+> Facultad de Medicina 
+> Universidad Aut?noma de Madrid 
+> Arzobispo Morcillo, 4
+> 28029 Madrid
+> Spain
+> 
+> Phone: +34-91-497-2412
+> 
+> Email: rdiaz02 at gmail.com
+>       ramon.diaz at iib.uam.es
+> 
+> http://ligarto.org/rdiaz
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From rdiaz02 at gmail.com  Mon Oct 15 18:52:09 2012
+From: rdiaz02 at gmail.com (Ramon Diaz-Uriarte)
+Date: Mon, 15 Oct 2012 18:52:09 +0200
+Subject: [R-sig-hpc] mclapply: rm intermediate objects and returning
+	memory
+In-Reply-To: <4CCBE8E3-77F3-4F05-9A30-7D323A418627@r-project.org>
+References: <87hapvrdw8.wl%rdiaz02@gmail.com>
+	<4CCBE8E3-77F3-4F05-9A30-7D323A418627@r-project.org>
+Message-ID: <877gqrr83q.wl%rdiaz02@gmail.com>
+
+
+Hi Simon,
+
+First, thanks for the detailed explanations. Comments/questions below.
+
+
+On Mon, 15 Oct 2012 12:17:20 -0400,Simon Urbanek <simon.urbanek at r-project.org> wrote:
+> Ramon,
+
+> On Oct 15, 2012, at 10:47 AM, Ramon Diaz-Uriarte wrote:
+
+> > Dear All,
+> > 
+> > 
+> > It seems that, in some cases, mclapply can result in out of memory
+> > conditions that can be avoided by having the "X" argument split into smaller
+> > pieces, and running mclapply several times.  This is an example (on a
+> > machine with 12 cores and 64 Gb of RAM [similar examples can be created
+> > for different numbers of cores and RAM]):
+> > 
+> > 
+> > #########################
+> > library(parallel)
+> > data.500 <- matrix(1.1, nrow = 3*10^6, ncol = 500)
+> > print(object.size(data.500), units = "Mb")
+> > 
+> > f1 <- function(index, data) {
+> >  x <- data[, index]
+> >  u <- 2 * x
+> >  return(u)
+> > }
+> > 
+> > ## This will not run
+> > tmp1 <- mclapply(1:500, f1, data.500,
+> >                 mc.cores = detectCores())
+> > 
+> > 
+> > ## These will run
+> > 
+> > 
+> > tmp1a <- mclapply(1:100, f1, data.500,
+> >                 mc.cores = detectCores())
+> > tmp1b <- mclapply(101:200, f1, data.500,
+> >                 mc.cores = detectCores())
+> > tmp1c <- mclapply(201:300, f1, data.500,
+> >                 mc.cores = detectCores())
+> > tmp1d <- mclapply(301:400, f1, data.500,
+> >                 mc.cores = detectCores())
+> > tmp1e <- mclapply(401:500, f1, data.500,
+> >                 mc.cores = detectCores())
+> > 
+> > tmp <- c(tmp1a, tmp1b, tmp1c, tmp1d, tmp1e)
+> > 
+> > ########################
+> > 
+> > Notice that the problem is not simply memory usage by the master, since
+> > the last concatenation of the five lists works.
+> > 
+> > 
+> > However, if we delete intermediate objects as in:
+> > 
+> > ##############
+> > 
+> > f1 <- function(index, data) {
+> >  x <- data[, index]
+> >  u <- 2 * x
+> >  rm(x); gc() ### This is the only change
+> >  return(u)
+> > }
+> > #############
+> > 
+> > then it does run.
+> > 
+> > 
+> > 
+> > 
+> > It also runs if we use the original function (i.e., we do not delete
+> > intermediate results) but change the scheduling:
+> > 
+> > 
+> > #################
+> > 
+> > f1 <- function(index, data) {
+> >  x <- data[, index]
+> >  u <- 2 * x
+> >  return(u)
+> > }
+> > 
+> > tmp1 <- mclapply(1:500, f1, data.500,
+> >                 mc.cores = detectCores(),
+> >                 mc.preschedule = FALSE)
+> > 
+> > ###################
+> > 
+> > 
+> > 
+> > 
+> > So it seems that, with preschedule = TRUE, each slave does not return the
+> > memory to the OS until all the jobs are collected by the master. Before
+> > that, in terms of memory, it is as if a list as long as X is kept, but not
+> > just with the return objects, but also with all the intermediate (and non
+> > deleted) objects (i.e., it is as if each function invocation has not
+> > really fully returned?).
+> > 
+
+> That should not be the case since x goes out of scope, it is not stored
+> by mclapply (NB: each job is a simple lapply()). However, you may be
+> running into something else: note that the jobs are all independent, so
+> they are not aware of each other's memory usage. One job cannot trigger
+> garbage collection in another one. So what probably happens is that the
+> faster jobs feel just fine, because they are not running out of memory
+> so they don't trigger garbage collection. However, another job may be
+> strapped for memory, it will run its own garbage collection, but that
+> won't free enough memory. It cannot trigger gc in the other job, so it
+> is stuck. By forcing gc() you're making sure that all jobs will be
+> running the garbage collector and thus it's less likely that they will
+> push each other out of memory.
+
+> > In the help file, mc.preschedule = TRUE is the recommended setting for
+> > large number of values in X (and in my experiments setting it to FALSE
+> > makes things slower). I guess, then, that the recommended way of dealing
+> > with these issues is carefully deleting (and gc'ing) any non-needed
+> > intermediate result? Is this correct?
+> > 
+
+> The intermediate result itself is harmless, it will be collected
+> eventually, but not necessarily right after the function
+> returns. However, depending on your machine's memory usage that delay
+
+Aha, OK, I think I understand now. I was expecting all of the memory
+(except that associated with the object being explicitly returned) to have
+been freed at that point (right after the function returns). So the
+problem lied on my expectations ;-).
+
+
+> may be enough to trigger the above. I cannot replicate your problem on
+> my machine, so try just adding gc() alone - it should make sure that at
+> least all temporary objects from previous iterations are gone and I
+> would hope that it solves your problem. If you are on the edge with your
+
+
+I just rerun the example above, using only gc() without explicitly
+removing the x, and it does work fine. 
+
+
+
+> memory usage, you may want to run something like {x <- local({ ... });
+> gc(); x} - but in your case it should not be necessary since the
+> temporary objects are small per iteration.
+
+
+Thanks for the suggestion. I'll play around with local. I actually run
+into this as part of a different problem, on a machine with a lot more RAM
+(256 GB) and many more cores (64), where several large temporary objects
+are created inside each function. 
+
+If I understand correctly, though, using x <- local() would not provide
+any advantage compared to explicitly removing the objects and calling
+gc(). Is this correct?
+
+
+
+> Re. your suggestion, I agree that mclapply offers two extremes: either
+> work size of 1 or n/cores, nothing in between. For some applications it
+> may be beneficial to use other sizes - if someone would be willing to
+> give it a shot, I could review it.
+
+Actually, I am rather happy with the two options (in fact, most of the
+time I only use preschedule = TRUE); it was just that I was not really
+understanding memory usage. ;-).
+
+
+Thanks again for your detailed explanation.
+
+
+R.
+
+
+
+
+> Cheers,
+> Simon
+
+
+> > 
+> > 
+> > Best,
+> > 
+> > R.
+> > 
+> > 
+> > -- 
+> > Ramon Diaz-Uriarte
+> > Department of Biochemistry, Lab B-25
+> > Facultad de Medicina 
+> > Universidad Aut?noma de Madrid 
+> > Arzobispo Morcillo, 4
+> > 28029 Madrid
+> > Spain
+> > 
+> > Phone: +34-91-497-2412
+> > 
+> > Email: rdiaz02 at gmail.com
+> >       ramon.diaz at iib.uam.es
+> > 
+> > http://ligarto.org/rdiaz
+> > 
+> > _______________________________________________
+> > R-sig-hpc mailing list
+> > R-sig-hpc at r-project.org
+> > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+-- 
+Ramon Diaz-Uriarte
+Department of Biochemistry, Lab B-25
+Facultad de Medicina 
+Universidad Aut?noma de Madrid 
+Arzobispo Morcillo, 4
+28029 Madrid
+Spain
+
+Phone: +34-91-497-2412
+
+Email: rdiaz02 at gmail.com
+       ramon.diaz at iib.uam.es
+
+http://ligarto.org/rdiaz
+
+
+From ostrouchovg at ornl.gov  Wed Oct 17 14:53:01 2012
+From: ostrouchovg at ornl.gov (George Ostrouchov)
+Date: Wed, 17 Oct 2012 08:53:01 -0400
+Subject: [R-sig-hpc] programming with big data - pbd
+Message-ID: <507EAA2D.6050802@ornl.gov>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121017/5f745880/attachment.pl>
+
+From jgrn at illinois.edu  Thu Oct 18 00:47:28 2012
+From: jgrn at illinois.edu (Jonathan Greenberg)
+Date: Wed, 17 Oct 2012 17:47:28 -0500
+Subject: [R-sig-hpc] Printing error messages from slaves
+Message-ID: <CABG0rfvj-MxF5Q_yNVmKL9hjaBwHHmmvNbh4av3O-6=Ecpvg5g@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121017/64f7f989/attachment.pl>
+
+From jgrn at illinois.edu  Thu Oct 18 01:14:58 2012
+From: jgrn at illinois.edu (Jonathan Greenberg)
+Date: Wed, 17 Oct 2012 18:14:58 -0500
+Subject: [R-sig-hpc] Printing error messages from slaves
+In-Reply-To: <CABG0rfvj-MxF5Q_yNVmKL9hjaBwHHmmvNbh4av3O-6=Ecpvg5g@mail.gmail.com>
+References: <CABG0rfvj-MxF5Q_yNVmKL9hjaBwHHmmvNbh4av3O-6=Ecpvg5g@mail.gmail.com>
+Message-ID: <CABG0rftRVn043CjVx0HH0bn0Q1iT06jbRS0gv0-z4jE+S0e_dw@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121017/d2a7195e/attachment.pl>
+
+From hilbertspaces at gmail.com  Thu Oct 18 04:14:23 2012
+From: hilbertspaces at gmail.com (Julian Smith)
+Date: Wed, 17 Oct 2012 19:14:23 -0700
+Subject: [R-sig-hpc] gputools question
+Message-ID: <CADH1nUwLGMf4KPtQ+fbLTZ2rqqT6y=_8KRuC5XERX0N_Qd11jw@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121017/9d1cc30e/attachment.pl>
+
+From pchausse at uwaterloo.ca  Thu Oct 18 15:23:07 2012
+From: pchausse at uwaterloo.ca (Pierre Chausse)
+Date: Thu, 18 Oct 2012 09:23:07 -0400
+Subject: [R-sig-hpc] gputools question
+In-Reply-To: <CADH1nUwLGMf4KPtQ+fbLTZ2rqqT6y=_8KRuC5XERX0N_Qd11jw@mail.gmail.com>
+References: <CADH1nUwLGMf4KPtQ+fbLTZ2rqqT6y=_8KRuC5XERX0N_Qd11jw@mail.gmail.com>
+Message-ID: <508002BB.10105@mailservices.uwaterloo.ca>
+
+The gputools package calls the library libcula.so which ceased to exist 
+after version 2.1. In newer versions, CULA changed the library names to  
+libcula_core.so and libcula_lapack.so.
+
+The configure file of gputools needs to be modified accordingly.
+
+Pierre
+
+
+On 17/10/12 10:14 PM, Julian Smith wrote:
+> Does anyone know which CULA library is compatible with this package? The
+> newest CULA libraries appear not to have a library gputools calls for.
+>
+> http://cran.r-project.org/web/packages/gputools/index.html
+>
+> http://www.culatools.com/downloads/dense/
+>
+> Anyone know of some SVD cuda source or OpenCL SVD?
+>
+> 	[[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From hilbertspaces at gmail.com  Thu Oct 18 20:00:39 2012
+From: hilbertspaces at gmail.com (Julian Smith)
+Date: Thu, 18 Oct 2012 11:00:39 -0700
+Subject: [R-sig-hpc] gputools question
+In-Reply-To: <508002BB.10105@mailservices.uwaterloo.ca>
+References: <CADH1nUwLGMf4KPtQ+fbLTZ2rqqT6y=_8KRuC5XERX0N_Qd11jw@mail.gmail.com>
+	<508002BB.10105@mailservices.uwaterloo.ca>
+Message-ID: <CADH1nUwd1okhB4jGkzNRARrXRW1aq7R+cfXzYK5UqOfkDYSU-Q@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121018/4ea37c7a/attachment.pl>
+
+From hilbertspaces at gmail.com  Fri Oct 19 03:34:00 2012
+From: hilbertspaces at gmail.com (Julian Smith)
+Date: Thu, 18 Oct 2012 18:34:00 -0700
+Subject: [R-sig-hpc] SLEPC / PETSC and R
+Message-ID: <CADH1nUxzHP=p5=azV+F=_etugyHhomypXbH5FBWRsx84TUnQrg@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121018/86a51cd9/attachment.pl>
+

@@ -1,0 +1,3714 @@
+From loughry at me.com  Wed Sep  7 19:11:26 2011
+From: loughry at me.com (Bryan Loughry)
+Date: Wed, 07 Sep 2011 11:11:26 -0600
+Subject: [R-sig-hpc] Rmpi openMPI error
+Message-ID: <9355397D-DB37-44E7-ACAF-628887F0DE6B@me.com>
+
+Hi,
+
+We have been using Rmpi and openMPI for a long time and recently upgraded to R 2.13.1, openMPI 1.4.1 (also tried 1.4.3), Rmpi 0.5-8
+
+We are now getting the error shown below.  Have also tried to roll back to our previous versions but have been unable to get this to work.  It seems to be Rmpi as we have no issues with mpirun working (locally or across machines).  Below if a copy of my terminal session.  Notice that the first run works but the executing the exact same run again it fails?  Any suggestions/help would be much appreciated.
+
+loughry at deduce:~$ orterun -np 9 -H deduce R CMD BATCH test.r
+loughry at deduce:~$ orterun -np 9 -H deduce R CMD BATCH test.r
+[deduce:20539] [[63403,0],0] ORTE_ERROR_LOG: Not found in file ../../../../../orte/mca/plm/base/plm_base_launch_support.c at line 758
+--------------------------------------------------------------------------
+orterun was unable to start the specified application as it encountered an error.
+More information may be available above.
+--------------------------------------------------------------------------
+
+
+test.r is:
+
+# Load the R MPI package if it is not already loaded. 
+if (!is.loaded("mpi_initialize")) { 
+library("Rmpi") } 
+# Spawn as many slaves as possible 
+mpi.spawn.Rslaves() 
+# In case R exits unexpectedly, have it automatically clean up 
+# resources taken up by Rmpi (slaves, memory, etc...) 
+.Last <- function(){ 
+if (is.loaded("mpi_initialize")){ 
+if (mpi.comm.size(1) > 0){ 
+print("Please use mpi.close.Rslaves() to close slaves.") 
+mpi.close.Rslaves() } 
+print("Please use mpi.quit() to quit R") 
+.Call("mpi_finalize") } }
+ 
+# Tell all slaves to return a message identifying themselves 
+mpi.remote.exec(paste("I am",mpi.comm.rank(),"of",mpi.comm.size())) 
+# Tell all slaves to close down, and exit the program 
+mpi.close.Rslaves() 
+mpi.quit() 
+
+
+
+Bryan Loughry
+loughry at me.com
+
+
+From Kevin.Buckley at ecs.vuw.ac.nz  Wed Sep 14 03:14:24 2011
+From: Kevin.Buckley at ecs.vuw.ac.nz (Kevin.Buckley at ecs.vuw.ac.nz)
+Date: Wed, 14 Sep 2011 13:14:24 +1200
+Subject: [R-sig-hpc] Installing Rmpi on hpc
+In-Reply-To: <458842.4252.qm@web57513.mail.re1.yahoo.com>
+References: <458842.4252.qm@web57513.mail.re1.yahoo.com>
+Message-ID: <202e6663b3354cf75a34ea940964cb81.squirrel@mail.ecs.vuw.ac.nz>
+
+Looks like you are building the package with the system compilers
+and not the OpenMPI wrappers for them, hence missing some of the
+libraries that the wrappers pull in.
+
+I think you need to set things up for the build using R's
+Makevars file and/or overwriting the compilers from the
+command line.
+
+I have had success building like so
+
+$ /usr/bin/R CMD INSTALL \
+   --library=/opt/Rlibs \
+   /srv/global/work/buckleke/Srcs/R-parallel/Rmpi_0.5-9.tar.gz \
+   --configure-args=--with-Rmpi-type=OPENMPI \
+   --configure-args=--with-Rmpi-libpath=/usr/lib64/openmpi/1.4-gcc/lib \
+   --configure-args=--with-Rmpi-include=/usr/lib64/openmpi/1.4-gcc/include
+
+or similarly, on a different system, like so
+
+$ cat ~/.R/Makevars
+CC=mpicc
+SHLIB_LD=mpicc
+$ cd /local/scratch/kevin/Build/RMPI
+$ gtar xf Rmpi_0.5-8.tar.gz
+$ cd Rmpi
+$ patch -Np1 -i ../Rmpi-ECS_NetBSD-patch.diff
+$ cd ..
+$ R CMD INSTALL --library=/vol/grid/pkg/R/Rlibs Rmpi \
+  --configure-args=--with-Rmpi-type=OPENMPI \
+  --configure-args=--with-Rmpi-libpath=/usr/pkg/lib/openmpi \
+  --configure-args=--with-Rmpi-include=/usr/pkg/include
+
+
+though I think this is probably all in the mailing list archives
+somewhere !
+
+HTPPUFYPC,
+(Hope this provides pointers useful for your particular circumstances)
+Kevin
+
+-- 
+Kevin M. Buckley                                  Room:  CO327
+School of Engineering and                         Phone: +64 4 463 5971
+ Computer Science
+Victoria University of Wellington
+New Zealand
+
+
+From mspiegel at renci.org  Thu Sep 22 21:32:56 2011
+From: mspiegel at renci.org (Michael Spiegel)
+Date: Thu, 22 Sep 2011 19:32:56 +0000
+Subject: [R-sig-hpc] mpicc support for R packages
+Message-ID: <7539F2BB274A034C9FE4BE8E134DC5BE0150E426@MAIL-MBX2.ad.renci.org>
+
+Hi folks,
+
+If you've ever looked at the configure.ac file for the Rmpi package, you'll see that it's 281 lines of scanning several environment variables and then attempting to set LDFLAGS and CPPFLAGS for the most popular MPI implementations. This prohibits non programming experts from installing the Rmpi package without knowledge of these environment variables and the correct values for these variables. An alternative would be to allow the package to compile with the "mpicc" compiler, which most MPI implementations provide as a wrapper with the correct library and include flags.
+
+The package build system allows a package to specify additional compiler flags, but it does not allow the specification of a different compiler. I've written a patch that is targeted specifically for the "mpicc" compiler, this should avoid the issue of a package compiled with the "foobar" compiler when the interpreter was compiled with the "quux" compiler.
+
+I've attached a 22 line patch to the svn trunk of the R development repository that allows a package to use the "mpicc" compiler by setting the environment variable "R_USE_MPI". I submitted an earlier patch to the R-devel mailing list, but I didn't hear anything back and that patch was broken (sorry). To test the new patch, I have been able to successfully compile with packages that use the R_USE_MPI variable and packages that do not use it. As R provides built-in support for OpenMP pragmas, this patch would help provide built-in support for MPI invocations as well.
+
+Thanks,
+--Michael
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110922/6b1d330f/attachment.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: mpicc.patch
+Type: application/octet-stream
+Size: 2255 bytes
+Desc: mpicc.patch
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110922/6b1d330f/attachment.obj>
+
+From hyu at stats.uwo.ca  Fri Sep 23 17:09:45 2011
+From: hyu at stats.uwo.ca (Hao Yu)
+Date: Fri, 23 Sep 2011 11:09:45 -0400
+Subject: [R-sig-hpc] mpicc support for R packages
+In-Reply-To: <7539F2BB274A034C9FE4BE8E134DC5BE0150E426@MAIL-MBX2.ad.renci.org>
+References: <7539F2BB274A034C9FE4BE8E134DC5BE0150E426@MAIL-MBX2.ad.renci.org>
+Message-ID: <b39ca7d2c73b908ed033f424cc6e4c2d.squirrel@www.stats.uwo.ca>
+
+Hi Michael,
+
+Thanks for the patch. If I understand correctly, we need to pursuit R
+development term to change the default compiler to mpicc in case the
+environment R_USE_MPI is detect (use your patch). On Rmpi part,
+configure.ac needs to detect the environment R_USE_MPI at the beginning
+and acts accordingly.
+
+Once  mpicc is used instead of cc, the compiling of Rmpi should be much
+easier except auto loading package test at the end. Rmpi may not know all
+additional libs during loading.
+
+Thanks,
+
+Hao
+
+
+Michael Spiegel wrote:
+> Hi folks,
+>
+> If you've ever looked at the configure.ac file for the Rmpi package,
+> you'll see that it's 281 lines of scanning several environment variables
+> and then attempting to set LDFLAGS and CPPFLAGS for the most popular MPI
+> implementations. This prohibits non programming experts from installing
+> the Rmpi package without knowledge of these environment variables and the
+> correct values for these variables. An alternative would be to allow the
+> package to compile with the "mpicc" compiler, which most MPI
+> implementations provide as a wrapper with the correct library and include
+> flags.
+>
+> The package build system allows a package to specify additional compiler
+> flags, but it does not allow the specification of a different compiler.
+> I've written a patch that is targeted specifically for the "mpicc"
+> compiler, this should avoid the issue of a package compiled with the
+> "foobar" compiler when the interpreter was compiled with the "quux"
+> compiler.
+>
+> I've attached a 22 line patch to the svn trunk of the R development
+> repository that allows a package to use the "mpicc" compiler by setting
+> the environment variable "R_USE_MPI". I submitted an earlier patch to the
+> R-devel mailing list, but I didn't hear anything back and that patch was
+> broken (sorry). To test the new patch, I have been able to successfully
+> compile with packages that use the R_USE_MPI variable and packages that do
+> not use it. As R provides built-in support for OpenMP pragmas, this patch
+> would help provide built-in support for MPI invocations as well.
+>
+> Thanks,
+> --Michael
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+-- 
+Department of Statistics & Actuarial Sciences
+Fax Phone#:(519)-661-3813
+The University of Western Ontario
+Office Phone#:(519)-661-3622
+London, Ontario N6A 5B7
+http://www.stats.uwo.ca/faculty/yu
+
+
+From mspiegel at renci.org  Fri Sep 23 19:28:14 2011
+From: mspiegel at renci.org (Michael Spiegel)
+Date: Fri, 23 Sep 2011 17:28:14 +0000
+Subject: [R-sig-hpc] mpicc support for R packages
+In-Reply-To: <b39ca7d2c73b908ed033f424cc6e4c2d.squirrel@www.stats.uwo.ca>
+References: <7539F2BB274A034C9FE4BE8E134DC5BE0150E426@MAIL-MBX2.ad.renci.org>
+	<b39ca7d2c73b908ed033f424cc6e4c2d.squirrel@www.stats.uwo.ca>
+Message-ID: <7539F2BB274A034C9FE4BE8E134DC5BE0150E677@MAIL-MBX2.ad.renci.org>
+
+Yes, this should be the plan to incorporate these changes.
+
+-----Original Message-----
+From: Hao Yu [mailto:hyu at stats.uwo.ca] 
+Sent: Friday, September 23, 2011 11:10 AM
+To: Michael Spiegel
+Cc: r-sig-hpc at r-project.org
+Subject: Re: [R-sig-hpc] mpicc support for R packages
+
+Hi Michael,
+
+Thanks for the patch. If I understand correctly, we need to pursuit R development term to change the default compiler to mpicc in case the environment R_USE_MPI is detect (use your patch). On Rmpi part, configure.ac needs to detect the environment R_USE_MPI at the beginning and acts accordingly.
+
+Once  mpicc is used instead of cc, the compiling of Rmpi should be much easier except auto loading package test at the end. Rmpi may not know all additional libs during loading.
+
+Thanks,
+
+Hao
+
+
+Michael Spiegel wrote:
+> Hi folks,
+>
+> If you've ever looked at the configure.ac file for the Rmpi package, 
+> you'll see that it's 281 lines of scanning several environment 
+> variables and then attempting to set LDFLAGS and CPPFLAGS for the most 
+> popular MPI implementations. This prohibits non programming experts 
+> from installing the Rmpi package without knowledge of these 
+> environment variables and the correct values for these variables. An 
+> alternative would be to allow the package to compile with the "mpicc" 
+> compiler, which most MPI implementations provide as a wrapper with the 
+> correct library and include flags.
+>
+> The package build system allows a package to specify additional 
+> compiler flags, but it does not allow the specification of a different compiler.
+> I've written a patch that is targeted specifically for the "mpicc"
+> compiler, this should avoid the issue of a package compiled with the 
+> "foobar" compiler when the interpreter was compiled with the "quux"
+> compiler.
+>
+> I've attached a 22 line patch to the svn trunk of the R development 
+> repository that allows a package to use the "mpicc" compiler by 
+> setting the environment variable "R_USE_MPI". I submitted an earlier 
+> patch to the R-devel mailing list, but I didn't hear anything back and 
+> that patch was broken (sorry). To test the new patch, I have been able 
+> to successfully compile with packages that use the R_USE_MPI variable 
+> and packages that do not use it. As R provides built-in support for 
+> OpenMP pragmas, this patch would help provide built-in support for MPI invocations as well.
+>
+> Thanks,
+> --Michael
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+--
+Department of Statistics & Actuarial Sciences Fax Phone#:(519)-661-3813 The University of Western Ontario Office Phone#:(519)-661-3622 London, Ontario N6A 5B7 http://www.stats.uwo.ca/faculty/yu
+
+
+From mxkuhn at gmail.com  Mon Sep 26 18:20:25 2011
+From: mxkuhn at gmail.com (Max Kuhn)
+Date: Mon, 26 Sep 2011 12:20:25 -0400
+Subject: [R-sig-hpc] doMC and RWeka
+Message-ID: <CAJ9CoWkzJY7LGC_hun095w5yv8Bwqm1jszQOwtX8wsA-A28m0A@mail.gmail.com>
+
+Everyone,
+
+I recently converted the caret package do use foreach for
+parallelizing resampling computations, such as cross-validation.
+
+Below is an example that approximates what caret does. When using
+foreach with dopar and no parallelization, things work fine.  For
+example, if I run the code below without doMC loaded it, works fine.
+
+If I run the code below (Rweka model and multicore), the workers start
+but do not appear to use any CPU time.
+
+If I run first without doMC then load doMC and 2 workers, I get ?#
+fatal error: mach_msg (send) failed: 0x10000003? (much more
+information is below) .
+
+The code below with doMPI also works without error.
+
+Any ideas?
+
+Thanks,
+
+Max
+
+> sessionInfo()
+R version 2.13.1 (2011-07-08)
+Platform: x86_64-apple-darwin9.8.0/x86_64 (64-bit)
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/C/C/en_US.UTF-8/en_US.UTF-8
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base
+
+other attached packages:
+[1] doMC_1.2.2      multicore_0.1-5 RWeka_0.4-8     mlbench_2.1-0
+[5] foreach_1.3.2   codetools_0.2-8 iterators_1.0.5
+
+loaded via a namespace (and not attached):
+[1] compiler_2.13.1   grid_2.13.1       rJava_0.9-1       RWekajars_3.7.3-1
+[5] tools_2.13.1
+
+
+###############################################################
+## code
+
+library(foreach)
+library(mlbench)
+library(doMC)
+registerDoMC(2)
+
+
+if(FALSE)
+  {
+    ## this worked
+    library(doMPI)
+    cl <- startMPIcluster(2)
+    registerDoMPI(cl)
+
+  }
+data(BostonHousing)
+
+resampleIndex <- vector(mode = "list", length = 5)
+set.seed(1)
+resampleIndex <- lapply(resampleIndex,
+                        function(x, y) sample(1:nrow(y), replace = TRUE),
+                        y = BostonHousing)
+
+parameters <- data.frame(pruning = c(TRUE, FALSE))
+result <- foreach(iter = seq(along = resampleIndex), .combine =
+"rbind", .verbose = FALSE, .errorhandling = "stop") %:%
+  foreach(parm = 1:nrow(parameters), .combine = "rbind", .verbose =
+FALSE, .errorhandling = "stop") %dopar%
+{
+
+  library(RWeka)
+  dataSubset <- BostonHousing[resampleIndex[[iter]],]
+  holdOut <- unique(resampleIndex[[iter]])
+  model <- M5Rules(medv ~ ., data = dataSubset,
+                   control = Weka_control(N = parameters$pruning[parm]))
+  ## test non-Weka models using lm:
+  ## model <- lm(medv ~ ., data = dataSubset)
+  pred <- predict(model, BostonHousing[-holdOut, -14])
+  data.frame(obs = BostonHousing$medv[-holdOut],
+             pred = pred,
+             prune = parameters$pruning[parm],
+             subset = iter)
+}
+
+
+###############################################################
+
+Process:         R [1481]
+Path:            /Applications/R64.app/Contents/MacOS/R
+Identifier:      R
+Version:         ??? (???)
+Code Type:       X86-64 (Native)
+Parent Process:  R [1314]
+
+Date/Time:       2011-09-26 12:01:10.930 -0400
+OS Version:      Mac OS X 10.6.8 (10K549)
+Report Version:  6
+
+Anonymous UUID:                      EAD58366-FAFB-444E-84A2-CEEC1CBD7E82
+
+Exception Type:  EXC_BREAKPOINT (SIGTRAP)
+Exception Codes: 0x0000000000000002, 0x0000000000000000
+Crashed Thread:  0  Dispatch queue: com.apple.main-thread
+
+Application Specific Information:
+*** multi-threaded process forked ***
+
+Java information:
+ Exception type: Internal Error
+(/SourceCache/JavaJDK16/JavaJDK16-384/hotspot/src/os/macosx/vm/os_macosx.cpp,
+line 2798)
+
+#  fatal error: mach_msg (send) failed: 0x10000003
+ Java VM: Java HotSpot(TM) 64-Bit Server VM (20.1-b02-384 mixed mode
+macosx-amd64)
+
+Current thread (123001800):  JavaThread "main" [_thread_in_vm,
+id=1893948608, stack(7fff5f400000,7fff5fc00000)]
+Stack: [7fff5f400000,7fff5fc00000]
+Java frames: (J=compiled Java code, j=interpreted, Vv=VM code)
+v  ~RuntimeStub::_new_array_Java
+J  weka.filters.Filter.setOutputFormat(Lweka/core/Instances;)V
+J  weka.filters.unsupervised.attribute.Remove.setInputFormat(Lweka/core/Instances;)Z
+J  weka.classifiers.trees.m5.RuleNode.buildLinearModel([I)V
+J  weka.classifiers.trees.m5.RuleNode.prune()V
+J  weka.classifiers.trees.m5.RuleNode.prune()V
+J  weka.classifiers.trees.m5.RuleNode.prune()V
+J  weka.classifiers.trees.m5.RuleNode.prune()V
+J  weka.classifiers.trees.m5.RuleNode.prune()V
+J  weka.classifiers.trees.m5.RuleNode.prune()V
+J  weka.classifiers.trees.m5.RuleNode.prune()V
+J  weka.classifiers.trees.m5.RuleNode.prune()V
+J  weka.classifiers.trees.m5.RuleNode.prune()V
+J  weka.classifiers.trees.m5.RuleNode.prune()V
+J  weka.classifiers.trees.m5.RuleNode.prune()V
+j  weka.classifiers.trees.m5.Rule.buildClassifier(Lweka/core/Instances;)V+188
+j  weka.classifiers.trees.m5.M5Base.buildClassifier(Lweka/core/Instances;)V+240
+v  ~StubRoutines::call_stub
+
+Java Threads: ( => current thread )
+  12310b800 JavaThread "Low Memory Detector" daemon [_thread_blocked,
+id=722472960, stack(12b001000,12b101000)]
+  12310b000 JavaThread "C2 CompilerThread1" daemon [_thread_blocked,
+id=719978496, stack(12ada0000,12aea0000)]
+  12310a000 JavaThread "C2 CompilerThread0" daemon [_thread_blocked,
+id=718917632, stack(12ac9d000,12ad9d000)]
+  123109800 JavaThread "Signal Dispatcher" daemon [_thread_blocked,
+id=717856768, stack(12ab9a000,12ac9a000)]
+  123108800 JavaThread "Surrogate Locker Thread (Concurrent GC)"
+daemon [_thread_blocked, id=716795904, stack(12aa97000,12ab97000)]
+  1230f1000 JavaThread "Finalizer" daemon [_thread_blocked,
+id=715735040, stack(12a994000,12aa94000)]
+  1230f0000 JavaThread "Reference Handler" daemon [_thread_blocked,
+id=714674176, stack(12a891000,12a991000)]
+=>123001800 JavaThread "main" [_thread_in_vm, id=1893948608,
+stack(7fff5f400000,7fff5fc00000)]
+Other Threads:
+  1230eb800 VMThread [stack: 12a78e000,12a88e000] [id=713613312]
+  12311d800 WatcherThread [stack: 12b104000,12b204000] [id=723533824]
+
+VM state:not at safepoint (normal execution)
+VM Mutex/Monitor currently owned by a thread:  ([mutex/lock_event])
+[11d1027a0] Heap_lock - owner thread: 123001800
+
+Heap
+ par new generation   total 19136K, used 17081K [7dae00000, 7dc2c0000,
+7dee00000)
+  eden space 17024K, 100% used [7dae00000, 7dbea0000, 7dbea0000)
+  from space 2112K,   2% used [7dbea0000, 7dbeae560, 7dc0b0000)
+  to   space 2112K,   0% used [7dc0b0000, 7dc0b0000, 7dc2c0000)
+ concurrent mark-sweep generation total 63872K, used 29717K
+[7dee00000, 7e2c60000, 7fae00000)
+ concurrent-mark-sweep perm gen total 21248K, used 6499K [7fae00000,
+7fc2c0000, 800000000)
+
+Code Cache  [123801000, 123a72000, 126801000)
+ total_blobs=546 nmethods=338 adapters=170 free_code_cache=48470144
+largest_free_block=57920
+
+Virtual Machine Arguments:
+JVM Args: -Dr.arch=/x86_64 -Xmx512m vfprintf exit
+Java Command: <unknown>
+Launcher Type: generic
+Physical Memory: Page Size = 4k, Total = 8192M, Free = 5435M
+
+
+Thread 0 Crashed:  Dispatch queue: com.apple.main-thread
+0   libclient64.dylib                 0x0000000116cd6364
+JVM_RaiseSignal + 574914
+1   libclient64.dylib                 0x00000001168cba9a jio_snprintf + 38228
+2   libclient64.dylib                 0x0000000116a5b443
+JVM_MonitorNotifyAll + 4747
+3   libclient64.dylib                 0x000000011694a1a1 JVM_Lseek + 91023
+4   libclient64.dylib                 0x0000000116949bb7 JVM_Lseek + 89509
+5   libclient64.dylib                 0x0000000116949a38 JVM_Lseek + 89126
+6   libclient64.dylib                 0x000000011694f6be JVM_Lseek + 112812
+7   libclient64.dylib                 0x0000000116aad7cf JVM_NanoTime + 108795
+8   ???                               0x000000012385e289 0 + 4890944137
+
+Thread 0 crashed with X86 Thread State (64-bit):
+  rax: 0x0000000116f7c20a  rbx: 0x00007fff5fbf2718  rcx:
+0x00007fff877ba47a  rdx: 0x0000000000000008
+  rdi: 0x00007fff7117ae40  rsi: 0x0000000000000000  rbp:
+0x00007fff5fbf26d0  rsp: 0x00007fff5fbf26d0
+   r8: 0x00007fff711777f8   r9: 0x0000000000000000  r10:
+0x00007fff5fbf2650  r11: 0x0000000000000206
+  r12: 0x0000000000000b1b  r13: 0x0000000116f85298  r14:
+0x0000000123001800  r15: 0x0000000000000000
+  rip: 0x0000000116cd6364  rfl: 0x0000000000000202  cr2: 0x0000000116fa4c7f
+
+Binary Images:
+       0x100000000 -        0x10007cfef +org.R-project.R R for Mac OS
+X GUI 1.40-devel Leopard build 64-bit (5874)
+<84C20FDB-0203-FC77-4569-8AB4CA1493E2>
+/Applications/R64.app/Contents/MacOS/R
+       0x1000f8000 -        0x100394ff3 +libR.dylib 2.13.1
+(compatibility 2.13.0) <438D7643-7542-E9A6-44A7-DC187176E172>
+/Library/Frameworks/R.framework/Versions/2.13/Resources/lib/libR.dylib
+       0x100487000 -        0x1004b0ff7 +libRblas.dylib ??? (???)
+<3BBC8F90-AF7C-893D-09CE-C05A61E5C3C5>
+/Library/Frameworks/R.framework/Versions/2.13/Resources/lib/libRblas.dylib
+       0x1004b4000 -        0x10056afcf +libgfortran.2.dylib 3.0.0
+(compatibility 3.0.0) <ACF1816E-EA8A-4DB9-A893-A4EF0CEFFFBA>
+/Library/Frameworks/R.framework/Versions/2.13/Resources/lib/libgfortran.2.dylib
+       0x1005af000 -        0x1005d9fd9 +libreadline.5.2.dylib 5.2.0
+(compatibility 5.0.0)
+/Library/Frameworks/R.framework/Versions/2.13/Resources/lib/libreadline.5.2.dylib
+       0x100696000 -        0x100699fff +multicore.so ??? (???)
+<75FF3B7D-9709-D6DF-2505-C13D71F01FEB>
+/Library/Frameworks/R.framework/Versions/2.13/Resources/library/multicore/libs/x86_64/multicore.so
+       0x114cb1000 -        0x114d13fe7 +stats.so ??? (???)
+<D8AD5284-82CF-C43D-2AB5-529AB5B23425>
+/Library/Frameworks/R.framework/Versions/2.13/Resources/library/stats/libs/x86_64/stats.so
+       0x115b8f000 -        0x115b95ff7 +methods.so ??? (???)
+<F0D64EF4-BBE8-6567-7012-0900270705BB>
+/Library/Frameworks/R.framework/Versions/2.13/Resources/library/methods/libs/x86_64/methods.so
+       0x115b9b000 -        0x115bc6ffa +grDevices.so ??? (???)
+<16CFD245-DDAB-F76A-9564-6EC93BB2F847>
+/Library/Frameworks/R.framework/Versions/2.13/Resources/library/grDevices/libs/x86_64/grDevices.so
+       0x116800000 -        0x116801fff +mlbench.so ??? (???)
+<59347ED1-70EA-38DB-3863-A13B6901DE56>
+/Library/Frameworks/R.framework/Versions/2.13/Resources/library/mlbench/libs/x86_64/mlbench.so
+       0x116804000 -        0x116807fff +tools.so ??? (???)
+<7420B0D8-0D8C-4039-43AF-E7A3509DD77B>
+/Library/Frameworks/R.framework/Versions/2.13/Resources/library/tools/libs/x86_64/tools.so
+       0x116892000 -        0x11689eff7 +rJava.so ??? (???)
+<76AD8785-1161-1738-801B-28D93FA8911E>
+/Library/Frameworks/R.framework/Versions/2.13/Resources/library/rJava/libs/x86_64/rJava.so
+       0x1168a5000 -        0x1168aaff7  com.apple.JavaVM 13.5.0
+(13.5.0) <974CB30D-AF11-1762-859E-097A988B5A7A>
+/System/Library/Frameworks/JavaVM.framework/Versions/A/JavaVM
+       0x1168b2000 -        0x1168b7ff7  JavaLaunching ??? (???)
+<9E94B3DF-E0FB-BE09-1F88-E6334CA87466>
+/System/Library/PrivateFrameworks/JavaLaunching.framework/Versions/A/JavaLaunching
+       0x1168be000 -        0x116eedff7  libclient64.dylib ??? (???)
+<AF2791E1-F8EA-79E0-3951-45718D44A0DF>
+/System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Home/bundle/Libraries/libclient64.dylib
+       0x116fb6000 -        0x116fbdfff  libjvmlinkage.dylib ??? (???)
+<8F397A50-C3FF-DAE8-D0C2-86EBC59D7E7C>
+/System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Libraries/libjvmlinkage.dylib
+       0x11d200000 -        0x11d208ff7  libverify.dylib 1.0 (1.0)
+<155BFCD9-BBA0-C03B-E411-1421586F595F>
+/System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Libraries/libverify.dylib
+       0x11d20e000 -        0x11d219fff  JavaNativeFoundation ???
+(???) <B58A4AC2-95F1-D07A-DE38-25ABCEDCDF71>
+/System/Library/Frameworks/JavaVM.framework/Versions/A/Frameworks/JavaNativeFoundation.framework/Versions/A/JavaNativeFoundation
+       0x11d224000 -        0x11d244ff7  libjava.jnilib ??? (???)
+<CF05069A-1D0D-3DCA-E7E8-7F398588DD92>
+/System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Libraries/libjava.jnilib
+       0x11d35b000 -        0x11d368fff  libzip.jnilib ??? (???)
+<0FC6E1C1-185E-36F1-0A44-212CEB6EAD34>
+/System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Libraries/libzip.jnilib
+       0x12b43d000 -        0x12b456fff +grid.so ??? (???)
+<73773A52-0F1F-BBB2-FE3D-78C3E0B1DD0B>
+/Library/Frameworks/R.framework/Versions/2.13/Resources/library/grid/libs/x86_64/grid.so
+    0x7fff5fc00000 -     0x7fff5fc3bdef  dyld 132.1 (???)
+<472D950D-70F8-B810-A959-9184C2AA6C74> /usr/lib/dyld
+    0x7fff80133000 -     0x7fff80195fe7  com.apple.datadetectorscore
+2.0 (80.7) <34592AFF-B1B8-2277-B013-70193E4E1691>
+/System/Library/PrivateFrameworks/DataDetectorsCore.framework/Versions/A/DataDetectorsCore
+    0x7fff80196000 -     0x7fff801e0ff7  com.apple.Metadata 10.6.3
+(507.15) <2EF19055-D7AE-4D77-E589-7B71B0BC1E59>
+/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Metadata
+    0x7fff801e1000 -     0x7fff80271fff  com.apple.SearchKit 1.3.0
+(1.3.0) <4175DC31-1506-228A-08FD-C704AC9DF642>
+/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/SearchKit.framework/Versions/A/SearchKit
+    0x7fff80272000 -     0x7fff80275ff7  libCoreVMClient.dylib ???
+(???) <E03D7C81-A3DA-D44A-A88A-DDBB98AF910B>
+/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libCoreVMClient.dylib
+    0x7fff8050b000 -     0x7fff8078dfe7  com.apple.Foundation 6.6.7
+(751.62) <6F2A5BBF-6990-D561-2928-AD61E94036D9>
+/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation
+    0x7fff8078e000 -     0x7fff807cdfef  libncurses.5.4.dylib 5.4.0
+(compatibility 5.4.0) <E1F34D53-3D62-78C0-CAD8-8AD22C110A9E>
+/usr/lib/libncurses.5.4.dylib
+    0x7fff807ce000 -     0x7fff8088bfff
+com.apple.CoreServices.OSServices 359.2 (359.2)
+<BBB8888E-18DE-5D09-3C3A-F4C029EC7886>
+/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/OSServices.framework/Versions/A/OSServices
+    0x7fff8088c000 -     0x7fff809fcfff  com.apple.QTKit 7.7 (1783)
+<DE8DB97C-C058-B40C-492B-D652A30CF571>
+/System/Library/Frameworks/QTKit.framework/Versions/A/QTKit
+    0x7fff80a4d000 -     0x7fff80afdfff  edu.mit.Kerberos 6.5.11
+(6.5.11) <085D80F5-C9DC-E252-C21B-03295E660C91>
+/System/Library/Frameworks/Kerberos.framework/Versions/A/Kerberos
+    0x7fff80afe000 -     0x7fff80b08fff  com.apple.DisplayServicesFW
+2.3.3 (289) <97F62F36-964A-3E17-2A26-A0EEF63F4BDE>
+/System/Library/PrivateFrameworks/DisplayServices.framework/Versions/A/DisplayServices
+    0x7fff80b09000 -     0x7fff80b30ff7  libJPEG.dylib ??? (???)
+<46A413EA-4FD1-A050-2EF0-6279F3EAD581>
+/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ImageIO.framework/Versions/A/Resources/libJPEG.dylib
+    0x7fff80b31000 -     0x7fff80b9bfe7  libvMisc.dylib 268.0.1
+(compatibility 1.0.0) <75A8D840-4ACE-6560-0889-2AFB6BE08E59>
+/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libvMisc.dylib
+    0x7fff80b9c000 -     0x7fff80c28fef  SecurityFoundation ??? (???)
+<D844BB57-386A-0A43-249E-9BE035C2AB53>
+/System/Library/Frameworks/SecurityFoundation.framework/Versions/A/SecurityFoundation
+    0x7fff815fc000 -     0x7fff8164bff7
+com.apple.DirectoryService.PasswordServerFramework 6.1 (6.1)
+<01B370FB-D524-F660-3826-E85B7F0D85CD>
+/System/Library/PrivateFrameworks/PasswordServer.framework/Versions/A/PasswordServer
+    0x7fff8164c000 -     0x7fff81677ff7  libxslt.1.dylib 3.24.0
+(compatibility 3.0.0) <8AB4CA9E-435A-33DA-7041-904BA7FA11D5>
+/usr/lib/libxslt.1.dylib
+    0x7fff81678000 -     0x7fff816c0ff7  libvDSP.dylib 268.0.1
+(compatibility 1.0.0) <170DE04F-89AB-E295-0880-D69CAFBD7979>
+/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libvDSP.dylib
+    0x7fff816cd000 -     0x7fff816ceff7
+com.apple.audio.units.AudioUnit 1.6.7 (1.6.7)
+<53299948-2554-0F8F-7501-04B34E49F6CF>
+/System/Library/Frameworks/AudioUnit.framework/Versions/A/AudioUnit
+    0x7fff816cf000 -     0x7fff81716fff  com.apple.QuickLookFramework
+2.3 (327.6) <11DFB135-24A6-C0BC-5B97-ECE352A4B488>
+/System/Library/Frameworks/QuickLook.framework/Versions/A/QuickLook
+    0x7fff81717000 -     0x7fff817ebfe7  com.apple.CFNetwork 454.12.4
+(454.12.4) <C83E2BA1-1818-B3E8-5334-860AD21D1C80>
+/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/CFNetwork.framework/Versions/A/CFNetwork
+    0x7fff817ec000 -     0x7fff81811ff7  com.apple.CoreVideo 1.6.2
+(45.6) <E138C8E7-3CB6-55A9-0A2C-B73FE63EA288>
+/System/Library/Frameworks/CoreVideo.framework/Versions/A/CoreVideo
+    0x7fff820ee000 -     0x7fff820f3ff7  com.apple.CommonPanels 1.2.4
+(91) <4D84803B-BD06-D80E-15AE-EFBE43F93605>
+/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/CommonPanels.framework/Versions/A/CommonPanels
+    0x7fff820f4000 -     0x7fff821d9fef  com.apple.DesktopServices
+1.5.11 (1.5.11) <39FAA3D2-6863-B5AB-AED9-92D878EA2438>
+/System/Library/PrivateFrameworks/DesktopServicesPriv.framework/Versions/A/DesktopServicesPriv
+    0x7fff823e5000 -     0x7fff823e7fff  libRadiance.dylib ??? (???)
+<A9DB4D5D-4072-971B-DEF6-DDE645F415EA>
+/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ImageIO.framework/Versions/A/Resources/libRadiance.dylib
+    0x7fff823e8000 -     0x7fff823ebfff  com.apple.help 1.3.2 (41.1)
+<BD1B0A22-1CB8-263E-FF85-5BBFDE3660B9>
+/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/Help.framework/Versions/A/Help
+    0x7fff82410000 -     0x7fff82417fff  com.apple.OpenDirectory 10.6
+(10.6) <4200CFB0-DBA1-62B8-7C7C-91446D89551F>
+/System/Library/Frameworks/OpenDirectory.framework/Versions/A/OpenDirectory
+    0x7fff82462000 -     0x7fff82466ff7  libCGXType.A.dylib 545.0.0
+(compatibility 64.0.0) <DB710299-B4D9-3714-66F7-5D2964DE585B>
+/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/CoreGraphics.framework/Versions/A/Resources/libCGXType.A.dylib
+    0x7fff82467000 -     0x7fff82468ff7
+com.apple.TrustEvaluationAgent 1.1 (1)
+<74800EE8-C14C-18C9-C208-20BBDB982D40>
+/System/Library/PrivateFrameworks/TrustEvaluationAgent.framework/Versions/A/TrustEvaluationAgent
+    0x7fff82469000 -     0x7fff82503fe7
+com.apple.ApplicationServices.ATS 275.16 (???)
+<4B70A2FC-1902-5F27-5C3B-5C78C283C6EA>
+/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ATS.framework/Versions/A/ATS
+    0x7fff82504000 -     0x7fff82549fff  com.apple.CoreMediaIOServices
+140.0 (1496) <D93293EB-0B84-E97D-E78C-9FE8D48AF58E>
+/System/Library/PrivateFrameworks/CoreMediaIOServices.framework/Versions/A/CoreMediaIOServices
+    0x7fff8254a000 -     0x7fff8254aff7  com.apple.ApplicationServices
+38 (38) <10A0B9E9-4988-03D4-FC56-DDE231A02C63>
+/System/Library/Frameworks/ApplicationServices.framework/Versions/A/ApplicationServices
+    0x7fff82601000 -     0x7fff82632fff  libGLImage.dylib ??? (???)
+<7F102A07-E4FB-9F52-B2F6-4E2D2383CA13>
+/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGLImage.dylib
+    0x7fff82633000 -     0x7fff8274afef  libxml2.2.dylib 10.3.0
+(compatibility 10.0.0) <1B27AFDD-DF87-2009-170E-C129E1572E8B>
+/usr/lib/libxml2.2.dylib
+    0x7fff8274b000 -     0x7fff83785fff  com.apple.WebCore 6534
+(6534.50) <8B0BB24A-C84C-A4F2-5544-C8071A35BBC5>
+/System/Library/Frameworks/WebKit.framework/Versions/A/Frameworks/WebCore.framework/Versions/A/WebCore
+    0x7fff83786000 -     0x7fff83787fff  liblangid.dylib ??? (???)
+<EA4D1607-2BD5-2EE2-2A3B-632EEE5A444D> /usr/lib/liblangid.dylib
+    0x7fff83788000 -     0x7fff83946ff7  com.apple.ImageIO.framework
+3.0.4 (3.0.4) <0A4F51A1-4502-767B-8A4E-F14C6214EF88>
+/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ImageIO.framework/Versions/A/ImageIO
+    0x7fff83947000 -     0x7fff83de4fff  com.apple.RawCamera.bundle
+3.8.0 (577) <38481531-657E-DFFA-1EF4-ADFCA15DAC49>
+/System/Library/CoreServices/RawCamera.bundle/Contents/MacOS/RawCamera
+    0x7fff83e15000 -     0x7fff83e2bfef  libbsm.0.dylib ??? (???)
+<42D3023A-A1F7-4121-6417-FCC6B51B3E90> /usr/lib/libbsm.0.dylib
+    0x7fff83e2c000 -     0x7fff83ee2ff7  libobjc.A.dylib 227.0.0
+(compatibility 1.0.0) <03140531-3B2D-1EBA-DA7F-E12CC8F63969>
+/usr/lib/libobjc.A.dylib
+    0x7fff83ee3000 -     0x7fff83f4bfff  com.apple.MeshKitRuntime 1.1
+(49.2) <1F4C9AB5-9D3F-F91D-DB91-B78610562ECC>
+/System/Library/PrivateFrameworks/MeshKit.framework/Versions/A/Frameworks/MeshKitRuntime.framework/Versions/A/MeshKitRuntime
+    0x7fff83f9e000 -     0x7fff83fc6fff  com.apple.DictionaryServices
+1.1.2 (1.1.2) <E9269069-93FA-2B71-F9BA-FDDD23C4A65E>
+/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/DictionaryServices.framework/Versions/A/DictionaryServices
+    0x7fff84240000 -     0x7fff84241fff
+com.apple.MonitorPanelFramework 1.3.0 (1.3.0)
+<5062DACE-FCE7-8E41-F5F6-58821778629C>
+/System/Library/PrivateFrameworks/MonitorPanel.framework/Versions/A/MonitorPanel
+    0x7fff84242000 -     0x7fff842e2fff  com.apple.LaunchServices
+362.3 (362.3) <B90B7C31-FEF8-3C26-BFB3-D8A48BD2C0DA>
+/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/LaunchServices
+    0x7fff842e3000 -     0x7fff8439cfff  libsqlite3.dylib 9.6.0
+(compatibility 9.0.0) <2C5ED312-E646-9ADE-73A9-6199A2A43150>
+/usr/lib/libsqlite3.dylib
+    0x7fff8439d000 -     0x7fff843defef  com.apple.QD 3.36 (???)
+<5DC41E81-32C9-65B2-5528-B33E934D5BB4>
+/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/QD.framework/Versions/A/QD
+    0x7fff843df000 -     0x7fff84450ff7  com.apple.AppleVAFramework
+4.10.26 (4.10.26) <28C1B366-DF2B-111B-1863-0713B105D930>
+/System/Library/PrivateFrameworks/AppleVA.framework/Versions/A/AppleVA
+    0x7fff84451000 -     0x7fff84455ff7  libmathCommon.A.dylib 315.0.0
+(compatibility 1.0.0) <95718673-FEEE-B6ED-B127-BCDBDB60D4E5>
+/usr/lib/system/libmathCommon.A.dylib
+    0x7fff84597000 -     0x7fff845e0fef  libGLU.dylib ??? (???)
+<1C050088-4AB2-2BC2-62E6-C969F925A945>
+/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGLU.dylib
+    0x7fff845e1000 -     0x7fff845e3fff
+com.apple.print.framework.Print 6.1 (237.1)
+<CA8564FB-B366-7413-B12E-9892DA3C6157>
+/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/Print.framework/Versions/A/Print
+    0x7fff845e4000 -     0x7fff84613ff7  com.apple.quartzfilters 1.6.0
+(1.6.0) <9CECB4FC-1CCF-B8A2-B935-5888B21CBEEF>
+/System/Library/Frameworks/Quartz.framework/Versions/A/Frameworks/QuartzFilters.framework/Versions/A/QuartzFilters
+    0x7fff84614000 -     0x7fff84a57fef  libLAPACK.dylib 219.0.0
+(compatibility 1.0.0) <0CC61C98-FF51-67B3-F3D8-C5E430C201A9>
+/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libLAPACK.dylib
+    0x7fff84a58000 -     0x7fff84b19fff  libFontParser.dylib ??? (???)
+<A00BB0A7-E46C-1D07-1391-194745566C7E>
+/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ATS.framework/Versions/A/Resources/libFontParser.dylib
+    0x7fff84b1a000 -     0x7fff84b5dff7  libRIP.A.dylib 545.0.0
+(compatibility 64.0.0) <5FF3D7FD-84D8-C5FA-D640-90BB82EC651D>
+/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/CoreGraphics.framework/Versions/A/Resources/libRIP.A.dylib
+    0x7fff84bd3000 -     0x7fff84c33fe7  com.apple.framework.IOKit 2.0
+(???) <4F071EF0-8260-01E9-C641-830E582FA416>
+/System/Library/Frameworks/IOKit.framework/Versions/A/IOKit
+    0x7fff84dcd000 -     0x7fff84e06ff7  com.apple.MeshKit 1.1 (49.2)
+<3795F201-4A5F-3D40-57E0-87AD6B714239>
+/System/Library/PrivateFrameworks/MeshKit.framework/Versions/A/MeshKit
+    0x7fff84e37000 -     0x7fff84e3dff7  com.apple.DiskArbitration 2.3
+(2.3) <857F6E43-1EF4-7D53-351B-10DE0A8F992A>
+/System/Library/Frameworks/DiskArbitration.framework/Versions/A/DiskArbitration
+    0x7fff84e3e000 -     0x7fff84f73fff
+com.apple.audio.toolbox.AudioToolbox 1.6.7 (1.6.7)
+<E5D7DBDB-6DDF-E6F9-C71C-86F4520EE5A3>
+/System/Library/Frameworks/AudioToolbox.framework/Versions/A/AudioToolbox
+    0x7fff84f74000 -     0x7fff84fb1ff7  libFontRegistry.dylib ???
+(???) <4C3293E2-851B-55CE-3BE3-29C425DD5DFF>
+/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ATS.framework/Versions/A/Resources/libFontRegistry.dylib
+    0x7fff84fb2000 -     0x7fff84fb8fff  libCGXCoreImage.A.dylib
+545.0.0 (compatibility 64.0.0) <D2F8C7E3-CBA1-2E66-1376-04AA839DABBB>
+/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/CoreGraphics.framework/Versions/A/Resources/libCGXCoreImage.A.dylib
+    0x7fff8512b000 -     0x7fff8513fff7
+com.apple.speech.synthesis.framework 3.10.35 (3.10.35)
+<621B7415-A0B9-07A7-F313-36BEEDD7B132>
+/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/SpeechSynthesis.framework/Versions/A/SpeechSynthesis
+    0x7fff85140000 -     0x7fff85151fff
+com.apple.DSObjCWrappers.Framework 10.6 (134)
+<3C08225D-517E-2822-6152-F6EB13A4ADF9>
+/System/Library/PrivateFrameworks/DSObjCWrappers.framework/Versions/A/DSObjCWrappers
+    0x7fff85152000 -     0x7fff85290fff  com.apple.CoreData 102.1
+(251) <32233D4D-00B7-CE14-C881-6BF19FD05A03>
+/System/Library/Frameworks/CoreData.framework/Versions/A/CoreData
+    0x7fff852b4000 -     0x7fff852e7ff7  libTrueTypeScaler.dylib ???
+(???) <69D4A213-45D2-196D-7FF8-B52A31DFD329>
+/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ATS.framework/Versions/A/Resources/libTrueTypeScaler.dylib
+    0x7fff852f4000 -     0x7fff85490fff  com.apple.WebKit 6534
+(6534.50) <05AEA122-3F31-0F56-4AA6-E84140C53785>
+/System/Library/Frameworks/WebKit.framework/Versions/A/WebKit
+    0x7fff854dc000 -     0x7fff857dafff  com.apple.HIToolbox 1.6.5
+(???) <AD1C18F6-51CB-7E39-35DD-F16B1EB978A8>
+/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/HIToolbox
+    0x7fff857db000 -     0x7fff85a44fff  com.apple.QuartzComposer 4.2
+({156.30}) <C05B97F7-F543-C329-873D-097177226D79>
+/System/Library/Frameworks/Quartz.framework/Versions/A/Frameworks/QuartzComposer.framework/Versions/A/QuartzComposer
+    0x7fff85a51000 -     0x7fff85a6cff7  com.apple.openscripting 1.3.1
+(???) <FD46A0FE-AC79-3EF7-AB4F-396D376DDE71>
+/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/OpenScripting.framework/Versions/A/OpenScripting
+    0x7fff85ab8000 -     0x7fff85abdfff  libGFXShared.dylib ??? (???)
+<1D0D3531-9561-632C-D620-1A8652BEF5BC>
+/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGFXShared.dylib
+    0x7fff85abe000 -     0x7fff85adffff  libresolv.9.dylib 41.0.0
+(compatibility 1.0.0) <6993F348-428F-C97E-7A84-7BD2EDC46A62>
+/usr/lib/libresolv.9.dylib
+    0x7fff85ae0000 -     0x7fff85b4cfe7  com.apple.CorePDF 1.4 (1.4)
+<06AE6D85-64C7-F9CC-D001-BD8BAE31B6D2>
+/System/Library/PrivateFrameworks/CorePDF.framework/Versions/A/CorePDF
+    0x7fff85b4d000 -     0x7fff85b6aff7  libPng.dylib ??? (???)
+<6D8E515B-E0A2-2BA1-9CAC-8CB8A8B35879>
+/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ImageIO.framework/Versions/A/Resources/libPng.dylib
+    0x7fff85b6b000 -     0x7fff85b71ff7  IOSurface ??? (???)
+<04EDCEDE-E36F-15F8-DC67-E61E149D2C9A>
+/System/Library/Frameworks/IOSurface.framework/Versions/A/IOSurface
+    0x7fff85b87000 -     0x7fff85bdaff7  com.apple.HIServices 1.8.3
+(???) <F6E0C7A7-C11D-0096-4DDA-2C77793AA6CD>
+/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/HIServices.framework/Versions/A/HIServices
+    0x7fff85f61000 -     0x7fff85fe3fff
+com.apple.QuickLookUIFramework 2.3 (327.6)
+<9093682A-0E2D-7D27-5F22-C96FD00AE970>
+/System/Library/Frameworks/Quartz.framework/Versions/A/Frameworks/QuickLookUI.framework/Versions/A/QuickLookUI
+    0x7fff85fe4000 -     0x7fff85ffdfff  com.apple.CFOpenDirectory
+10.6 (10.6) <CCF79716-7CC6-2520-C6EB-A4F56AD0A207>
+/System/Library/Frameworks/OpenDirectory.framework/Versions/A/Frameworks/CFOpenDirectory.framework/Versions/A/CFOpenDirectory
+    0x7fff85ffe000 -     0x7fff8600bfe7  libCSync.A.dylib 545.0.0
+(compatibility 64.0.0) <1C35FA50-9C70-48DC-9E8D-2054F7A266B1>
+/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/CoreGraphics.framework/Versions/A/Resources/libCSync.A.dylib
+    0x7fff8606a000 -     0x7fff86a64ff7  com.apple.AppKit 6.6.8
+(1038.36) <4CFBE04C-8FB3-B0EA-8DDB-7E7D10E9D251>
+/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit
+    0x7fff86a65000 -     0x7fff86a77fe7  libsasl2.2.dylib 3.15.0
+(compatibility 3.0.0) <76B83C8D-8EFE-4467-0F75-275648AFED97>
+/usr/lib/libsasl2.2.dylib
+    0x7fff86a78000 -     0x7fff86dacfef
+com.apple.CoreServices.CarbonCore 861.39 (861.39)
+<1386A24D-DD15-5903-057E-4A224FAF580B>
+/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/CarbonCore.framework/Versions/A/CarbonCore
+    0x7fff86dad000 -     0x7fff86ed5ff7  com.apple.MediaToolbox
+0.484.52 (484.52) <F03DAC32-79DB-EA5A-9B8D-CB288AF91A56>
+/System/Library/PrivateFrameworks/MediaToolbox.framework/Versions/A/MediaToolbox
+    0x7fff86ed6000 -     0x7fff876e0fe7  libBLAS.dylib 219.0.0
+(compatibility 1.0.0) <FC941ECB-71D0-FAE3-DCBF-C5A619E594B8>
+/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib
+    0x7fff876e1000 -     0x7fff876f7fe7
+com.apple.MultitouchSupport.framework 207.11 (207.11)
+<8233CE71-6F8D-8B3C-A0E1-E123F6406163>
+/System/Library/PrivateFrameworks/MultitouchSupport.framework/Versions/A/MultitouchSupport
+    0x7fff876f8000 -     0x7fff877adfe7  com.apple.ink.framework 1.3.3
+(107) <FFC46EE0-3544-A459-2AB9-94778A75E3D4>
+/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/Ink.framework/Versions/A/Ink
+    0x7fff877ae000 -     0x7fff877aeff7  com.apple.vecLib 3.6 (vecLib
+3.6) <08D3D45D-908B-B86A-00BA-0F978D2702A7>
+/System/Library/Frameworks/vecLib.framework/Versions/A/vecLib
+    0x7fff877af000 -     0x7fff87970fef  libSystem.B.dylib 125.2.11
+(compatibility 1.0.0) <9AB4F1D1-89DC-0E8A-DC8E-A4FE4D69DB69>
+/usr/lib/libSystem.B.dylib
+    0x7fff87971000 -     0x7fff87a00fff  com.apple.PDFKit 2.5.1
+(2.5.1) <7B8A187A-F0BB-44E7-FBD4-9E1C5F9D5E85>
+/System/Library/Frameworks/Quartz.framework/Versions/A/Frameworks/PDFKit.framework/Versions/A/PDFKit
+    0x7fff87a01000 -     0x7fff87a21ff7
+com.apple.DirectoryService.Framework 3.6 (621.11)
+<AD76C757-6701-BDB5-631E-1CB77D669586>
+/System/Library/Frameworks/DirectoryService.framework/Versions/A/DirectoryService
+    0x7fff87a22000 -     0x7fff87aa7ff7
+com.apple.print.framework.PrintCore 6.3 (312.7)
+<CDFE82DD-D811-A091-179F-6E76069B432D>
+/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/PrintCore.framework/Versions/A/PrintCore
+    0x7fff87ab6000 -     0x7fff87ab6ff7  com.apple.Accelerate.vecLib
+3.6 (vecLib 3.6) <DA9BFF01-40DF-EBD5-ABB7-787DAF2D77CF>
+/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/vecLib
+    0x7fff87ab7000 -     0x7fff87ac6fff  com.apple.NetFS 3.2.2 (3.2.2)
+<7CCBD70E-BF31-A7A7-DB98-230687773145>
+/System/Library/Frameworks/NetFS.framework/Versions/A/NetFS
+    0x7fff87ac7000 -     0x7fff87b45ff7  com.apple.CoreText 151.10
+(???) <54961997-55D8-DC0F-2634-674E452D5A8E>
+/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/CoreText.framework/Versions/A/CoreText
+    0x7fff87b54000 -     0x7fff87c4cff7  libiconv.2.dylib 7.0.0
+(compatibility 7.0.0) <7E4ADB5A-CC77-DCFD-3E54-2F35A2C8D95A>
+/usr/lib/libiconv.2.dylib
+    0x7fff87e73000 -     0x7fff87e81ff7  libkxld.dylib ??? (???)
+<8145A534-95CC-9F3C-B78B-AC9898F38C6F> /usr/lib/system/libkxld.dylib
+    0x7fff87e82000 -     0x7fff87e82ff7  com.apple.CoreServices 44
+(44) <DC7400FB-851E-7B8A-5BF6-6F50094302FB>
+/System/Library/Frameworks/CoreServices.framework/Versions/A/CoreServices
+    0x7fff87e83000 -     0x7fff87ffafe7  com.apple.CoreFoundation
+6.6.5 (550.43) <31A1C118-AD96-0A11-8BDF-BD55B9940EDC>
+/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation
+    0x7fff8807a000 -     0x7fff8807aff7  com.apple.Accelerate 1.6
+(Accelerate 1.6) <2BB7D669-4B40-6A52-ADBD-DA4DB3BC0B1B>
+/System/Library/Frameworks/Accelerate.framework/Versions/A/Accelerate
+    0x7fff8807b000 -     0x7fff88581ff7  com.apple.VideoToolbox
+0.484.52 (484.52) <FA1B8197-8F5F-73CB-A9A1-49E0FB49CF51>
+/System/Library/PrivateFrameworks/VideoToolbox.framework/Versions/A/VideoToolbox
+    0x7fff88582000 -     0x7fff8858dff7
+com.apple.speech.recognition.framework 3.11.1 (3.11.1)
+<F0DDF27E-DB55-07CE-E548-C62095BE8167>
+/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/SpeechRecognition.framework/Versions/A/SpeechRecognition
+    0x7fff88596000 -     0x7fff88754fff  libicucore.A.dylib 40.0.0
+(compatibility 1.0.0) <4274FC73-A257-3A56-4293-5968F3428854>
+/usr/lib/libicucore.A.dylib
+    0x7fff8875b000 -     0x7fff887a6fef  com.apple.ImageCaptureCore
+1.1 (1.1) <F23CA537-4F18-76FC-8D9C-ED6E645186FC>
+/System/Library/Frameworks/ImageCaptureCore.framework/Versions/A/ImageCaptureCore
+    0x7fff887a7000 -     0x7fff887f6fef  libTIFF.dylib ??? (???)
+<1E2593D1-A7F6-84C6-DF8F-0B46AE445926>
+/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ImageIO.framework/Versions/A/Resources/libTIFF.dylib
+    0x7fff88a49000 -     0x7fff88a8afef  com.apple.CoreMedia 0.484.52
+(484.52) <3F868AF8-1089-10C3-DCEB-565690FD9742>
+/System/Library/PrivateFrameworks/CoreMedia.framework/Versions/A/CoreMedia
+    0x7fff88a8b000 -     0x7fff88a8bff7  com.apple.Carbon 150 (152)
+<1E95560E-7036-A7FB-66FA-8ABA150343D6>
+/System/Library/Frameworks/Carbon.framework/Versions/A/Carbon
+    0x7fff88abb000 -     0x7fff88b3afe7  com.apple.audio.CoreAudio
+3.2.6 (3.2.6) <79E256EB-43F1-C7AA-6436-124A4FFB02D0>
+/System/Library/Frameworks/CoreAudio.framework/Versions/A/CoreAudio
+    0x7fff88b3b000 -     0x7fff88b41ff7  com.apple.CommerceCore 1.0
+(9.1) <3691E9BA-BCF4-98C7-EFEC-78DA6825004E>
+/System/Library/PrivateFrameworks/CommerceKit.framework/Versions/A/Frameworks/CommerceCore.framework/Versions/A/CommerceCore
+    0x7fff88b42000 -     0x7fff88b42ff7  com.apple.quartzframework 1.5
+(1.5) <5BFE5998-26D9-0AF1-1522-55C78E41F778>
+/System/Library/Frameworks/Quartz.framework/Versions/A/Quartz
+    0x7fff88b43000 -     0x7fff88ee0fe7  com.apple.QuartzCore 1.6.3
+(227.37) <16DFF6CD-EA58-CE62-A1D7-5F6CE3D066DD>
+/System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore
+    0x7fff88ee1000 -     0x7fff890eeff7  com.apple.JavaScriptCore 6534
+(6534.49) <1D418EF7-CDBE-3832-0157-D853073948D0>
+/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/JavaScriptCore
+    0x7fff89105000 -     0x7fff89119fff  libGL.dylib ??? (???)
+<2ECE3B0F-39E1-3938-BF27-7205C6D0358B>
+/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib
+    0x7fff8911a000 -     0x7fff8911cfef  com.apple.ExceptionHandling
+1.5 (10) <F2867B93-A56A-974F-9556-266BCE394057>
+/System/Library/Frameworks/ExceptionHandling.framework/Versions/A/ExceptionHandling
+    0x7fff8917a000 -     0x7fff89294fef  libGLProgrammability.dylib
+??? (???) <8A4B86E3-0FA7-8684-2EF2-C5F8079428DB>
+/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGLProgrammability.dylib
+    0x7fff89295000 -     0x7fff89295ff7  com.apple.Cocoa 6.6 (???)
+<68B0BE46-6E24-C96F-B341-054CF9E8F3B6>
+/System/Library/Frameworks/Cocoa.framework/Versions/A/Cocoa
+    0x7fff892af000 -     0x7fff892b4fff  libGIF.dylib ??? (???)
+<201B8077-B5CC-11AA-E1B0-1D057ABE416A>
+/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ImageIO.framework/Versions/A/Resources/libGIF.dylib
+    0x7fff892b5000 -     0x7fff892ccfff  com.apple.ImageCapture 6.1
+(6.1) <79AB2131-2A6C-F351-38A9-ED58B25534FD>
+/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/ImageCapture.framework/Versions/A/ImageCapture
+    0x7fff892cd000 -     0x7fff8938efef  com.apple.ColorSync 4.6.6
+(4.6.6) <BB2C5813-C61D-3CBA-A8F7-0E59E46EBEE8>
+/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ColorSync.framework/Versions/A/ColorSync
+    0x7fff89447000 -     0x7fff89458ff7  libz.1.dylib 1.2.3
+(compatibility 1.0.0) <FB5EE53A-0534-0FFA-B2ED-486609433717>
+/usr/lib/libz.1.dylib
+    0x7fff89475000 -     0x7fff894b6fff  com.apple.SystemConfiguration
+1.10.8 (1.10.2) <78D48D27-A9C4-62CA-2803-D0BBED82855A>
+/System/Library/Frameworks/SystemConfiguration.framework/Versions/A/SystemConfiguration
+    0x7fff894b7000 -     0x7fff894f2fff  com.apple.AE 496.5 (496.5)
+<208DF391-4DE6-81ED-C697-14A2930D1BC6>
+/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/AE.framework/Versions/A/AE
+    0x7fff894f3000 -     0x7fff895d0fff  com.apple.vImage 4.1 (4.1)
+<C3F44AA9-6F71-0684-2686-D3BBC903F020>
+/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vImage.framework/Versions/A/vImage
+    0x7fff8964f000 -     0x7fff896ccfef  libstdc++.6.dylib 7.9.0
+(compatibility 7.0.0) <35ECA411-2C08-FD7D-11B1-1B7A04921A5C>
+/usr/lib/libstdc++.6.dylib
+    0x7fff896cd000 -     0x7fff89907fef  com.apple.imageKit 2.0.3
+(1.0) <9EA216AF-82D6-201C-78E5-D027D85B51D6>
+/System/Library/Frameworks/Quartz.framework/Versions/A/Frameworks/ImageKit.framework/Versions/A/ImageKit
+    0x7fff89952000 -     0x7fff89bdbff7  com.apple.security 6.1.2
+(55002) <4419AFFC-DAE7-873E-6A7D-5C9A5A4497A6>
+/System/Library/Frameworks/Security.framework/Versions/A/Security
+    0x7fff89be1000 -     0x7fff89c36ff7
+com.apple.framework.familycontrols 2.0.2 (2020)
+<F09541B6-5E28-1C01-C1AE-F6A2508670C7>
+/System/Library/PrivateFrameworks/FamilyControls.framework/Versions/A/FamilyControls
+    0x7fff89c37000 -     0x7fff89c5afff  com.apple.opencl 12.3.6
+(12.3.6) <42FA5783-EB80-1168-4015-B8C68F55842F>
+/System/Library/Frameworks/OpenCL.framework/Versions/A/OpenCL
+    0x7fff89c5b000 -     0x7fff89d7afe7  libcrypto.0.9.8.dylib 0.9.8
+(compatibility 0.9.8) <14115D29-432B-CF02-6B24-A60CC533A09E>
+/usr/lib/libcrypto.0.9.8.dylib
+    0x7fff89d7b000 -     0x7fff89d90ff7  com.apple.LangAnalysis 1.6.6
+(1.6.6) <DC999B32-BF41-94C8-0583-27D9AB463E8B>
+/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/LangAnalysis.framework/Versions/A/LangAnalysis
+    0x7fff89dd0000 -     0x7fff89dd3ff7  com.apple.securityhi 4.0
+(36638) <38935851-09E4-DDAB-DB1D-30ADC39F7ED0>
+/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/SecurityHI.framework/Versions/A/SecurityHI
+    0x7fff89dd4000 -     0x7fff89e20fff  libauto.dylib ??? (???)
+<F7221B46-DC4F-3153-CE61-7F52C8C293CF> /usr/lib/libauto.dylib
+    0x7fff89e21000 -     0x7fff8a51dff7  com.apple.CoreGraphics
+1.545.0 (???) <58D597B1-EB3B-710E-0B8C-EC114D54E11B>
+/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/CoreGraphics.framework/Versions/A/CoreGraphics
+    0x7fff8a51e000 -     0x7fff8a52dfef  com.apple.opengl 1.6.13
+(1.6.13) <516098B3-4517-8A55-64BB-195CDAA5334D>
+/System/Library/Frameworks/OpenGL.framework/Versions/A/OpenGL
+    0x7fff8a536000 -     0x7fff8a570fff  libcups.2.dylib 2.8.0
+(compatibility 2.0.0) <7982734A-B66B-44AA-DEEC-364D2C10009B>
+/usr/lib/libcups.2.dylib
+    0x7fff8a571000 -     0x7fff8a5b8ff7  com.apple.coreui 2 (114)
+<D7645B59-0431-6283-7322-957D944DAB21>
+/System/Library/PrivateFrameworks/CoreUI.framework/Versions/A/CoreUI
+    0x7fff8a5b9000 -     0x7fff8a6c3ff7  com.apple.MeshKitIO 1.1
+(49.2) <F296E151-80AE-7764-B969-C2050DF26BFE>
+/System/Library/PrivateFrameworks/MeshKit.framework/Versions/A/Frameworks/MeshKitIO.framework/Versions/A/MeshKitIO
+    0x7fffffe00000 -     0x7fffffe01fff  libSystem.B.dylib ??? (???)
+<9AB4F1D1-89DC-0E8A-DC8E-A4FE4D69DB69> /usr/lib/libSystem.B.dylib
+
+Model: MacBookPro6,1, BootROM MBP61.0057.B0C, 2 processors, Intel Core
+i7, 2.66 GHz, 8 GB, SMC 1.57f17
+Graphics: NVIDIA GeForce GT 330M, NVIDIA GeForce GT 330M, PCIe, 512 MB
+Graphics: Intel HD Graphics, Intel HD Graphics, Built-In, 288 MB
+Memory Module: global_name
+AirPort: spairport_wireless_card_type_airport_extreme (0x14E4, 0x93),
+Broadcom BCM43xx 1.0 (5.10.131.42.4)
+Bluetooth: Version 2.4.5f3, 2 service, 19 devices, 1 incoming serial ports
+Network Service: Ethernet, Ethernet, en0
+Network Service: AirPort, AirPort, en1
+Serial ATA Device: Hitachi HTS725050A9A362, 465.76 GB
+Serial ATA Device: HL-DT-ST DVDRW  GS23N
+USB Device: Hub, 0x0424  (SMSC), 0x2514, 0xfa100000 / 2
+USB Device: Apple Internal Keyboard / Trackpad, 0x05ac  (Apple Inc.),
+0x0236, 0xfa120000 / 4
+USB Device: BRCM2070 Hub, 0x0a5c  (Broadcom Corp.), 0x4500, 0xfa110000 / 3
+USB Device: Bluetooth USB Host Controller, 0x05ac  (Apple Inc.),
+0x8218, 0xfa113000 / 6
+USB Device: Hub, 0x0424  (SMSC), 0x2514, 0xfd100000 / 2
+USB Device: Hub, 0x05ac  (Apple Inc.), 0x9136, 0xfd140000 / 5
+USB Device: Keyboard Hub, 0x05ac  (Apple Inc.), 0x1006, 0xfd141000 / 11
+USB Device: Trackball, 0x046d  (Logitech Inc.), 0xc404, 0xfd141300 / 13
+USB Device: Apple Keyboard, 0x05ac  (Apple Inc.), 0x0220, 0xfd141200 / 12
+USB Device: USB Audio DAC, 0x08bb  (Texas Instruments Japan), 0x2704,
+0xfd142000 / 7
+USB Device: Hub, 0x05ac  (Apple Inc.), 0x9137, 0xfd144000 / 6
+USB Device: Display Audio, 0x05ac  (Apple Inc.), 0x2912, 0xfd144100 / 10
+USB Device: Apple LED Cinema Display, 0x05ac  (Apple Inc.), 0x9236,
+0xfd144300 / 9
+USB Device: Display iSight, 0x05ac  (Apple Inc.), 0x8508, 0xfd144200 / 8
+USB Device: IR Receiver, 0x05ac  (Apple Inc.), 0x8242, 0xfd120000 / 4
+USB Device: Built-in iSight, 0x05ac  (Apple Inc.), 0x8507, 0xfd110000 / 3
+FireWire Device: unknown_device, Unknown
+
+
+-- 
+
+Max
+
+
+From stephen.b.weston at gmail.com  Mon Sep 26 19:11:50 2011
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Mon, 26 Sep 2011 13:11:50 -0400
+Subject: [R-sig-hpc] doMC and RWeka
+In-Reply-To: <CAJ9CoWkzJY7LGC_hun095w5yv8Bwqm1jszQOwtX8wsA-A28m0A@mail.gmail.com>
+References: <CAJ9CoWkzJY7LGC_hun095w5yv8Bwqm1jszQOwtX8wsA-A28m0A@mail.gmail.com>
+Message-ID: <CALh21iL1=+D2jnbmDiWxVTa6+TNVWjmhnNvA2fSGia8woMqhoQ@mail.gmail.com>
+
+Hi Max,
+
+I think the key information in that huge error dump is:
+
+   Application Specific Information:
+   *** multi-threaded process forked ***
+
+This suggests to me that the error was caused by the
+forking done in mclapply to start the worker processes.
+That would explain why doMPI works.
+
+If that's the case, you probably can't use M5Rules with
+doMC/multicore.
+
+- Steve
+
+
+On Mon, Sep 26, 2011 at 12:20 PM, Max Kuhn <mxkuhn at gmail.com> wrote:
+> Everyone,
+>
+> I recently converted the caret package do use foreach for
+> parallelizing resampling computations, such as cross-validation.
+>
+> Below is an example that approximates what caret does. When using
+> foreach with dopar and no parallelization, things work fine. ?For
+> example, if I run the code below without doMC loaded it, works fine.
+>
+> If I run the code below (Rweka model and multicore), the workers start
+> but do not appear to use any CPU time.
+>
+> If I run first without doMC then load doMC and 2 workers, I get ?#
+> fatal error: mach_msg (send) failed: 0x10000003? (much more
+> information is below) .
+>
+> The code below with doMPI also works without error.
+>
+> Any ideas?
+>
+> Thanks,
+>
+> Max
+>
+>> sessionInfo()
+> R version 2.13.1 (2011-07-08)
+> Platform: x86_64-apple-darwin9.8.0/x86_64 (64-bit)
+>
+> locale:
+> [1] en_US.UTF-8/en_US.UTF-8/C/C/en_US.UTF-8/en_US.UTF-8
+>
+> attached base packages:
+> [1] stats ? ? graphics ?grDevices utils ? ? datasets ?methods ? base
+>
+> other attached packages:
+> [1] doMC_1.2.2 ? ? ?multicore_0.1-5 RWeka_0.4-8 ? ? mlbench_2.1-0
+> [5] foreach_1.3.2 ? codetools_0.2-8 iterators_1.0.5
+>
+> loaded via a namespace (and not attached):
+> [1] compiler_2.13.1 ? grid_2.13.1 ? ? ? rJava_0.9-1 ? ? ? RWekajars_3.7.3-1
+> [5] tools_2.13.1
+>
+>
+> ###############################################################
+> ## code
+>
+> library(foreach)
+> library(mlbench)
+> library(doMC)
+> registerDoMC(2)
+>
+>
+> if(FALSE)
+> ?{
+> ? ?## this worked
+> ? ?library(doMPI)
+> ? ?cl <- startMPIcluster(2)
+> ? ?registerDoMPI(cl)
+>
+> ?}
+> data(BostonHousing)
+>
+> resampleIndex <- vector(mode = "list", length = 5)
+> set.seed(1)
+> resampleIndex <- lapply(resampleIndex,
+> ? ? ? ? ? ? ? ? ? ? ? ?function(x, y) sample(1:nrow(y), replace = TRUE),
+> ? ? ? ? ? ? ? ? ? ? ? ?y = BostonHousing)
+>
+> parameters <- data.frame(pruning = c(TRUE, FALSE))
+> result <- foreach(iter = seq(along = resampleIndex), .combine =
+> "rbind", .verbose = FALSE, .errorhandling = "stop") %:%
+> ?foreach(parm = 1:nrow(parameters), .combine = "rbind", .verbose =
+> FALSE, .errorhandling = "stop") %dopar%
+> {
+>
+> ?library(RWeka)
+> ?dataSubset <- BostonHousing[resampleIndex[[iter]],]
+> ?holdOut <- unique(resampleIndex[[iter]])
+> ?model <- M5Rules(medv ~ ., data = dataSubset,
+> ? ? ? ? ? ? ? ? ? control = Weka_control(N = parameters$pruning[parm]))
+> ?## test non-Weka models using lm:
+> ?## model <- lm(medv ~ ., data = dataSubset)
+> ?pred <- predict(model, BostonHousing[-holdOut, -14])
+> ?data.frame(obs = BostonHousing$medv[-holdOut],
+> ? ? ? ? ? ? pred = pred,
+> ? ? ? ? ? ? prune = parameters$pruning[parm],
+> ? ? ? ? ? ? subset = iter)
+> }
+>
+>
+> ###############################################################
+>
+> Process: ? ? ? ? R [1481]
+> Path: ? ? ? ? ? ?/Applications/R64.app/Contents/MacOS/R
+> Identifier: ? ? ?R
+> Version: ? ? ? ? ??? (???)
+> Code Type: ? ? ? X86-64 (Native)
+> Parent Process: ?R [1314]
+>
+> Date/Time: ? ? ? 2011-09-26 12:01:10.930 -0400
+> OS Version: ? ? ?Mac OS X 10.6.8 (10K549)
+> Report Version: ?6
+>
+> Anonymous UUID: ? ? ? ? ? ? ? ? ? ? ?EAD58366-FAFB-444E-84A2-CEEC1CBD7E82
+>
+> Exception Type: ?EXC_BREAKPOINT (SIGTRAP)
+> Exception Codes: 0x0000000000000002, 0x0000000000000000
+> Crashed Thread: ?0 ?Dispatch queue: com.apple.main-thread
+>
+> Application Specific Information:
+> *** multi-threaded process forked ***
+>
+> Java information:
+> ?Exception type: Internal Error
+> (/SourceCache/JavaJDK16/JavaJDK16-384/hotspot/src/os/macosx/vm/os_macosx.cpp,
+> line 2798)
+>
+> # ?fatal error: mach_msg (send) failed: 0x10000003
+> ?Java VM: Java HotSpot(TM) 64-Bit Server VM (20.1-b02-384 mixed mode
+> macosx-amd64)
+>
+> Current thread (123001800): ?JavaThread "main" [_thread_in_vm,
+> id=1893948608, stack(7fff5f400000,7fff5fc00000)]
+> Stack: [7fff5f400000,7fff5fc00000]
+> Java frames: (J=compiled Java code, j=interpreted, Vv=VM code)
+> v ?~RuntimeStub::_new_array_Java
+> J ?weka.filters.Filter.setOutputFormat(Lweka/core/Instances;)V
+> J ?weka.filters.unsupervised.attribute.Remove.setInputFormat(Lweka/core/Instances;)Z
+> J ?weka.classifiers.trees.m5.RuleNode.buildLinearModel([I)V
+> J ?weka.classifiers.trees.m5.RuleNode.prune()V
+> J ?weka.classifiers.trees.m5.RuleNode.prune()V
+> J ?weka.classifiers.trees.m5.RuleNode.prune()V
+> J ?weka.classifiers.trees.m5.RuleNode.prune()V
+> J ?weka.classifiers.trees.m5.RuleNode.prune()V
+> J ?weka.classifiers.trees.m5.RuleNode.prune()V
+> J ?weka.classifiers.trees.m5.RuleNode.prune()V
+> J ?weka.classifiers.trees.m5.RuleNode.prune()V
+> J ?weka.classifiers.trees.m5.RuleNode.prune()V
+> J ?weka.classifiers.trees.m5.RuleNode.prune()V
+> J ?weka.classifiers.trees.m5.RuleNode.prune()V
+> j ?weka.classifiers.trees.m5.Rule.buildClassifier(Lweka/core/Instances;)V+188
+> j ?weka.classifiers.trees.m5.M5Base.buildClassifier(Lweka/core/Instances;)V+240
+> v ?~StubRoutines::call_stub
+>
+> Java Threads: ( => current thread )
+> ?12310b800 JavaThread "Low Memory Detector" daemon [_thread_blocked,
+> id=722472960, stack(12b001000,12b101000)]
+> ?12310b000 JavaThread "C2 CompilerThread1" daemon [_thread_blocked,
+> id=719978496, stack(12ada0000,12aea0000)]
+> ?12310a000 JavaThread "C2 CompilerThread0" daemon [_thread_blocked,
+> id=718917632, stack(12ac9d000,12ad9d000)]
+> ?123109800 JavaThread "Signal Dispatcher" daemon [_thread_blocked,
+> id=717856768, stack(12ab9a000,12ac9a000)]
+> ?123108800 JavaThread "Surrogate Locker Thread (Concurrent GC)"
+> daemon [_thread_blocked, id=716795904, stack(12aa97000,12ab97000)]
+> ?1230f1000 JavaThread "Finalizer" daemon [_thread_blocked,
+> id=715735040, stack(12a994000,12aa94000)]
+> ?1230f0000 JavaThread "Reference Handler" daemon [_thread_blocked,
+> id=714674176, stack(12a891000,12a991000)]
+> =>123001800 JavaThread "main" [_thread_in_vm, id=1893948608,
+> stack(7fff5f400000,7fff5fc00000)]
+> Other Threads:
+> ?1230eb800 VMThread [stack: 12a78e000,12a88e000] [id=713613312]
+> ?12311d800 WatcherThread [stack: 12b104000,12b204000] [id=723533824]
+>
+> VM state:not at safepoint (normal execution)
+> VM Mutex/Monitor currently owned by a thread: ?([mutex/lock_event])
+> [11d1027a0] Heap_lock - owner thread: 123001800
+>
+> Heap
+> ?par new generation ? total 19136K, used 17081K [7dae00000, 7dc2c0000,
+> 7dee00000)
+> ?eden space 17024K, 100% used [7dae00000, 7dbea0000, 7dbea0000)
+> ?from space 2112K, ? 2% used [7dbea0000, 7dbeae560, 7dc0b0000)
+> ?to ? space 2112K, ? 0% used [7dc0b0000, 7dc0b0000, 7dc2c0000)
+> ?concurrent mark-sweep generation total 63872K, used 29717K
+> [7dee00000, 7e2c60000, 7fae00000)
+> ?concurrent-mark-sweep perm gen total 21248K, used 6499K [7fae00000,
+> 7fc2c0000, 800000000)
+>
+> Code Cache ?[123801000, 123a72000, 126801000)
+> ?total_blobs=546 nmethods=338 adapters=170 free_code_cache=48470144
+> largest_free_block=57920
+>
+> Virtual Machine Arguments:
+> JVM Args: -Dr.arch=/x86_64 -Xmx512m vfprintf exit
+> Java Command: <unknown>
+> Launcher Type: generic
+> Physical Memory: Page Size = 4k, Total = 8192M, Free = 5435M
+>
+>
+> Thread 0 Crashed: ?Dispatch queue: com.apple.main-thread
+> 0 ? libclient64.dylib ? ? ? ? ? ? ? ? 0x0000000116cd6364
+> JVM_RaiseSignal + 574914
+> 1 ? libclient64.dylib ? ? ? ? ? ? ? ? 0x00000001168cba9a jio_snprintf + 38228
+> 2 ? libclient64.dylib ? ? ? ? ? ? ? ? 0x0000000116a5b443
+> JVM_MonitorNotifyAll + 4747
+> 3 ? libclient64.dylib ? ? ? ? ? ? ? ? 0x000000011694a1a1 JVM_Lseek + 91023
+> 4 ? libclient64.dylib ? ? ? ? ? ? ? ? 0x0000000116949bb7 JVM_Lseek + 89509
+> 5 ? libclient64.dylib ? ? ? ? ? ? ? ? 0x0000000116949a38 JVM_Lseek + 89126
+> 6 ? libclient64.dylib ? ? ? ? ? ? ? ? 0x000000011694f6be JVM_Lseek + 112812
+> 7 ? libclient64.dylib ? ? ? ? ? ? ? ? 0x0000000116aad7cf JVM_NanoTime + 108795
+> 8 ? ??? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? 0x000000012385e289 0 + 4890944137
+>
+> Thread 0 crashed with X86 Thread State (64-bit):
+> ?rax: 0x0000000116f7c20a ?rbx: 0x00007fff5fbf2718 ?rcx:
+> 0x00007fff877ba47a ?rdx: 0x0000000000000008
+> ?rdi: 0x00007fff7117ae40 ?rsi: 0x0000000000000000 ?rbp:
+> 0x00007fff5fbf26d0 ?rsp: 0x00007fff5fbf26d0
+> ? r8: 0x00007fff711777f8 ? r9: 0x0000000000000000 ?r10:
+> 0x00007fff5fbf2650 ?r11: 0x0000000000000206
+> ?r12: 0x0000000000000b1b ?r13: 0x0000000116f85298 ?r14:
+> 0x0000000123001800 ?r15: 0x0000000000000000
+> ?rip: 0x0000000116cd6364 ?rfl: 0x0000000000000202 ?cr2: 0x0000000116fa4c7f
+>
+> Binary Images:
+> ? ? ? 0x100000000 - ? ? ? ?0x10007cfef +org.R-project.R R for Mac OS
+> X GUI 1.40-devel Leopard build 64-bit (5874)
+> <84C20FDB-0203-FC77-4569-8AB4CA1493E2>
+> /Applications/R64.app/Contents/MacOS/R
+> ? ? ? 0x1000f8000 - ? ? ? ?0x100394ff3 +libR.dylib 2.13.1
+> (compatibility 2.13.0) <438D7643-7542-E9A6-44A7-DC187176E172>
+> /Library/Frameworks/R.framework/Versions/2.13/Resources/lib/libR.dylib
+> ? ? ? 0x100487000 - ? ? ? ?0x1004b0ff7 +libRblas.dylib ??? (???)
+> <3BBC8F90-AF7C-893D-09CE-C05A61E5C3C5>
+> /Library/Frameworks/R.framework/Versions/2.13/Resources/lib/libRblas.dylib
+> ? ? ? 0x1004b4000 - ? ? ? ?0x10056afcf +libgfortran.2.dylib 3.0.0
+> (compatibility 3.0.0) <ACF1816E-EA8A-4DB9-A893-A4EF0CEFFFBA>
+> /Library/Frameworks/R.framework/Versions/2.13/Resources/lib/libgfortran.2.dylib
+> ? ? ? 0x1005af000 - ? ? ? ?0x1005d9fd9 +libreadline.5.2.dylib 5.2.0
+> (compatibility 5.0.0)
+> /Library/Frameworks/R.framework/Versions/2.13/Resources/lib/libreadline.5.2.dylib
+> ? ? ? 0x100696000 - ? ? ? ?0x100699fff +multicore.so ??? (???)
+> <75FF3B7D-9709-D6DF-2505-C13D71F01FEB>
+> /Library/Frameworks/R.framework/Versions/2.13/Resources/library/multicore/libs/x86_64/multicore.so
+> ? ? ? 0x114cb1000 - ? ? ? ?0x114d13fe7 +stats.so ??? (???)
+> <D8AD5284-82CF-C43D-2AB5-529AB5B23425>
+> /Library/Frameworks/R.framework/Versions/2.13/Resources/library/stats/libs/x86_64/stats.so
+> ? ? ? 0x115b8f000 - ? ? ? ?0x115b95ff7 +methods.so ??? (???)
+> <F0D64EF4-BBE8-6567-7012-0900270705BB>
+> /Library/Frameworks/R.framework/Versions/2.13/Resources/library/methods/libs/x86_64/methods.so
+> ? ? ? 0x115b9b000 - ? ? ? ?0x115bc6ffa +grDevices.so ??? (???)
+> <16CFD245-DDAB-F76A-9564-6EC93BB2F847>
+> /Library/Frameworks/R.framework/Versions/2.13/Resources/library/grDevices/libs/x86_64/grDevices.so
+> ? ? ? 0x116800000 - ? ? ? ?0x116801fff +mlbench.so ??? (???)
+> <59347ED1-70EA-38DB-3863-A13B6901DE56>
+> /Library/Frameworks/R.framework/Versions/2.13/Resources/library/mlbench/libs/x86_64/mlbench.so
+> ? ? ? 0x116804000 - ? ? ? ?0x116807fff +tools.so ??? (???)
+> <7420B0D8-0D8C-4039-43AF-E7A3509DD77B>
+> /Library/Frameworks/R.framework/Versions/2.13/Resources/library/tools/libs/x86_64/tools.so
+> ? ? ? 0x116892000 - ? ? ? ?0x11689eff7 +rJava.so ??? (???)
+> <76AD8785-1161-1738-801B-28D93FA8911E>
+> /Library/Frameworks/R.framework/Versions/2.13/Resources/library/rJava/libs/x86_64/rJava.so
+> ? ? ? 0x1168a5000 - ? ? ? ?0x1168aaff7 ?com.apple.JavaVM 13.5.0
+> (13.5.0) <974CB30D-AF11-1762-859E-097A988B5A7A>
+> /System/Library/Frameworks/JavaVM.framework/Versions/A/JavaVM
+> ? ? ? 0x1168b2000 - ? ? ? ?0x1168b7ff7 ?JavaLaunching ??? (???)
+> <9E94B3DF-E0FB-BE09-1F88-E6334CA87466>
+> /System/Library/PrivateFrameworks/JavaLaunching.framework/Versions/A/JavaLaunching
+> ? ? ? 0x1168be000 - ? ? ? ?0x116eedff7 ?libclient64.dylib ??? (???)
+> <AF2791E1-F8EA-79E0-3951-45718D44A0DF>
+> /System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Home/bundle/Libraries/libclient64.dylib
+> ? ? ? 0x116fb6000 - ? ? ? ?0x116fbdfff ?libjvmlinkage.dylib ??? (???)
+> <8F397A50-C3FF-DAE8-D0C2-86EBC59D7E7C>
+> /System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Libraries/libjvmlinkage.dylib
+> ? ? ? 0x11d200000 - ? ? ? ?0x11d208ff7 ?libverify.dylib 1.0 (1.0)
+> <155BFCD9-BBA0-C03B-E411-1421586F595F>
+> /System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Libraries/libverify.dylib
+> ? ? ? 0x11d20e000 - ? ? ? ?0x11d219fff ?JavaNativeFoundation ???
+> (???) <B58A4AC2-95F1-D07A-DE38-25ABCEDCDF71>
+> /System/Library/Frameworks/JavaVM.framework/Versions/A/Frameworks/JavaNativeFoundation.framework/Versions/A/JavaNativeFoundation
+> ? ? ? 0x11d224000 - ? ? ? ?0x11d244ff7 ?libjava.jnilib ??? (???)
+> <CF05069A-1D0D-3DCA-E7E8-7F398588DD92>
+> /System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Libraries/libjava.jnilib
+> ? ? ? 0x11d35b000 - ? ? ? ?0x11d368fff ?libzip.jnilib ??? (???)
+> <0FC6E1C1-185E-36F1-0A44-212CEB6EAD34>
+> /System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Libraries/libzip.jnilib
+> ? ? ? 0x12b43d000 - ? ? ? ?0x12b456fff +grid.so ??? (???)
+> <73773A52-0F1F-BBB2-FE3D-78C3E0B1DD0B>
+> /Library/Frameworks/R.framework/Versions/2.13/Resources/library/grid/libs/x86_64/grid.so
+> ? ?0x7fff5fc00000 - ? ? 0x7fff5fc3bdef ?dyld 132.1 (???)
+> <472D950D-70F8-B810-A959-9184C2AA6C74> /usr/lib/dyld
+> ? ?0x7fff80133000 - ? ? 0x7fff80195fe7 ?com.apple.datadetectorscore
+> 2.0 (80.7) <34592AFF-B1B8-2277-B013-70193E4E1691>
+> /System/Library/PrivateFrameworks/DataDetectorsCore.framework/Versions/A/DataDetectorsCore
+> ? ?0x7fff80196000 - ? ? 0x7fff801e0ff7 ?com.apple.Metadata 10.6.3
+> (507.15) <2EF19055-D7AE-4D77-E589-7B71B0BC1E59>
+> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Metadata
+> ? ?0x7fff801e1000 - ? ? 0x7fff80271fff ?com.apple.SearchKit 1.3.0
+> (1.3.0) <4175DC31-1506-228A-08FD-C704AC9DF642>
+> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/SearchKit.framework/Versions/A/SearchKit
+> ? ?0x7fff80272000 - ? ? 0x7fff80275ff7 ?libCoreVMClient.dylib ???
+> (???) <E03D7C81-A3DA-D44A-A88A-DDBB98AF910B>
+> /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libCoreVMClient.dylib
+> ? ?0x7fff8050b000 - ? ? 0x7fff8078dfe7 ?com.apple.Foundation 6.6.7
+> (751.62) <6F2A5BBF-6990-D561-2928-AD61E94036D9>
+> /System/Library/Frameworks/Foundation.framework/Versions/C/Foundation
+> ? ?0x7fff8078e000 - ? ? 0x7fff807cdfef ?libncurses.5.4.dylib 5.4.0
+> (compatibility 5.4.0) <E1F34D53-3D62-78C0-CAD8-8AD22C110A9E>
+> /usr/lib/libncurses.5.4.dylib
+> ? ?0x7fff807ce000 - ? ? 0x7fff8088bfff
+> com.apple.CoreServices.OSServices 359.2 (359.2)
+> <BBB8888E-18DE-5D09-3C3A-F4C029EC7886>
+> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/OSServices.framework/Versions/A/OSServices
+> ? ?0x7fff8088c000 - ? ? 0x7fff809fcfff ?com.apple.QTKit 7.7 (1783)
+> <DE8DB97C-C058-B40C-492B-D652A30CF571>
+> /System/Library/Frameworks/QTKit.framework/Versions/A/QTKit
+> ? ?0x7fff80a4d000 - ? ? 0x7fff80afdfff ?edu.mit.Kerberos 6.5.11
+> (6.5.11) <085D80F5-C9DC-E252-C21B-03295E660C91>
+> /System/Library/Frameworks/Kerberos.framework/Versions/A/Kerberos
+> ? ?0x7fff80afe000 - ? ? 0x7fff80b08fff ?com.apple.DisplayServicesFW
+> 2.3.3 (289) <97F62F36-964A-3E17-2A26-A0EEF63F4BDE>
+> /System/Library/PrivateFrameworks/DisplayServices.framework/Versions/A/DisplayServices
+> ? ?0x7fff80b09000 - ? ? 0x7fff80b30ff7 ?libJPEG.dylib ??? (???)
+> <46A413EA-4FD1-A050-2EF0-6279F3EAD581>
+> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ImageIO.framework/Versions/A/Resources/libJPEG.dylib
+> ? ?0x7fff80b31000 - ? ? 0x7fff80b9bfe7 ?libvMisc.dylib 268.0.1
+> (compatibility 1.0.0) <75A8D840-4ACE-6560-0889-2AFB6BE08E59>
+> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libvMisc.dylib
+> ? ?0x7fff80b9c000 - ? ? 0x7fff80c28fef ?SecurityFoundation ??? (???)
+> <D844BB57-386A-0A43-249E-9BE035C2AB53>
+> /System/Library/Frameworks/SecurityFoundation.framework/Versions/A/SecurityFoundation
+> ? ?0x7fff815fc000 - ? ? 0x7fff8164bff7
+> com.apple.DirectoryService.PasswordServerFramework 6.1 (6.1)
+> <01B370FB-D524-F660-3826-E85B7F0D85CD>
+> /System/Library/PrivateFrameworks/PasswordServer.framework/Versions/A/PasswordServer
+> ? ?0x7fff8164c000 - ? ? 0x7fff81677ff7 ?libxslt.1.dylib 3.24.0
+> (compatibility 3.0.0) <8AB4CA9E-435A-33DA-7041-904BA7FA11D5>
+> /usr/lib/libxslt.1.dylib
+> ? ?0x7fff81678000 - ? ? 0x7fff816c0ff7 ?libvDSP.dylib 268.0.1
+> (compatibility 1.0.0) <170DE04F-89AB-E295-0880-D69CAFBD7979>
+> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libvDSP.dylib
+> ? ?0x7fff816cd000 - ? ? 0x7fff816ceff7
+> com.apple.audio.units.AudioUnit 1.6.7 (1.6.7)
+> <53299948-2554-0F8F-7501-04B34E49F6CF>
+> /System/Library/Frameworks/AudioUnit.framework/Versions/A/AudioUnit
+> ? ?0x7fff816cf000 - ? ? 0x7fff81716fff ?com.apple.QuickLookFramework
+> 2.3 (327.6) <11DFB135-24A6-C0BC-5B97-ECE352A4B488>
+> /System/Library/Frameworks/QuickLook.framework/Versions/A/QuickLook
+> ? ?0x7fff81717000 - ? ? 0x7fff817ebfe7 ?com.apple.CFNetwork 454.12.4
+> (454.12.4) <C83E2BA1-1818-B3E8-5334-860AD21D1C80>
+> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/CFNetwork.framework/Versions/A/CFNetwork
+> ? ?0x7fff817ec000 - ? ? 0x7fff81811ff7 ?com.apple.CoreVideo 1.6.2
+> (45.6) <E138C8E7-3CB6-55A9-0A2C-B73FE63EA288>
+> /System/Library/Frameworks/CoreVideo.framework/Versions/A/CoreVideo
+> ? ?0x7fff820ee000 - ? ? 0x7fff820f3ff7 ?com.apple.CommonPanels 1.2.4
+> (91) <4D84803B-BD06-D80E-15AE-EFBE43F93605>
+> /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/CommonPanels.framework/Versions/A/CommonPanels
+> ? ?0x7fff820f4000 - ? ? 0x7fff821d9fef ?com.apple.DesktopServices
+> 1.5.11 (1.5.11) <39FAA3D2-6863-B5AB-AED9-92D878EA2438>
+> /System/Library/PrivateFrameworks/DesktopServicesPriv.framework/Versions/A/DesktopServicesPriv
+> ? ?0x7fff823e5000 - ? ? 0x7fff823e7fff ?libRadiance.dylib ??? (???)
+> <A9DB4D5D-4072-971B-DEF6-DDE645F415EA>
+> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ImageIO.framework/Versions/A/Resources/libRadiance.dylib
+> ? ?0x7fff823e8000 - ? ? 0x7fff823ebfff ?com.apple.help 1.3.2 (41.1)
+> <BD1B0A22-1CB8-263E-FF85-5BBFDE3660B9>
+> /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/Help.framework/Versions/A/Help
+> ? ?0x7fff82410000 - ? ? 0x7fff82417fff ?com.apple.OpenDirectory 10.6
+> (10.6) <4200CFB0-DBA1-62B8-7C7C-91446D89551F>
+> /System/Library/Frameworks/OpenDirectory.framework/Versions/A/OpenDirectory
+> ? ?0x7fff82462000 - ? ? 0x7fff82466ff7 ?libCGXType.A.dylib 545.0.0
+> (compatibility 64.0.0) <DB710299-B4D9-3714-66F7-5D2964DE585B>
+> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/CoreGraphics.framework/Versions/A/Resources/libCGXType.A.dylib
+> ? ?0x7fff82467000 - ? ? 0x7fff82468ff7
+> com.apple.TrustEvaluationAgent 1.1 (1)
+> <74800EE8-C14C-18C9-C208-20BBDB982D40>
+> /System/Library/PrivateFrameworks/TrustEvaluationAgent.framework/Versions/A/TrustEvaluationAgent
+> ? ?0x7fff82469000 - ? ? 0x7fff82503fe7
+> com.apple.ApplicationServices.ATS 275.16 (???)
+> <4B70A2FC-1902-5F27-5C3B-5C78C283C6EA>
+> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ATS.framework/Versions/A/ATS
+> ? ?0x7fff82504000 - ? ? 0x7fff82549fff ?com.apple.CoreMediaIOServices
+> 140.0 (1496) <D93293EB-0B84-E97D-E78C-9FE8D48AF58E>
+> /System/Library/PrivateFrameworks/CoreMediaIOServices.framework/Versions/A/CoreMediaIOServices
+> ? ?0x7fff8254a000 - ? ? 0x7fff8254aff7 ?com.apple.ApplicationServices
+> 38 (38) <10A0B9E9-4988-03D4-FC56-DDE231A02C63>
+> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/ApplicationServices
+> ? ?0x7fff82601000 - ? ? 0x7fff82632fff ?libGLImage.dylib ??? (???)
+> <7F102A07-E4FB-9F52-B2F6-4E2D2383CA13>
+> /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGLImage.dylib
+> ? ?0x7fff82633000 - ? ? 0x7fff8274afef ?libxml2.2.dylib 10.3.0
+> (compatibility 10.0.0) <1B27AFDD-DF87-2009-170E-C129E1572E8B>
+> /usr/lib/libxml2.2.dylib
+> ? ?0x7fff8274b000 - ? ? 0x7fff83785fff ?com.apple.WebCore 6534
+> (6534.50) <8B0BB24A-C84C-A4F2-5544-C8071A35BBC5>
+> /System/Library/Frameworks/WebKit.framework/Versions/A/Frameworks/WebCore.framework/Versions/A/WebCore
+> ? ?0x7fff83786000 - ? ? 0x7fff83787fff ?liblangid.dylib ??? (???)
+> <EA4D1607-2BD5-2EE2-2A3B-632EEE5A444D> /usr/lib/liblangid.dylib
+> ? ?0x7fff83788000 - ? ? 0x7fff83946ff7 ?com.apple.ImageIO.framework
+> 3.0.4 (3.0.4) <0A4F51A1-4502-767B-8A4E-F14C6214EF88>
+> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ImageIO.framework/Versions/A/ImageIO
+> ? ?0x7fff83947000 - ? ? 0x7fff83de4fff ?com.apple.RawCamera.bundle
+> 3.8.0 (577) <38481531-657E-DFFA-1EF4-ADFCA15DAC49>
+> /System/Library/CoreServices/RawCamera.bundle/Contents/MacOS/RawCamera
+> ? ?0x7fff83e15000 - ? ? 0x7fff83e2bfef ?libbsm.0.dylib ??? (???)
+> <42D3023A-A1F7-4121-6417-FCC6B51B3E90> /usr/lib/libbsm.0.dylib
+> ? ?0x7fff83e2c000 - ? ? 0x7fff83ee2ff7 ?libobjc.A.dylib 227.0.0
+> (compatibility 1.0.0) <03140531-3B2D-1EBA-DA7F-E12CC8F63969>
+> /usr/lib/libobjc.A.dylib
+> ? ?0x7fff83ee3000 - ? ? 0x7fff83f4bfff ?com.apple.MeshKitRuntime 1.1
+> (49.2) <1F4C9AB5-9D3F-F91D-DB91-B78610562ECC>
+> /System/Library/PrivateFrameworks/MeshKit.framework/Versions/A/Frameworks/MeshKitRuntime.framework/Versions/A/MeshKitRuntime
+> ? ?0x7fff83f9e000 - ? ? 0x7fff83fc6fff ?com.apple.DictionaryServices
+> 1.1.2 (1.1.2) <E9269069-93FA-2B71-F9BA-FDDD23C4A65E>
+> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/DictionaryServices.framework/Versions/A/DictionaryServices
+> ? ?0x7fff84240000 - ? ? 0x7fff84241fff
+> com.apple.MonitorPanelFramework 1.3.0 (1.3.0)
+> <5062DACE-FCE7-8E41-F5F6-58821778629C>
+> /System/Library/PrivateFrameworks/MonitorPanel.framework/Versions/A/MonitorPanel
+> ? ?0x7fff84242000 - ? ? 0x7fff842e2fff ?com.apple.LaunchServices
+> 362.3 (362.3) <B90B7C31-FEF8-3C26-BFB3-D8A48BD2C0DA>
+> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/LaunchServices
+> ? ?0x7fff842e3000 - ? ? 0x7fff8439cfff ?libsqlite3.dylib 9.6.0
+> (compatibility 9.0.0) <2C5ED312-E646-9ADE-73A9-6199A2A43150>
+> /usr/lib/libsqlite3.dylib
+> ? ?0x7fff8439d000 - ? ? 0x7fff843defef ?com.apple.QD 3.36 (???)
+> <5DC41E81-32C9-65B2-5528-B33E934D5BB4>
+> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/QD.framework/Versions/A/QD
+> ? ?0x7fff843df000 - ? ? 0x7fff84450ff7 ?com.apple.AppleVAFramework
+> 4.10.26 (4.10.26) <28C1B366-DF2B-111B-1863-0713B105D930>
+> /System/Library/PrivateFrameworks/AppleVA.framework/Versions/A/AppleVA
+> ? ?0x7fff84451000 - ? ? 0x7fff84455ff7 ?libmathCommon.A.dylib 315.0.0
+> (compatibility 1.0.0) <95718673-FEEE-B6ED-B127-BCDBDB60D4E5>
+> /usr/lib/system/libmathCommon.A.dylib
+> ? ?0x7fff84597000 - ? ? 0x7fff845e0fef ?libGLU.dylib ??? (???)
+> <1C050088-4AB2-2BC2-62E6-C969F925A945>
+> /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGLU.dylib
+> ? ?0x7fff845e1000 - ? ? 0x7fff845e3fff
+> com.apple.print.framework.Print 6.1 (237.1)
+> <CA8564FB-B366-7413-B12E-9892DA3C6157>
+> /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/Print.framework/Versions/A/Print
+> ? ?0x7fff845e4000 - ? ? 0x7fff84613ff7 ?com.apple.quartzfilters 1.6.0
+> (1.6.0) <9CECB4FC-1CCF-B8A2-B935-5888B21CBEEF>
+> /System/Library/Frameworks/Quartz.framework/Versions/A/Frameworks/QuartzFilters.framework/Versions/A/QuartzFilters
+> ? ?0x7fff84614000 - ? ? 0x7fff84a57fef ?libLAPACK.dylib 219.0.0
+> (compatibility 1.0.0) <0CC61C98-FF51-67B3-F3D8-C5E430C201A9>
+> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libLAPACK.dylib
+> ? ?0x7fff84a58000 - ? ? 0x7fff84b19fff ?libFontParser.dylib ??? (???)
+> <A00BB0A7-E46C-1D07-1391-194745566C7E>
+> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ATS.framework/Versions/A/Resources/libFontParser.dylib
+> ? ?0x7fff84b1a000 - ? ? 0x7fff84b5dff7 ?libRIP.A.dylib 545.0.0
+> (compatibility 64.0.0) <5FF3D7FD-84D8-C5FA-D640-90BB82EC651D>
+> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/CoreGraphics.framework/Versions/A/Resources/libRIP.A.dylib
+> ? ?0x7fff84bd3000 - ? ? 0x7fff84c33fe7 ?com.apple.framework.IOKit 2.0
+> (???) <4F071EF0-8260-01E9-C641-830E582FA416>
+> /System/Library/Frameworks/IOKit.framework/Versions/A/IOKit
+> ? ?0x7fff84dcd000 - ? ? 0x7fff84e06ff7 ?com.apple.MeshKit 1.1 (49.2)
+> <3795F201-4A5F-3D40-57E0-87AD6B714239>
+> /System/Library/PrivateFrameworks/MeshKit.framework/Versions/A/MeshKit
+> ? ?0x7fff84e37000 - ? ? 0x7fff84e3dff7 ?com.apple.DiskArbitration 2.3
+> (2.3) <857F6E43-1EF4-7D53-351B-10DE0A8F992A>
+> /System/Library/Frameworks/DiskArbitration.framework/Versions/A/DiskArbitration
+> ? ?0x7fff84e3e000 - ? ? 0x7fff84f73fff
+> com.apple.audio.toolbox.AudioToolbox 1.6.7 (1.6.7)
+> <E5D7DBDB-6DDF-E6F9-C71C-86F4520EE5A3>
+> /System/Library/Frameworks/AudioToolbox.framework/Versions/A/AudioToolbox
+> ? ?0x7fff84f74000 - ? ? 0x7fff84fb1ff7 ?libFontRegistry.dylib ???
+> (???) <4C3293E2-851B-55CE-3BE3-29C425DD5DFF>
+> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ATS.framework/Versions/A/Resources/libFontRegistry.dylib
+> ? ?0x7fff84fb2000 - ? ? 0x7fff84fb8fff ?libCGXCoreImage.A.dylib
+> 545.0.0 (compatibility 64.0.0) <D2F8C7E3-CBA1-2E66-1376-04AA839DABBB>
+> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/CoreGraphics.framework/Versions/A/Resources/libCGXCoreImage.A.dylib
+> ? ?0x7fff8512b000 - ? ? 0x7fff8513fff7
+> com.apple.speech.synthesis.framework 3.10.35 (3.10.35)
+> <621B7415-A0B9-07A7-F313-36BEEDD7B132>
+> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/SpeechSynthesis.framework/Versions/A/SpeechSynthesis
+> ? ?0x7fff85140000 - ? ? 0x7fff85151fff
+> com.apple.DSObjCWrappers.Framework 10.6 (134)
+> <3C08225D-517E-2822-6152-F6EB13A4ADF9>
+> /System/Library/PrivateFrameworks/DSObjCWrappers.framework/Versions/A/DSObjCWrappers
+> ? ?0x7fff85152000 - ? ? 0x7fff85290fff ?com.apple.CoreData 102.1
+> (251) <32233D4D-00B7-CE14-C881-6BF19FD05A03>
+> /System/Library/Frameworks/CoreData.framework/Versions/A/CoreData
+> ? ?0x7fff852b4000 - ? ? 0x7fff852e7ff7 ?libTrueTypeScaler.dylib ???
+> (???) <69D4A213-45D2-196D-7FF8-B52A31DFD329>
+> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ATS.framework/Versions/A/Resources/libTrueTypeScaler.dylib
+> ? ?0x7fff852f4000 - ? ? 0x7fff85490fff ?com.apple.WebKit 6534
+> (6534.50) <05AEA122-3F31-0F56-4AA6-E84140C53785>
+> /System/Library/Frameworks/WebKit.framework/Versions/A/WebKit
+> ? ?0x7fff854dc000 - ? ? 0x7fff857dafff ?com.apple.HIToolbox 1.6.5
+> (???) <AD1C18F6-51CB-7E39-35DD-F16B1EB978A8>
+> /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/HIToolbox
+> ? ?0x7fff857db000 - ? ? 0x7fff85a44fff ?com.apple.QuartzComposer 4.2
+> ({156.30}) <C05B97F7-F543-C329-873D-097177226D79>
+> /System/Library/Frameworks/Quartz.framework/Versions/A/Frameworks/QuartzComposer.framework/Versions/A/QuartzComposer
+> ? ?0x7fff85a51000 - ? ? 0x7fff85a6cff7 ?com.apple.openscripting 1.3.1
+> (???) <FD46A0FE-AC79-3EF7-AB4F-396D376DDE71>
+> /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/OpenScripting.framework/Versions/A/OpenScripting
+> ? ?0x7fff85ab8000 - ? ? 0x7fff85abdfff ?libGFXShared.dylib ??? (???)
+> <1D0D3531-9561-632C-D620-1A8652BEF5BC>
+> /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGFXShared.dylib
+> ? ?0x7fff85abe000 - ? ? 0x7fff85adffff ?libresolv.9.dylib 41.0.0
+> (compatibility 1.0.0) <6993F348-428F-C97E-7A84-7BD2EDC46A62>
+> /usr/lib/libresolv.9.dylib
+> ? ?0x7fff85ae0000 - ? ? 0x7fff85b4cfe7 ?com.apple.CorePDF 1.4 (1.4)
+> <06AE6D85-64C7-F9CC-D001-BD8BAE31B6D2>
+> /System/Library/PrivateFrameworks/CorePDF.framework/Versions/A/CorePDF
+> ? ?0x7fff85b4d000 - ? ? 0x7fff85b6aff7 ?libPng.dylib ??? (???)
+> <6D8E515B-E0A2-2BA1-9CAC-8CB8A8B35879>
+> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ImageIO.framework/Versions/A/Resources/libPng.dylib
+> ? ?0x7fff85b6b000 - ? ? 0x7fff85b71ff7 ?IOSurface ??? (???)
+> <04EDCEDE-E36F-15F8-DC67-E61E149D2C9A>
+> /System/Library/Frameworks/IOSurface.framework/Versions/A/IOSurface
+> ? ?0x7fff85b87000 - ? ? 0x7fff85bdaff7 ?com.apple.HIServices 1.8.3
+> (???) <F6E0C7A7-C11D-0096-4DDA-2C77793AA6CD>
+> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/HIServices.framework/Versions/A/HIServices
+> ? ?0x7fff85f61000 - ? ? 0x7fff85fe3fff
+> com.apple.QuickLookUIFramework 2.3 (327.6)
+> <9093682A-0E2D-7D27-5F22-C96FD00AE970>
+> /System/Library/Frameworks/Quartz.framework/Versions/A/Frameworks/QuickLookUI.framework/Versions/A/QuickLookUI
+> ? ?0x7fff85fe4000 - ? ? 0x7fff85ffdfff ?com.apple.CFOpenDirectory
+> 10.6 (10.6) <CCF79716-7CC6-2520-C6EB-A4F56AD0A207>
+> /System/Library/Frameworks/OpenDirectory.framework/Versions/A/Frameworks/CFOpenDirectory.framework/Versions/A/CFOpenDirectory
+> ? ?0x7fff85ffe000 - ? ? 0x7fff8600bfe7 ?libCSync.A.dylib 545.0.0
+> (compatibility 64.0.0) <1C35FA50-9C70-48DC-9E8D-2054F7A266B1>
+> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/CoreGraphics.framework/Versions/A/Resources/libCSync.A.dylib
+> ? ?0x7fff8606a000 - ? ? 0x7fff86a64ff7 ?com.apple.AppKit 6.6.8
+> (1038.36) <4CFBE04C-8FB3-B0EA-8DDB-7E7D10E9D251>
+> /System/Library/Frameworks/AppKit.framework/Versions/C/AppKit
+> ? ?0x7fff86a65000 - ? ? 0x7fff86a77fe7 ?libsasl2.2.dylib 3.15.0
+> (compatibility 3.0.0) <76B83C8D-8EFE-4467-0F75-275648AFED97>
+> /usr/lib/libsasl2.2.dylib
+> ? ?0x7fff86a78000 - ? ? 0x7fff86dacfef
+> com.apple.CoreServices.CarbonCore 861.39 (861.39)
+> <1386A24D-DD15-5903-057E-4A224FAF580B>
+> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/CarbonCore.framework/Versions/A/CarbonCore
+> ? ?0x7fff86dad000 - ? ? 0x7fff86ed5ff7 ?com.apple.MediaToolbox
+> 0.484.52 (484.52) <F03DAC32-79DB-EA5A-9B8D-CB288AF91A56>
+> /System/Library/PrivateFrameworks/MediaToolbox.framework/Versions/A/MediaToolbox
+> ? ?0x7fff86ed6000 - ? ? 0x7fff876e0fe7 ?libBLAS.dylib 219.0.0
+> (compatibility 1.0.0) <FC941ECB-71D0-FAE3-DCBF-C5A619E594B8>
+> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib
+> ? ?0x7fff876e1000 - ? ? 0x7fff876f7fe7
+> com.apple.MultitouchSupport.framework 207.11 (207.11)
+> <8233CE71-6F8D-8B3C-A0E1-E123F6406163>
+> /System/Library/PrivateFrameworks/MultitouchSupport.framework/Versions/A/MultitouchSupport
+> ? ?0x7fff876f8000 - ? ? 0x7fff877adfe7 ?com.apple.ink.framework 1.3.3
+> (107) <FFC46EE0-3544-A459-2AB9-94778A75E3D4>
+> /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/Ink.framework/Versions/A/Ink
+> ? ?0x7fff877ae000 - ? ? 0x7fff877aeff7 ?com.apple.vecLib 3.6 (vecLib
+> 3.6) <08D3D45D-908B-B86A-00BA-0F978D2702A7>
+> /System/Library/Frameworks/vecLib.framework/Versions/A/vecLib
+> ? ?0x7fff877af000 - ? ? 0x7fff87970fef ?libSystem.B.dylib 125.2.11
+> (compatibility 1.0.0) <9AB4F1D1-89DC-0E8A-DC8E-A4FE4D69DB69>
+> /usr/lib/libSystem.B.dylib
+> ? ?0x7fff87971000 - ? ? 0x7fff87a00fff ?com.apple.PDFKit 2.5.1
+> (2.5.1) <7B8A187A-F0BB-44E7-FBD4-9E1C5F9D5E85>
+> /System/Library/Frameworks/Quartz.framework/Versions/A/Frameworks/PDFKit.framework/Versions/A/PDFKit
+> ? ?0x7fff87a01000 - ? ? 0x7fff87a21ff7
+> com.apple.DirectoryService.Framework 3.6 (621.11)
+> <AD76C757-6701-BDB5-631E-1CB77D669586>
+> /System/Library/Frameworks/DirectoryService.framework/Versions/A/DirectoryService
+> ? ?0x7fff87a22000 - ? ? 0x7fff87aa7ff7
+> com.apple.print.framework.PrintCore 6.3 (312.7)
+> <CDFE82DD-D811-A091-179F-6E76069B432D>
+> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/PrintCore.framework/Versions/A/PrintCore
+> ? ?0x7fff87ab6000 - ? ? 0x7fff87ab6ff7 ?com.apple.Accelerate.vecLib
+> 3.6 (vecLib 3.6) <DA9BFF01-40DF-EBD5-ABB7-787DAF2D77CF>
+> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/vecLib
+> ? ?0x7fff87ab7000 - ? ? 0x7fff87ac6fff ?com.apple.NetFS 3.2.2 (3.2.2)
+> <7CCBD70E-BF31-A7A7-DB98-230687773145>
+> /System/Library/Frameworks/NetFS.framework/Versions/A/NetFS
+> ? ?0x7fff87ac7000 - ? ? 0x7fff87b45ff7 ?com.apple.CoreText 151.10
+> (???) <54961997-55D8-DC0F-2634-674E452D5A8E>
+> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/CoreText.framework/Versions/A/CoreText
+> ? ?0x7fff87b54000 - ? ? 0x7fff87c4cff7 ?libiconv.2.dylib 7.0.0
+> (compatibility 7.0.0) <7E4ADB5A-CC77-DCFD-3E54-2F35A2C8D95A>
+> /usr/lib/libiconv.2.dylib
+> ? ?0x7fff87e73000 - ? ? 0x7fff87e81ff7 ?libkxld.dylib ??? (???)
+> <8145A534-95CC-9F3C-B78B-AC9898F38C6F> /usr/lib/system/libkxld.dylib
+> ? ?0x7fff87e82000 - ? ? 0x7fff87e82ff7 ?com.apple.CoreServices 44
+> (44) <DC7400FB-851E-7B8A-5BF6-6F50094302FB>
+> /System/Library/Frameworks/CoreServices.framework/Versions/A/CoreServices
+> ? ?0x7fff87e83000 - ? ? 0x7fff87ffafe7 ?com.apple.CoreFoundation
+> 6.6.5 (550.43) <31A1C118-AD96-0A11-8BDF-BD55B9940EDC>
+> /System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation
+> ? ?0x7fff8807a000 - ? ? 0x7fff8807aff7 ?com.apple.Accelerate 1.6
+> (Accelerate 1.6) <2BB7D669-4B40-6A52-ADBD-DA4DB3BC0B1B>
+> /System/Library/Frameworks/Accelerate.framework/Versions/A/Accelerate
+> ? ?0x7fff8807b000 - ? ? 0x7fff88581ff7 ?com.apple.VideoToolbox
+> 0.484.52 (484.52) <FA1B8197-8F5F-73CB-A9A1-49E0FB49CF51>
+> /System/Library/PrivateFrameworks/VideoToolbox.framework/Versions/A/VideoToolbox
+> ? ?0x7fff88582000 - ? ? 0x7fff8858dff7
+> com.apple.speech.recognition.framework 3.11.1 (3.11.1)
+> <F0DDF27E-DB55-07CE-E548-C62095BE8167>
+> /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/SpeechRecognition.framework/Versions/A/SpeechRecognition
+> ? ?0x7fff88596000 - ? ? 0x7fff88754fff ?libicucore.A.dylib 40.0.0
+> (compatibility 1.0.0) <4274FC73-A257-3A56-4293-5968F3428854>
+> /usr/lib/libicucore.A.dylib
+> ? ?0x7fff8875b000 - ? ? 0x7fff887a6fef ?com.apple.ImageCaptureCore
+> 1.1 (1.1) <F23CA537-4F18-76FC-8D9C-ED6E645186FC>
+> /System/Library/Frameworks/ImageCaptureCore.framework/Versions/A/ImageCaptureCore
+> ? ?0x7fff887a7000 - ? ? 0x7fff887f6fef ?libTIFF.dylib ??? (???)
+> <1E2593D1-A7F6-84C6-DF8F-0B46AE445926>
+> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ImageIO.framework/Versions/A/Resources/libTIFF.dylib
+> ? ?0x7fff88a49000 - ? ? 0x7fff88a8afef ?com.apple.CoreMedia 0.484.52
+> (484.52) <3F868AF8-1089-10C3-DCEB-565690FD9742>
+> /System/Library/PrivateFrameworks/CoreMedia.framework/Versions/A/CoreMedia
+> ? ?0x7fff88a8b000 - ? ? 0x7fff88a8bff7 ?com.apple.Carbon 150 (152)
+> <1E95560E-7036-A7FB-66FA-8ABA150343D6>
+> /System/Library/Frameworks/Carbon.framework/Versions/A/Carbon
+> ? ?0x7fff88abb000 - ? ? 0x7fff88b3afe7 ?com.apple.audio.CoreAudio
+> 3.2.6 (3.2.6) <79E256EB-43F1-C7AA-6436-124A4FFB02D0>
+> /System/Library/Frameworks/CoreAudio.framework/Versions/A/CoreAudio
+> ? ?0x7fff88b3b000 - ? ? 0x7fff88b41ff7 ?com.apple.CommerceCore 1.0
+> (9.1) <3691E9BA-BCF4-98C7-EFEC-78DA6825004E>
+> /System/Library/PrivateFrameworks/CommerceKit.framework/Versions/A/Frameworks/CommerceCore.framework/Versions/A/CommerceCore
+> ? ?0x7fff88b42000 - ? ? 0x7fff88b42ff7 ?com.apple.quartzframework 1.5
+> (1.5) <5BFE5998-26D9-0AF1-1522-55C78E41F778>
+> /System/Library/Frameworks/Quartz.framework/Versions/A/Quartz
+> ? ?0x7fff88b43000 - ? ? 0x7fff88ee0fe7 ?com.apple.QuartzCore 1.6.3
+> (227.37) <16DFF6CD-EA58-CE62-A1D7-5F6CE3D066DD>
+> /System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore
+> ? ?0x7fff88ee1000 - ? ? 0x7fff890eeff7 ?com.apple.JavaScriptCore 6534
+> (6534.49) <1D418EF7-CDBE-3832-0157-D853073948D0>
+> /System/Library/Frameworks/JavaScriptCore.framework/Versions/A/JavaScriptCore
+> ? ?0x7fff89105000 - ? ? 0x7fff89119fff ?libGL.dylib ??? (???)
+> <2ECE3B0F-39E1-3938-BF27-7205C6D0358B>
+> /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib
+> ? ?0x7fff8911a000 - ? ? 0x7fff8911cfef ?com.apple.ExceptionHandling
+> 1.5 (10) <F2867B93-A56A-974F-9556-266BCE394057>
+> /System/Library/Frameworks/ExceptionHandling.framework/Versions/A/ExceptionHandling
+> ? ?0x7fff8917a000 - ? ? 0x7fff89294fef ?libGLProgrammability.dylib
+> ??? (???) <8A4B86E3-0FA7-8684-2EF2-C5F8079428DB>
+> /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGLProgrammability.dylib
+> ? ?0x7fff89295000 - ? ? 0x7fff89295ff7 ?com.apple.Cocoa 6.6 (???)
+> <68B0BE46-6E24-C96F-B341-054CF9E8F3B6>
+> /System/Library/Frameworks/Cocoa.framework/Versions/A/Cocoa
+> ? ?0x7fff892af000 - ? ? 0x7fff892b4fff ?libGIF.dylib ??? (???)
+> <201B8077-B5CC-11AA-E1B0-1D057ABE416A>
+> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ImageIO.framework/Versions/A/Resources/libGIF.dylib
+> ? ?0x7fff892b5000 - ? ? 0x7fff892ccfff ?com.apple.ImageCapture 6.1
+> (6.1) <79AB2131-2A6C-F351-38A9-ED58B25534FD>
+> /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/ImageCapture.framework/Versions/A/ImageCapture
+> ? ?0x7fff892cd000 - ? ? 0x7fff8938efef ?com.apple.ColorSync 4.6.6
+> (4.6.6) <BB2C5813-C61D-3CBA-A8F7-0E59E46EBEE8>
+> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ColorSync.framework/Versions/A/ColorSync
+> ? ?0x7fff89447000 - ? ? 0x7fff89458ff7 ?libz.1.dylib 1.2.3
+> (compatibility 1.0.0) <FB5EE53A-0534-0FFA-B2ED-486609433717>
+> /usr/lib/libz.1.dylib
+> ? ?0x7fff89475000 - ? ? 0x7fff894b6fff ?com.apple.SystemConfiguration
+> 1.10.8 (1.10.2) <78D48D27-A9C4-62CA-2803-D0BBED82855A>
+> /System/Library/Frameworks/SystemConfiguration.framework/Versions/A/SystemConfiguration
+> ? ?0x7fff894b7000 - ? ? 0x7fff894f2fff ?com.apple.AE 496.5 (496.5)
+> <208DF391-4DE6-81ED-C697-14A2930D1BC6>
+> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/AE.framework/Versions/A/AE
+> ? ?0x7fff894f3000 - ? ? 0x7fff895d0fff ?com.apple.vImage 4.1 (4.1)
+> <C3F44AA9-6F71-0684-2686-D3BBC903F020>
+> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vImage.framework/Versions/A/vImage
+> ? ?0x7fff8964f000 - ? ? 0x7fff896ccfef ?libstdc++.6.dylib 7.9.0
+> (compatibility 7.0.0) <35ECA411-2C08-FD7D-11B1-1B7A04921A5C>
+> /usr/lib/libstdc++.6.dylib
+> ? ?0x7fff896cd000 - ? ? 0x7fff89907fef ?com.apple.imageKit 2.0.3
+> (1.0) <9EA216AF-82D6-201C-78E5-D027D85B51D6>
+> /System/Library/Frameworks/Quartz.framework/Versions/A/Frameworks/ImageKit.framework/Versions/A/ImageKit
+> ? ?0x7fff89952000 - ? ? 0x7fff89bdbff7 ?com.apple.security 6.1.2
+> (55002) <4419AFFC-DAE7-873E-6A7D-5C9A5A4497A6>
+> /System/Library/Frameworks/Security.framework/Versions/A/Security
+> ? ?0x7fff89be1000 - ? ? 0x7fff89c36ff7
+> com.apple.framework.familycontrols 2.0.2 (2020)
+> <F09541B6-5E28-1C01-C1AE-F6A2508670C7>
+> /System/Library/PrivateFrameworks/FamilyControls.framework/Versions/A/FamilyControls
+> ? ?0x7fff89c37000 - ? ? 0x7fff89c5afff ?com.apple.opencl 12.3.6
+> (12.3.6) <42FA5783-EB80-1168-4015-B8C68F55842F>
+> /System/Library/Frameworks/OpenCL.framework/Versions/A/OpenCL
+> ? ?0x7fff89c5b000 - ? ? 0x7fff89d7afe7 ?libcrypto.0.9.8.dylib 0.9.8
+> (compatibility 0.9.8) <14115D29-432B-CF02-6B24-A60CC533A09E>
+> /usr/lib/libcrypto.0.9.8.dylib
+> ? ?0x7fff89d7b000 - ? ? 0x7fff89d90ff7 ?com.apple.LangAnalysis 1.6.6
+> (1.6.6) <DC999B32-BF41-94C8-0583-27D9AB463E8B>
+> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/LangAnalysis.framework/Versions/A/LangAnalysis
+> ? ?0x7fff89dd0000 - ? ? 0x7fff89dd3ff7 ?com.apple.securityhi 4.0
+> (36638) <38935851-09E4-DDAB-DB1D-30ADC39F7ED0>
+> /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/SecurityHI.framework/Versions/A/SecurityHI
+> ? ?0x7fff89dd4000 - ? ? 0x7fff89e20fff ?libauto.dylib ??? (???)
+> <F7221B46-DC4F-3153-CE61-7F52C8C293CF> /usr/lib/libauto.dylib
+> ? ?0x7fff89e21000 - ? ? 0x7fff8a51dff7 ?com.apple.CoreGraphics
+> 1.545.0 (???) <58D597B1-EB3B-710E-0B8C-EC114D54E11B>
+> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/CoreGraphics.framework/Versions/A/CoreGraphics
+> ? ?0x7fff8a51e000 - ? ? 0x7fff8a52dfef ?com.apple.opengl 1.6.13
+> (1.6.13) <516098B3-4517-8A55-64BB-195CDAA5334D>
+> /System/Library/Frameworks/OpenGL.framework/Versions/A/OpenGL
+> ? ?0x7fff8a536000 - ? ? 0x7fff8a570fff ?libcups.2.dylib 2.8.0
+> (compatibility 2.0.0) <7982734A-B66B-44AA-DEEC-364D2C10009B>
+> /usr/lib/libcups.2.dylib
+> ? ?0x7fff8a571000 - ? ? 0x7fff8a5b8ff7 ?com.apple.coreui 2 (114)
+> <D7645B59-0431-6283-7322-957D944DAB21>
+> /System/Library/PrivateFrameworks/CoreUI.framework/Versions/A/CoreUI
+> ? ?0x7fff8a5b9000 - ? ? 0x7fff8a6c3ff7 ?com.apple.MeshKitIO 1.1
+> (49.2) <F296E151-80AE-7764-B969-C2050DF26BFE>
+> /System/Library/PrivateFrameworks/MeshKit.framework/Versions/A/Frameworks/MeshKitIO.framework/Versions/A/MeshKitIO
+> ? ?0x7fffffe00000 - ? ? 0x7fffffe01fff ?libSystem.B.dylib ??? (???)
+> <9AB4F1D1-89DC-0E8A-DC8E-A4FE4D69DB69> /usr/lib/libSystem.B.dylib
+>
+> Model: MacBookPro6,1, BootROM MBP61.0057.B0C, 2 processors, Intel Core
+> i7, 2.66 GHz, 8 GB, SMC 1.57f17
+> Graphics: NVIDIA GeForce GT 330M, NVIDIA GeForce GT 330M, PCIe, 512 MB
+> Graphics: Intel HD Graphics, Intel HD Graphics, Built-In, 288 MB
+> Memory Module: global_name
+> AirPort: spairport_wireless_card_type_airport_extreme (0x14E4, 0x93),
+> Broadcom BCM43xx 1.0 (5.10.131.42.4)
+> Bluetooth: Version 2.4.5f3, 2 service, 19 devices, 1 incoming serial ports
+> Network Service: Ethernet, Ethernet, en0
+> Network Service: AirPort, AirPort, en1
+> Serial ATA Device: Hitachi HTS725050A9A362, 465.76 GB
+> Serial ATA Device: HL-DT-ST DVDRW ?GS23N
+> USB Device: Hub, 0x0424 ?(SMSC), 0x2514, 0xfa100000 / 2
+> USB Device: Apple Internal Keyboard / Trackpad, 0x05ac ?(Apple Inc.),
+> 0x0236, 0xfa120000 / 4
+> USB Device: BRCM2070 Hub, 0x0a5c ?(Broadcom Corp.), 0x4500, 0xfa110000 / 3
+> USB Device: Bluetooth USB Host Controller, 0x05ac ?(Apple Inc.),
+> 0x8218, 0xfa113000 / 6
+> USB Device: Hub, 0x0424 ?(SMSC), 0x2514, 0xfd100000 / 2
+> USB Device: Hub, 0x05ac ?(Apple Inc.), 0x9136, 0xfd140000 / 5
+> USB Device: Keyboard Hub, 0x05ac ?(Apple Inc.), 0x1006, 0xfd141000 / 11
+> USB Device: Trackball, 0x046d ?(Logitech Inc.), 0xc404, 0xfd141300 / 13
+> USB Device: Apple Keyboard, 0x05ac ?(Apple Inc.), 0x0220, 0xfd141200 / 12
+> USB Device: USB Audio DAC, 0x08bb ?(Texas Instruments Japan), 0x2704,
+> 0xfd142000 / 7
+> USB Device: Hub, 0x05ac ?(Apple Inc.), 0x9137, 0xfd144000 / 6
+> USB Device: Display Audio, 0x05ac ?(Apple Inc.), 0x2912, 0xfd144100 / 10
+> USB Device: Apple LED Cinema Display, 0x05ac ?(Apple Inc.), 0x9236,
+> 0xfd144300 / 9
+> USB Device: Display iSight, 0x05ac ?(Apple Inc.), 0x8508, 0xfd144200 / 8
+> USB Device: IR Receiver, 0x05ac ?(Apple Inc.), 0x8242, 0xfd120000 / 4
+> USB Device: Built-in iSight, 0x05ac ?(Apple Inc.), 0x8507, 0xfd110000 / 3
+> FireWire Device: unknown_device, Unknown
+>
+>
+> --
+>
+> Max
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From mxkuhn at gmail.com  Mon Sep 26 22:01:12 2011
+From: mxkuhn at gmail.com (Max Kuhn)
+Date: Mon, 26 Sep 2011 16:01:12 -0400
+Subject: [R-sig-hpc] doMC and RWeka
+In-Reply-To: <CALh21iL1=+D2jnbmDiWxVTa6+TNVWjmhnNvA2fSGia8woMqhoQ@mail.gmail.com>
+References: <CAJ9CoWkzJY7LGC_hun095w5yv8Bwqm1jszQOwtX8wsA-A28m0A@mail.gmail.com>
+	<CALh21iL1=+D2jnbmDiWxVTa6+TNVWjmhnNvA2fSGia8woMqhoQ@mail.gmail.com>
+Message-ID: <CAJ9CoWkO81STFeAjpKAJy6zD3hKRMxbaZVpQU+c7EokD=_Ds1g@mail.gmail.com>
+
+Thanks Steve. That makes sense.
+
+On Mon, Sep 26, 2011 at 1:11 PM, Stephen Weston
+<stephen.b.weston at gmail.com> wrote:
+> Hi Max,
+>
+> I think the key information in that huge error dump is:
+>
+> ? Application Specific Information:
+> ? *** multi-threaded process forked ***
+>
+> This suggests to me that the error was caused by the
+> forking done in mclapply to start the worker processes.
+> That would explain why doMPI works.
+>
+> If that's the case, you probably can't use M5Rules with
+> doMC/multicore.
+>
+> - Steve
+>
+>
+> On Mon, Sep 26, 2011 at 12:20 PM, Max Kuhn <mxkuhn at gmail.com> wrote:
+>> Everyone,
+>>
+>> I recently converted the caret package do use foreach for
+>> parallelizing resampling computations, such as cross-validation.
+>>
+>> Below is an example that approximates what caret does. When using
+>> foreach with dopar and no parallelization, things work fine. ?For
+>> example, if I run the code below without doMC loaded it, works fine.
+>>
+>> If I run the code below (Rweka model and multicore), the workers start
+>> but do not appear to use any CPU time.
+>>
+>> If I run first without doMC then load doMC and 2 workers, I get ?#
+>> fatal error: mach_msg (send) failed: 0x10000003? (much more
+>> information is below) .
+>>
+>> The code below with doMPI also works without error.
+>>
+>> Any ideas?
+>>
+>> Thanks,
+>>
+>> Max
+>>
+>>> sessionInfo()
+>> R version 2.13.1 (2011-07-08)
+>> Platform: x86_64-apple-darwin9.8.0/x86_64 (64-bit)
+>>
+>> locale:
+>> [1] en_US.UTF-8/en_US.UTF-8/C/C/en_US.UTF-8/en_US.UTF-8
+>>
+>> attached base packages:
+>> [1] stats ? ? graphics ?grDevices utils ? ? datasets ?methods ? base
+>>
+>> other attached packages:
+>> [1] doMC_1.2.2 ? ? ?multicore_0.1-5 RWeka_0.4-8 ? ? mlbench_2.1-0
+>> [5] foreach_1.3.2 ? codetools_0.2-8 iterators_1.0.5
+>>
+>> loaded via a namespace (and not attached):
+>> [1] compiler_2.13.1 ? grid_2.13.1 ? ? ? rJava_0.9-1 ? ? ? RWekajars_3.7.3-1
+>> [5] tools_2.13.1
+>>
+>>
+>> ###############################################################
+>> ## code
+>>
+>> library(foreach)
+>> library(mlbench)
+>> library(doMC)
+>> registerDoMC(2)
+>>
+>>
+>> if(FALSE)
+>> ?{
+>> ? ?## this worked
+>> ? ?library(doMPI)
+>> ? ?cl <- startMPIcluster(2)
+>> ? ?registerDoMPI(cl)
+>>
+>> ?}
+>> data(BostonHousing)
+>>
+>> resampleIndex <- vector(mode = "list", length = 5)
+>> set.seed(1)
+>> resampleIndex <- lapply(resampleIndex,
+>> ? ? ? ? ? ? ? ? ? ? ? ?function(x, y) sample(1:nrow(y), replace = TRUE),
+>> ? ? ? ? ? ? ? ? ? ? ? ?y = BostonHousing)
+>>
+>> parameters <- data.frame(pruning = c(TRUE, FALSE))
+>> result <- foreach(iter = seq(along = resampleIndex), .combine =
+>> "rbind", .verbose = FALSE, .errorhandling = "stop") %:%
+>> ?foreach(parm = 1:nrow(parameters), .combine = "rbind", .verbose =
+>> FALSE, .errorhandling = "stop") %dopar%
+>> {
+>>
+>> ?library(RWeka)
+>> ?dataSubset <- BostonHousing[resampleIndex[[iter]],]
+>> ?holdOut <- unique(resampleIndex[[iter]])
+>> ?model <- M5Rules(medv ~ ., data = dataSubset,
+>> ? ? ? ? ? ? ? ? ? control = Weka_control(N = parameters$pruning[parm]))
+>> ?## test non-Weka models using lm:
+>> ?## model <- lm(medv ~ ., data = dataSubset)
+>> ?pred <- predict(model, BostonHousing[-holdOut, -14])
+>> ?data.frame(obs = BostonHousing$medv[-holdOut],
+>> ? ? ? ? ? ? pred = pred,
+>> ? ? ? ? ? ? prune = parameters$pruning[parm],
+>> ? ? ? ? ? ? subset = iter)
+>> }
+>>
+>>
+>> ###############################################################
+>>
+>> Process: ? ? ? ? R [1481]
+>> Path: ? ? ? ? ? ?/Applications/R64.app/Contents/MacOS/R
+>> Identifier: ? ? ?R
+>> Version: ? ? ? ? ??? (???)
+>> Code Type: ? ? ? X86-64 (Native)
+>> Parent Process: ?R [1314]
+>>
+>> Date/Time: ? ? ? 2011-09-26 12:01:10.930 -0400
+>> OS Version: ? ? ?Mac OS X 10.6.8 (10K549)
+>> Report Version: ?6
+>>
+>> Anonymous UUID: ? ? ? ? ? ? ? ? ? ? ?EAD58366-FAFB-444E-84A2-CEEC1CBD7E82
+>>
+>> Exception Type: ?EXC_BREAKPOINT (SIGTRAP)
+>> Exception Codes: 0x0000000000000002, 0x0000000000000000
+>> Crashed Thread: ?0 ?Dispatch queue: com.apple.main-thread
+>>
+>> Application Specific Information:
+>> *** multi-threaded process forked ***
+>>
+>> Java information:
+>> ?Exception type: Internal Error
+>> (/SourceCache/JavaJDK16/JavaJDK16-384/hotspot/src/os/macosx/vm/os_macosx.cpp,
+>> line 2798)
+>>
+>> # ?fatal error: mach_msg (send) failed: 0x10000003
+>> ?Java VM: Java HotSpot(TM) 64-Bit Server VM (20.1-b02-384 mixed mode
+>> macosx-amd64)
+>>
+>> Current thread (123001800): ?JavaThread "main" [_thread_in_vm,
+>> id=1893948608, stack(7fff5f400000,7fff5fc00000)]
+>> Stack: [7fff5f400000,7fff5fc00000]
+>> Java frames: (J=compiled Java code, j=interpreted, Vv=VM code)
+>> v ?~RuntimeStub::_new_array_Java
+>> J ?weka.filters.Filter.setOutputFormat(Lweka/core/Instances;)V
+>> J ?weka.filters.unsupervised.attribute.Remove.setInputFormat(Lweka/core/Instances;)Z
+>> J ?weka.classifiers.trees.m5.RuleNode.buildLinearModel([I)V
+>> J ?weka.classifiers.trees.m5.RuleNode.prune()V
+>> J ?weka.classifiers.trees.m5.RuleNode.prune()V
+>> J ?weka.classifiers.trees.m5.RuleNode.prune()V
+>> J ?weka.classifiers.trees.m5.RuleNode.prune()V
+>> J ?weka.classifiers.trees.m5.RuleNode.prune()V
+>> J ?weka.classifiers.trees.m5.RuleNode.prune()V
+>> J ?weka.classifiers.trees.m5.RuleNode.prune()V
+>> J ?weka.classifiers.trees.m5.RuleNode.prune()V
+>> J ?weka.classifiers.trees.m5.RuleNode.prune()V
+>> J ?weka.classifiers.trees.m5.RuleNode.prune()V
+>> J ?weka.classifiers.trees.m5.RuleNode.prune()V
+>> j ?weka.classifiers.trees.m5.Rule.buildClassifier(Lweka/core/Instances;)V+188
+>> j ?weka.classifiers.trees.m5.M5Base.buildClassifier(Lweka/core/Instances;)V+240
+>> v ?~StubRoutines::call_stub
+>>
+>> Java Threads: ( => current thread )
+>> ?12310b800 JavaThread "Low Memory Detector" daemon [_thread_blocked,
+>> id=722472960, stack(12b001000,12b101000)]
+>> ?12310b000 JavaThread "C2 CompilerThread1" daemon [_thread_blocked,
+>> id=719978496, stack(12ada0000,12aea0000)]
+>> ?12310a000 JavaThread "C2 CompilerThread0" daemon [_thread_blocked,
+>> id=718917632, stack(12ac9d000,12ad9d000)]
+>> ?123109800 JavaThread "Signal Dispatcher" daemon [_thread_blocked,
+>> id=717856768, stack(12ab9a000,12ac9a000)]
+>> ?123108800 JavaThread "Surrogate Locker Thread (Concurrent GC)"
+>> daemon [_thread_blocked, id=716795904, stack(12aa97000,12ab97000)]
+>> ?1230f1000 JavaThread "Finalizer" daemon [_thread_blocked,
+>> id=715735040, stack(12a994000,12aa94000)]
+>> ?1230f0000 JavaThread "Reference Handler" daemon [_thread_blocked,
+>> id=714674176, stack(12a891000,12a991000)]
+>> =>123001800 JavaThread "main" [_thread_in_vm, id=1893948608,
+>> stack(7fff5f400000,7fff5fc00000)]
+>> Other Threads:
+>> ?1230eb800 VMThread [stack: 12a78e000,12a88e000] [id=713613312]
+>> ?12311d800 WatcherThread [stack: 12b104000,12b204000] [id=723533824]
+>>
+>> VM state:not at safepoint (normal execution)
+>> VM Mutex/Monitor currently owned by a thread: ?([mutex/lock_event])
+>> [11d1027a0] Heap_lock - owner thread: 123001800
+>>
+>> Heap
+>> ?par new generation ? total 19136K, used 17081K [7dae00000, 7dc2c0000,
+>> 7dee00000)
+>> ?eden space 17024K, 100% used [7dae00000, 7dbea0000, 7dbea0000)
+>> ?from space 2112K, ? 2% used [7dbea0000, 7dbeae560, 7dc0b0000)
+>> ?to ? space 2112K, ? 0% used [7dc0b0000, 7dc0b0000, 7dc2c0000)
+>> ?concurrent mark-sweep generation total 63872K, used 29717K
+>> [7dee00000, 7e2c60000, 7fae00000)
+>> ?concurrent-mark-sweep perm gen total 21248K, used 6499K [7fae00000,
+>> 7fc2c0000, 800000000)
+>>
+>> Code Cache ?[123801000, 123a72000, 126801000)
+>> ?total_blobs=546 nmethods=338 adapters=170 free_code_cache=48470144
+>> largest_free_block=57920
+>>
+>> Virtual Machine Arguments:
+>> JVM Args: -Dr.arch=/x86_64 -Xmx512m vfprintf exit
+>> Java Command: <unknown>
+>> Launcher Type: generic
+>> Physical Memory: Page Size = 4k, Total = 8192M, Free = 5435M
+>>
+>>
+>> Thread 0 Crashed: ?Dispatch queue: com.apple.main-thread
+>> 0 ? libclient64.dylib ? ? ? ? ? ? ? ? 0x0000000116cd6364
+>> JVM_RaiseSignal + 574914
+>> 1 ? libclient64.dylib ? ? ? ? ? ? ? ? 0x00000001168cba9a jio_snprintf + 38228
+>> 2 ? libclient64.dylib ? ? ? ? ? ? ? ? 0x0000000116a5b443
+>> JVM_MonitorNotifyAll + 4747
+>> 3 ? libclient64.dylib ? ? ? ? ? ? ? ? 0x000000011694a1a1 JVM_Lseek + 91023
+>> 4 ? libclient64.dylib ? ? ? ? ? ? ? ? 0x0000000116949bb7 JVM_Lseek + 89509
+>> 5 ? libclient64.dylib ? ? ? ? ? ? ? ? 0x0000000116949a38 JVM_Lseek + 89126
+>> 6 ? libclient64.dylib ? ? ? ? ? ? ? ? 0x000000011694f6be JVM_Lseek + 112812
+>> 7 ? libclient64.dylib ? ? ? ? ? ? ? ? 0x0000000116aad7cf JVM_NanoTime + 108795
+>> 8 ? ??? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? 0x000000012385e289 0 + 4890944137
+>>
+>> Thread 0 crashed with X86 Thread State (64-bit):
+>> ?rax: 0x0000000116f7c20a ?rbx: 0x00007fff5fbf2718 ?rcx:
+>> 0x00007fff877ba47a ?rdx: 0x0000000000000008
+>> ?rdi: 0x00007fff7117ae40 ?rsi: 0x0000000000000000 ?rbp:
+>> 0x00007fff5fbf26d0 ?rsp: 0x00007fff5fbf26d0
+>> ? r8: 0x00007fff711777f8 ? r9: 0x0000000000000000 ?r10:
+>> 0x00007fff5fbf2650 ?r11: 0x0000000000000206
+>> ?r12: 0x0000000000000b1b ?r13: 0x0000000116f85298 ?r14:
+>> 0x0000000123001800 ?r15: 0x0000000000000000
+>> ?rip: 0x0000000116cd6364 ?rfl: 0x0000000000000202 ?cr2: 0x0000000116fa4c7f
+>>
+>> Binary Images:
+>> ? ? ? 0x100000000 - ? ? ? ?0x10007cfef +org.R-project.R R for Mac OS
+>> X GUI 1.40-devel Leopard build 64-bit (5874)
+>> <84C20FDB-0203-FC77-4569-8AB4CA1493E2>
+>> /Applications/R64.app/Contents/MacOS/R
+>> ? ? ? 0x1000f8000 - ? ? ? ?0x100394ff3 +libR.dylib 2.13.1
+>> (compatibility 2.13.0) <438D7643-7542-E9A6-44A7-DC187176E172>
+>> /Library/Frameworks/R.framework/Versions/2.13/Resources/lib/libR.dylib
+>> ? ? ? 0x100487000 - ? ? ? ?0x1004b0ff7 +libRblas.dylib ??? (???)
+>> <3BBC8F90-AF7C-893D-09CE-C05A61E5C3C5>
+>> /Library/Frameworks/R.framework/Versions/2.13/Resources/lib/libRblas.dylib
+>> ? ? ? 0x1004b4000 - ? ? ? ?0x10056afcf +libgfortran.2.dylib 3.0.0
+>> (compatibility 3.0.0) <ACF1816E-EA8A-4DB9-A893-A4EF0CEFFFBA>
+>> /Library/Frameworks/R.framework/Versions/2.13/Resources/lib/libgfortran.2.dylib
+>> ? ? ? 0x1005af000 - ? ? ? ?0x1005d9fd9 +libreadline.5.2.dylib 5.2.0
+>> (compatibility 5.0.0)
+>> /Library/Frameworks/R.framework/Versions/2.13/Resources/lib/libreadline.5.2.dylib
+>> ? ? ? 0x100696000 - ? ? ? ?0x100699fff +multicore.so ??? (???)
+>> <75FF3B7D-9709-D6DF-2505-C13D71F01FEB>
+>> /Library/Frameworks/R.framework/Versions/2.13/Resources/library/multicore/libs/x86_64/multicore.so
+>> ? ? ? 0x114cb1000 - ? ? ? ?0x114d13fe7 +stats.so ??? (???)
+>> <D8AD5284-82CF-C43D-2AB5-529AB5B23425>
+>> /Library/Frameworks/R.framework/Versions/2.13/Resources/library/stats/libs/x86_64/stats.so
+>> ? ? ? 0x115b8f000 - ? ? ? ?0x115b95ff7 +methods.so ??? (???)
+>> <F0D64EF4-BBE8-6567-7012-0900270705BB>
+>> /Library/Frameworks/R.framework/Versions/2.13/Resources/library/methods/libs/x86_64/methods.so
+>> ? ? ? 0x115b9b000 - ? ? ? ?0x115bc6ffa +grDevices.so ??? (???)
+>> <16CFD245-DDAB-F76A-9564-6EC93BB2F847>
+>> /Library/Frameworks/R.framework/Versions/2.13/Resources/library/grDevices/libs/x86_64/grDevices.so
+>> ? ? ? 0x116800000 - ? ? ? ?0x116801fff +mlbench.so ??? (???)
+>> <59347ED1-70EA-38DB-3863-A13B6901DE56>
+>> /Library/Frameworks/R.framework/Versions/2.13/Resources/library/mlbench/libs/x86_64/mlbench.so
+>> ? ? ? 0x116804000 - ? ? ? ?0x116807fff +tools.so ??? (???)
+>> <7420B0D8-0D8C-4039-43AF-E7A3509DD77B>
+>> /Library/Frameworks/R.framework/Versions/2.13/Resources/library/tools/libs/x86_64/tools.so
+>> ? ? ? 0x116892000 - ? ? ? ?0x11689eff7 +rJava.so ??? (???)
+>> <76AD8785-1161-1738-801B-28D93FA8911E>
+>> /Library/Frameworks/R.framework/Versions/2.13/Resources/library/rJava/libs/x86_64/rJava.so
+>> ? ? ? 0x1168a5000 - ? ? ? ?0x1168aaff7 ?com.apple.JavaVM 13.5.0
+>> (13.5.0) <974CB30D-AF11-1762-859E-097A988B5A7A>
+>> /System/Library/Frameworks/JavaVM.framework/Versions/A/JavaVM
+>> ? ? ? 0x1168b2000 - ? ? ? ?0x1168b7ff7 ?JavaLaunching ??? (???)
+>> <9E94B3DF-E0FB-BE09-1F88-E6334CA87466>
+>> /System/Library/PrivateFrameworks/JavaLaunching.framework/Versions/A/JavaLaunching
+>> ? ? ? 0x1168be000 - ? ? ? ?0x116eedff7 ?libclient64.dylib ??? (???)
+>> <AF2791E1-F8EA-79E0-3951-45718D44A0DF>
+>> /System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Home/bundle/Libraries/libclient64.dylib
+>> ? ? ? 0x116fb6000 - ? ? ? ?0x116fbdfff ?libjvmlinkage.dylib ??? (???)
+>> <8F397A50-C3FF-DAE8-D0C2-86EBC59D7E7C>
+>> /System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Libraries/libjvmlinkage.dylib
+>> ? ? ? 0x11d200000 - ? ? ? ?0x11d208ff7 ?libverify.dylib 1.0 (1.0)
+>> <155BFCD9-BBA0-C03B-E411-1421586F595F>
+>> /System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Libraries/libverify.dylib
+>> ? ? ? 0x11d20e000 - ? ? ? ?0x11d219fff ?JavaNativeFoundation ???
+>> (???) <B58A4AC2-95F1-D07A-DE38-25ABCEDCDF71>
+>> /System/Library/Frameworks/JavaVM.framework/Versions/A/Frameworks/JavaNativeFoundation.framework/Versions/A/JavaNativeFoundation
+>> ? ? ? 0x11d224000 - ? ? ? ?0x11d244ff7 ?libjava.jnilib ??? (???)
+>> <CF05069A-1D0D-3DCA-E7E8-7F398588DD92>
+>> /System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Libraries/libjava.jnilib
+>> ? ? ? 0x11d35b000 - ? ? ? ?0x11d368fff ?libzip.jnilib ??? (???)
+>> <0FC6E1C1-185E-36F1-0A44-212CEB6EAD34>
+>> /System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Libraries/libzip.jnilib
+>> ? ? ? 0x12b43d000 - ? ? ? ?0x12b456fff +grid.so ??? (???)
+>> <73773A52-0F1F-BBB2-FE3D-78C3E0B1DD0B>
+>> /Library/Frameworks/R.framework/Versions/2.13/Resources/library/grid/libs/x86_64/grid.so
+>> ? ?0x7fff5fc00000 - ? ? 0x7fff5fc3bdef ?dyld 132.1 (???)
+>> <472D950D-70F8-B810-A959-9184C2AA6C74> /usr/lib/dyld
+>> ? ?0x7fff80133000 - ? ? 0x7fff80195fe7 ?com.apple.datadetectorscore
+>> 2.0 (80.7) <34592AFF-B1B8-2277-B013-70193E4E1691>
+>> /System/Library/PrivateFrameworks/DataDetectorsCore.framework/Versions/A/DataDetectorsCore
+>> ? ?0x7fff80196000 - ? ? 0x7fff801e0ff7 ?com.apple.Metadata 10.6.3
+>> (507.15) <2EF19055-D7AE-4D77-E589-7B71B0BC1E59>
+>> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Metadata
+>> ? ?0x7fff801e1000 - ? ? 0x7fff80271fff ?com.apple.SearchKit 1.3.0
+>> (1.3.0) <4175DC31-1506-228A-08FD-C704AC9DF642>
+>> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/SearchKit.framework/Versions/A/SearchKit
+>> ? ?0x7fff80272000 - ? ? 0x7fff80275ff7 ?libCoreVMClient.dylib ???
+>> (???) <E03D7C81-A3DA-D44A-A88A-DDBB98AF910B>
+>> /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libCoreVMClient.dylib
+>> ? ?0x7fff8050b000 - ? ? 0x7fff8078dfe7 ?com.apple.Foundation 6.6.7
+>> (751.62) <6F2A5BBF-6990-D561-2928-AD61E94036D9>
+>> /System/Library/Frameworks/Foundation.framework/Versions/C/Foundation
+>> ? ?0x7fff8078e000 - ? ? 0x7fff807cdfef ?libncurses.5.4.dylib 5.4.0
+>> (compatibility 5.4.0) <E1F34D53-3D62-78C0-CAD8-8AD22C110A9E>
+>> /usr/lib/libncurses.5.4.dylib
+>> ? ?0x7fff807ce000 - ? ? 0x7fff8088bfff
+>> com.apple.CoreServices.OSServices 359.2 (359.2)
+>> <BBB8888E-18DE-5D09-3C3A-F4C029EC7886>
+>> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/OSServices.framework/Versions/A/OSServices
+>> ? ?0x7fff8088c000 - ? ? 0x7fff809fcfff ?com.apple.QTKit 7.7 (1783)
+>> <DE8DB97C-C058-B40C-492B-D652A30CF571>
+>> /System/Library/Frameworks/QTKit.framework/Versions/A/QTKit
+>> ? ?0x7fff80a4d000 - ? ? 0x7fff80afdfff ?edu.mit.Kerberos 6.5.11
+>> (6.5.11) <085D80F5-C9DC-E252-C21B-03295E660C91>
+>> /System/Library/Frameworks/Kerberos.framework/Versions/A/Kerberos
+>> ? ?0x7fff80afe000 - ? ? 0x7fff80b08fff ?com.apple.DisplayServicesFW
+>> 2.3.3 (289) <97F62F36-964A-3E17-2A26-A0EEF63F4BDE>
+>> /System/Library/PrivateFrameworks/DisplayServices.framework/Versions/A/DisplayServices
+>> ? ?0x7fff80b09000 - ? ? 0x7fff80b30ff7 ?libJPEG.dylib ??? (???)
+>> <46A413EA-4FD1-A050-2EF0-6279F3EAD581>
+>> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ImageIO.framework/Versions/A/Resources/libJPEG.dylib
+>> ? ?0x7fff80b31000 - ? ? 0x7fff80b9bfe7 ?libvMisc.dylib 268.0.1
+>> (compatibility 1.0.0) <75A8D840-4ACE-6560-0889-2AFB6BE08E59>
+>> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libvMisc.dylib
+>> ? ?0x7fff80b9c000 - ? ? 0x7fff80c28fef ?SecurityFoundation ??? (???)
+>> <D844BB57-386A-0A43-249E-9BE035C2AB53>
+>> /System/Library/Frameworks/SecurityFoundation.framework/Versions/A/SecurityFoundation
+>> ? ?0x7fff815fc000 - ? ? 0x7fff8164bff7
+>> com.apple.DirectoryService.PasswordServerFramework 6.1 (6.1)
+>> <01B370FB-D524-F660-3826-E85B7F0D85CD>
+>> /System/Library/PrivateFrameworks/PasswordServer.framework/Versions/A/PasswordServer
+>> ? ?0x7fff8164c000 - ? ? 0x7fff81677ff7 ?libxslt.1.dylib 3.24.0
+>> (compatibility 3.0.0) <8AB4CA9E-435A-33DA-7041-904BA7FA11D5>
+>> /usr/lib/libxslt.1.dylib
+>> ? ?0x7fff81678000 - ? ? 0x7fff816c0ff7 ?libvDSP.dylib 268.0.1
+>> (compatibility 1.0.0) <170DE04F-89AB-E295-0880-D69CAFBD7979>
+>> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libvDSP.dylib
+>> ? ?0x7fff816cd000 - ? ? 0x7fff816ceff7
+>> com.apple.audio.units.AudioUnit 1.6.7 (1.6.7)
+>> <53299948-2554-0F8F-7501-04B34E49F6CF>
+>> /System/Library/Frameworks/AudioUnit.framework/Versions/A/AudioUnit
+>> ? ?0x7fff816cf000 - ? ? 0x7fff81716fff ?com.apple.QuickLookFramework
+>> 2.3 (327.6) <11DFB135-24A6-C0BC-5B97-ECE352A4B488>
+>> /System/Library/Frameworks/QuickLook.framework/Versions/A/QuickLook
+>> ? ?0x7fff81717000 - ? ? 0x7fff817ebfe7 ?com.apple.CFNetwork 454.12.4
+>> (454.12.4) <C83E2BA1-1818-B3E8-5334-860AD21D1C80>
+>> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/CFNetwork.framework/Versions/A/CFNetwork
+>> ? ?0x7fff817ec000 - ? ? 0x7fff81811ff7 ?com.apple.CoreVideo 1.6.2
+>> (45.6) <E138C8E7-3CB6-55A9-0A2C-B73FE63EA288>
+>> /System/Library/Frameworks/CoreVideo.framework/Versions/A/CoreVideo
+>> ? ?0x7fff820ee000 - ? ? 0x7fff820f3ff7 ?com.apple.CommonPanels 1.2.4
+>> (91) <4D84803B-BD06-D80E-15AE-EFBE43F93605>
+>> /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/CommonPanels.framework/Versions/A/CommonPanels
+>> ? ?0x7fff820f4000 - ? ? 0x7fff821d9fef ?com.apple.DesktopServices
+>> 1.5.11 (1.5.11) <39FAA3D2-6863-B5AB-AED9-92D878EA2438>
+>> /System/Library/PrivateFrameworks/DesktopServicesPriv.framework/Versions/A/DesktopServicesPriv
+>> ? ?0x7fff823e5000 - ? ? 0x7fff823e7fff ?libRadiance.dylib ??? (???)
+>> <A9DB4D5D-4072-971B-DEF6-DDE645F415EA>
+>> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ImageIO.framework/Versions/A/Resources/libRadiance.dylib
+>> ? ?0x7fff823e8000 - ? ? 0x7fff823ebfff ?com.apple.help 1.3.2 (41.1)
+>> <BD1B0A22-1CB8-263E-FF85-5BBFDE3660B9>
+>> /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/Help.framework/Versions/A/Help
+>> ? ?0x7fff82410000 - ? ? 0x7fff82417fff ?com.apple.OpenDirectory 10.6
+>> (10.6) <4200CFB0-DBA1-62B8-7C7C-91446D89551F>
+>> /System/Library/Frameworks/OpenDirectory.framework/Versions/A/OpenDirectory
+>> ? ?0x7fff82462000 - ? ? 0x7fff82466ff7 ?libCGXType.A.dylib 545.0.0
+>> (compatibility 64.0.0) <DB710299-B4D9-3714-66F7-5D2964DE585B>
+>> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/CoreGraphics.framework/Versions/A/Resources/libCGXType.A.dylib
+>> ? ?0x7fff82467000 - ? ? 0x7fff82468ff7
+>> com.apple.TrustEvaluationAgent 1.1 (1)
+>> <74800EE8-C14C-18C9-C208-20BBDB982D40>
+>> /System/Library/PrivateFrameworks/TrustEvaluationAgent.framework/Versions/A/TrustEvaluationAgent
+>> ? ?0x7fff82469000 - ? ? 0x7fff82503fe7
+>> com.apple.ApplicationServices.ATS 275.16 (???)
+>> <4B70A2FC-1902-5F27-5C3B-5C78C283C6EA>
+>> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ATS.framework/Versions/A/ATS
+>> ? ?0x7fff82504000 - ? ? 0x7fff82549fff ?com.apple.CoreMediaIOServices
+>> 140.0 (1496) <D93293EB-0B84-E97D-E78C-9FE8D48AF58E>
+>> /System/Library/PrivateFrameworks/CoreMediaIOServices.framework/Versions/A/CoreMediaIOServices
+>> ? ?0x7fff8254a000 - ? ? 0x7fff8254aff7 ?com.apple.ApplicationServices
+>> 38 (38) <10A0B9E9-4988-03D4-FC56-DDE231A02C63>
+>> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/ApplicationServices
+>> ? ?0x7fff82601000 - ? ? 0x7fff82632fff ?libGLImage.dylib ??? (???)
+>> <7F102A07-E4FB-9F52-B2F6-4E2D2383CA13>
+>> /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGLImage.dylib
+>> ? ?0x7fff82633000 - ? ? 0x7fff8274afef ?libxml2.2.dylib 10.3.0
+>> (compatibility 10.0.0) <1B27AFDD-DF87-2009-170E-C129E1572E8B>
+>> /usr/lib/libxml2.2.dylib
+>> ? ?0x7fff8274b000 - ? ? 0x7fff83785fff ?com.apple.WebCore 6534
+>> (6534.50) <8B0BB24A-C84C-A4F2-5544-C8071A35BBC5>
+>> /System/Library/Frameworks/WebKit.framework/Versions/A/Frameworks/WebCore.framework/Versions/A/WebCore
+>> ? ?0x7fff83786000 - ? ? 0x7fff83787fff ?liblangid.dylib ??? (???)
+>> <EA4D1607-2BD5-2EE2-2A3B-632EEE5A444D> /usr/lib/liblangid.dylib
+>> ? ?0x7fff83788000 - ? ? 0x7fff83946ff7 ?com.apple.ImageIO.framework
+>> 3.0.4 (3.0.4) <0A4F51A1-4502-767B-8A4E-F14C6214EF88>
+>> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ImageIO.framework/Versions/A/ImageIO
+>> ? ?0x7fff83947000 - ? ? 0x7fff83de4fff ?com.apple.RawCamera.bundle
+>> 3.8.0 (577) <38481531-657E-DFFA-1EF4-ADFCA15DAC49>
+>> /System/Library/CoreServices/RawCamera.bundle/Contents/MacOS/RawCamera
+>> ? ?0x7fff83e15000 - ? ? 0x7fff83e2bfef ?libbsm.0.dylib ??? (???)
+>> <42D3023A-A1F7-4121-6417-FCC6B51B3E90> /usr/lib/libbsm.0.dylib
+>> ? ?0x7fff83e2c000 - ? ? 0x7fff83ee2ff7 ?libobjc.A.dylib 227.0.0
+>> (compatibility 1.0.0) <03140531-3B2D-1EBA-DA7F-E12CC8F63969>
+>> /usr/lib/libobjc.A.dylib
+>> ? ?0x7fff83ee3000 - ? ? 0x7fff83f4bfff ?com.apple.MeshKitRuntime 1.1
+>> (49.2) <1F4C9AB5-9D3F-F91D-DB91-B78610562ECC>
+>> /System/Library/PrivateFrameworks/MeshKit.framework/Versions/A/Frameworks/MeshKitRuntime.framework/Versions/A/MeshKitRuntime
+>> ? ?0x7fff83f9e000 - ? ? 0x7fff83fc6fff ?com.apple.DictionaryServices
+>> 1.1.2 (1.1.2) <E9269069-93FA-2B71-F9BA-FDDD23C4A65E>
+>> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/DictionaryServices.framework/Versions/A/DictionaryServices
+>> ? ?0x7fff84240000 - ? ? 0x7fff84241fff
+>> com.apple.MonitorPanelFramework 1.3.0 (1.3.0)
+>> <5062DACE-FCE7-8E41-F5F6-58821778629C>
+>> /System/Library/PrivateFrameworks/MonitorPanel.framework/Versions/A/MonitorPanel
+>> ? ?0x7fff84242000 - ? ? 0x7fff842e2fff ?com.apple.LaunchServices
+>> 362.3 (362.3) <B90B7C31-FEF8-3C26-BFB3-D8A48BD2C0DA>
+>> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/LaunchServices
+>> ? ?0x7fff842e3000 - ? ? 0x7fff8439cfff ?libsqlite3.dylib 9.6.0
+>> (compatibility 9.0.0) <2C5ED312-E646-9ADE-73A9-6199A2A43150>
+>> /usr/lib/libsqlite3.dylib
+>> ? ?0x7fff8439d000 - ? ? 0x7fff843defef ?com.apple.QD 3.36 (???)
+>> <5DC41E81-32C9-65B2-5528-B33E934D5BB4>
+>> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/QD.framework/Versions/A/QD
+>> ? ?0x7fff843df000 - ? ? 0x7fff84450ff7 ?com.apple.AppleVAFramework
+>> 4.10.26 (4.10.26) <28C1B366-DF2B-111B-1863-0713B105D930>
+>> /System/Library/PrivateFrameworks/AppleVA.framework/Versions/A/AppleVA
+>> ? ?0x7fff84451000 - ? ? 0x7fff84455ff7 ?libmathCommon.A.dylib 315.0.0
+>> (compatibility 1.0.0) <95718673-FEEE-B6ED-B127-BCDBDB60D4E5>
+>> /usr/lib/system/libmathCommon.A.dylib
+>> ? ?0x7fff84597000 - ? ? 0x7fff845e0fef ?libGLU.dylib ??? (???)
+>> <1C050088-4AB2-2BC2-62E6-C969F925A945>
+>> /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGLU.dylib
+>> ? ?0x7fff845e1000 - ? ? 0x7fff845e3fff
+>> com.apple.print.framework.Print 6.1 (237.1)
+>> <CA8564FB-B366-7413-B12E-9892DA3C6157>
+>> /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/Print.framework/Versions/A/Print
+>> ? ?0x7fff845e4000 - ? ? 0x7fff84613ff7 ?com.apple.quartzfilters 1.6.0
+>> (1.6.0) <9CECB4FC-1CCF-B8A2-B935-5888B21CBEEF>
+>> /System/Library/Frameworks/Quartz.framework/Versions/A/Frameworks/QuartzFilters.framework/Versions/A/QuartzFilters
+>> ? ?0x7fff84614000 - ? ? 0x7fff84a57fef ?libLAPACK.dylib 219.0.0
+>> (compatibility 1.0.0) <0CC61C98-FF51-67B3-F3D8-C5E430C201A9>
+>> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libLAPACK.dylib
+>> ? ?0x7fff84a58000 - ? ? 0x7fff84b19fff ?libFontParser.dylib ??? (???)
+>> <A00BB0A7-E46C-1D07-1391-194745566C7E>
+>> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ATS.framework/Versions/A/Resources/libFontParser.dylib
+>> ? ?0x7fff84b1a000 - ? ? 0x7fff84b5dff7 ?libRIP.A.dylib 545.0.0
+>> (compatibility 64.0.0) <5FF3D7FD-84D8-C5FA-D640-90BB82EC651D>
+>> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/CoreGraphics.framework/Versions/A/Resources/libRIP.A.dylib
+>> ? ?0x7fff84bd3000 - ? ? 0x7fff84c33fe7 ?com.apple.framework.IOKit 2.0
+>> (???) <4F071EF0-8260-01E9-C641-830E582FA416>
+>> /System/Library/Frameworks/IOKit.framework/Versions/A/IOKit
+>> ? ?0x7fff84dcd000 - ? ? 0x7fff84e06ff7 ?com.apple.MeshKit 1.1 (49.2)
+>> <3795F201-4A5F-3D40-57E0-87AD6B714239>
+>> /System/Library/PrivateFrameworks/MeshKit.framework/Versions/A/MeshKit
+>> ? ?0x7fff84e37000 - ? ? 0x7fff84e3dff7 ?com.apple.DiskArbitration 2.3
+>> (2.3) <857F6E43-1EF4-7D53-351B-10DE0A8F992A>
+>> /System/Library/Frameworks/DiskArbitration.framework/Versions/A/DiskArbitration
+>> ? ?0x7fff84e3e000 - ? ? 0x7fff84f73fff
+>> com.apple.audio.toolbox.AudioToolbox 1.6.7 (1.6.7)
+>> <E5D7DBDB-6DDF-E6F9-C71C-86F4520EE5A3>
+>> /System/Library/Frameworks/AudioToolbox.framework/Versions/A/AudioToolbox
+>> ? ?0x7fff84f74000 - ? ? 0x7fff84fb1ff7 ?libFontRegistry.dylib ???
+>> (???) <4C3293E2-851B-55CE-3BE3-29C425DD5DFF>
+>> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ATS.framework/Versions/A/Resources/libFontRegistry.dylib
+>> ? ?0x7fff84fb2000 - ? ? 0x7fff84fb8fff ?libCGXCoreImage.A.dylib
+>> 545.0.0 (compatibility 64.0.0) <D2F8C7E3-CBA1-2E66-1376-04AA839DABBB>
+>> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/CoreGraphics.framework/Versions/A/Resources/libCGXCoreImage.A.dylib
+>> ? ?0x7fff8512b000 - ? ? 0x7fff8513fff7
+>> com.apple.speech.synthesis.framework 3.10.35 (3.10.35)
+>> <621B7415-A0B9-07A7-F313-36BEEDD7B132>
+>> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/SpeechSynthesis.framework/Versions/A/SpeechSynthesis
+>> ? ?0x7fff85140000 - ? ? 0x7fff85151fff
+>> com.apple.DSObjCWrappers.Framework 10.6 (134)
+>> <3C08225D-517E-2822-6152-F6EB13A4ADF9>
+>> /System/Library/PrivateFrameworks/DSObjCWrappers.framework/Versions/A/DSObjCWrappers
+>> ? ?0x7fff85152000 - ? ? 0x7fff85290fff ?com.apple.CoreData 102.1
+>> (251) <32233D4D-00B7-CE14-C881-6BF19FD05A03>
+>> /System/Library/Frameworks/CoreData.framework/Versions/A/CoreData
+>> ? ?0x7fff852b4000 - ? ? 0x7fff852e7ff7 ?libTrueTypeScaler.dylib ???
+>> (???) <69D4A213-45D2-196D-7FF8-B52A31DFD329>
+>> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ATS.framework/Versions/A/Resources/libTrueTypeScaler.dylib
+>> ? ?0x7fff852f4000 - ? ? 0x7fff85490fff ?com.apple.WebKit 6534
+>> (6534.50) <05AEA122-3F31-0F56-4AA6-E84140C53785>
+>> /System/Library/Frameworks/WebKit.framework/Versions/A/WebKit
+>> ? ?0x7fff854dc000 - ? ? 0x7fff857dafff ?com.apple.HIToolbox 1.6.5
+>> (???) <AD1C18F6-51CB-7E39-35DD-F16B1EB978A8>
+>> /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/HIToolbox
+>> ? ?0x7fff857db000 - ? ? 0x7fff85a44fff ?com.apple.QuartzComposer 4.2
+>> ({156.30}) <C05B97F7-F543-C329-873D-097177226D79>
+>> /System/Library/Frameworks/Quartz.framework/Versions/A/Frameworks/QuartzComposer.framework/Versions/A/QuartzComposer
+>> ? ?0x7fff85a51000 - ? ? 0x7fff85a6cff7 ?com.apple.openscripting 1.3.1
+>> (???) <FD46A0FE-AC79-3EF7-AB4F-396D376DDE71>
+>> /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/OpenScripting.framework/Versions/A/OpenScripting
+>> ? ?0x7fff85ab8000 - ? ? 0x7fff85abdfff ?libGFXShared.dylib ??? (???)
+>> <1D0D3531-9561-632C-D620-1A8652BEF5BC>
+>> /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGFXShared.dylib
+>> ? ?0x7fff85abe000 - ? ? 0x7fff85adffff ?libresolv.9.dylib 41.0.0
+>> (compatibility 1.0.0) <6993F348-428F-C97E-7A84-7BD2EDC46A62>
+>> /usr/lib/libresolv.9.dylib
+>> ? ?0x7fff85ae0000 - ? ? 0x7fff85b4cfe7 ?com.apple.CorePDF 1.4 (1.4)
+>> <06AE6D85-64C7-F9CC-D001-BD8BAE31B6D2>
+>> /System/Library/PrivateFrameworks/CorePDF.framework/Versions/A/CorePDF
+>> ? ?0x7fff85b4d000 - ? ? 0x7fff85b6aff7 ?libPng.dylib ??? (???)
+>> <6D8E515B-E0A2-2BA1-9CAC-8CB8A8B35879>
+>> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ImageIO.framework/Versions/A/Resources/libPng.dylib
+>> ? ?0x7fff85b6b000 - ? ? 0x7fff85b71ff7 ?IOSurface ??? (???)
+>> <04EDCEDE-E36F-15F8-DC67-E61E149D2C9A>
+>> /System/Library/Frameworks/IOSurface.framework/Versions/A/IOSurface
+>> ? ?0x7fff85b87000 - ? ? 0x7fff85bdaff7 ?com.apple.HIServices 1.8.3
+>> (???) <F6E0C7A7-C11D-0096-4DDA-2C77793AA6CD>
+>> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/HIServices.framework/Versions/A/HIServices
+>> ? ?0x7fff85f61000 - ? ? 0x7fff85fe3fff
+>> com.apple.QuickLookUIFramework 2.3 (327.6)
+>> <9093682A-0E2D-7D27-5F22-C96FD00AE970>
+>> /System/Library/Frameworks/Quartz.framework/Versions/A/Frameworks/QuickLookUI.framework/Versions/A/QuickLookUI
+>> ? ?0x7fff85fe4000 - ? ? 0x7fff85ffdfff ?com.apple.CFOpenDirectory
+>> 10.6 (10.6) <CCF79716-7CC6-2520-C6EB-A4F56AD0A207>
+>> /System/Library/Frameworks/OpenDirectory.framework/Versions/A/Frameworks/CFOpenDirectory.framework/Versions/A/CFOpenDirectory
+>> ? ?0x7fff85ffe000 - ? ? 0x7fff8600bfe7 ?libCSync.A.dylib 545.0.0
+>> (compatibility 64.0.0) <1C35FA50-9C70-48DC-9E8D-2054F7A266B1>
+>> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/CoreGraphics.framework/Versions/A/Resources/libCSync.A.dylib
+>> ? ?0x7fff8606a000 - ? ? 0x7fff86a64ff7 ?com.apple.AppKit 6.6.8
+>> (1038.36) <4CFBE04C-8FB3-B0EA-8DDB-7E7D10E9D251>
+>> /System/Library/Frameworks/AppKit.framework/Versions/C/AppKit
+>> ? ?0x7fff86a65000 - ? ? 0x7fff86a77fe7 ?libsasl2.2.dylib 3.15.0
+>> (compatibility 3.0.0) <76B83C8D-8EFE-4467-0F75-275648AFED97>
+>> /usr/lib/libsasl2.2.dylib
+>> ? ?0x7fff86a78000 - ? ? 0x7fff86dacfef
+>> com.apple.CoreServices.CarbonCore 861.39 (861.39)
+>> <1386A24D-DD15-5903-057E-4A224FAF580B>
+>> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/CarbonCore.framework/Versions/A/CarbonCore
+>> ? ?0x7fff86dad000 - ? ? 0x7fff86ed5ff7 ?com.apple.MediaToolbox
+>> 0.484.52 (484.52) <F03DAC32-79DB-EA5A-9B8D-CB288AF91A56>
+>> /System/Library/PrivateFrameworks/MediaToolbox.framework/Versions/A/MediaToolbox
+>> ? ?0x7fff86ed6000 - ? ? 0x7fff876e0fe7 ?libBLAS.dylib 219.0.0
+>> (compatibility 1.0.0) <FC941ECB-71D0-FAE3-DCBF-C5A619E594B8>
+>> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib
+>> ? ?0x7fff876e1000 - ? ? 0x7fff876f7fe7
+>> com.apple.MultitouchSupport.framework 207.11 (207.11)
+>> <8233CE71-6F8D-8B3C-A0E1-E123F6406163>
+>> /System/Library/PrivateFrameworks/MultitouchSupport.framework/Versions/A/MultitouchSupport
+>> ? ?0x7fff876f8000 - ? ? 0x7fff877adfe7 ?com.apple.ink.framework 1.3.3
+>> (107) <FFC46EE0-3544-A459-2AB9-94778A75E3D4>
+>> /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/Ink.framework/Versions/A/Ink
+>> ? ?0x7fff877ae000 - ? ? 0x7fff877aeff7 ?com.apple.vecLib 3.6 (vecLib
+>> 3.6) <08D3D45D-908B-B86A-00BA-0F978D2702A7>
+>> /System/Library/Frameworks/vecLib.framework/Versions/A/vecLib
+>> ? ?0x7fff877af000 - ? ? 0x7fff87970fef ?libSystem.B.dylib 125.2.11
+>> (compatibility 1.0.0) <9AB4F1D1-89DC-0E8A-DC8E-A4FE4D69DB69>
+>> /usr/lib/libSystem.B.dylib
+>> ? ?0x7fff87971000 - ? ? 0x7fff87a00fff ?com.apple.PDFKit 2.5.1
+>> (2.5.1) <7B8A187A-F0BB-44E7-FBD4-9E1C5F9D5E85>
+>> /System/Library/Frameworks/Quartz.framework/Versions/A/Frameworks/PDFKit.framework/Versions/A/PDFKit
+>> ? ?0x7fff87a01000 - ? ? 0x7fff87a21ff7
+>> com.apple.DirectoryService.Framework 3.6 (621.11)
+>> <AD76C757-6701-BDB5-631E-1CB77D669586>
+>> /System/Library/Frameworks/DirectoryService.framework/Versions/A/DirectoryService
+>> ? ?0x7fff87a22000 - ? ? 0x7fff87aa7ff7
+>> com.apple.print.framework.PrintCore 6.3 (312.7)
+>> <CDFE82DD-D811-A091-179F-6E76069B432D>
+>> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/PrintCore.framework/Versions/A/PrintCore
+>> ? ?0x7fff87ab6000 - ? ? 0x7fff87ab6ff7 ?com.apple.Accelerate.vecLib
+>> 3.6 (vecLib 3.6) <DA9BFF01-40DF-EBD5-ABB7-787DAF2D77CF>
+>> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/vecLib
+>> ? ?0x7fff87ab7000 - ? ? 0x7fff87ac6fff ?com.apple.NetFS 3.2.2 (3.2.2)
+>> <7CCBD70E-BF31-A7A7-DB98-230687773145>
+>> /System/Library/Frameworks/NetFS.framework/Versions/A/NetFS
+>> ? ?0x7fff87ac7000 - ? ? 0x7fff87b45ff7 ?com.apple.CoreText 151.10
+>> (???) <54961997-55D8-DC0F-2634-674E452D5A8E>
+>> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/CoreText.framework/Versions/A/CoreText
+>> ? ?0x7fff87b54000 - ? ? 0x7fff87c4cff7 ?libiconv.2.dylib 7.0.0
+>> (compatibility 7.0.0) <7E4ADB5A-CC77-DCFD-3E54-2F35A2C8D95A>
+>> /usr/lib/libiconv.2.dylib
+>> ? ?0x7fff87e73000 - ? ? 0x7fff87e81ff7 ?libkxld.dylib ??? (???)
+>> <8145A534-95CC-9F3C-B78B-AC9898F38C6F> /usr/lib/system/libkxld.dylib
+>> ? ?0x7fff87e82000 - ? ? 0x7fff87e82ff7 ?com.apple.CoreServices 44
+>> (44) <DC7400FB-851E-7B8A-5BF6-6F50094302FB>
+>> /System/Library/Frameworks/CoreServices.framework/Versions/A/CoreServices
+>> ? ?0x7fff87e83000 - ? ? 0x7fff87ffafe7 ?com.apple.CoreFoundation
+>> 6.6.5 (550.43) <31A1C118-AD96-0A11-8BDF-BD55B9940EDC>
+>> /System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation
+>> ? ?0x7fff8807a000 - ? ? 0x7fff8807aff7 ?com.apple.Accelerate 1.6
+>> (Accelerate 1.6) <2BB7D669-4B40-6A52-ADBD-DA4DB3BC0B1B>
+>> /System/Library/Frameworks/Accelerate.framework/Versions/A/Accelerate
+>> ? ?0x7fff8807b000 - ? ? 0x7fff88581ff7 ?com.apple.VideoToolbox
+>> 0.484.52 (484.52) <FA1B8197-8F5F-73CB-A9A1-49E0FB49CF51>
+>> /System/Library/PrivateFrameworks/VideoToolbox.framework/Versions/A/VideoToolbox
+>> ? ?0x7fff88582000 - ? ? 0x7fff8858dff7
+>> com.apple.speech.recognition.framework 3.11.1 (3.11.1)
+>> <F0DDF27E-DB55-07CE-E548-C62095BE8167>
+>> /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/SpeechRecognition.framework/Versions/A/SpeechRecognition
+>> ? ?0x7fff88596000 - ? ? 0x7fff88754fff ?libicucore.A.dylib 40.0.0
+>> (compatibility 1.0.0) <4274FC73-A257-3A56-4293-5968F3428854>
+>> /usr/lib/libicucore.A.dylib
+>> ? ?0x7fff8875b000 - ? ? 0x7fff887a6fef ?com.apple.ImageCaptureCore
+>> 1.1 (1.1) <F23CA537-4F18-76FC-8D9C-ED6E645186FC>
+>> /System/Library/Frameworks/ImageCaptureCore.framework/Versions/A/ImageCaptureCore
+>> ? ?0x7fff887a7000 - ? ? 0x7fff887f6fef ?libTIFF.dylib ??? (???)
+>> <1E2593D1-A7F6-84C6-DF8F-0B46AE445926>
+>> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ImageIO.framework/Versions/A/Resources/libTIFF.dylib
+>> ? ?0x7fff88a49000 - ? ? 0x7fff88a8afef ?com.apple.CoreMedia 0.484.52
+>> (484.52) <3F868AF8-1089-10C3-DCEB-565690FD9742>
+>> /System/Library/PrivateFrameworks/CoreMedia.framework/Versions/A/CoreMedia
+>> ? ?0x7fff88a8b000 - ? ? 0x7fff88a8bff7 ?com.apple.Carbon 150 (152)
+>> <1E95560E-7036-A7FB-66FA-8ABA150343D6>
+>> /System/Library/Frameworks/Carbon.framework/Versions/A/Carbon
+>> ? ?0x7fff88abb000 - ? ? 0x7fff88b3afe7 ?com.apple.audio.CoreAudio
+>> 3.2.6 (3.2.6) <79E256EB-43F1-C7AA-6436-124A4FFB02D0>
+>> /System/Library/Frameworks/CoreAudio.framework/Versions/A/CoreAudio
+>> ? ?0x7fff88b3b000 - ? ? 0x7fff88b41ff7 ?com.apple.CommerceCore 1.0
+>> (9.1) <3691E9BA-BCF4-98C7-EFEC-78DA6825004E>
+>> /System/Library/PrivateFrameworks/CommerceKit.framework/Versions/A/Frameworks/CommerceCore.framework/Versions/A/CommerceCore
+>> ? ?0x7fff88b42000 - ? ? 0x7fff88b42ff7 ?com.apple.quartzframework 1.5
+>> (1.5) <5BFE5998-26D9-0AF1-1522-55C78E41F778>
+>> /System/Library/Frameworks/Quartz.framework/Versions/A/Quartz
+>> ? ?0x7fff88b43000 - ? ? 0x7fff88ee0fe7 ?com.apple.QuartzCore 1.6.3
+>> (227.37) <16DFF6CD-EA58-CE62-A1D7-5F6CE3D066DD>
+>> /System/Library/Frameworks/QuartzCore.framework/Versions/A/QuartzCore
+>> ? ?0x7fff88ee1000 - ? ? 0x7fff890eeff7 ?com.apple.JavaScriptCore 6534
+>> (6534.49) <1D418EF7-CDBE-3832-0157-D853073948D0>
+>> /System/Library/Frameworks/JavaScriptCore.framework/Versions/A/JavaScriptCore
+>> ? ?0x7fff89105000 - ? ? 0x7fff89119fff ?libGL.dylib ??? (???)
+>> <2ECE3B0F-39E1-3938-BF27-7205C6D0358B>
+>> /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib
+>> ? ?0x7fff8911a000 - ? ? 0x7fff8911cfef ?com.apple.ExceptionHandling
+>> 1.5 (10) <F2867B93-A56A-974F-9556-266BCE394057>
+>> /System/Library/Frameworks/ExceptionHandling.framework/Versions/A/ExceptionHandling
+>> ? ?0x7fff8917a000 - ? ? 0x7fff89294fef ?libGLProgrammability.dylib
+>> ??? (???) <8A4B86E3-0FA7-8684-2EF2-C5F8079428DB>
+>> /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGLProgrammability.dylib
+>> ? ?0x7fff89295000 - ? ? 0x7fff89295ff7 ?com.apple.Cocoa 6.6 (???)
+>> <68B0BE46-6E24-C96F-B341-054CF9E8F3B6>
+>> /System/Library/Frameworks/Cocoa.framework/Versions/A/Cocoa
+>> ? ?0x7fff892af000 - ? ? 0x7fff892b4fff ?libGIF.dylib ??? (???)
+>> <201B8077-B5CC-11AA-E1B0-1D057ABE416A>
+>> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ImageIO.framework/Versions/A/Resources/libGIF.dylib
+>> ? ?0x7fff892b5000 - ? ? 0x7fff892ccfff ?com.apple.ImageCapture 6.1
+>> (6.1) <79AB2131-2A6C-F351-38A9-ED58B25534FD>
+>> /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/ImageCapture.framework/Versions/A/ImageCapture
+>> ? ?0x7fff892cd000 - ? ? 0x7fff8938efef ?com.apple.ColorSync 4.6.6
+>> (4.6.6) <BB2C5813-C61D-3CBA-A8F7-0E59E46EBEE8>
+>> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/ColorSync.framework/Versions/A/ColorSync
+>> ? ?0x7fff89447000 - ? ? 0x7fff89458ff7 ?libz.1.dylib 1.2.3
+>> (compatibility 1.0.0) <FB5EE53A-0534-0FFA-B2ED-486609433717>
+>> /usr/lib/libz.1.dylib
+>> ? ?0x7fff89475000 - ? ? 0x7fff894b6fff ?com.apple.SystemConfiguration
+>> 1.10.8 (1.10.2) <78D48D27-A9C4-62CA-2803-D0BBED82855A>
+>> /System/Library/Frameworks/SystemConfiguration.framework/Versions/A/SystemConfiguration
+>> ? ?0x7fff894b7000 - ? ? 0x7fff894f2fff ?com.apple.AE 496.5 (496.5)
+>> <208DF391-4DE6-81ED-C697-14A2930D1BC6>
+>> /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/AE.framework/Versions/A/AE
+>> ? ?0x7fff894f3000 - ? ? 0x7fff895d0fff ?com.apple.vImage 4.1 (4.1)
+>> <C3F44AA9-6F71-0684-2686-D3BBC903F020>
+>> /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vImage.framework/Versions/A/vImage
+>> ? ?0x7fff8964f000 - ? ? 0x7fff896ccfef ?libstdc++.6.dylib 7.9.0
+>> (compatibility 7.0.0) <35ECA411-2C08-FD7D-11B1-1B7A04921A5C>
+>> /usr/lib/libstdc++.6.dylib
+>> ? ?0x7fff896cd000 - ? ? 0x7fff89907fef ?com.apple.imageKit 2.0.3
+>> (1.0) <9EA216AF-82D6-201C-78E5-D027D85B51D6>
+>> /System/Library/Frameworks/Quartz.framework/Versions/A/Frameworks/ImageKit.framework/Versions/A/ImageKit
+>> ? ?0x7fff89952000 - ? ? 0x7fff89bdbff7 ?com.apple.security 6.1.2
+>> (55002) <4419AFFC-DAE7-873E-6A7D-5C9A5A4497A6>
+>> /System/Library/Frameworks/Security.framework/Versions/A/Security
+>> ? ?0x7fff89be1000 - ? ? 0x7fff89c36ff7
+>> com.apple.framework.familycontrols 2.0.2 (2020)
+>> <F09541B6-5E28-1C01-C1AE-F6A2508670C7>
+>> /System/Library/PrivateFrameworks/FamilyControls.framework/Versions/A/FamilyControls
+>> ? ?0x7fff89c37000 - ? ? 0x7fff89c5afff ?com.apple.opencl 12.3.6
+>> (12.3.6) <42FA5783-EB80-1168-4015-B8C68F55842F>
+>> /System/Library/Frameworks/OpenCL.framework/Versions/A/OpenCL
+>> ? ?0x7fff89c5b000 - ? ? 0x7fff89d7afe7 ?libcrypto.0.9.8.dylib 0.9.8
+>> (compatibility 0.9.8) <14115D29-432B-CF02-6B24-A60CC533A09E>
+>> /usr/lib/libcrypto.0.9.8.dylib
+>> ? ?0x7fff89d7b000 - ? ? 0x7fff89d90ff7 ?com.apple.LangAnalysis 1.6.6
+>> (1.6.6) <DC999B32-BF41-94C8-0583-27D9AB463E8B>
+>> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/LangAnalysis.framework/Versions/A/LangAnalysis
+>> ? ?0x7fff89dd0000 - ? ? 0x7fff89dd3ff7 ?com.apple.securityhi 4.0
+>> (36638) <38935851-09E4-DDAB-DB1D-30ADC39F7ED0>
+>> /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/SecurityHI.framework/Versions/A/SecurityHI
+>> ? ?0x7fff89dd4000 - ? ? 0x7fff89e20fff ?libauto.dylib ??? (???)
+>> <F7221B46-DC4F-3153-CE61-7F52C8C293CF> /usr/lib/libauto.dylib
+>> ? ?0x7fff89e21000 - ? ? 0x7fff8a51dff7 ?com.apple.CoreGraphics
+>> 1.545.0 (???) <58D597B1-EB3B-710E-0B8C-EC114D54E11B>
+>> /System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/CoreGraphics.framework/Versions/A/CoreGraphics
+>> ? ?0x7fff8a51e000 - ? ? 0x7fff8a52dfef ?com.apple.opengl 1.6.13
+>> (1.6.13) <516098B3-4517-8A55-64BB-195CDAA5334D>
+>> /System/Library/Frameworks/OpenGL.framework/Versions/A/OpenGL
+>> ? ?0x7fff8a536000 - ? ? 0x7fff8a570fff ?libcups.2.dylib 2.8.0
+>> (compatibility 2.0.0) <7982734A-B66B-44AA-DEEC-364D2C10009B>
+>> /usr/lib/libcups.2.dylib
+>> ? ?0x7fff8a571000 - ? ? 0x7fff8a5b8ff7 ?com.apple.coreui 2 (114)
+>> <D7645B59-0431-6283-7322-957D944DAB21>
+>> /System/Library/PrivateFrameworks/CoreUI.framework/Versions/A/CoreUI
+>> ? ?0x7fff8a5b9000 - ? ? 0x7fff8a6c3ff7 ?com.apple.MeshKitIO 1.1
+>> (49.2) <F296E151-80AE-7764-B969-C2050DF26BFE>
+>> /System/Library/PrivateFrameworks/MeshKit.framework/Versions/A/Frameworks/MeshKitIO.framework/Versions/A/MeshKitIO
+>> ? ?0x7fffffe00000 - ? ? 0x7fffffe01fff ?libSystem.B.dylib ??? (???)
+>> <9AB4F1D1-89DC-0E8A-DC8E-A4FE4D69DB69> /usr/lib/libSystem.B.dylib
+>>
+>> Model: MacBookPro6,1, BootROM MBP61.0057.B0C, 2 processors, Intel Core
+>> i7, 2.66 GHz, 8 GB, SMC 1.57f17
+>> Graphics: NVIDIA GeForce GT 330M, NVIDIA GeForce GT 330M, PCIe, 512 MB
+>> Graphics: Intel HD Graphics, Intel HD Graphics, Built-In, 288 MB
+>> Memory Module: global_name
+>> AirPort: spairport_wireless_card_type_airport_extreme (0x14E4, 0x93),
+>> Broadcom BCM43xx 1.0 (5.10.131.42.4)
+>> Bluetooth: Version 2.4.5f3, 2 service, 19 devices, 1 incoming serial ports
+>> Network Service: Ethernet, Ethernet, en0
+>> Network Service: AirPort, AirPort, en1
+>> Serial ATA Device: Hitachi HTS725050A9A362, 465.76 GB
+>> Serial ATA Device: HL-DT-ST DVDRW ?GS23N
+>> USB Device: Hub, 0x0424 ?(SMSC), 0x2514, 0xfa100000 / 2
+>> USB Device: Apple Internal Keyboard / Trackpad, 0x05ac ?(Apple Inc.),
+>> 0x0236, 0xfa120000 / 4
+>> USB Device: BRCM2070 Hub, 0x0a5c ?(Broadcom Corp.), 0x4500, 0xfa110000 / 3
+>> USB Device: Bluetooth USB Host Controller, 0x05ac ?(Apple Inc.),
+>> 0x8218, 0xfa113000 / 6
+>> USB Device: Hub, 0x0424 ?(SMSC), 0x2514, 0xfd100000 / 2
+>> USB Device: Hub, 0x05ac ?(Apple Inc.), 0x9136, 0xfd140000 / 5
+>> USB Device: Keyboard Hub, 0x05ac ?(Apple Inc.), 0x1006, 0xfd141000 / 11
+>> USB Device: Trackball, 0x046d ?(Logitech Inc.), 0xc404, 0xfd141300 / 13
+>> USB Device: Apple Keyboard, 0x05ac ?(Apple Inc.), 0x0220, 0xfd141200 / 12
+>> USB Device: USB Audio DAC, 0x08bb ?(Texas Instruments Japan), 0x2704,
+>> 0xfd142000 / 7
+>> USB Device: Hub, 0x05ac ?(Apple Inc.), 0x9137, 0xfd144000 / 6
+>> USB Device: Display Audio, 0x05ac ?(Apple Inc.), 0x2912, 0xfd144100 / 10
+>> USB Device: Apple LED Cinema Display, 0x05ac ?(Apple Inc.), 0x9236,
+>> 0xfd144300 / 9
+>> USB Device: Display iSight, 0x05ac ?(Apple Inc.), 0x8508, 0xfd144200 / 8
+>> USB Device: IR Receiver, 0x05ac ?(Apple Inc.), 0x8242, 0xfd120000 / 4
+>> USB Device: Built-in iSight, 0x05ac ?(Apple Inc.), 0x8507, 0xfd110000 / 3
+>> FireWire Device: unknown_device, Unknown
+>>
+>>
+>> --
+>>
+>> Max
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>
+
+
+
+-- 
+
+Max
+
+
+From armstrong.whit at gmail.com  Thu Sep 29 04:54:15 2011
+From: armstrong.whit at gmail.com (Whit Armstrong)
+Date: Wed, 28 Sep 2011 22:54:15 -0400
+Subject: [R-sig-hpc] rzmq package
+Message-ID: <CAMi=pg5Q-3sH1hWQEdJa82G3tK3OSfk7=df6HCUa3muH740OwA@mail.gmail.com>
+
+Just a quick post on a new package I've been wrapping up, rzmq.
+
+https://github.com/armstrtw/rzmq
+
+Finding inspiration in JD Long's segue package, and frustration with
+the config steps involved in dynamically updating the older debian
+distribution that Amazon uses for it's emr machines, I decided to try
+to hit the ec2 machines directly using my own ami.
+
+The zmq messaging patterns allow one to distribute jobs across many
+nodes, but for now a simple example with only 1 micro instance.
+
+the remote server:
+
+ubuntu at ip-10-243-90-36:~$ cat remote.server2.r
+#!/usr/bin/env Rscript
+
+library(rzmq)
+context = init.context()
+in.socket = init.socket(context,"ZMQ_PULL")
+bind.socket(in.socket,"tcp://*:5557")
+
+out.socket = init.socket(context,"ZMQ_PUSH")
+bind.socket(out.socket,"tcp://*:5558")
+
+while(1) {
+    msg = receive.socket(in.socket);
+    fun <- msg$fun
+    args <- msg$args
+    print(args)
+    ans <- do.call(fun,args)
+    send.socket(out.socket,ans);
+}
+ubuntu at ip-10-243-90-36:~$
+
+
+and the locally executed code:
+
+estimatePi <- function(seed) {
+    set.seed(seed)
+    numDraws <- 1e5
+
+    r <- .5 #radius... in case the unit circle is too boring
+    x <- runif(numDraws, min=-r, max=r)
+    y <- runif(numDraws, min=-r, max=r)
+    inCircle <- ifelse( (x^2 + y^2)^.5 < r , 1, 0)
+
+    sum(inCircle) / length(inCircle) * 4
+}
+
+
+print(system.time(ans <- zmq.lapply(as.list(1:1e2),
+                                    estimatePi,
+
+execution.server="tcp://ec2-184-73-102-95.compute-1.amazonaws.com:5557",
+
+sink.server="tcp://ec2-184-73-102-95.compute-1.amazonaws.com:5558")))
+
+print(mean(unlist(ans)))
+
+yields:
+warmstrong at krypton:~/dvl/zmq.test/test.ec2$ Rscript lapply.exmaple.r
+   user  system elapsed
+  0.010   0.010   7.007
+[1] 3.140964
+
+
+Anyway, I'll post up a better example tomorrow that actually uses more
+than one machine.
+
+-Whit
+
+
+From daniel.cegielka at gmail.com  Thu Sep 29 05:03:16 2011
+From: daniel.cegielka at gmail.com (=?ISO-8859-2?Q?Daniel_Cegie=B3ka?=)
+Date: Thu, 29 Sep 2011 05:03:16 +0200
+Subject: [R-sig-hpc] rzmq package
+In-Reply-To: <CAMi=pg5Q-3sH1hWQEdJa82G3tK3OSfk7=df6HCUa3muH740OwA@mail.gmail.com>
+References: <CAMi=pg5Q-3sH1hWQEdJa82G3tK3OSfk7=df6HCUa3muH740OwA@mail.gmail.com>
+Message-ID: <CAPLrYETyDw+4BmBUdYxXaQJtVWT80LJt0PWA-v6A2szz2isEpA@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110929/99c66b03/attachment.pl>
+
+From edd at debian.org  Thu Sep 29 05:11:51 2011
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Wed, 28 Sep 2011 22:11:51 -0500
+Subject: [R-sig-hpc] rzmq package
+In-Reply-To: <CAMi=pg5Q-3sH1hWQEdJa82G3tK3OSfk7=df6HCUa3muH740OwA@mail.gmail.com>
+References: <CAMi=pg5Q-3sH1hWQEdJa82G3tK3OSfk7=df6HCUa3muH740OwA@mail.gmail.com>
+Message-ID: <20099.57847.99140.893523@max.nulle.part>
+
+
+On 28 September 2011 at 22:54, Whit Armstrong wrote:
+| Just a quick post on a new package I've been wrapping up, rzmq.
+| 
+| https://github.com/armstrtw/rzmq
+
+Wicked!  There are so many of us here who are ZeroMQ fanboys.  Were you aware
+that Bryan Lewis is working on one too?
+ 
+| Finding inspiration in JD Long's segue package, and frustration with
+| the config steps involved in dynamically updating the older debian
+| distribution that Amazon uses for it's emr machines, I decided to try
+| to hit the ec2 machines directly using my own ami.
+| 
+| The zmq messaging patterns allow one to distribute jobs across many
+| nodes, but for now a simple example with only 1 micro instance.
+| 
+| the remote server:
+| 
+| ubuntu at ip-10-243-90-36:~$ cat remote.server2.r
+| #!/usr/bin/env Rscript
+| 
+| library(rzmq)
+| context = init.context()
+| in.socket = init.socket(context,"ZMQ_PULL")
+| bind.socket(in.socket,"tcp://*:5557")
+| 
+| out.socket = init.socket(context,"ZMQ_PUSH")
+| bind.socket(out.socket,"tcp://*:5558")
+| 
+| while(1) {
+|     msg = receive.socket(in.socket);
+|     fun <- msg$fun
+|     args <- msg$args
+|     print(args)
+|     ans <- do.call(fun,args)
+|     send.socket(out.socket,ans);
+| }
+| ubuntu at ip-10-243-90-36:~$
+| 
+| 
+| and the locally executed code:
+| 
+| estimatePi <- function(seed) {
+|     set.seed(seed)
+|     numDraws <- 1e5
+| 
+|     r <- .5 #radius... in case the unit circle is too boring
+|     x <- runif(numDraws, min=-r, max=r)
+|     y <- runif(numDraws, min=-r, max=r)
+|     inCircle <- ifelse( (x^2 + y^2)^.5 < r , 1, 0)
+| 
+|     sum(inCircle) / length(inCircle) * 4
+| }
+| 
+| 
+| print(system.time(ans <- zmq.lapply(as.list(1:1e2),
+|                                     estimatePi,
+| 
+| execution.server="tcp://ec2-184-73-102-95.compute-1.amazonaws.com:5557",
+| 
+| sink.server="tcp://ec2-184-73-102-95.compute-1.amazonaws.com:5558")))
+| 
+| print(mean(unlist(ans)))
+| 
+| yields:
+| warmstrong at krypton:~/dvl/zmq.test/test.ec2$ Rscript lapply.exmaple.r
+|    user  system elapsed
+|   0.010   0.010   7.007
+| [1] 3.140964
+| 
+| 
+| Anyway, I'll post up a better example tomorrow that actually uses more
+| than one machine.
+
+You have a bug in that you use Rscript in lieu of littler :)
+
+Nicely done. Looking forward to more.
+
+Cheers, Dirk
+
+-- 
+New Rcpp master class for R and C++ integration is scheduled for 
+San Francisco (Oct 8), more details / reg.info available at
+http://www.revolutionanalytics.com/products/training/public/rcpp-master-class.php
+
+
+From armstrong.whit at gmail.com  Thu Sep 29 15:45:23 2011
+From: armstrong.whit at gmail.com (Whit Armstrong)
+Date: Thu, 29 Sep 2011 09:45:23 -0400
+Subject: [R-sig-hpc] [zeromq-dev]  rzmq package
+In-Reply-To: <4E8472D6.2080101@250bpm.com>
+References: <CAMi=pg5Q-3sH1hWQEdJa82G3tK3OSfk7=df6HCUa3muH740OwA@mail.gmail.com>
+	<CAPLrYETyDw+4BmBUdYxXaQJtVWT80LJt0PWA-v6A2szz2isEpA@mail.gmail.com>
+	<4E8472D6.2080101@250bpm.com>
+Message-ID: <CAMi=pg4UNQ5868hdKHs4UTTm_AVLO4VsT0JdqG8oc7smouU1aw@mail.gmail.com>
+
+yes, indeed.  just need to hammer out the man pages for the R package.
+ then I'll move on to the zmq bindings site.
+
+Cheers,
+Whit
+
+
+On Thu, Sep 29, 2011 at 9:29 AM, Martin Sustrik <sustrik at 250bpm.com> wrote:
+> Hi Whit,
+>
+> Nice! We've used R to process results from 0MQ benchmarking. Now we're back
+> from a different direction.
+>
+> Would you mind creating a page on zero.mq website (it's a wiki) so that
+> people know that the binding exists?
+>
+> Martin
+>
+> On 09/29/2011 05:03 AM, Daniel Cegie?ka wrote:
+>>
+>> I will send your message to zmq-list!
+>>
+>> thx ?Armstrong!
+>> daniel
+>>
+>>
+>> 2011/9/29 Whit Armstrong <armstrong.whit at gmail.com
+>> <mailto:armstrong.whit at gmail.com>>
+>>
+>> ? ?Just a quick post on a new package I've been wrapping up, rzmq.
+>>
+>> ? ?https://github.com/armstrtw/rzmq
+>>
+>> ? ?Finding inspiration in JD Long's segue package, and frustration with
+>> ? ?the config steps involved in dynamically updating the older debian
+>> ? ?distribution that Amazon uses for it's emr machines, I decided to try
+>> ? ?to hit the ec2 machines directly using my own ami.
+>>
+>> ? ?The zmq messaging patterns allow one to distribute jobs across many
+>> ? ?nodes, but for now a simple example with only 1 micro instance.
+>>
+>> ? ?the remote server:
+>>
+>> ? ?ubuntu at ip-10-243-90-36:~$ cat remote.server2.r
+>> ? ?#!/usr/bin/env Rscript
+>>
+>> ? ?library(rzmq)
+>> ? ?context = init.context()
+>> ? ?in.socket = init.socket(context,"ZMQ_PULL")
+>> ? ?bind.socket(in.socket,"tcp://*:5557")
+>>
+>> ? ?out.socket = init.socket(context,"ZMQ_PUSH")
+>> ? ?bind.socket(out.socket,"tcp://*:5558")
+>>
+>> ? ?while(1) {
+>> ? ? ? ?msg = receive.socket(in.socket);
+>> ? ? ? ?fun <- msg$fun
+>> ? ? ? ?args <- msg$args
+>> ? ? ? ?print(args)
+>> ? ? ? ?ans <- do.call(fun,args)
+>> ? ? ? ?send.socket(out.socket,ans);
+>> ? ?}
+>> ? ?ubuntu at ip-10-243-90-36:~$
+>>
+>>
+>> ? ?and the locally executed code:
+>>
+>> ? ?estimatePi <- function(seed) {
+>> ? ? ? ?set.seed(seed)
+>> ? ? ? ?numDraws <- 1e5
+>>
+>> ? ? ? ?r <- .5 #radius... in case the unit circle is too boring
+>> ? ? ? ?x <- runif(numDraws, min=-r, max=r)
+>> ? ? ? ?y <- runif(numDraws, min=-r, max=r)
+>> ? ? ? ?inCircle <- ifelse( (x^2 + y^2)^.5 < r , 1, 0)
+>>
+>> ? ? ? ?sum(inCircle) / length(inCircle) * 4
+>> ? ?}
+>>
+>>
+>> ? ?print(system.time(ans <- zmq.lapply(as.list(1:1e2),
+>> ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ?estimatePi,
+>>
+>> ? ?execution.server="tcp://ec2-184-73-102-95.compute-1.amazonaws.com:5557
+>> ? ?<http://ec2-184-73-102-95.compute-1.amazonaws.com:5557>",
+>>
+>> ? ?sink.server="tcp://ec2-184-73-102-95.compute-1.amazonaws.com:5558
+>> ? ?<http://ec2-184-73-102-95.compute-1.amazonaws.com:5558>")))
+>>
+>> ? ?print(mean(unlist(ans)))
+>>
+>> ? ?yields:
+>> ? ?warmstrong at krypton:~/dvl/zmq.test/test.ec2$ Rscript lapply.exmaple.r
+>> ? ? ? user ?system elapsed
+>> ? ? ?0.010 ? 0.010 ? 7.007
+>> ? ?[1] 3.140964
+>>
+>>
+>> ? ?Anyway, I'll post up a better example tomorrow that actually uses more
+>> ? ?than one machine.
+>>
+>> ? ?-Whit
+>>
+>> ? ?_______________________________________________
+>> ? ?R-sig-hpc mailing list
+>> ? ?R-sig-hpc at r-project.org <mailto:R-sig-hpc at r-project.org>
+>> ? ?https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>>
+>>
+>>
+>> _______________________________________________
+>> zeromq-dev mailing list
+>> zeromq-dev at lists.zeromq.org
+>> http://lists.zeromq.org/mailman/listinfo/zeromq-dev
+>
+>
+
+
+From ustaudinger at gmail.com  Thu Sep 29 16:36:48 2011
+From: ustaudinger at gmail.com (Ulrich Staudinger)
+Date: Thu, 29 Sep 2011 16:36:48 +0200
+Subject: [R-sig-hpc] [zeromq-dev]  rzmq package
+In-Reply-To: <CAMi=pg4UNQ5868hdKHs4UTTm_AVLO4VsT0JdqG8oc7smouU1aw@mail.gmail.com>
+References: <CAMi=pg5Q-3sH1hWQEdJa82G3tK3OSfk7=df6HCUa3muH740OwA@mail.gmail.com>	<CAPLrYETyDw+4BmBUdYxXaQJtVWT80LJt0PWA-v6A2szz2isEpA@mail.gmail.com>	<4E8472D6.2080101@250bpm.com>
+	<CAMi=pg4UNQ5868hdKHs4UTTm_AVLO4VsT0JdqG8oc7smouU1aw@mail.gmail.com>
+Message-ID: <4E848280.6060200@gmail.com>
+
+Awesome.
+
+Is there some limitation on the type of R structures that can be 
+transmitted?
+I think about some list object that looks like this:
+
+jobResult = list()
+jobResult$jobId=123
+jobResult$status=FAILED
+jobResult$message="some exception text"
+jobResult$payload=NULL
+
+or:
+jobResult = list()
+jobResult$jobId=123
+jobResult$status=SUCCESS
+jobResult$payload=... some complex list object ...
+
+Would that be possible?
+
+
+Cheers,
+Ulrich
+
+
+Am 29.09.2011 15:45, schrieb Whit Armstrong:
+> yes, indeed.  just need to hammer out the man pages for the R package.
+>   then I'll move on to the zmq bindings site.
+>
+> Cheers,
+> Whit
+>
+>
+> On Thu, Sep 29, 2011 at 9:29 AM, Martin Sustrik<sustrik at 250bpm.com>  wrote:
+>    
+>> Hi Whit,
+>>
+>> Nice! We've used R to process results from 0MQ benchmarking. Now we're back
+>> from a different direction.
+>>
+>> Would you mind creating a page on zero.mq website (it's a wiki) so that
+>> people know that the binding exists?
+>>
+>> Martin
+>>
+>> On 09/29/2011 05:03 AM, Daniel Cegie?ka wrote:
+>>      
+>>> I will send your message to zmq-list!
+>>>
+>>> thx  Armstrong!
+>>> daniel
+>>>
+>>>
+>>> 2011/9/29 Whit Armstrong<armstrong.whit at gmail.com
+>>> <mailto:armstrong.whit at gmail.com>>
+>>>
+>>>     Just a quick post on a new package I've been wrapping up, rzmq.
+>>>
+>>>     https://github.com/armstrtw/rzmq
+>>>
+>>>     Finding inspiration in JD Long's segue package, and frustration with
+>>>     the config steps involved in dynamically updating the older debian
+>>>     distribution that Amazon uses for it's emr machines, I decided to try
+>>>     to hit the ec2 machines directly using my own ami.
+>>>
+>>>     The zmq messaging patterns allow one to distribute jobs across many
+>>>     nodes, but for now a simple example with only 1 micro instance.
+>>>
+>>>     the remote server:
+>>>
+>>>     ubuntu at ip-10-243-90-36:~$ cat remote.server2.r
+>>>     #!/usr/bin/env Rscript
+>>>
+>>>     library(rzmq)
+>>>     context = init.context()
+>>>     in.socket = init.socket(context,"ZMQ_PULL")
+>>>     bind.socket(in.socket,"tcp://*:5557")
+>>>
+>>>     out.socket = init.socket(context,"ZMQ_PUSH")
+>>>     bind.socket(out.socket,"tcp://*:5558")
+>>>
+>>>     while(1) {
+>>>         msg = receive.socket(in.socket);
+>>>         fun<- msg$fun
+>>>         args<- msg$args
+>>>         print(args)
+>>>         ans<- do.call(fun,args)
+>>>         send.socket(out.socket,ans);
+>>>     }
+>>>     ubuntu at ip-10-243-90-36:~$
+>>>
+>>>
+>>>     and the locally executed code:
+>>>
+>>>     estimatePi<- function(seed) {
+>>>         set.seed(seed)
+>>>         numDraws<- 1e5
+>>>
+>>>         r<- .5 #radius... in case the unit circle is too boring
+>>>         x<- runif(numDraws, min=-r, max=r)
+>>>         y<- runif(numDraws, min=-r, max=r)
+>>>         inCircle<- ifelse( (x^2 + y^2)^.5<  r , 1, 0)
+>>>
+>>>         sum(inCircle) / length(inCircle) * 4
+>>>     }
+>>>
+>>>
+>>>     print(system.time(ans<- zmq.lapply(as.list(1:1e2),
+>>>                                         estimatePi,
+>>>
+>>>     execution.server="tcp://ec2-184-73-102-95.compute-1.amazonaws.com:5557
+>>>     <http://ec2-184-73-102-95.compute-1.amazonaws.com:5557>",
+>>>
+>>>     sink.server="tcp://ec2-184-73-102-95.compute-1.amazonaws.com:5558
+>>>     <http://ec2-184-73-102-95.compute-1.amazonaws.com:5558>")))
+>>>
+>>>     print(mean(unlist(ans)))
+>>>
+>>>     yields:
+>>>     warmstrong at krypton:~/dvl/zmq.test/test.ec2$ Rscript lapply.exmaple.r
+>>>        user  system elapsed
+>>>       0.010   0.010   7.007
+>>>     [1] 3.140964
+>>>
+>>>
+>>>     Anyway, I'll post up a better example tomorrow that actually uses more
+>>>     than one machine.
+>>>
+>>>     -Whit
+>>>
+>>>     _______________________________________________
+>>>     R-sig-hpc mailing list
+>>>     R-sig-hpc at r-project.org<mailto:R-sig-hpc at r-project.org>
+>>>     https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>
+>>>
+>>>
+>>>
+>>> _______________________________________________
+>>> zeromq-dev mailing list
+>>> zeromq-dev at lists.zeromq.org
+>>> http://lists.zeromq.org/mailman/listinfo/zeromq-dev
+>>>        
+>>
+>>      
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From armstrong.whit at gmail.com  Thu Sep 29 16:56:25 2011
+From: armstrong.whit at gmail.com (Whit Armstrong)
+Date: Thu, 29 Sep 2011 10:56:25 -0400
+Subject: [R-sig-hpc] [zeromq-dev] rzmq package
+In-Reply-To: <4E848280.6060200@gmail.com>
+References: <CAMi=pg5Q-3sH1hWQEdJa82G3tK3OSfk7=df6HCUa3muH740OwA@mail.gmail.com>
+	<CAPLrYETyDw+4BmBUdYxXaQJtVWT80LJt0PWA-v6A2szz2isEpA@mail.gmail.com>
+	<4E8472D6.2080101@250bpm.com>
+	<CAMi=pg4UNQ5868hdKHs4UTTm_AVLO4VsT0JdqG8oc7smouU1aw@mail.gmail.com>
+	<4E848280.6060200@gmail.com>
+Message-ID: <CAMi=pg6gLA5FCb5ui08aCtJiSvD1DXadVp9ALXih=pL5gTFASA@mail.gmail.com>
+
+The limits are determined by what can be represented by a call to 'serialize.'
+
+zmq just cares about bytes across a wire, not whether they can be
+assembled correctly on the other side.
+
+So, for instance, database connections, external pointers, and other
+such objects are not likely to be good cases for serialization.
+
+However, normal vectors, dataframes, etc.  should all be fine.
+
+If you want to send either some code to create a test object, or an
+exported example object.  I can test on my site.
+
+The cran package should be up shortly  (assuming I stomp out this last
+Rd error).  Or you can always pull directly from github to test.
+
+-Whit
+
+
+On Thu, Sep 29, 2011 at 10:36 AM, Ulrich Staudinger
+<ustaudinger at gmail.com> wrote:
+> Awesome.
+>
+> Is there some limitation on the type of R structures that can be
+> transmitted?
+> I think about some list object that looks like this:
+>
+> jobResult = list()
+> jobResult$jobId=123
+> jobResult$status=FAILED
+> jobResult$message="some exception text"
+> jobResult$payload=NULL
+>
+> or:
+> jobResult = list()
+> jobResult$jobId=123
+> jobResult$status=SUCCESS
+> jobResult$payload=... some complex list object ...
+>
+> Would that be possible?
+>
+>
+> Cheers,
+> Ulrich
+>
+>
+> Am 29.09.2011 15:45, schrieb Whit Armstrong:
+>>
+>> yes, indeed. ?just need to hammer out the man pages for the R package.
+>> ?then I'll move on to the zmq bindings site.
+>>
+>> Cheers,
+>> Whit
+>>
+>>
+>> On Thu, Sep 29, 2011 at 9:29 AM, Martin Sustrik<sustrik at 250bpm.com>
+>> ?wrote:
+>>
+>>>
+>>> Hi Whit,
+>>>
+>>> Nice! We've used R to process results from 0MQ benchmarking. Now we're
+>>> back
+>>> from a different direction.
+>>>
+>>> Would you mind creating a page on zero.mq website (it's a wiki) so that
+>>> people know that the binding exists?
+>>>
+>>> Martin
+>>>
+>>> On 09/29/2011 05:03 AM, Daniel Cegie?ka wrote:
+>>>
+>>>>
+>>>> I will send your message to zmq-list!
+>>>>
+>>>> thx ?Armstrong!
+>>>> daniel
+>>>>
+>>>>
+>>>> 2011/9/29 Whit Armstrong<armstrong.whit at gmail.com
+>>>> <mailto:armstrong.whit at gmail.com>>
+>>>>
+>>>> ? ?Just a quick post on a new package I've been wrapping up, rzmq.
+>>>>
+>>>> ? ?https://github.com/armstrtw/rzmq
+>>>>
+>>>> ? ?Finding inspiration in JD Long's segue package, and frustration with
+>>>> ? ?the config steps involved in dynamically updating the older debian
+>>>> ? ?distribution that Amazon uses for it's emr machines, I decided to try
+>>>> ? ?to hit the ec2 machines directly using my own ami.
+>>>>
+>>>> ? ?The zmq messaging patterns allow one to distribute jobs across many
+>>>> ? ?nodes, but for now a simple example with only 1 micro instance.
+>>>>
+>>>> ? ?the remote server:
+>>>>
+>>>> ? ?ubuntu at ip-10-243-90-36:~$ cat remote.server2.r
+>>>> ? ?#!/usr/bin/env Rscript
+>>>>
+>>>> ? ?library(rzmq)
+>>>> ? ?context = init.context()
+>>>> ? ?in.socket = init.socket(context,"ZMQ_PULL")
+>>>> ? ?bind.socket(in.socket,"tcp://*:5557")
+>>>>
+>>>> ? ?out.socket = init.socket(context,"ZMQ_PUSH")
+>>>> ? ?bind.socket(out.socket,"tcp://*:5558")
+>>>>
+>>>> ? ?while(1) {
+>>>> ? ? ? ?msg = receive.socket(in.socket);
+>>>> ? ? ? ?fun<- msg$fun
+>>>> ? ? ? ?args<- msg$args
+>>>> ? ? ? ?print(args)
+>>>> ? ? ? ?ans<- do.call(fun,args)
+>>>> ? ? ? ?send.socket(out.socket,ans);
+>>>> ? ?}
+>>>> ? ?ubuntu at ip-10-243-90-36:~$
+>>>>
+>>>>
+>>>> ? ?and the locally executed code:
+>>>>
+>>>> ? ?estimatePi<- function(seed) {
+>>>> ? ? ? ?set.seed(seed)
+>>>> ? ? ? ?numDraws<- 1e5
+>>>>
+>>>> ? ? ? ?r<- .5 #radius... in case the unit circle is too boring
+>>>> ? ? ? ?x<- runif(numDraws, min=-r, max=r)
+>>>> ? ? ? ?y<- runif(numDraws, min=-r, max=r)
+>>>> ? ? ? ?inCircle<- ifelse( (x^2 + y^2)^.5< ?r , 1, 0)
+>>>>
+>>>> ? ? ? ?sum(inCircle) / length(inCircle) * 4
+>>>> ? ?}
+>>>>
+>>>>
+>>>> ? ?print(system.time(ans<- zmq.lapply(as.list(1:1e2),
+>>>> ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ?estimatePi,
+>>>>
+>>>>
+>>>> ?execution.server="tcp://ec2-184-73-102-95.compute-1.amazonaws.com:5557
+>>>> ? ?<http://ec2-184-73-102-95.compute-1.amazonaws.com:5557>",
+>>>>
+>>>> ? ?sink.server="tcp://ec2-184-73-102-95.compute-1.amazonaws.com:5558
+>>>> ? ?<http://ec2-184-73-102-95.compute-1.amazonaws.com:5558>")))
+>>>>
+>>>> ? ?print(mean(unlist(ans)))
+>>>>
+>>>> ? ?yields:
+>>>> ? ?warmstrong at krypton:~/dvl/zmq.test/test.ec2$ Rscript lapply.exmaple.r
+>>>> ? ? ? user ?system elapsed
+>>>> ? ? ?0.010 ? 0.010 ? 7.007
+>>>> ? ?[1] 3.140964
+>>>>
+>>>>
+>>>> ? ?Anyway, I'll post up a better example tomorrow that actually uses
+>>>> more
+>>>> ? ?than one machine.
+>>>>
+>>>> ? ?-Whit
+>>>>
+>>>> ? ?_______________________________________________
+>>>> ? ?R-sig-hpc mailing list
+>>>> ? ?R-sig-hpc at r-project.org<mailto:R-sig-hpc at r-project.org>
+>>>> ? ?https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>>
+>>>>
+>>>>
+>>>>
+>>>> _______________________________________________
+>>>> zeromq-dev mailing list
+>>>> zeromq-dev at lists.zeromq.org
+>>>> http://lists.zeromq.org/mailman/listinfo/zeromq-dev
+>>>>
+>>>
+>>>
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From mspiegel at renci.org  Thu Sep 29 17:02:30 2011
+From: mspiegel at renci.org (Michael Spiegel)
+Date: Thu, 29 Sep 2011 15:02:30 +0000
+Subject: [R-sig-hpc] [zeromq-dev] rzmq package
+In-Reply-To: <CAMi=pg6gLA5FCb5ui08aCtJiSvD1DXadVp9ALXih=pL5gTFASA@mail.gmail.com>
+References: <CAMi=pg5Q-3sH1hWQEdJa82G3tK3OSfk7=df6HCUa3muH740OwA@mail.gmail.com>
+	<CAPLrYETyDw+4BmBUdYxXaQJtVWT80LJt0PWA-v6A2szz2isEpA@mail.gmail.com>
+	<4E8472D6.2080101@250bpm.com>
+	<CAMi=pg4UNQ5868hdKHs4UTTm_AVLO4VsT0JdqG8oc7smouU1aw@mail.gmail.com>
+	<4E848280.6060200@gmail.com>
+	<CAMi=pg6gLA5FCb5ui08aCtJiSvD1DXadVp9ALXih=pL5gTFASA@mail.gmail.com>
+Message-ID: <7539F2BB274A034C9FE4BE8E134DC5BE0150F426@MAIL-MBX2.ad.renci.org>
+
+On a related note, I've submitted a patch to the R-devel mailing list that should offer some performance improvements to the serialize/unserialize interface. It reorganizes the code so that vectors are serialized as bulk operations, instead of the current implementation that serializes one element of the vector at a time. I haven't gotten any feedback yet from the R-devel mailing list.
+
+I'm using the serialize/unserialize strategy for an MPI interface. My next step is to try to implement compression into the serialization protocol.
+
+--Michael
+
+-----Original Message-----
+From: r-sig-hpc-bounces at r-project.org [mailto:r-sig-hpc-bounces at r-project.org] On Behalf Of Whit Armstrong
+Sent: Thursday, September 29, 2011 10:56 AM
+To: Ulrich Staudinger
+Cc: r-sig-hpc
+Subject: Re: [R-sig-hpc] [zeromq-dev] rzmq package
+
+The limits are determined by what can be represented by a call to 'serialize.'
+
+
+
+From edd at debian.org  Thu Sep 29 17:16:56 2011
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Thu, 29 Sep 2011 10:16:56 -0500
+Subject: [R-sig-hpc] [zeromq-dev] rzmq package
+In-Reply-To: <7539F2BB274A034C9FE4BE8E134DC5BE0150F426@MAIL-MBX2.ad.renci.org>
+References: <CAMi=pg5Q-3sH1hWQEdJa82G3tK3OSfk7=df6HCUa3muH740OwA@mail.gmail.com>
+	<CAPLrYETyDw+4BmBUdYxXaQJtVWT80LJt0PWA-v6A2szz2isEpA@mail.gmail.com>
+	<4E8472D6.2080101@250bpm.com>
+	<CAMi=pg4UNQ5868hdKHs4UTTm_AVLO4VsT0JdqG8oc7smouU1aw@mail.gmail.com>
+	<4E848280.6060200@gmail.com>
+	<CAMi=pg6gLA5FCb5ui08aCtJiSvD1DXadVp9ALXih=pL5gTFASA@mail.gmail.com>
+	<7539F2BB274A034C9FE4BE8E134DC5BE0150F426@MAIL-MBX2.ad.renci.org>
+Message-ID: <20100.35816.428329.554308@max.nulle.part>
+
+
+On 29 September 2011 at 15:02, Michael Spiegel wrote:
+| On a related note, I've submitted a patch to the R-devel mailing list that should offer some performance improvements to the serialize/unserialize interface. It reorganizes the code so that vectors are serialized as bulk operations, instead of the current implementation that serializes one element of the vector at a time. I haven't gotten any feedback yet from the R-devel mailing list.
+
+Two thumbs way up from me for that post, by the way. I meant to microblog
+about it as a great example of narrow, well-focussed, well-executed (AFAICT,
+haven't patched it in) patch with an obvious speedup.
+ 
+| I'm using the serialize/unserialize strategy for an MPI interface. My next step is to try to implement compression into the serialization protocol.
+
+Nice.
+
+Good to see MPI getting some love among all the kids shouting hadoop all day :)
+
+Dirk
+
+-- 
+New Rcpp master class for R and C++ integration is scheduled for 
+San Francisco (Oct 8), more details / reg.info available at
+http://www.revolutionanalytics.com/products/training/public/rcpp-master-class.php
+
+
+From armstrong.whit at gmail.com  Thu Sep 29 17:31:20 2011
+From: armstrong.whit at gmail.com (Whit Armstrong)
+Date: Thu, 29 Sep 2011 11:31:20 -0400
+Subject: [R-sig-hpc] [zeromq-dev] rzmq package
+In-Reply-To: <7539F2BB274A034C9FE4BE8E134DC5BE0150F426@MAIL-MBX2.ad.renci.org>
+References: <CAMi=pg5Q-3sH1hWQEdJa82G3tK3OSfk7=df6HCUa3muH740OwA@mail.gmail.com>
+	<CAPLrYETyDw+4BmBUdYxXaQJtVWT80LJt0PWA-v6A2szz2isEpA@mail.gmail.com>
+	<4E8472D6.2080101@250bpm.com>
+	<CAMi=pg4UNQ5868hdKHs4UTTm_AVLO4VsT0JdqG8oc7smouU1aw@mail.gmail.com>
+	<4E848280.6060200@gmail.com>
+	<CAMi=pg6gLA5FCb5ui08aCtJiSvD1DXadVp9ALXih=pL5gTFASA@mail.gmail.com>
+	<7539F2BB274A034C9FE4BE8E134DC5BE0150F426@MAIL-MBX2.ad.renci.org>
+Message-ID: <CAMi=pg7xKmeT-FcY9O9gWJsBrTeR8GomYx=dFcby1CbSHqHV6g@mail.gmail.com>
+
++1
+
+I'd like to be able to call serialize/unserialize from c/c++, but
+after looking at serialize.c, I'm a little uncomfortable.
+
+So, for now, all my rzmq code just calls lapply(unserialize,ans) on
+the results.  no biggie I guess.
+
+-Whit
+
+
+
+On Thu, Sep 29, 2011 at 11:02 AM, Michael Spiegel <mspiegel at renci.org> wrote:
+> On a related note, I've submitted a patch to the R-devel mailing list that should offer some performance improvements to the serialize/unserialize interface. It reorganizes the code so that vectors are serialized as bulk operations, instead of the current implementation that serializes one element of the vector at a time. I haven't gotten any feedback yet from the R-devel mailing list.
+>
+> I'm using the serialize/unserialize strategy for an MPI interface. My next step is to try to implement compression into the serialization protocol.
+>
+> --Michael
+>
+> -----Original Message-----
+> From: r-sig-hpc-bounces at r-project.org [mailto:r-sig-hpc-bounces at r-project.org] On Behalf Of Whit Armstrong
+> Sent: Thursday, September 29, 2011 10:56 AM
+> To: Ulrich Staudinger
+> Cc: r-sig-hpc
+> Subject: Re: [R-sig-hpc] [zeromq-dev] rzmq package
+>
+> The limits are determined by what can be represented by a call to 'serialize.'
+>
+>
+>
+
+
+From mspiegel at renci.org  Thu Sep 29 17:38:44 2011
+From: mspiegel at renci.org (Michael Spiegel)
+Date: Thu, 29 Sep 2011 15:38:44 +0000
+Subject: [R-sig-hpc] [zeromq-dev] rzmq package
+In-Reply-To: <CAMi=pg7xKmeT-FcY9O9gWJsBrTeR8GomYx=dFcby1CbSHqHV6g@mail.gmail.com>
+References: <CAMi=pg5Q-3sH1hWQEdJa82G3tK3OSfk7=df6HCUa3muH740OwA@mail.gmail.com>
+	<CAPLrYETyDw+4BmBUdYxXaQJtVWT80LJt0PWA-v6A2szz2isEpA@mail.gmail.com>
+	<4E8472D6.2080101@250bpm.com>
+	<CAMi=pg4UNQ5868hdKHs4UTTm_AVLO4VsT0JdqG8oc7smouU1aw@mail.gmail.com>
+	<4E848280.6060200@gmail.com>
+	<CAMi=pg6gLA5FCb5ui08aCtJiSvD1DXadVp9ALXih=pL5gTFASA@mail.gmail.com>
+	<7539F2BB274A034C9FE4BE8E134DC5BE0150F426@MAIL-MBX2.ad.renci.org>
+	<CAMi=pg7xKmeT-FcY9O9gWJsBrTeR8GomYx=dFcby1CbSHqHV6g@mail.gmail.com>
+Message-ID: <7539F2BB274A034C9FE4BE8E134DC5BE0150F484@MAIL-MBX2.ad.renci.org>
+
+Calling serialize/serialize from c/c++ is not too convoluted. You can find a good example in https://github.com/mspiegel/PiebaldMPI/blob/master/src/lapply_workers_helpers.c, look for the function "generateReturnList". I'm doing both serialization and unserialization in that function, but you'll be able to tease apart the two calls.
+
+--Michael
+
+PS: This will help. readonly_serialize is defined elsewhere as "findVar(install("serialize"), R_GlobalEnv);".
+
+-----Original Message-----
+From: Whit Armstrong [mailto:armstrong.whit at gmail.com] 
+Sent: Thursday, September 29, 2011 11:31 AM
+To: Michael Spiegel
+Cc: Ulrich Staudinger; r-sig-hpc
+Subject: Re: [R-sig-hpc] [zeromq-dev] rzmq package
+
++1
+
+I'd like to be able to call serialize/unserialize from c/c++, but after looking at serialize.c, I'm a little uncomfortable.
+
+So, for now, all my rzmq code just calls lapply(unserialize,ans) on the results.  no biggie I guess.
+
+-Whit
+
+
+
+On Thu, Sep 29, 2011 at 11:02 AM, Michael Spiegel <mspiegel at renci.org> wrote:
+> On a related note, I've submitted a patch to the R-devel mailing list that should offer some performance improvements to the serialize/unserialize interface. It reorganizes the code so that vectors are serialized as bulk operations, instead of the current implementation that serializes one element of the vector at a time. I haven't gotten any feedback yet from the R-devel mailing list.
+>
+> I'm using the serialize/unserialize strategy for an MPI interface. My next step is to try to implement compression into the serialization protocol.
+>
+> --Michael
+>
+> -----Original Message-----
+> From: r-sig-hpc-bounces at r-project.org 
+> [mailto:r-sig-hpc-bounces at r-project.org] On Behalf Of Whit Armstrong
+> Sent: Thursday, September 29, 2011 10:56 AM
+> To: Ulrich Staudinger
+> Cc: r-sig-hpc
+> Subject: Re: [R-sig-hpc] [zeromq-dev] rzmq package
+>
+> The limits are determined by what can be represented by a call to 'serialize.'
+>
+>
+>
+
+From armstrong.whit at gmail.com  Thu Sep 29 17:52:37 2011
+From: armstrong.whit at gmail.com (Whit Armstrong)
+Date: Thu, 29 Sep 2011 11:52:37 -0400
+Subject: [R-sig-hpc] [zeromq-dev] rzmq package
+In-Reply-To: <7539F2BB274A034C9FE4BE8E134DC5BE0150F484@MAIL-MBX2.ad.renci.org>
+References: <CAMi=pg5Q-3sH1hWQEdJa82G3tK3OSfk7=df6HCUa3muH740OwA@mail.gmail.com>
+	<CAPLrYETyDw+4BmBUdYxXaQJtVWT80LJt0PWA-v6A2szz2isEpA@mail.gmail.com>
+	<4E8472D6.2080101@250bpm.com>
+	<CAMi=pg4UNQ5868hdKHs4UTTm_AVLO4VsT0JdqG8oc7smouU1aw@mail.gmail.com>
+	<4E848280.6060200@gmail.com>
+	<CAMi=pg6gLA5FCb5ui08aCtJiSvD1DXadVp9ALXih=pL5gTFASA@mail.gmail.com>
+	<7539F2BB274A034C9FE4BE8E134DC5BE0150F426@MAIL-MBX2.ad.renci.org>
+	<CAMi=pg7xKmeT-FcY9O9gWJsBrTeR8GomYx=dFcby1CbSHqHV6g@mail.gmail.com>
+	<7539F2BB274A034C9FE4BE8E134DC5BE0150F484@MAIL-MBX2.ad.renci.org>
+Message-ID: <CAMi=pg7SX1h4eBkz+hw0zXqy7s17LZwaz2MNX3PbFuP2dwUj0w@mail.gmail.com>
+
+Wow!
+
+Props for putting all that together.  I'm just not sure I want to do
+the work for a call to eval.
+
+Isn't that what the parser does when you call it from R?
+
+I'm sure you have reasons for doing it that way in your code, I'm just
+not sure it's worth the effort in this case.
+
+I would be much happier if R would make it part of the exported api so
+you don't have to jump through all those hoops to call it.
+
+-Whit
+
+
+On Thu, Sep 29, 2011 at 11:38 AM, Michael Spiegel <mspiegel at renci.org> wrote:
+> Calling serialize/serialize from c/c++ is not too convoluted. You can find a good example in https://github.com/mspiegel/PiebaldMPI/blob/master/src/lapply_workers_helpers.c, look for the function "generateReturnList". I'm doing both serialization and unserialization in that function, but you'll be able to tease apart the two calls.
+>
+> --Michael
+>
+> PS: This will help. readonly_serialize is defined elsewhere as "findVar(install("serialize"), R_GlobalEnv);".
+>
+> -----Original Message-----
+> From: Whit Armstrong [mailto:armstrong.whit at gmail.com]
+> Sent: Thursday, September 29, 2011 11:31 AM
+> To: Michael Spiegel
+> Cc: Ulrich Staudinger; r-sig-hpc
+> Subject: Re: [R-sig-hpc] [zeromq-dev] rzmq package
+>
+> +1
+>
+> I'd like to be able to call serialize/unserialize from c/c++, but after looking at serialize.c, I'm a little uncomfortable.
+>
+> So, for now, all my rzmq code just calls lapply(unserialize,ans) on the results. ?no biggie I guess.
+>
+> -Whit
+>
+>
+>
+> On Thu, Sep 29, 2011 at 11:02 AM, Michael Spiegel <mspiegel at renci.org> wrote:
+>> On a related note, I've submitted a patch to the R-devel mailing list that should offer some performance improvements to the serialize/unserialize interface. It reorganizes the code so that vectors are serialized as bulk operations, instead of the current implementation that serializes one element of the vector at a time. I haven't gotten any feedback yet from the R-devel mailing list.
+>>
+>> I'm using the serialize/unserialize strategy for an MPI interface. My next step is to try to implement compression into the serialization protocol.
+>>
+>> --Michael
+>>
+>> -----Original Message-----
+>> From: r-sig-hpc-bounces at r-project.org
+>> [mailto:r-sig-hpc-bounces at r-project.org] On Behalf Of Whit Armstrong
+>> Sent: Thursday, September 29, 2011 10:56 AM
+>> To: Ulrich Staudinger
+>> Cc: r-sig-hpc
+>> Subject: Re: [R-sig-hpc] [zeromq-dev] rzmq package
+>>
+>> The limits are determined by what can be represented by a call to 'serialize.'
+>>
+>>
+>>
+>
+
+
+From vfulco1 at gmail.com  Thu Sep 29 17:57:51 2011
+From: vfulco1 at gmail.com (Vince Fulco)
+Date: Thu, 29 Sep 2011 11:57:51 -0400
+Subject: [R-sig-hpc] [zeromq-dev] rzmq package (Whit Armstrong)
+Message-ID: <CAF9pZTS=QUWZXBPTmwZb2bdwxkO0YzmHjN8EVygjqcBJkF9cBQ@mail.gmail.com>
+
+Hey Whit--
+
+Is there a reason you used zeromq vs. rabbit or others?Just wondering
+as very new to the apps and was chewing over a problem in (gulp!)
+python.
+
+TIA,
+
+-- 
+Vince Fulco, CFA, CAIA
+612.424.5477 (universal)
+vfulco1 at gmail.com
+
+Receive with simplicity everything that happens to you. --Rashi
+
+
+From hannesedinger at gmail.com  Thu Sep 29 18:36:12 2011
+From: hannesedinger at gmail.com (Johannes Edinger)
+Date: Thu, 29 Sep 2011 12:36:12 -0400
+Subject: [R-sig-hpc] Suggestions for dedicated server for simulations
+Message-ID: <CAA8A1tZPknSZ3K_1ZEgWftJYuDsbntxsYwGBhCV+nv_mOHYGoA@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110929/2ae99779/attachment.pl>
+
+From r.m.krug at gmail.com  Thu Sep 29 19:30:40 2011
+From: r.m.krug at gmail.com (Rainer M Krug)
+Date: Thu, 29 Sep 2011 19:30:40 +0200
+Subject: [R-sig-hpc] Suggestions for dedicated server for simulations
+In-Reply-To: <CAA8A1tZPknSZ3K_1ZEgWftJYuDsbntxsYwGBhCV+nv_mOHYGoA@mail.gmail.com>
+References: <CAA8A1tZPknSZ3K_1ZEgWftJYuDsbntxsYwGBhCV+nv_mOHYGoA@mail.gmail.com>
+Message-ID: <CAGhLh6GXih7RZv6u59xNRU0nn_AwiKzyHCQfbz4LvOU=6u0V9Q@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110929/d69fd3b1/attachment.pl>
+
+From armstrong.whit at gmail.com  Thu Sep 29 19:37:22 2011
+From: armstrong.whit at gmail.com (Whit Armstrong)
+Date: Thu, 29 Sep 2011 13:37:22 -0400
+Subject: [R-sig-hpc] Suggestions for dedicated server for simulations
+In-Reply-To: <CAA8A1tZPknSZ3K_1ZEgWftJYuDsbntxsYwGBhCV+nv_mOHYGoA@mail.gmail.com>
+References: <CAA8A1tZPknSZ3K_1ZEgWftJYuDsbntxsYwGBhCV+nv_mOHYGoA@mail.gmail.com>
+Message-ID: <CAMi=pg6rd+R+MTopG5oKgHb0uHigW-hV7g609jw0jAvMxP=jPQ@mail.gmail.com>
+
+you can get a lot out of EC2 these days if you know how to leverage it.
+
+I would be very reluctant to buy a new system these days unless you
+really need your data to be local (perhaps for security reasons).
+
+check out the cluster compute instances on ec2:
+http://aws.amazon.com/ec2/#instance
+
+-Whit
+
+
+On Thu, Sep 29, 2011 at 12:36 PM, Johannes Edinger
+<hannesedinger at gmail.com> wrote:
+> I've been asked by our IT department what sort of server (including
+> specifications) our team requires to run our simulations. ?Our models aren't
+> terribly complex, but they are too demanding to run on the main server and
+> we anticipate that we will require more capacity in the future. ?I have no
+> idea where to start, we are new and I've been running these simulations on
+> my laptop with 4gb ram and dual core processor. ?I run far fewer simulations
+> that I would like to so my laptop doesn't burn a hole in my desk and now we
+> have the opportunity to send the jobs to a dedicated server.
+>
+> Where should I start?
+>
+> Thank-you
+>
+> --
+> B. Johannes Edinger
+>
+> ? ? ? ?[[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From hannesedinger at gmail.com  Thu Sep 29 19:45:17 2011
+From: hannesedinger at gmail.com (Johannes Edinger)
+Date: Thu, 29 Sep 2011 13:45:17 -0400
+Subject: [R-sig-hpc] Suggestions for dedicated server for simulations
+In-Reply-To: <CAGhLh6GXih7RZv6u59xNRU0nn_AwiKzyHCQfbz4LvOU=6u0V9Q@mail.gmail.com>
+References: <CAA8A1tZPknSZ3K_1ZEgWftJYuDsbntxsYwGBhCV+nv_mOHYGoA@mail.gmail.com>
+	<CAGhLh6GXih7RZv6u59xNRU0nn_AwiKzyHCQfbz4LvOU=6u0V9Q@mail.gmail.com>
+Message-ID: <CAA8A1tYNNCDgkvDNYtcY_w14E1tntvHCbkxtBCKBze+par8y_g@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110929/56455fca/attachment.pl>
+
+From r.m.krug at gmail.com  Thu Sep 29 19:57:47 2011
+From: r.m.krug at gmail.com (Rainer M Krug)
+Date: Thu, 29 Sep 2011 19:57:47 +0200
+Subject: [R-sig-hpc] Suggestions for dedicated server for simulations
+In-Reply-To: <CAA8A1tYNNCDgkvDNYtcY_w14E1tntvHCbkxtBCKBze+par8y_g@mail.gmail.com>
+References: <CAA8A1tZPknSZ3K_1ZEgWftJYuDsbntxsYwGBhCV+nv_mOHYGoA@mail.gmail.com>
+	<CAGhLh6GXih7RZv6u59xNRU0nn_AwiKzyHCQfbz4LvOU=6u0V9Q@mail.gmail.com>
+	<CAA8A1tYNNCDgkvDNYtcY_w14E1tntvHCbkxtBCKBze+par8y_g@mail.gmail.com>
+Message-ID: <CAGhLh6Ex+yoEKGavGo9KAwWRr8CGN6Cn=w+dABP8YO+QxqbuOw@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110929/9ee9170b/attachment.pl>
+
+From cboettig at gmail.com  Thu Sep 29 21:31:55 2011
+From: cboettig at gmail.com (Carl Boettiger)
+Date: Thu, 29 Sep 2011 12:31:55 -0700
+Subject: [R-sig-hpc] Suggestions for dedicated server for simulations
+In-Reply-To: <CAGhLh6Ex+yoEKGavGo9KAwWRr8CGN6Cn=w+dABP8YO+QxqbuOw@mail.gmail.com>
+References: <CAA8A1tZPknSZ3K_1ZEgWftJYuDsbntxsYwGBhCV+nv_mOHYGoA@mail.gmail.com>
+	<CAGhLh6GXih7RZv6u59xNRU0nn_AwiKzyHCQfbz4LvOU=6u0V9Q@mail.gmail.com>
+	<CAA8A1tYNNCDgkvDNYtcY_w14E1tntvHCbkxtBCKBze+par8y_g@mail.gmail.com>
+	<CAGhLh6Ex+yoEKGavGo9KAwWRr8CGN6Cn=w+dABP8YO+QxqbuOw@mail.gmail.com>
+Message-ID: <CAN_1p9wM97R4KQ2sFmBubw9xfQ2B2jjM5NRNNP3dXFfTvULp8A@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110929/d051889a/attachment.pl>
+
+From jm_hannon at yahoo.com  Thu Sep 29 21:46:00 2011
+From: jm_hannon at yahoo.com (Michael Hannon)
+Date: Thu, 29 Sep 2011 12:46:00 -0700 (PDT)
+Subject: [R-sig-hpc] Suggestions for dedicated server for simulations
+In-Reply-To: <CAN_1p9wM97R4KQ2sFmBubw9xfQ2B2jjM5NRNNP3dXFfTvULp8A@mail.gmail.com>
+References: <CAA8A1tZPknSZ3K_1ZEgWftJYuDsbntxsYwGBhCV+nv_mOHYGoA@mail.gmail.com>
+	<CAGhLh6GXih7RZv6u59xNRU0nn_AwiKzyHCQfbz4LvOU=6u0V9Q@mail.gmail.com>
+	<CAA8A1tYNNCDgkvDNYtcY_w14E1tntvHCbkxtBCKBze+par8y_g@mail.gmail.com>
+	<CAGhLh6Ex+yoEKGavGo9KAwWRr8CGN6Cn=w+dABP8YO+QxqbuOw@mail.gmail.com>
+	<CAN_1p9wM97R4KQ2sFmBubw9xfQ2B2jjM5NRNNP3dXFfTvULp8A@mail.gmail.com>
+Message-ID: <1317325560.24994.YahooMailNeo@web161905.mail.bf1.yahoo.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110929/7b4d46ed/attachment.pl>
+
+From r.m.krug at gmail.com  Fri Sep 30 10:21:27 2011
+From: r.m.krug at gmail.com (Rainer M Krug)
+Date: Fri, 30 Sep 2011 10:21:27 +0200
+Subject: [R-sig-hpc] Suggestions for dedicated server for simulations
+In-Reply-To: <1317325560.24994.YahooMailNeo@web161905.mail.bf1.yahoo.com>
+References: <CAA8A1tZPknSZ3K_1ZEgWftJYuDsbntxsYwGBhCV+nv_mOHYGoA@mail.gmail.com>
+	<CAGhLh6GXih7RZv6u59xNRU0nn_AwiKzyHCQfbz4LvOU=6u0V9Q@mail.gmail.com>
+	<CAA8A1tYNNCDgkvDNYtcY_w14E1tntvHCbkxtBCKBze+par8y_g@mail.gmail.com>
+	<CAGhLh6Ex+yoEKGavGo9KAwWRr8CGN6Cn=w+dABP8YO+QxqbuOw@mail.gmail.com>
+	<CAN_1p9wM97R4KQ2sFmBubw9xfQ2B2jjM5NRNNP3dXFfTvULp8A@mail.gmail.com>
+	<1317325560.24994.YahooMailNeo@web161905.mail.bf1.yahoo.com>
+Message-ID: <CAGhLh6EntURSK=5+uZidcb2yPeKK_J21+xmB51SnyiTM10YCGQ@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110930/7e18d1a2/attachment.pl>
+
+From bart at njn.nl  Fri Sep 30 10:28:55 2011
+From: bart at njn.nl (bart)
+Date: Fri, 30 Sep 2011 10:28:55 +0200
+Subject: [R-sig-hpc] Suggestions for dedicated server for simulations
+In-Reply-To: <CAGhLh6EntURSK=5+uZidcb2yPeKK_J21+xmB51SnyiTM10YCGQ@mail.gmail.com>
+References: <CAA8A1tZPknSZ3K_1ZEgWftJYuDsbntxsYwGBhCV+nv_mOHYGoA@mail.gmail.com>	<CAGhLh6GXih7RZv6u59xNRU0nn_AwiKzyHCQfbz4LvOU=6u0V9Q@mail.gmail.com>	<CAA8A1tYNNCDgkvDNYtcY_w14E1tntvHCbkxtBCKBze+par8y_g@mail.gmail.com>	<CAGhLh6Ex+yoEKGavGo9KAwWRr8CGN6Cn=w+dABP8YO+QxqbuOw@mail.gmail.com>	<CAN_1p9wM97R4KQ2sFmBubw9xfQ2B2jjM5NRNNP3dXFfTvULp8A@mail.gmail.com>	<1317325560.24994.YahooMailNeo@web161905.mail.bf1.yahoo.com>
+	<CAGhLh6EntURSK=5+uZidcb2yPeKK_J21+xmB51SnyiTM10YCGQ@mail.gmail.com>
+Message-ID: <4E857DC7.4060206@njn.nl>
+
+Hi
+
+Considering storage and speed one option looking it in my mind is SSD 
+disks. For intersections with large rasters on desktops I have positive 
+experiences with that. I can imagine that for genome work where large 
+datasets can't be read into memory it also works. I guess it is less 
+relevant for the specific case here but it is worth considering in general.
+
+Bart
+
+On 09/30/2011 10:21 AM, Rainer M Krug wrote:
+> On Thu, Sep 29, 2011 at 9:46 PM, Michael Hannon<jm_hannon at yahoo.com>  wrote:
+>
+>> I generally agree with the analysis given so far in this thread,  but let
+>> me point out:
+>>
+>>> ...and if data will not be backed up elsewhere, consider RAID mirroring
+>> hard disks. ...
+>>
+>> If you accidentally delete all of last week's work on one mirrored drive,
+>> it is immediately gone from the other drive.  Mirroring does guard against
+>> hardware errors but not wetware errors.  I'd suggest backing up anything
+>> that's of importance to you.
+>>
+>
+> To say it in R code:
+>
+>    raid != backup
+>
+> To be safe, you need both.
+>
+> Raid has another advantage, which does not seem to be important for you:
+> with the right RAID level, hdd access will be faster.
+>
+> Rainer
+>
+>
+>>
+>> -- Mike
+>>
+>>
+>>
+>>
+>
+>
+
+
+From mspiegel at renci.org  Fri Sep 30 17:24:04 2011
+From: mspiegel at renci.org (Michael Spiegel)
+Date: Fri, 30 Sep 2011 15:24:04 +0000
+Subject: [R-sig-hpc] OpenMP bug in R.213.1 (please confirm)
+Message-ID: <7539F2BB274A034C9FE4BE8E134DC5BE0150FF21@MAIL-MBX2.ad.renci.org>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110930/27f36179/attachment.pl>
+

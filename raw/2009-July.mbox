@@ -1,0 +1,4183 @@
+From edd at debian.org  Wed Jul  1 20:22:42 2009
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Wed, 1 Jul 2009 13:22:42 -0500
+Subject: [R-sig-hpc] RScaLAPACK with OpenMPI
+In-Reply-To: <CA811D4D-7AFD-4AA7-A92A-A8D03C3947D3@gmail.com>
+References: <CA811D4D-7AFD-4AA7-A92A-A8D03C3947D3@gmail.com>
+Message-ID: <19019.43378.241478.192391@ron.nulle.part>
+
+
+Hi Michela,
+
+Sorry for replying sooner, this fell to the wayside.  I'll pick this one
+rather than your post on r-help as this is probably the better forum.
+
+On 29 May 2009 at 08:51, Michela Cameletti wrote:
+| I'm using RScalapack library for parallelizing some heavy matrix  
+| operations required by MCMC methods for spatio-temporal models. The  
+| package reference manuals (dated 2005) states that the library needs  
+| LamMPI to work but we have a Linux Cluster with OpenMPI. We have found  
+| (http://cvs.fedoraproject.org/viewvc/devel/R-RScaLAPACK/) a patch for  
+| OpenMPI but we are wondering if in the meanwhile the package has been  
+| compiled also for OpenMPI. Does anybody use RScalapack and has any  
+| suggestions?
+
+Debian has had Scalapack for years, but is was also built against the wrong
+or inconvenient libraries.   I'd be in favour of giving this a shot -- it is
+obviously the next step up from "just" using something like multithreaded
+blas on a single machine.
+
+That said, it also appears to be somewhat involved to get it all going: You
+may well be almost on your own.  Then again, whenever I had questions or
+buglets with Open MPI I have found that community to be most helpful.  So if
+you have the energy give it a go and folks here, myself included, may get a
+chance to help.
+
+Also, did you talk to RScaLAPACK's maintainers at all?  They should probably
+have an interest in moving from LAM to Open MPI as well.
+
+Regards, Dirk
+
+-- 
+Three out of two people have difficulties with fractions.
+
+
+From steve at revolution-computing.com  Thu Jul  2 04:56:37 2009
+From: steve at revolution-computing.com (Steve Weston)
+Date: Wed, 1 Jul 2009 22:56:37 -0400
+Subject: [R-sig-hpc] The foreach, iterators and doMC packages
+Message-ID: <4f7bf0100907011956q53dad194xf20f79e833b75000@mail.gmail.com>
+
+There have been several announcements of three new packages that I've
+recently uploaded to CRAN: foreach, iterators, and doMC.  You can read
+one description on David Smith's blog, at:
+
+    http://blog.revolution-computing.com
+or:
+    http://bit.ly/tygLz
+
+You can also read the vignette that I wrote for foreach on a CRAN
+website.
+
+I would like to mention that one of the goals of the foreach package is
+to make it easy to write an R package that allows the end user to choose
+what parallel computing engine to use.  That's useful because the user
+may already have and use a parallel computing system, and not want to
+install and maintain yet another one.  (The foreach and iterators packages
+themselves are trivial to install, since they provide a framework for using
+parallel computing systems such as multicore and nws.)
+
+Currently, only the doMC "parallel backend" for multicore is publicly
+available on CRAN, but I'm hoping to get a chance to write and release
+other backend packages, to support MPI and shared memory, for example.
+
+I'd love to hear from R package authors on how to improve foreach
+so that it's a more attractive platform on which to develop parallel
+applications.  Especially if you've had difficulty using parallel
+computing systems in the past.
+
+-- 
+Steve Weston
+REvolution Computing
+One Century Tower | 265 Church Street, Suite 1006
+New Haven, CT  06510
+P: 203-777-7442 x266 | www.revolution-computing.com
+
+
+From matloff at cs.ucdavis.edu  Wed Jul  8 08:24:13 2009
+From: matloff at cs.ucdavis.edu (Norm Matloff)
+Date: Tue, 7 Jul 2009 23:24:13 -0700
+Subject: [R-sig-hpc] Rdsm, a DSM package for parallel R programming
+Message-ID: <20090708062413.GA5359@laura.cs.ucdavis.edu>
+
+
+As I mentioned last week, I've been developing a package that I call
+Rdsm ("R distributed shared memory"), modeled after a similar package,
+PerlDSM, I wrote for Perl some years ago.  It is now in alpha form, so
+I'm not uploading to CRAN yet, but it is definitely usable, and I am
+releasing it at 
+
+http://heather.cs.ucdavis.edu/~matloff/R/Rdsm
+
+I hope many try it out, and give me some feedback.
+
+Note that the word "distributed" here means that the memory is not
+really shared, but instead is an abstraction, to give the programmer a
+shared-memory view even though the program may be running on several
+separate machines.  For C/C++ this is generally accomplished by
+manipulation of the virtual memory hardware.  For R, I do this by
+redefining functions such as "[" and "[<-" for a new class.
+
+Rdsm is intended as an alternative for those who favor the shared-memory
+view of things.  In the parallel processing community, there has always
+been a debate between advocates of the two main programming paradigms,
+shared memory and message passing.  Shared memory advocates claim
+greater clarity of code, while the message passing people point to that
+paradigm's greater flexibility.  I happen to be of the shared-memory
+school.  Given the popularity of OpenMP for C/C++/FORTRAN, I believe
+Rdsm will be of interest to many for R.  Indeed, in the next few months,
+I will be extending Rdsm with functions that give it the "look and feel"
+of OpenMP.
+
+Norm Matloff
+UC Davis
+
+
+From win at comets.de  Thu Jul  9 15:47:55 2009
+From: win at comets.de (Melwin)
+Date: Thu, 09 Jul 2009 15:47:55 +0200
+Subject: [R-sig-hpc] Problems Installing Rmpi on openSUSE 11.1  x86_64
+Message-ID: <op.uwsy95xzyqqyib@mueggelsee.geoecology.uni-potsdam.de>
+
+Thanks to Hao, Brian and Martin (offlist) for their suggestions.
+
+I tried them all:
+- setting LD_LIBRARY_PATH
+- using "--configure-args=--with-mpi=/path_to_lam"
+- using mpicc
+-> all without success when trying to install Rmpi (same error message as  
+before)
+
+Since I cannot accept using OpenMPI using 100% CPU power in idle mode, I
+still need to get LAM working.
+Martin suggested modifiying "configure.ac":
+
+   tar xzf Rmpi_0.5-7.tar.gz
+   vim Rmpi/configure.ac
+
+I added
+after line 67:      MPITYPE="LAM"
+after line 128:
+	elif test -f ${MPI_ROOT}/lib64/libmpi.so; then #Till
+	        echo "Found libmpi in ${MPI_ROOT}/lib64"
+	        MPI_LIBS="-L${MPI_ROOT}/lib64 -lmpi"
+		MPI_INCLUDE="${MPI_INCLUDE} ${MPI_INCLUDE}/64"
+
+followed by
+   cd Rmpi && autoconf && cd ..
+   R CMD INSTALL --clean Rmpi
+
+compiles without errors (see snippet 1 below).
+However, when tryinig to load Rmpi in R I get an error:
+
+> library("Rmpi")
+Error in dyn.load(file, DLLpath = DLLpath, ...) :
+   kann shared library  
+'/home/francke/R/x86_64-unknown-linux-gnu-library/2.8/Rmpi/libs/Rmpi.so'  
+nicht laden:
+  /usr/lib64/libmpi.so.0: undefined symbol: lam_ssi_cr_did
+Fehler in library("Rmpi") : .First.lib fehlgeschlagen f?r 'Rmpi'
+Error in dyn.unload(file.path(libpath, "libs", paste("Rmpi",  
+.Platform$dynlib.ext,  :
+   shared library  
+'/home/francke/R/x86_64-unknown-linux-gnu-library/2.8/Rmpi/libs/Rmpi.so'  
+wurde nicht geladen
+>
+
+Translation:
+> library("Rmpi")
+Error in dyn.load(file, DLLpath = DLLpath, ...) :
+   could not load shared library  
+'/home/francke/R/x86_64-unknown-linux-gnu-library/2.8/Rmpi/libs/Rmpi.so':
+  /usr/lib64/libmpi.so.0: undefined symbol: lam_ssi_cr_did
+Error in library("Rmpi") : .First.lib failed for 'Rmpi'
+Error in dyn.unload(file.path(libpath, "libs", paste("Rmpi",  
+.Platform$dynlib.ext,  :
+   shared library  
+'/home/francke/R/x86_64-unknown-linux-gnu-library/2.8/Rmpi/libs/Rmpi.so'  
+not loaded
+>
+
+"Rmpi.so" exists, so I dunno what's wrong. Any help is appreciated,
+
+Melwin
+
+
+
+####snippet: installation of RMPI
+* Installing to library
+'/home/francke/R/x86_64-unknown-linux-gnu-library/2.8'
+* Installing *source* package 'Rmpi' ...
+checking for gcc... gcc
+checking for C compiler default output file name... a.out
+checking whether the C compiler works... yes
+checking whether we are cross compiling... no
+checking for suffix of executables...
+checking for suffix of object files... o
+checking whether we are using the GNU C compiler... yes
+checking whether gcc accepts -g... yes
+checking for gcc option to accept ISO C89... none needed
+I am here /usr
+Try to find mpi.h ...
+Found in /usr/include
+Try to find libmpi.so or libmpich.a
+Found libmpi in /usr/lib64
+Try to find liblam.so ...
+checking for main in -llam... no
+liblam not found. Probably not LAM-MPI
+checking for openpty in -lutil... yes
+checking for main in -lpthread... yes
+configure: creating ./config.status
+config.status: creating src/Makevars
+** libs
+gcc -std=gnu99 -I/usr/lib64/R/include -DPACKAGE_NAME=\"\"
+-DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+-DPACKAGE_BUGREPORT=\"\" -I/usr/include -I/usr/include/64 -DMPI2 -DLAM
+-fPIC -I/usr/local/include    -fpic  -fmessage-length=0 -O2 -Wall
+-D_FORTIFY_SOURCE=2 -fstack-protector -funwind-tables
+-fasynchronous-unwind-tables -c conversion.c -o conversion.o
+gcc -std=gnu99 -I/usr/lib64/R/include -DPACKAGE_NAME=\"\"
+-DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+-DPACKAGE_BUGREPORT=\"\" -I/usr/include -I/usr/include/64 -DMPI2 -DLAM
+-fPIC -I/usr/local/include    -fpic  -fmessage-length=0 -O2 -Wall
+-D_FORTIFY_SOURCE=2 -fstack-protector -funwind-tables
+-fasynchronous-unwind-tables -c internal.c -o internal.o
+gcc -std=gnu99 -I/usr/lib64/R/include -DPACKAGE_NAME=\"\"
+-DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+-DPACKAGE_BUGREPORT=\"\" -I/usr/include -I/usr/include/64 -DMPI2 -DLAM
+-fPIC -I/usr/local/include    -fpic  -fmessage-length=0 -O2 -Wall
+-D_FORTIFY_SOURCE=2 -fstack-protector -funwind-tables
+-fasynchronous-unwind-tables -c RegQuery.c -o RegQuery.o
+gcc -std=gnu99 -I/usr/lib64/R/include -DPACKAGE_NAME=\"\"
+-DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+-DPACKAGE_BUGREPORT=\"\" -I/usr/include -I/usr/include/64 -DMPI2 -DLAM
+-fPIC -I/usr/local/include    -fpic  -fmessage-length=0 -O2 -Wall
+-D_FORTIFY_SOURCE=2 -fstack-protector -funwind-tables
+-fasynchronous-unwind-tables -c Rmpi.c -o Rmpi.o
+gcc -std=gnu99 -shared -L/usr/local/lib64 -o Rmpi.so conversion.o
+internal.o RegQuery.o Rmpi.o -L/usr/lib64 -lmpi -lutil -lpthread -fPIC
+-L/usr/lib64/R/lib -lR
+** R
+** demo
+** inst
+** preparing package for lazy loading
+** help
+   >>> Building/Updating help pages for package 'Rmpi'
+    [...]
+** building package indices ...
+* DONE (Rmpi)
+####end snippet
+
+
+
+
+
+
+2009/6/26 Hao Yu <hyu at stats.uwo.ca>:
+> Hi Melwin,
+>
+> Did you try
+>
+> R CMD INSTALL Rmpi_0.5-7.tar.gz --configure-args=--with-mpi=/path_to_lam
+>
+> Your system may have several mpi and Rmpi did not find a right mpi.
+>
+> BTW, when you are installing lam, make sure to turn dynamic lib on. The
+> default one is static one and Rmpi needs libmpi.so to work.
+>
+> Hao
+>
+> Melwin wrote:
+>> Thanks for the reply.
+>>
+>> 2009/6/24 Rowe, Brian Lee Yung (Portfolio Analytics) <B_Rowe at ml.com>:
+>>> Did you confirm that your MPI installation is working? That is the
+>>> probably the first step.
+>> LAM seems to work ok:
+>> ? ?johnson at linuxmodel:~> lamboot -v
+>>
+>> ? ?LAM 7.1.4/MPI 2 C++/ROMIO - Indiana University
+>>
+>> ? ?n-1<4165> ssi:boot:base:linear: booting n0 (localhost)
+>> ? ?n-1<4165> ssi:boot:base:linear: finished
+>> ? ?johnson at linuxmodel:~> lamexec C hostname
+>> ? ?linuxmodel
+>>
+>>
+>>> Regarding LD_LIBRARY_PATH, since I don't know what your configuration
+>>> is, make sure you export it to your environment and also don't  
+>>> overwrite
+>>> any existing values.
+>>> ?i.e. This is better:
+>>> ?$ export LD_LIBRARY_PATH=/usr/lib64:$LD_LIBRARY_PATH
+>>> since it looks like you're on a 64 bit platform.
+>>
+>> Tried that. Same results as before:
+>> ? ?johnson at linuxmodel:~> ? ? R CMD INSTALL Rmpi_0.5-7.tar.gz
+>> ? ?* Installing to library
+>> '/home/johnson/R/x86_64-unknown-linux-gnu-library/2.8'
+>> ? ?* Installing *source* package 'Rmpi' ...
+>> ? ?checking for gcc... gcc
+>> ? ?checking for C compiler default output file name... a.out
+>> ? ?checking whether the C compiler works... yes
+>> ? ?checking whether we are cross compiling... no
+>> ? ?checking for suffix of executables...
+>> ? ?checking for suffix of object files... o
+>> ? ?checking whether we are using the GNU C compiler... yes
+>> ? ?checking whether gcc accepts -g... yes
+>> ? ?checking for gcc option to accept ISO C89... none needed
+>> ? ?I am here /usr
+>> ? ?Try to find mpi.h ...
+>> ? ?Found in /usr/include
+>> ? ?Try to find libmpi.so or libmpich.a
+>> ? ?checking for main in -lmpi... no
+>> ? ?libmpi not found. exiting...
+>> ? ?ERROR: configuration failed for package 'Rmpi'
+>> ? ?** Removing  
+>> '/home/johnson/R/x86_64-unknown-linux-gnu-library/2.8/Rmpi'
+>>
+>>> I use OpenMPI and it include an mpi-based compiler which I found to  
+>>> work
+>>> better than gcc directly. You might try that. Just make sure you export
+>>> your MPI_ROOT.
+>> I would love to use OpenMPI, but I gather the slave spawning from  
+>> within R
+>> is not yet possible - which is what I need in interactive mode
+>> (https://stat.ethz.ch/pipermail/r-sig-hpc/2009-February/000104.html).  
+>> I'd
+>> love to hear that this has changed.
+>>
+>>> It would also probably help to include a bit more output
+>>> from the compilation process.
+>> The dump above contains the entire output, I hope that helps.
+>>
+>> thanks again,
+>> Melwin
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>
+>
+> --
+> Department of Statistics & Actuarial Sciences
+> Fax Phone#:(519)-661-3813
+> The University of Western Ontario
+> Office Phone#:(519)-661-3622
+> London, Ontario N6A 5B7
+> http://www.stats.uwo.ca/faculty/yu
+
+
+From mtmorgan at fhcrc.org  Thu Jul  9 16:04:29 2009
+From: mtmorgan at fhcrc.org (Martin Morgan)
+Date: Thu, 09 Jul 2009 07:04:29 -0700
+Subject: [R-sig-hpc] Problems Installing Rmpi on openSUSE 11.1  x86_64
+In-Reply-To: <op.uwsy95xzyqqyib@mueggelsee.geoecology.uni-potsdam.de> (Melwin's
+	message of "Thu, 09 Jul 2009 15:47:55 +0200")
+References: <op.uwsy95xzyqqyib@mueggelsee.geoecology.uni-potsdam.de>
+Message-ID: <6phws6i7y1e.fsf@orca4.fhcrc.org>
+
+Melwin <win at comets.de> writes:
+
+> Thanks to Hao, Brian and Martin (offlist) for their suggestions.
+>
+> I tried them all:
+> - setting LD_LIBRARY_PATH
+> - using "--configure-args=--with-mpi=/path_to_lam"
+> - using mpicc
+> -> all without success when trying to install Rmpi (same error message
+>    as  before)
+>
+> Since I cannot accept using OpenMPI using 100% CPU power in idle mode, I
+> still need to get LAM working.
+> Martin suggested modifiying "configure.ac":
+>
+>    tar xzf Rmpi_0.5-7.tar.gz
+>    vim Rmpi/configure.ac
+>
+> I added
+> after line 67:      MPITYPE="LAM"
+> after line 128:
+> 	elif test -f ${MPI_ROOT}/lib64/libmpi.so; then #Till
+> 	        echo "Found libmpi in ${MPI_ROOT}/lib64"
+> 	        MPI_LIBS="-L${MPI_ROOT}/lib64 -lmpi"
+> 		MPI_INCLUDE="${MPI_INCLUDE} ${MPI_INCLUDE}/64"
+>
+> followed by
+>    cd Rmpi && autoconf && cd ..
+>    R CMD INSTALL --clean Rmpi
+>
+> compiles without errors (see snippet 1 below).
+> However, when tryinig to load Rmpi in R I get an error:
+>
+>> library("Rmpi")
+> Error in dyn.load(file, DLLpath = DLLpath, ...) :
+>    kann shared library
+>    /home/francke/R/x86_64-unknown-linux-gnu-library/2.8/Rmpi/libs/Rmpi.so'
+>    nicht laden:
+>   /usr/lib64/libmpi.so.0: undefined symbol: lam_ssi_cr_did
+> Fehler in library("Rmpi") : .First.lib fehlgeschlagen f?r 'Rmpi'
+> Error in dyn.unload(file.path(libpath, "libs", paste("Rmpi",
+> .Platform$dynlib.ext,  :
+>    shared library
+>    /home/francke/R/x86_64-unknown-linux-gnu-library/2.8/Rmpi/libs/Rmpi.so'
+>    wurde nicht geladen
+
+My guess is that you have successfully told R how to find LAM during
+compile, but that your system needs to be configured so that R can
+find LAM when it is running. I guess that
+
+  R CMD ldd /home/francke/R/x86_64-unknown-linux-gnu-library/2.8/Rmpi/libs/Rmpi.so
+
+lists something like 'libmpi.so.0 => not found' (I'm just guessing at
+the missing library name; there may be several). What you need to do
+is to tell R where to look, e.g., temporarily with
+
+  LD_LIBRARY_PATH=/path/to/lib64 R
+
+and more permanently by ldconfig or the like.
+
+Martin
+
+>
+> Translation:
+>> library("Rmpi")
+> Error in dyn.load(file, DLLpath = DLLpath, ...) :
+>    could not load shared library
+>    /home/francke/R/x86_64-unknown-linux-gnu-library/2.8/Rmpi/libs/Rmpi.so':
+>   /usr/lib64/libmpi.so.0: undefined symbol: lam_ssi_cr_did
+> Error in library("Rmpi") : .First.lib failed for 'Rmpi'
+> Error in dyn.unload(file.path(libpath, "libs", paste("Rmpi",
+> .Platform$dynlib.ext,  :
+>    shared library
+>    /home/francke/R/x86_64-unknown-linux-gnu-library/2.8/Rmpi/libs/Rmpi.so'
+>    not loaded
+>>
+>
+> "Rmpi.so" exists, so I dunno what's wrong. Any help is appreciated,
+>
+> Melwin
+>
+>
+>
+> ####snippet: installation of RMPI
+> * Installing to library
+> '/home/francke/R/x86_64-unknown-linux-gnu-library/2.8'
+> * Installing *source* package 'Rmpi' ...
+> checking for gcc... gcc
+> checking for C compiler default output file name... a.out
+> checking whether the C compiler works... yes
+> checking whether we are cross compiling... no
+> checking for suffix of executables...
+> checking for suffix of object files... o
+> checking whether we are using the GNU C compiler... yes
+> checking whether gcc accepts -g... yes
+> checking for gcc option to accept ISO C89... none needed
+> I am here /usr
+> Try to find mpi.h ...
+> Found in /usr/include
+> Try to find libmpi.so or libmpich.a
+> Found libmpi in /usr/lib64
+> Try to find liblam.so ...
+> checking for main in -llam... no
+> liblam not found. Probably not LAM-MPI
+> checking for openpty in -lutil... yes
+> checking for main in -lpthread... yes
+> configure: creating ./config.status
+> config.status: creating src/Makevars
+> ** libs
+> gcc -std=gnu99 -I/usr/lib64/R/include -DPACKAGE_NAME=\"\"
+> -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+> -DPACKAGE_BUGREPORT=\"\" -I/usr/include -I/usr/include/64 -DMPI2 -DLAM
+> -fPIC -I/usr/local/include    -fpic  -fmessage-length=0 -O2 -Wall
+> -D_FORTIFY_SOURCE=2 -fstack-protector -funwind-tables
+> -fasynchronous-unwind-tables -c conversion.c -o conversion.o
+> gcc -std=gnu99 -I/usr/lib64/R/include -DPACKAGE_NAME=\"\"
+> -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+> -DPACKAGE_BUGREPORT=\"\" -I/usr/include -I/usr/include/64 -DMPI2 -DLAM
+> -fPIC -I/usr/local/include    -fpic  -fmessage-length=0 -O2 -Wall
+> -D_FORTIFY_SOURCE=2 -fstack-protector -funwind-tables
+> -fasynchronous-unwind-tables -c internal.c -o internal.o
+> gcc -std=gnu99 -I/usr/lib64/R/include -DPACKAGE_NAME=\"\"
+> -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+> -DPACKAGE_BUGREPORT=\"\" -I/usr/include -I/usr/include/64 -DMPI2 -DLAM
+> -fPIC -I/usr/local/include    -fpic  -fmessage-length=0 -O2 -Wall
+> -D_FORTIFY_SOURCE=2 -fstack-protector -funwind-tables
+> -fasynchronous-unwind-tables -c RegQuery.c -o RegQuery.o
+> gcc -std=gnu99 -I/usr/lib64/R/include -DPACKAGE_NAME=\"\"
+> -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+> -DPACKAGE_BUGREPORT=\"\" -I/usr/include -I/usr/include/64 -DMPI2 -DLAM
+> -fPIC -I/usr/local/include    -fpic  -fmessage-length=0 -O2 -Wall
+> -D_FORTIFY_SOURCE=2 -fstack-protector -funwind-tables
+> -fasynchronous-unwind-tables -c Rmpi.c -o Rmpi.o
+> gcc -std=gnu99 -shared -L/usr/local/lib64 -o Rmpi.so conversion.o
+> internal.o RegQuery.o Rmpi.o -L/usr/lib64 -lmpi -lutil -lpthread -fPIC
+> -L/usr/lib64/R/lib -lR
+> ** R
+> ** demo
+> ** inst
+> ** preparing package for lazy loading
+> ** help
+>    >>> Building/Updating help pages for package 'Rmpi'
+>     [...]
+> ** building package indices ...
+> * DONE (Rmpi)
+> ####end snippet
+>
+>
+>
+>
+>
+>
+> 2009/6/26 Hao Yu <hyu at stats.uwo.ca>:
+>> Hi Melwin,
+>>
+>> Did you try
+>>
+>> R CMD INSTALL Rmpi_0.5-7.tar.gz --configure-args=--with-mpi=/path_to_lam
+>>
+>> Your system may have several mpi and Rmpi did not find a right mpi.
+>>
+>> BTW, when you are installing lam, make sure to turn dynamic lib on. The
+>> default one is static one and Rmpi needs libmpi.so to work.
+>>
+>> Hao
+>>
+>> Melwin wrote:
+>>> Thanks for the reply.
+>>>
+>>> 2009/6/24 Rowe, Brian Lee Yung (Portfolio Analytics) <B_Rowe at ml.com>:
+>>>> Did you confirm that your MPI installation is working? That is the
+>>>> probably the first step.
+>>> LAM seems to work ok:
+>>> ? ?johnson at linuxmodel:~> lamboot -v
+>>>
+>>> ? ?LAM 7.1.4/MPI 2 C++/ROMIO - Indiana University
+>>>
+>>> ? ?n-1<4165> ssi:boot:base:linear: booting n0 (localhost)
+>>> ? ?n-1<4165> ssi:boot:base:linear: finished
+>>> ? ?johnson at linuxmodel:~> lamexec C hostname
+>>> ? ?linuxmodel
+>>>
+>>>
+>>>> Regarding LD_LIBRARY_PATH, since I don't know what your configuration
+>>>> is, make sure you export it to your environment and also don't
+>>>> overwrite
+>>>> any existing values.
+>>>> ?i.e. This is better:
+>>>> ?$ export LD_LIBRARY_PATH=/usr/lib64:$LD_LIBRARY_PATH
+>>>> since it looks like you're on a 64 bit platform.
+>>>
+>>> Tried that. Same results as before:
+>>> ? ?johnson at linuxmodel:~> ? ? R CMD INSTALL Rmpi_0.5-7.tar.gz
+>>> ? ?* Installing to library
+>>> '/home/johnson/R/x86_64-unknown-linux-gnu-library/2.8'
+>>> ? ?* Installing *source* package 'Rmpi' ...
+>>> ? ?checking for gcc... gcc
+>>> ? ?checking for C compiler default output file name... a.out
+>>> ? ?checking whether the C compiler works... yes
+>>> ? ?checking whether we are cross compiling... no
+>>> ? ?checking for suffix of executables...
+>>> ? ?checking for suffix of object files... o
+>>> ? ?checking whether we are using the GNU C compiler... yes
+>>> ? ?checking whether gcc accepts -g... yes
+>>> ? ?checking for gcc option to accept ISO C89... none needed
+>>> ? ?I am here /usr
+>>> ? ?Try to find mpi.h ...
+>>> ? ?Found in /usr/include
+>>> ? ?Try to find libmpi.so or libmpich.a
+>>> ? ?checking for main in -lmpi... no
+>>> ? ?libmpi not found. exiting...
+>>> ? ?ERROR: configuration failed for package 'Rmpi'
+>>> ? ?** Removing
+>>> /home/johnson/R/x86_64-unknown-linux-gnu-library/2.8/Rmpi'
+>>>
+>>>> I use OpenMPI and it include an mpi-based compiler which I found
+>>>> to  work
+>>>> better than gcc directly. You might try that. Just make sure you export
+>>>> your MPI_ROOT.
+>>> I would love to use OpenMPI, but I gather the slave spawning from
+>>> within R
+>>> is not yet possible - which is what I need in interactive mode
+>>> (https://stat.ethz.ch/pipermail/r-sig-hpc/2009-February/000104.html).
+>>> I'd
+>>> love to hear that this has changed.
+>>>
+>>>> It would also probably help to include a bit more output
+>>>> from the compilation process.
+>>> The dump above contains the entire output, I hope that helps.
+>>>
+>>> thanks again,
+>>> Melwin
+>>>
+>>> _______________________________________________
+>>> R-sig-hpc mailing list
+>>> R-sig-hpc at r-project.org
+>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>
+>>
+>>
+>> --
+>> Department of Statistics & Actuarial Sciences
+>> Fax Phone#:(519)-661-3813
+>> The University of Western Ontario
+>> Office Phone#:(519)-661-3622
+>> London, Ontario N6A 5B7
+>> http://www.stats.uwo.ca/faculty/yu
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+-- 
+Martin Morgan
+Computational Biology / Fred Hutchinson Cancer Research Center
+1100 Fairview Ave. N.
+PO Box 19024 Seattle, WA 98109
+
+Location: Arnold Building M1 B861
+Phone: (206) 667-2793
+
+
+From hyu at stats.uwo.ca  Thu Jul  9 16:37:11 2009
+From: hyu at stats.uwo.ca (Hao Yu)
+Date: Thu, 9 Jul 2009 10:37:11 -0400 (EDT)
+Subject: [R-sig-hpc] Problems Installing Rmpi on openSUSE 11.1  x86_64
+In-Reply-To: <op.uwsy95xzyqqyib@mueggelsee.geoecology.uni-potsdam.de>
+References: <op.uwsy95xzyqqyib@mueggelsee.geoecology.uni-potsdam.de>
+Message-ID: <35fa78a13eb4ac8ab0ab7c4bb0f029ec.squirrel@www.stats.uwo.ca>
+
+If Rmpi is compiled successfully but cannot be loaded into R, it may  be
+due to lam's mpi.so not in ld path. Normally I would modify the R script
+and add a line like (right after the first line)
+LD_LIBRARY_PATH=/usr/local/lam/lib
+
+In this way, Rmpi knows where to find mpi.so and lam.so.
+
+Hao
+
+Melwin wrote:
+> Thanks to Hao, Brian and Martin (offlist) for their suggestions.
+>
+> I tried them all:
+> - setting LD_LIBRARY_PATH
+> - using "--configure-args=--with-mpi=/path_to_lam"
+> - using mpicc
+> -> all without success when trying to install Rmpi (same error message as
+> before)
+>
+> Since I cannot accept using OpenMPI using 100% CPU power in idle mode, I
+> still need to get LAM working.
+> Martin suggested modifiying "configure.ac":
+>
+>    tar xzf Rmpi_0.5-7.tar.gz
+>    vim Rmpi/configure.ac
+>
+> I added
+> after line 67:      MPITYPE="LAM"
+> after line 128:
+> 	elif test -f ${MPI_ROOT}/lib64/libmpi.so; then #Till
+> 	        echo "Found libmpi in ${MPI_ROOT}/lib64"
+> 	        MPI_LIBS="-L${MPI_ROOT}/lib64 -lmpi"
+> 		MPI_INCLUDE="${MPI_INCLUDE} ${MPI_INCLUDE}/64"
+>
+> followed by
+>    cd Rmpi && autoconf && cd ..
+>    R CMD INSTALL --clean Rmpi
+>
+> compiles without errors (see snippet 1 below).
+> However, when tryinig to load Rmpi in R I get an error:
+>
+>> library("Rmpi")
+> Error in dyn.load(file, DLLpath = DLLpath, ...) :
+>    kann shared library
+> '/home/francke/R/x86_64-unknown-linux-gnu-library/2.8/Rmpi/libs/Rmpi.so'
+> nicht laden:
+>   /usr/lib64/libmpi.so.0: undefined symbol: lam_ssi_cr_did
+> Fehler in library("Rmpi") : .First.lib fehlgeschlagen f?r 'Rmpi'
+> Error in dyn.unload(file.path(libpath, "libs", paste("Rmpi",
+> .Platform$dynlib.ext,  :
+>    shared library
+> '/home/francke/R/x86_64-unknown-linux-gnu-library/2.8/Rmpi/libs/Rmpi.so'
+> wurde nicht geladen
+>>
+>
+> Translation:
+>> library("Rmpi")
+> Error in dyn.load(file, DLLpath = DLLpath, ...) :
+>    could not load shared library
+> '/home/francke/R/x86_64-unknown-linux-gnu-library/2.8/Rmpi/libs/Rmpi.so':
+>   /usr/lib64/libmpi.so.0: undefined symbol: lam_ssi_cr_did
+> Error in library("Rmpi") : .First.lib failed for 'Rmpi'
+> Error in dyn.unload(file.path(libpath, "libs", paste("Rmpi",
+> .Platform$dynlib.ext,  :
+>    shared library
+> '/home/francke/R/x86_64-unknown-linux-gnu-library/2.8/Rmpi/libs/Rmpi.so'
+> not loaded
+>>
+>
+> "Rmpi.so" exists, so I dunno what's wrong. Any help is appreciated,
+>
+> Melwin
+>
+>
+>
+> ####snippet: installation of RMPI
+> * Installing to library
+> '/home/francke/R/x86_64-unknown-linux-gnu-library/2.8'
+> * Installing *source* package 'Rmpi' ...
+> checking for gcc... gcc
+> checking for C compiler default output file name... a.out
+> checking whether the C compiler works... yes
+> checking whether we are cross compiling... no
+> checking for suffix of executables...
+> checking for suffix of object files... o
+> checking whether we are using the GNU C compiler... yes
+> checking whether gcc accepts -g... yes
+> checking for gcc option to accept ISO C89... none needed
+> I am here /usr
+> Try to find mpi.h ...
+> Found in /usr/include
+> Try to find libmpi.so or libmpich.a
+> Found libmpi in /usr/lib64
+> Try to find liblam.so ...
+> checking for main in -llam... no
+> liblam not found. Probably not LAM-MPI
+> checking for openpty in -lutil... yes
+> checking for main in -lpthread... yes
+> configure: creating ./config.status
+> config.status: creating src/Makevars
+> ** libs
+> gcc -std=gnu99 -I/usr/lib64/R/include -DPACKAGE_NAME=\"\"
+> -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+> -DPACKAGE_BUGREPORT=\"\" -I/usr/include -I/usr/include/64 -DMPI2 -DLAM
+> -fPIC -I/usr/local/include    -fpic  -fmessage-length=0 -O2 -Wall
+> -D_FORTIFY_SOURCE=2 -fstack-protector -funwind-tables
+> -fasynchronous-unwind-tables -c conversion.c -o conversion.o
+> gcc -std=gnu99 -I/usr/lib64/R/include -DPACKAGE_NAME=\"\"
+> -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+> -DPACKAGE_BUGREPORT=\"\" -I/usr/include -I/usr/include/64 -DMPI2 -DLAM
+> -fPIC -I/usr/local/include    -fpic  -fmessage-length=0 -O2 -Wall
+> -D_FORTIFY_SOURCE=2 -fstack-protector -funwind-tables
+> -fasynchronous-unwind-tables -c internal.c -o internal.o
+> gcc -std=gnu99 -I/usr/lib64/R/include -DPACKAGE_NAME=\"\"
+> -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+> -DPACKAGE_BUGREPORT=\"\" -I/usr/include -I/usr/include/64 -DMPI2 -DLAM
+> -fPIC -I/usr/local/include    -fpic  -fmessage-length=0 -O2 -Wall
+> -D_FORTIFY_SOURCE=2 -fstack-protector -funwind-tables
+> -fasynchronous-unwind-tables -c RegQuery.c -o RegQuery.o
+> gcc -std=gnu99 -I/usr/lib64/R/include -DPACKAGE_NAME=\"\"
+> -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+> -DPACKAGE_BUGREPORT=\"\" -I/usr/include -I/usr/include/64 -DMPI2 -DLAM
+> -fPIC -I/usr/local/include    -fpic  -fmessage-length=0 -O2 -Wall
+> -D_FORTIFY_SOURCE=2 -fstack-protector -funwind-tables
+> -fasynchronous-unwind-tables -c Rmpi.c -o Rmpi.o
+> gcc -std=gnu99 -shared -L/usr/local/lib64 -o Rmpi.so conversion.o
+> internal.o RegQuery.o Rmpi.o -L/usr/lib64 -lmpi -lutil -lpthread -fPIC
+> -L/usr/lib64/R/lib -lR
+> ** R
+> ** demo
+> ** inst
+> ** preparing package for lazy loading
+> ** help
+>    >>> Building/Updating help pages for package 'Rmpi'
+>     [...]
+> ** building package indices ...
+> * DONE (Rmpi)
+> ####end snippet
+>
+>
+>
+>
+>
+>
+> 2009/6/26 Hao Yu <hyu at stats.uwo.ca>:
+>> Hi Melwin,
+>>
+>> Did you try
+>>
+>> R CMD INSTALL Rmpi_0.5-7.tar.gz --configure-args=--with-mpi=/path_to_lam
+>>
+>> Your system may have several mpi and Rmpi did not find a right mpi.
+>>
+>> BTW, when you are installing lam, make sure to turn dynamic lib on. The
+>> default one is static one and Rmpi needs libmpi.so to work.
+>>
+>> Hao
+>>
+>> Melwin wrote:
+>>> Thanks for the reply.
+>>>
+>>> 2009/6/24 Rowe, Brian Lee Yung (Portfolio Analytics) <B_Rowe at ml.com>:
+>>>> Did you confirm that your MPI installation is working? That is the
+>>>> probably the first step.
+>>> LAM seems to work ok:
+>>> ? ?johnson at linuxmodel:~> lamboot -v
+>>>
+>>> ? ?LAM 7.1.4/MPI 2 C++/ROMIO - Indiana University
+>>>
+>>> ? ?n-1<4165> ssi:boot:base:linear: booting n0 (localhost)
+>>> ? ?n-1<4165> ssi:boot:base:linear: finished
+>>> ? ?johnson at linuxmodel:~> lamexec C hostname
+>>> ? ?linuxmodel
+>>>
+>>>
+>>>> Regarding LD_LIBRARY_PATH, since I don't know what your configuration
+>>>> is, make sure you export it to your environment and also don't
+>>>> overwrite
+>>>> any existing values.
+>>>> ?i.e. This is better:
+>>>> ?$ export LD_LIBRARY_PATH=/usr/lib64:$LD_LIBRARY_PATH
+>>>> since it looks like you're on a 64 bit platform.
+>>>
+>>> Tried that. Same results as before:
+>>> ? ?johnson at linuxmodel:~> ? ? R CMD INSTALL Rmpi_0.5-7.tar.gz
+>>> ? ?* Installing to library
+>>> '/home/johnson/R/x86_64-unknown-linux-gnu-library/2.8'
+>>> ? ?* Installing *source* package 'Rmpi' ...
+>>> ? ?checking for gcc... gcc
+>>> ? ?checking for C compiler default output file name... a.out
+>>> ? ?checking whether the C compiler works... yes
+>>> ? ?checking whether we are cross compiling... no
+>>> ? ?checking for suffix of executables...
+>>> ? ?checking for suffix of object files... o
+>>> ? ?checking whether we are using the GNU C compiler... yes
+>>> ? ?checking whether gcc accepts -g... yes
+>>> ? ?checking for gcc option to accept ISO C89... none needed
+>>> ? ?I am here /usr
+>>> ? ?Try to find mpi.h ...
+>>> ? ?Found in /usr/include
+>>> ? ?Try to find libmpi.so or libmpich.a
+>>> ? ?checking for main in -lmpi... no
+>>> ? ?libmpi not found. exiting...
+>>> ? ?ERROR: configuration failed for package 'Rmpi'
+>>> ? ?** Removing
+>>> '/home/johnson/R/x86_64-unknown-linux-gnu-library/2.8/Rmpi'
+>>>
+>>>> I use OpenMPI and it include an mpi-based compiler which I found to
+>>>> work
+>>>> better than gcc directly. You might try that. Just make sure you
+>>>> export
+>>>> your MPI_ROOT.
+>>> I would love to use OpenMPI, but I gather the slave spawning from
+>>> within R
+>>> is not yet possible - which is what I need in interactive mode
+>>> (https://stat.ethz.ch/pipermail/r-sig-hpc/2009-February/000104.html).
+>>> I'd
+>>> love to hear that this has changed.
+>>>
+>>>> It would also probably help to include a bit more output
+>>>> from the compilation process.
+>>> The dump above contains the entire output, I hope that helps.
+>>>
+>>> thanks again,
+>>> Melwin
+>>>
+>>> _______________________________________________
+>>> R-sig-hpc mailing list
+>>> R-sig-hpc at r-project.org
+>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>
+>>
+>>
+>> --
+>> Department of Statistics & Actuarial Sciences
+>> Fax Phone#:(519)-661-3813
+>> The University of Western Ontario
+>> Office Phone#:(519)-661-3622
+>> London, Ontario N6A 5B7
+>> http://www.stats.uwo.ca/faculty/yu
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+-- 
+Department of Statistics & Actuarial Sciences
+Fax Phone#:(519)-661-3813
+The University of Western Ontario
+Office Phone#:(519)-661-3622
+London, Ontario N6A 5B7
+http://www.stats.uwo.ca/faculty/yu
+
+
+From hyu at stats.uwo.ca  Thu Jul  9 16:44:54 2009
+From: hyu at stats.uwo.ca (Hao Yu)
+Date: Thu, 9 Jul 2009 10:44:54 -0400 (EDT)
+Subject: [R-sig-hpc] Problems Installing Rmpi on openSUSE 11.1  x86_64
+In-Reply-To: <op.uwsy95xzyqqyib@mueggelsee.geoecology.uni-potsdam.de>
+References: <op.uwsy95xzyqqyib@mueggelsee.geoecology.uni-potsdam.de>
+Message-ID: <d48b334c49fd5b7880d196c618bc3af1.squirrel@www.stats.uwo.ca>
+
+Sorry. I forgot to say that Rmpi needs liblam.so as well. So use
+> 	        MPI_LIBS="-L${MPI_ROOT}/lib64 -lmpi -lam"
+
+Once compiled, use
+
+         ldd path_to_Rmpi.so
+
+to check if all libs are properly set. Again the following line in R script
+LD_LIBRARY_PATH=/usr/local/lam/lib
+is  useful in case ldd reports libmpi.so.0 or liblam.so.0 are not found.
+
+Hao
+
+Melwin wrote:
+> Thanks to Hao, Brian and Martin (offlist) for their suggestions.
+>
+> I tried them all:
+> - setting LD_LIBRARY_PATH
+> - using "--configure-args=--with-mpi=/path_to_lam"
+> - using mpicc
+> -> all without success when trying to install Rmpi (same error message as
+> before)
+>
+> Since I cannot accept using OpenMPI using 100% CPU power in idle mode, I
+> still need to get LAM working.
+> Martin suggested modifiying "configure.ac":
+>
+>    tar xzf Rmpi_0.5-7.tar.gz
+>    vim Rmpi/configure.ac
+>
+> I added
+> after line 67:      MPITYPE="LAM"
+> after line 128:
+> 	elif test -f ${MPI_ROOT}/lib64/libmpi.so; then #Till
+> 	        echo "Found libmpi in ${MPI_ROOT}/lib64"
+> 	        MPI_LIBS="-L${MPI_ROOT}/lib64 -lmpi"
+> 		MPI_INCLUDE="${MPI_INCLUDE} ${MPI_INCLUDE}/64"
+>
+> followed by
+>    cd Rmpi && autoconf && cd ..
+>    R CMD INSTALL --clean Rmpi
+>
+> compiles without errors (see snippet 1 below).
+> However, when tryinig to load Rmpi in R I get an error:
+>
+>> library("Rmpi")
+> Error in dyn.load(file, DLLpath = DLLpath, ...) :
+>    kann shared library
+> '/home/francke/R/x86_64-unknown-linux-gnu-library/2.8/Rmpi/libs/Rmpi.so'
+> nicht laden:
+>   /usr/lib64/libmpi.so.0: undefined symbol: lam_ssi_cr_did
+> Fehler in library("Rmpi") : .First.lib fehlgeschlagen f?r 'Rmpi'
+> Error in dyn.unload(file.path(libpath, "libs", paste("Rmpi",
+> .Platform$dynlib.ext,  :
+>    shared library
+> '/home/francke/R/x86_64-unknown-linux-gnu-library/2.8/Rmpi/libs/Rmpi.so'
+> wurde nicht geladen
+>>
+>
+> Translation:
+>> library("Rmpi")
+> Error in dyn.load(file, DLLpath = DLLpath, ...) :
+>    could not load shared library
+> '/home/francke/R/x86_64-unknown-linux-gnu-library/2.8/Rmpi/libs/Rmpi.so':
+>   /usr/lib64/libmpi.so.0: undefined symbol: lam_ssi_cr_did
+> Error in library("Rmpi") : .First.lib failed for 'Rmpi'
+> Error in dyn.unload(file.path(libpath, "libs", paste("Rmpi",
+> .Platform$dynlib.ext,  :
+>    shared library
+> '/home/francke/R/x86_64-unknown-linux-gnu-library/2.8/Rmpi/libs/Rmpi.so'
+> not loaded
+>>
+>
+> "Rmpi.so" exists, so I dunno what's wrong. Any help is appreciated,
+>
+> Melwin
+>
+>
+>
+> ####snippet: installation of RMPI
+> * Installing to library
+> '/home/francke/R/x86_64-unknown-linux-gnu-library/2.8'
+> * Installing *source* package 'Rmpi' ...
+> checking for gcc... gcc
+> checking for C compiler default output file name... a.out
+> checking whether the C compiler works... yes
+> checking whether we are cross compiling... no
+> checking for suffix of executables...
+> checking for suffix of object files... o
+> checking whether we are using the GNU C compiler... yes
+> checking whether gcc accepts -g... yes
+> checking for gcc option to accept ISO C89... none needed
+> I am here /usr
+> Try to find mpi.h ...
+> Found in /usr/include
+> Try to find libmpi.so or libmpich.a
+> Found libmpi in /usr/lib64
+> Try to find liblam.so ...
+> checking for main in -llam... no
+> liblam not found. Probably not LAM-MPI
+> checking for openpty in -lutil... yes
+> checking for main in -lpthread... yes
+> configure: creating ./config.status
+> config.status: creating src/Makevars
+> ** libs
+> gcc -std=gnu99 -I/usr/lib64/R/include -DPACKAGE_NAME=\"\"
+> -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+> -DPACKAGE_BUGREPORT=\"\" -I/usr/include -I/usr/include/64 -DMPI2 -DLAM
+> -fPIC -I/usr/local/include    -fpic  -fmessage-length=0 -O2 -Wall
+> -D_FORTIFY_SOURCE=2 -fstack-protector -funwind-tables
+> -fasynchronous-unwind-tables -c conversion.c -o conversion.o
+> gcc -std=gnu99 -I/usr/lib64/R/include -DPACKAGE_NAME=\"\"
+> -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+> -DPACKAGE_BUGREPORT=\"\" -I/usr/include -I/usr/include/64 -DMPI2 -DLAM
+> -fPIC -I/usr/local/include    -fpic  -fmessage-length=0 -O2 -Wall
+> -D_FORTIFY_SOURCE=2 -fstack-protector -funwind-tables
+> -fasynchronous-unwind-tables -c internal.c -o internal.o
+> gcc -std=gnu99 -I/usr/lib64/R/include -DPACKAGE_NAME=\"\"
+> -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+> -DPACKAGE_BUGREPORT=\"\" -I/usr/include -I/usr/include/64 -DMPI2 -DLAM
+> -fPIC -I/usr/local/include    -fpic  -fmessage-length=0 -O2 -Wall
+> -D_FORTIFY_SOURCE=2 -fstack-protector -funwind-tables
+> -fasynchronous-unwind-tables -c RegQuery.c -o RegQuery.o
+> gcc -std=gnu99 -I/usr/lib64/R/include -DPACKAGE_NAME=\"\"
+> -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+> -DPACKAGE_BUGREPORT=\"\" -I/usr/include -I/usr/include/64 -DMPI2 -DLAM
+> -fPIC -I/usr/local/include    -fpic  -fmessage-length=0 -O2 -Wall
+> -D_FORTIFY_SOURCE=2 -fstack-protector -funwind-tables
+> -fasynchronous-unwind-tables -c Rmpi.c -o Rmpi.o
+> gcc -std=gnu99 -shared -L/usr/local/lib64 -o Rmpi.so conversion.o
+> internal.o RegQuery.o Rmpi.o -L/usr/lib64 -lmpi -lutil -lpthread -fPIC
+> -L/usr/lib64/R/lib -lR
+> ** R
+> ** demo
+> ** inst
+> ** preparing package for lazy loading
+> ** help
+>    >>> Building/Updating help pages for package 'Rmpi'
+>     [...]
+> ** building package indices ...
+> * DONE (Rmpi)
+> ####end snippet
+>
+>
+>
+>
+>
+>
+> 2009/6/26 Hao Yu <hyu at stats.uwo.ca>:
+>> Hi Melwin,
+>>
+>> Did you try
+>>
+>> R CMD INSTALL Rmpi_0.5-7.tar.gz --configure-args=--with-mpi=/path_to_lam
+>>
+>> Your system may have several mpi and Rmpi did not find a right mpi.
+>>
+>> BTW, when you are installing lam, make sure to turn dynamic lib on. The
+>> default one is static one and Rmpi needs libmpi.so to work.
+>>
+>> Hao
+>>
+>> Melwin wrote:
+>>> Thanks for the reply.
+>>>
+>>> 2009/6/24 Rowe, Brian Lee Yung (Portfolio Analytics) <B_Rowe at ml.com>:
+>>>> Did you confirm that your MPI installation is working? That is the
+>>>> probably the first step.
+>>> LAM seems to work ok:
+>>> ? ?johnson at linuxmodel:~> lamboot -v
+>>>
+>>> ? ?LAM 7.1.4/MPI 2 C++/ROMIO - Indiana University
+>>>
+>>> ? ?n-1<4165> ssi:boot:base:linear: booting n0 (localhost)
+>>> ? ?n-1<4165> ssi:boot:base:linear: finished
+>>> ? ?johnson at linuxmodel:~> lamexec C hostname
+>>> ? ?linuxmodel
+>>>
+>>>
+>>>> Regarding LD_LIBRARY_PATH, since I don't know what your configuration
+>>>> is, make sure you export it to your environment and also don't
+>>>> overwrite
+>>>> any existing values.
+>>>> ?i.e. This is better:
+>>>> ?$ export LD_LIBRARY_PATH=/usr/lib64:$LD_LIBRARY_PATH
+>>>> since it looks like you're on a 64 bit platform.
+>>>
+>>> Tried that. Same results as before:
+>>> ? ?johnson at linuxmodel:~> ? ? R CMD INSTALL Rmpi_0.5-7.tar.gz
+>>> ? ?* Installing to library
+>>> '/home/johnson/R/x86_64-unknown-linux-gnu-library/2.8'
+>>> ? ?* Installing *source* package 'Rmpi' ...
+>>> ? ?checking for gcc... gcc
+>>> ? ?checking for C compiler default output file name... a.out
+>>> ? ?checking whether the C compiler works... yes
+>>> ? ?checking whether we are cross compiling... no
+>>> ? ?checking for suffix of executables...
+>>> ? ?checking for suffix of object files... o
+>>> ? ?checking whether we are using the GNU C compiler... yes
+>>> ? ?checking whether gcc accepts -g... yes
+>>> ? ?checking for gcc option to accept ISO C89... none needed
+>>> ? ?I am here /usr
+>>> ? ?Try to find mpi.h ...
+>>> ? ?Found in /usr/include
+>>> ? ?Try to find libmpi.so or libmpich.a
+>>> ? ?checking for main in -lmpi... no
+>>> ? ?libmpi not found. exiting...
+>>> ? ?ERROR: configuration failed for package 'Rmpi'
+>>> ? ?** Removing
+>>> '/home/johnson/R/x86_64-unknown-linux-gnu-library/2.8/Rmpi'
+>>>
+>>>> I use OpenMPI and it include an mpi-based compiler which I found to
+>>>> work
+>>>> better than gcc directly. You might try that. Just make sure you
+>>>> export
+>>>> your MPI_ROOT.
+>>> I would love to use OpenMPI, but I gather the slave spawning from
+>>> within R
+>>> is not yet possible - which is what I need in interactive mode
+>>> (https://stat.ethz.ch/pipermail/r-sig-hpc/2009-February/000104.html).
+>>> I'd
+>>> love to hear that this has changed.
+>>>
+>>>> It would also probably help to include a bit more output
+>>>> from the compilation process.
+>>> The dump above contains the entire output, I hope that helps.
+>>>
+>>> thanks again,
+>>> Melwin
+>>>
+>>> _______________________________________________
+>>> R-sig-hpc mailing list
+>>> R-sig-hpc at r-project.org
+>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>
+>>
+>>
+>> --
+>> Department of Statistics & Actuarial Sciences
+>> Fax Phone#:(519)-661-3813
+>> The University of Western Ontario
+>> Office Phone#:(519)-661-3622
+>> London, Ontario N6A 5B7
+>> http://www.stats.uwo.ca/faculty/yu
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+-- 
+Department of Statistics & Actuarial Sciences
+Fax Phone#:(519)-661-3813
+The University of Western Ontario
+Office Phone#:(519)-661-3622
+London, Ontario N6A 5B7
+http://www.stats.uwo.ca/faculty/yu
+
+
+From win at comets.de  Thu Jul  9 17:20:02 2009
+From: win at comets.de (Melwin)
+Date: Thu, 09 Jul 2009 17:20:02 +0200
+Subject: [R-sig-hpc] Problems Installing Rmpi on openSUSE 11.1  x86_64
+In-Reply-To: <d48b334c49fd5b7880d196c618bc3af1.squirrel@www.stats.uwo.ca>
+References: <op.uwsy95xzyqqyib@mueggelsee.geoecology.uni-potsdam.de>
+	<d48b334c49fd5b7880d196c618bc3af1.squirrel@www.stats.uwo.ca>
+Message-ID: <op.uws3joypyqqyib@mueggelsee.geoecology.uni-potsdam.de>
+
+Thanks, Martin and Hao, for the quick response.
+Following Martin's suggestions, I tried
+	R CMD ldd  
+/home/francke/R/x86_64-unknown-linux-gnu-library/2.8/Rmpi/libs/Rmpi.so
+which yields no apparent problem:
+         linux-vdso.so.1 =>  (0x00007fff641fe000)
+         libmpi.so.0 => /usr/lib64/libmpi.so.0 (0x00007f955bb40000)
+         libutil.so.1 => /lib64/libutil.so.1 (0x00007f955b93c000)
+         libpthread.so.0 => /lib64/libpthread.so.0 (0x00007f955b720000)
+         libR.so => /usr/lib64/R/lib/libR.so (0x00007f955b1e5000)
+         libc.so.6 => /lib64/libc.so.6 (0x00007f955ae8b000)
+         /lib64/ld-linux-x86-64.so.2 (0x00007f955c026000)
+         libRblas.so => /usr/lib64/R/lib/libRblas.so (0x00007f955ac5d000)
+         libgfortran.so.3 => /usr/lib64/libgfortran.so.3  
+(0x00007f955a981000)
+         libm.so.6 => /lib64/libm.so.6 (0x00007f955a72a000)
+         libreadline.so.5 => /lib64/libreadline.so.5 (0x00007f955a4e8000)
+         libdl.so.2 => /lib64/libdl.so.2 (0x00007f955a2e4000)
+         libncurses.so.5 => /lib64/libncurses.so.5 (0x00007f955a09b000)
+although "liblam.so.0" is not listed. Is this a problem?
+
+Nevertheless I attempted setting
+
+	export LD_LIBRARY_PATH=/usr/lib64
+(because thats where "libmpi.so" is) and
+	export MPI_LIBS="-Lusr/lib64 -lmpi -lam"
+(because thats where "liblam.so" is)
+
+Running
+	ldd /home/francke/R/x86_64-unknown-linux-gnu-library/2.8/Rmpi/libs/Rmpi.so
+still gives the same output as above.
+
+Nevertheless, loading Rmpi after starting R still prints the same error.
+
+Please let me know if you've got an idea what else I could do.
+
+gratefully,
+
+Melwin
+
+
+Am 09.07.2009, 16:44 Uhr, schrieb Hao Yu <hyu at stats.uwo.ca>:
+
+> Sorry. I forgot to say that Rmpi needs liblam.so as well. So use
+>> 	        MPI_LIBS="-L${MPI_ROOT}/lib64 -lmpi -lam"
+>
+> Once compiled, use
+>
+>          ldd path_to_Rmpi.so
+>
+> to check if all libs are properly set. Again the following line in R  
+> script
+> LD_LIBRARY_PATH=/usr/local/lam/lib
+> is  useful in case ldd reports libmpi.so.0 or liblam.so.0 are not found.
+>
+> Hao
+>
+> Melwin wrote:
+>> Thanks to Hao, Brian and Martin (offlist) for their suggestions.
+>>
+>> I tried them all:
+>> - setting LD_LIBRARY_PATH
+>> - using "--configure-args=--with-mpi=/path_to_lam"
+>> - using mpicc
+>> -> all without success when trying to install Rmpi (same error message  
+>> as
+>> before)
+>>
+>> Since I cannot accept using OpenMPI using 100% CPU power in idle mode, I
+>> still need to get LAM working.
+>> Martin suggested modifiying "configure.ac":
+>>
+>>    tar xzf Rmpi_0.5-7.tar.gz
+>>    vim Rmpi/configure.ac
+>>
+>> I added
+>> after line 67:      MPITYPE="LAM"
+>> after line 128:
+>> 	elif test -f ${MPI_ROOT}/lib64/libmpi.so; then #Till
+>> 	        echo "Found libmpi in ${MPI_ROOT}/lib64"
+>> 	        MPI_LIBS="-L${MPI_ROOT}/lib64 -lmpi"
+>> 		MPI_INCLUDE="${MPI_INCLUDE} ${MPI_INCLUDE}/64"
+>>
+>> followed by
+>>    cd Rmpi && autoconf && cd ..
+>>    R CMD INSTALL --clean Rmpi
+>>
+>> compiles without errors (see snippet 1 below).
+>> However, when tryinig to load Rmpi in R I get an error:
+>>
+>>> library("Rmpi")
+>> Error in dyn.load(file, DLLpath = DLLpath, ...) :
+>>    kann shared library
+>> '/home/francke/R/x86_64-unknown-linux-gnu-library/2.8/Rmpi/libs/Rmpi.so'
+>> nicht laden:
+>>   /usr/lib64/libmpi.so.0: undefined symbol: lam_ssi_cr_did
+>> Fehler in library("Rmpi") : .First.lib fehlgeschlagen f?r 'Rmpi'
+>> Error in dyn.unload(file.path(libpath, "libs", paste("Rmpi",
+>> .Platform$dynlib.ext,  :
+>>    shared library
+>> '/home/francke/R/x86_64-unknown-linux-gnu-library/2.8/Rmpi/libs/Rmpi.so'
+>> wurde nicht geladen
+>>>
+>>
+>> Translation:
+>>> library("Rmpi")
+>> Error in dyn.load(file, DLLpath = DLLpath, ...) :
+>>    could not load shared library
+>> '/home/francke/R/x86_64-unknown-linux-gnu-library/2.8/Rmpi/libs/Rmpi.so':
+>>   /usr/lib64/libmpi.so.0: undefined symbol: lam_ssi_cr_did
+>> Error in library("Rmpi") : .First.lib failed for 'Rmpi'
+>> Error in dyn.unload(file.path(libpath, "libs", paste("Rmpi",
+>> .Platform$dynlib.ext,  :
+>>    shared library
+>> '/home/francke/R/x86_64-unknown-linux-gnu-library/2.8/Rmpi/libs/Rmpi.so'
+>> not loaded
+>>>
+>>
+>> "Rmpi.so" exists, so I dunno what's wrong. Any help is appreciated,
+>>
+>> Melwin
+>>
+>>
+>>
+>> ####snippet: installation of RMPI
+>> * Installing to library
+>> '/home/francke/R/x86_64-unknown-linux-gnu-library/2.8'
+>> * Installing *source* package 'Rmpi' ...
+>> checking for gcc... gcc
+>> checking for C compiler default output file name... a.out
+>> checking whether the C compiler works... yes
+>> checking whether we are cross compiling... no
+>> checking for suffix of executables...
+>> checking for suffix of object files... o
+>> checking whether we are using the GNU C compiler... yes
+>> checking whether gcc accepts -g... yes
+>> checking for gcc option to accept ISO C89... none needed
+>> I am here /usr
+>> Try to find mpi.h ...
+>> Found in /usr/include
+>> Try to find libmpi.so or libmpich.a
+>> Found libmpi in /usr/lib64
+>> Try to find liblam.so ...
+>> checking for main in -llam... no
+>> liblam not found. Probably not LAM-MPI
+>> checking for openpty in -lutil... yes
+>> checking for main in -lpthread... yes
+>> configure: creating ./config.status
+>> config.status: creating src/Makevars
+>> ** libs
+>> gcc -std=gnu99 -I/usr/lib64/R/include -DPACKAGE_NAME=\"\"
+>> -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+>> -DPACKAGE_BUGREPORT=\"\" -I/usr/include -I/usr/include/64 -DMPI2 -DLAM
+>> -fPIC -I/usr/local/include    -fpic  -fmessage-length=0 -O2 -Wall
+>> -D_FORTIFY_SOURCE=2 -fstack-protector -funwind-tables
+>> -fasynchronous-unwind-tables -c conversion.c -o conversion.o
+>> gcc -std=gnu99 -I/usr/lib64/R/include -DPACKAGE_NAME=\"\"
+>> -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+>> -DPACKAGE_BUGREPORT=\"\" -I/usr/include -I/usr/include/64 -DMPI2 -DLAM
+>> -fPIC -I/usr/local/include    -fpic  -fmessage-length=0 -O2 -Wall
+>> -D_FORTIFY_SOURCE=2 -fstack-protector -funwind-tables
+>> -fasynchronous-unwind-tables -c internal.c -o internal.o
+>> gcc -std=gnu99 -I/usr/lib64/R/include -DPACKAGE_NAME=\"\"
+>> -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+>> -DPACKAGE_BUGREPORT=\"\" -I/usr/include -I/usr/include/64 -DMPI2 -DLAM
+>> -fPIC -I/usr/local/include    -fpic  -fmessage-length=0 -O2 -Wall
+>> -D_FORTIFY_SOURCE=2 -fstack-protector -funwind-tables
+>> -fasynchronous-unwind-tables -c RegQuery.c -o RegQuery.o
+>> gcc -std=gnu99 -I/usr/lib64/R/include -DPACKAGE_NAME=\"\"
+>> -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+>> -DPACKAGE_BUGREPORT=\"\" -I/usr/include -I/usr/include/64 -DMPI2 -DLAM
+>> -fPIC -I/usr/local/include    -fpic  -fmessage-length=0 -O2 -Wall
+>> -D_FORTIFY_SOURCE=2 -fstack-protector -funwind-tables
+>> -fasynchronous-unwind-tables -c Rmpi.c -o Rmpi.o
+>> gcc -std=gnu99 -shared -L/usr/local/lib64 -o Rmpi.so conversion.o
+>> internal.o RegQuery.o Rmpi.o -L/usr/lib64 -lmpi -lutil -lpthread -fPIC
+>> -L/usr/lib64/R/lib -lR
+>> ** R
+>> ** demo
+>> ** inst
+>> ** preparing package for lazy loading
+>> ** help
+>>    >>> Building/Updating help pages for package 'Rmpi'
+>>     [...]
+>> ** building package indices ...
+>> * DONE (Rmpi)
+>> ####end snippet
+>>
+>>
+>>
+>>
+>>
+>>
+>> 2009/6/26 Hao Yu <hyu at stats.uwo.ca>:
+>>> Hi Melwin,
+>>>
+>>> Did you try
+>>>
+>>> R CMD INSTALL Rmpi_0.5-7.tar.gz  
+>>> --configure-args=--with-mpi=/path_to_lam
+>>>
+>>> Your system may have several mpi and Rmpi did not find a right mpi.
+>>>
+>>> BTW, when you are installing lam, make sure to turn dynamic lib on. The
+>>> default one is static one and Rmpi needs libmpi.so to work.
+>>>
+>>> Hao
+>>>
+>>> Melwin wrote:
+>>>> Thanks for the reply.
+>>>>
+>>>> 2009/6/24 Rowe, Brian Lee Yung (Portfolio Analytics) <B_Rowe at ml.com>:
+>>>>> Did you confirm that your MPI installation is working? That is the
+>>>>> probably the first step.
+>>>> LAM seems to work ok:
+>>>> ? ?johnson at linuxmodel:~> lamboot -v
+>>>>
+>>>> ? ?LAM 7.1.4/MPI 2 C++/ROMIO - Indiana University
+>>>>
+>>>> ? ?n-1<4165> ssi:boot:base:linear: booting n0 (localhost)
+>>>> ? ?n-1<4165> ssi:boot:base:linear: finished
+>>>> ? ?johnson at linuxmodel:~> lamexec C hostname
+>>>> ? ?linuxmodel
+>>>>
+>>>>
+>>>>> Regarding LD_LIBRARY_PATH, since I don't know what your configuration
+>>>>> is, make sure you export it to your environment and also don't
+>>>>> overwrite
+>>>>> any existing values.
+>>>>> ?i.e. This is better:
+>>>>> ?$ export LD_LIBRARY_PATH=/usr/lib64:$LD_LIBRARY_PATH
+>>>>> since it looks like you're on a 64 bit platform.
+>>>>
+>>>> Tried that. Same results as before:
+>>>> ? ?johnson at linuxmodel:~> ? ? R CMD INSTALL Rmpi_0.5-7.tar.gz
+>>>> ? ?* Installing to library
+>>>> '/home/johnson/R/x86_64-unknown-linux-gnu-library/2.8'
+>>>> ? ?* Installing *source* package 'Rmpi' ...
+>>>> ? ?checking for gcc... gcc
+>>>> ? ?checking for C compiler default output file name... a.out
+>>>> ? ?checking whether the C compiler works... yes
+>>>> ? ?checking whether we are cross compiling... no
+>>>> ? ?checking for suffix of executables...
+>>>> ? ?checking for suffix of object files... o
+>>>> ? ?checking whether we are using the GNU C compiler... yes
+>>>> ? ?checking whether gcc accepts -g... yes
+>>>> ? ?checking for gcc option to accept ISO C89... none needed
+>>>> ? ?I am here /usr
+>>>> ? ?Try to find mpi.h ...
+>>>> ? ?Found in /usr/include
+>>>> ? ?Try to find libmpi.so or libmpich.a
+>>>> ? ?checking for main in -lmpi... no
+>>>> ? ?libmpi not found. exiting...
+>>>> ? ?ERROR: configuration failed for package 'Rmpi'
+>>>> ? ?** Removing
+>>>> '/home/johnson/R/x86_64-unknown-linux-gnu-library/2.8/Rmpi'
+>>>>
+>>>>> I use OpenMPI and it include an mpi-based compiler which I found to
+>>>>> work
+>>>>> better than gcc directly. You might try that. Just make sure you
+>>>>> export
+>>>>> your MPI_ROOT.
+>>>> I would love to use OpenMPI, but I gather the slave spawning from
+>>>> within R
+>>>> is not yet possible - which is what I need in interactive mode
+>>>> (https://stat.ethz.ch/pipermail/r-sig-hpc/2009-February/000104.html).
+>>>> I'd
+>>>> love to hear that this has changed.
+>>>>
+>>>>> It would also probably help to include a bit more output
+>>>>> from the compilation process.
+>>>> The dump above contains the entire output, I hope that helps.
+>>>>
+>>>> thanks again,
+>>>> Melwin
+>>>>
+>>>> _______________________________________________
+>>>> R-sig-hpc mailing list
+>>>> R-sig-hpc at r-project.org
+>>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>>
+>>>
+>>>
+>>> --
+>>> Department of Statistics & Actuarial Sciences
+>>> Fax Phone#:(519)-661-3813
+>>> The University of Western Ontario
+>>> Office Phone#:(519)-661-3622
+>>> London, Ontario N6A 5B7
+>>> http://www.stats.uwo.ca/faculty/yu
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>
+>
+
+--
+
+
+From mwkimpel at gmail.com  Wed Jul 15 18:54:06 2009
+From: mwkimpel at gmail.com (Mark Kimpel)
+Date: Wed, 15 Jul 2009 12:54:06 -0400
+Subject: [R-sig-hpc] The foreach, iterators and doMC packages
+In-Reply-To: <4f7bf0100907011956q53dad194xf20f79e833b75000@mail.gmail.com>
+References: <4f7bf0100907011956q53dad194xf20f79e833b75000@mail.gmail.com>
+Message-ID: <6b93d1830907150954g7139fae2g6778d21ebe3108cd@mail.gmail.com>
+
+I'm having trouble getting these packages to work as I believe they
+should. I have a new Debian Lenny box running on an Intel i7 with 12
+GB of memory and wrote a test script to see how much performance
+increase I could achieve with foreach. For this purpose, I used code
+extracted from the vignette. Below is the code, the system.time
+output, and sessionInfo(). I should add that I've run this multiple
+times and always achieved similar results. These last were achieved
+after doing init 1 to get me into a strict terminal mode and avoid the
+GUI.
+
+As you can see, the results seem to be the opposite of what one would
+expect. The fastest time, by an order of magnitude, is achieved by a
+simple for loop, and %do% slightly outperforms %dopar%
+
+How can this be explained?
+Mark
+####################################
+require(foreach)
+require(multicore)
+require(doMC)
+registerDoMC(cores=5)
+z <- 30000
+
+
+for.each.do.time <- system.time(
+            a <- foreach(i = 1:z, .combine = "c") %do% sqrt(i)
+            )
+#
+for.each.do.par.time <- system.time(
+            b <- foreach(i = 1:z, .combine = "c") %dopar% sqrt(i)
+            )
+
+#
+c <- rep(0,z)
+loop.time <- system.time(
+            for (i in 1:length(c))
+            c[i] <- sqrt(i)
+            )
+#
+out <- rbind(unclass(for.each.do.time), unclass(for.each.do.par.time),
+unclass(loop.time))
+out
+"user.self"	"sys.self"	"elapsed"	"user.child"	"sys.child"
+25.713	0	25.712	0	0
+25.918	0.016	26.015	0.192	0.192
+0.207999999999998	0	0.206000000000003	0	0
+#
+"R.version.platform" "x86_64-unknown-linux-gnu"
+"R.version.arch" "x86_64"
+"R.version.os" "linux-gnu"
+"R.version.system" "x86_64, linux-gnu"
+"R.version.status" ""
+"R.version.major" "2"
+"R.version.minor" "9.1"
+"R.version.year" "2009"
+"R.version.month" "06"
+"R.version.day" "26"
+"R.version.svn rev" "48839"
+"R.version.language" "R"
+"R.version.version.string" "R version 2.9.1 (2009-06-26)"
+"locale" "LC_CTYPE=en_US.UTF-8;LC_NUMERIC=C;LC_TIME=en_US.UTF-8;LC_COLLATE=en_US.UTF-8;LC_MONETARY=C;LC_MESSAGES=en_US.UTF-8;LC_PAPER=en_US.UTF-8;LC_NAME=C;LC_ADDRESS=C;LC_TELEPHONE=C;LC_MEASUREMENT=en_US.UTF-8;LC_IDENTIFICATION=C"
+"basePkgs1" "stats"
+"basePkgs2" "graphics"
+"basePkgs3" "grDevices"
+"basePkgs4" "datasets"
+"basePkgs5" "utils"
+"basePkgs6" "methods"
+"basePkgs7" "base"
+
+
+
+------------------------------------------------------------
+Mark W. Kimpel MD  ** Neuroinformatics ** Dept. of Psychiatry
+Indiana University School of Medicine
+
+15032 Hunter Court, Westfield, IN  46074
+
+(317) 490-5129 Work, & Mobile & VoiceMail
+
+"The real problem is not whether machines think but whether men do."
+-- B. F. Skinner
+******************************************************************
+
+
+
+On Wed, Jul 1, 2009 at 10:56 PM, Steve
+Weston<steve at revolution-computing.com> wrote:
+> There have been several announcements of three new packages that I've
+> recently uploaded to CRAN: foreach, iterators, and doMC. ?You can read
+> one description on David Smith's blog, at:
+>
+> ? ?http://blog.revolution-computing.com
+> or:
+> ? ?http://bit.ly/tygLz
+>
+> You can also read the vignette that I wrote for foreach on a CRAN
+> website.
+>
+> I would like to mention that one of the goals of the foreach package is
+> to make it easy to write an R package that allows the end user to choose
+> what parallel computing engine to use. ?That's useful because the user
+> may already have and use a parallel computing system, and not want to
+> install and maintain yet another one. ?(The foreach and iterators packages
+> themselves are trivial to install, since they provide a framework for using
+> parallel computing systems such as multicore and nws.)
+>
+> Currently, only the doMC "parallel backend" for multicore is publicly
+> available on CRAN, but I'm hoping to get a chance to write and release
+> other backend packages, to support MPI and shared memory, for example.
+>
+> I'd love to hear from R package authors on how to improve foreach
+> so that it's a more attractive platform on which to develop parallel
+> applications. ?Especially if you've had difficulty using parallel
+> computing systems in the past.
+>
+> --
+> Steve Weston
+> REvolution Computing
+> One Century Tower | 265 Church Street, Suite 1006
+> New Haven, CT ?06510
+> P: 203-777-7442 x266 | www.revolution-computing.com
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From brian at braverock.com  Wed Jul 15 19:18:34 2009
+From: brian at braverock.com (Brian G. Peterson)
+Date: Wed, 15 Jul 2009 12:18:34 -0500
+Subject: [R-sig-hpc] The foreach, iterators and doMC packages
+In-Reply-To: <6b93d1830907150954g7139fae2g6778d21ebe3108cd@mail.gmail.com>
+References: <4f7bf0100907011956q53dad194xf20f79e833b75000@mail.gmail.com>
+	<6b93d1830907150954g7139fae2g6778d21ebe3108cd@mail.gmail.com>
+Message-ID: <4A5E0F6A.2040509@braverock.com>
+
+Mark,
+
+Use a non-trivial example.  sqrt() will probably have more overhead than 
+is worth it to distribute.  "there is no such thing as a free lunch" is 
+as true in parallel computing as anywhere else, and the overhead of 
+distributing the job will overwhelm a trivial example.  Sys.sleep(10) 
+would be a more worthwhile trivial test case.
+
+Regards,
+
+  - Brian
+
+Mark Kimpel wrote:
+> I'm having trouble getting these packages to work as I believe they
+> should. I have a new Debian Lenny box running on an Intel i7 with 12
+> GB of memory and wrote a test script to see how much performance
+> increase I could achieve with foreach. For this purpose, I used code
+> extracted from the vignette. Below is the code, the system.time
+> output, and sessionInfo(). I should add that I've run this multiple
+> times and always achieved similar results. These last were achieved
+> after doing init 1 to get me into a strict terminal mode and avoid the
+> GUI.
+>
+> As you can see, the results seem to be the opposite of what one would
+> expect. The fastest time, by an order of magnitude, is achieved by a
+> simple for loop, and %do% slightly outperforms %dopar%
+>
+> How can this be explained?
+> Mark
+> ####################################
+> require(foreach)
+> require(multicore)
+> require(doMC)
+> registerDoMC(cores=5)
+> z <- 30000
+>
+>
+> for.each.do.time <- system.time(
+>             a <- foreach(i = 1:z, .combine = "c") %do% sqrt(i)
+>             )
+> #
+> for.each.do.par.time <- system.time(
+>             b <- foreach(i = 1:z, .combine = "c") %dopar% sqrt(i)
+>             )
+>
+> #
+> c <- rep(0,z)
+> loop.time <- system.time(
+>             for (i in 1:length(c))
+>             c[i] <- sqrt(i)
+>             )
+> #
+> out <- rbind(unclass(for.each.do.time), unclass(for.each.do.par.time),
+> unclass(loop.time))
+> out
+> "user.self"	"sys.self"	"elapsed"	"user.child"	"sys.child"
+> 25.713	0	25.712	0	0
+> 25.918	0.016	26.015	0.192	0.192
+> 0.207999999999998	0	0.206000000000003	0	0
+> #
+> "R.version.platform" "x86_64-unknown-linux-gnu"
+> "R.version.arch" "x86_64"
+> "R.version.os" "linux-gnu"
+> "R.version.system" "x86_64, linux-gnu"
+> "R.version.status" ""
+> "R.version.major" "2"
+> "R.version.minor" "9.1"
+> "R.version.year" "2009"
+> "R.version.month" "06"
+> "R.version.day" "26"
+> "R.version.svn rev" "48839"
+> "R.version.language" "R"
+> "R.version.version.string" "R version 2.9.1 (2009-06-26)"
+> "locale" "LC_CTYPE=en_US.UTF-8;LC_NUMERIC=C;LC_TIME=en_US.UTF-8;LC_COLLATE=en_US.UTF-8;LC_MONETARY=C;LC_MESSAGES=en_US.UTF-8;LC_PAPER=en_US.UTF-8;LC_NAME=C;LC_ADDRESS=C;LC_TELEPHONE=C;LC_MEASUREMENT=en_US.UTF-8;LC_IDENTIFICATION=C"
+> "basePkgs1" "stats"
+> "basePkgs2" "graphics"
+> "basePkgs3" "grDevices"
+> "basePkgs4" "datasets"
+> "basePkgs5" "utils"
+> "basePkgs6" "methods"
+> "basePkgs7" "base"
+>
+>
+>
+> ------------------------------------------------------------
+> Mark W. Kimpel MD  ** Neuroinformatics ** Dept. of Psychiatry
+> Indiana University School of Medicine
+>
+> 15032 Hunter Court, Westfield, IN  46074
+>
+> (317) 490-5129 Work, & Mobile & VoiceMail
+>
+> "The real problem is not whether machines think but whether men do."
+> -- B. F. Skinner
+> ******************************************************************
+>
+>
+>
+> On Wed, Jul 1, 2009 at 10:56 PM, Steve
+> Weston<steve at revolution-computing.com> wrote:
+>   
+>> There have been several announcements of three new packages that I've
+>> recently uploaded to CRAN: foreach, iterators, and doMC.  You can read
+>> one description on David Smith's blog, at:
+>>
+>>    http://blog.revolution-computing.com
+>> or:
+>>    http://bit.ly/tygLz
+>>
+>> You can also read the vignette that I wrote for foreach on a CRAN
+>> website.
+>>
+>> I would like to mention that one of the goals of the foreach package is
+>> to make it easy to write an R package that allows the end user to choose
+>> what parallel computing engine to use.  That's useful because the user
+>> may already have and use a parallel computing system, and not want to
+>> install and maintain yet another one.  (The foreach and iterators packages
+>> themselves are trivial to install, since they provide a framework for using
+>> parallel computing systems such as multicore and nws.)
+>>
+>> Currently, only the doMC "parallel backend" for multicore is publicly
+>> available on CRAN, but I'm hoping to get a chance to write and release
+>> other backend packages, to support MPI and shared memory, for example.
+>>
+>> I'd love to hear from R package authors on how to improve foreach
+>> so that it's a more attractive platform on which to develop parallel
+>> applications.  Especially if you've had difficulty using parallel
+>> computing systems in the past.
+>>
+>>     
+
+-- 
+Brian G. Peterson
+http://braverock.com/brian/
+Ph: 773-459-4973
+IM: bgpbraverock
+
+
+From steve at revolution-computing.com  Wed Jul 15 19:50:10 2009
+From: steve at revolution-computing.com (Steve Weston)
+Date: Wed, 15 Jul 2009 13:50:10 -0400
+Subject: [R-sig-hpc] The foreach, iterators and doMC packages
+In-Reply-To: <6b93d1830907150954g7139fae2g6778d21ebe3108cd@mail.gmail.com>
+References: <4f7bf0100907011956q53dad194xf20f79e833b75000@mail.gmail.com>
+	<6b93d1830907150954g7139fae2g6778d21ebe3108cd@mail.gmail.com>
+Message-ID: <4f7bf0100907151050t4c1c78cfn8db2ed666b6f763d@mail.gmail.com>
+
+And you can get much better results using sqrt directly on the vector,
+as it is intended to be called.  The sqrt function is so fast that it's
+crazy to call it in parallel the way my vignette shows.  The
+overhead kills you.  But I have this bad habit of using sqrt in my
+parallel programming examples.  I actually put a footnote in the
+vignette saying you should never do what I just did, but I can see
+now that I wasn't nearly explicit enough.  I should probably include
+a big disclaimer saying not to try this at home.
+
+I'm pretty sure that the next version of foreach will issue warnings
+if the tasks execute in less than a second.  But I'll definitely fix
+the vignette.  Sorry about that.
+
+- Steve
+
+
+
+On Wed, Jul 15, 2009 at 12:54 PM, Mark Kimpel<mwkimpel at gmail.com> wrote:
+> I'm having trouble getting these packages to work as I believe they
+> should. I have a new Debian Lenny box running on an Intel i7 with 12
+> GB of memory and wrote a test script to see how much performance
+> increase I could achieve with foreach. For this purpose, I used code
+> extracted from the vignette. Below is the code, the system.time
+> output, and sessionInfo(). I should add that I've run this multiple
+> times and always achieved similar results. These last were achieved
+> after doing init 1 to get me into a strict terminal mode and avoid the
+> GUI.
+>
+> As you can see, the results seem to be the opposite of what one would
+> expect. The fastest time, by an order of magnitude, is achieved by a
+> simple for loop, and %do% slightly outperforms %dopar%
+>
+> How can this be explained?
+> Mark
+> ####################################
+> require(foreach)
+> require(multicore)
+> require(doMC)
+> registerDoMC(cores=5)
+> z <- 30000
+>
+>
+> for.each.do.time <- system.time(
+> ? ? ? ? ? ?a <- foreach(i = 1:z, .combine = "c") %do% sqrt(i)
+> ? ? ? ? ? ?)
+> #
+> for.each.do.par.time <- system.time(
+> ? ? ? ? ? ?b <- foreach(i = 1:z, .combine = "c") %dopar% sqrt(i)
+> ? ? ? ? ? ?)
+>
+> #
+> c <- rep(0,z)
+> loop.time <- system.time(
+> ? ? ? ? ? ?for (i in 1:length(c))
+> ? ? ? ? ? ?c[i] <- sqrt(i)
+> ? ? ? ? ? ?)
+> #
+> out <- rbind(unclass(for.each.do.time), unclass(for.each.do.par.time),
+> unclass(loop.time))
+> out
+> "user.self" ? ? "sys.self" ? ? ?"elapsed" ? ? ? "user.child" ? ?"sys.child"
+> 25.713 ?0 ? ? ? 25.712 ?0 ? ? ? 0
+> 25.918 ?0.016 ? 26.015 ?0.192 ? 0.192
+> 0.207999999999998 ? ? ? 0 ? ? ? 0.206000000000003 ? ? ? 0 ? ? ? 0
+> #
+> "R.version.platform" "x86_64-unknown-linux-gnu"
+> "R.version.arch" "x86_64"
+> "R.version.os" "linux-gnu"
+> "R.version.system" "x86_64, linux-gnu"
+> "R.version.status" ""
+> "R.version.major" "2"
+> "R.version.minor" "9.1"
+> "R.version.year" "2009"
+> "R.version.month" "06"
+> "R.version.day" "26"
+> "R.version.svn rev" "48839"
+> "R.version.language" "R"
+> "R.version.version.string" "R version 2.9.1 (2009-06-26)"
+> "locale" "LC_CTYPE=en_US.UTF-8;LC_NUMERIC=C;LC_TIME=en_US.UTF-8;LC_COLLATE=en_US.UTF-8;LC_MONETARY=C;LC_MESSAGES=en_US.UTF-8;LC_PAPER=en_US.UTF-8;LC_NAME=C;LC_ADDRESS=C;LC_TELEPHONE=C;LC_MEASUREMENT=en_US.UTF-8;LC_IDENTIFICATION=C"
+> "basePkgs1" "stats"
+> "basePkgs2" "graphics"
+> "basePkgs3" "grDevices"
+> "basePkgs4" "datasets"
+> "basePkgs5" "utils"
+> "basePkgs6" "methods"
+> "basePkgs7" "base"
+>
+>
+>
+> ------------------------------------------------------------
+> Mark W. Kimpel MD ?** Neuroinformatics ** Dept. of Psychiatry
+> Indiana University School of Medicine
+>
+> 15032 Hunter Court, Westfield, IN ?46074
+>
+> (317) 490-5129 Work, & Mobile & VoiceMail
+>
+> "The real problem is not whether machines think but whether men do."
+> -- B. F. Skinner
+> ******************************************************************
+>
+>
+>
+> On Wed, Jul 1, 2009 at 10:56 PM, Steve
+> Weston<steve at revolution-computing.com> wrote:
+>> There have been several announcements of three new packages that I've
+>> recently uploaded to CRAN: foreach, iterators, and doMC. ?You can read
+>> one description on David Smith's blog, at:
+>>
+>> ? ?http://blog.revolution-computing.com
+>> or:
+>> ? ?http://bit.ly/tygLz
+>>
+>> You can also read the vignette that I wrote for foreach on a CRAN
+>> website.
+>>
+>> I would like to mention that one of the goals of the foreach package is
+>> to make it easy to write an R package that allows the end user to choose
+>> what parallel computing engine to use. ?That's useful because the user
+>> may already have and use a parallel computing system, and not want to
+>> install and maintain yet another one. ?(The foreach and iterators packages
+>> themselves are trivial to install, since they provide a framework for using
+>> parallel computing systems such as multicore and nws.)
+>>
+>> Currently, only the doMC "parallel backend" for multicore is publicly
+>> available on CRAN, but I'm hoping to get a chance to write and release
+>> other backend packages, to support MPI and shared memory, for example.
+>>
+>> I'd love to hear from R package authors on how to improve foreach
+>> so that it's a more attractive platform on which to develop parallel
+>> applications. ?Especially if you've had difficulty using parallel
+>> computing systems in the past.
+>>
+>> --
+>> Steve Weston
+>> REvolution Computing
+>> One Century Tower | 265 Church Street, Suite 1006
+>> New Haven, CT ?06510
+>> P: 203-777-7442 x266 | www.revolution-computing.com
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>
+
+
+
+-- 
+Steve Weston
+REvolution Computing
+One Century Tower | 265 Church Street, Suite 1006
+New Haven, CT  06510
+P: 203-777-7442 x266 | www.revolution-computing.com
+
+
+From arash at drakeresearchlab.com  Thu Jul 16 02:00:09 2009
+From: arash at drakeresearchlab.com (Arash Fard)
+Date: Wed, 15 Jul 2009 20:00:09 -0400
+Subject: [R-sig-hpc] Error in library(Rmpi)
+Message-ID: <77cd02930907151700j7d49bfbay935330203045e75f@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090715/81623ec4/attachment.pl>
+
+From rdiaz02 at gmail.com  Thu Jul 16 15:07:48 2009
+From: rdiaz02 at gmail.com (Ramon Diaz-Uriarte)
+Date: Thu, 16 Jul 2009 15:07:48 +0200
+Subject: [R-sig-hpc] Rmpi in "Depends"
+Message-ID: <624934630907160607m4cc51354wc2a5201f7dddeb44@mail.gmail.com>
+
+Dear All,
+
+I have one package where I listed Rmpi in the "Depends" line in the
+DESCRIPTION file. But this leads to unwanted behavior: installing the
+package will try to start the lam universe (I am using LAM/MPI here).
+This will not work if done as root, and is annoying when done as a
+regular user.
+
+I just checked, and no package in CRAN is listed that has a reverse
+Depends on Rmpi. I've googled around, but haven't been able to locate
+anything, though I think I remember this issue has appeared in the
+past in some list.
+
+Any ideas of the best way to proceed?
+
+Thanks,
+
+R.
+
+-- 
+Ramon Diaz-Uriarte
+Structural Biology and Biocomputing Programme
+Spanish National Cancer Centre (CNIO)
+http://ligarto.org/rdiaz
+Phone: +34-91-732-8000 ext. 3019
+
+
+From brian at braverock.com  Thu Jul 16 15:29:16 2009
+From: brian at braverock.com (Brian G. Peterson)
+Date: Thu, 16 Jul 2009 08:29:16 -0500
+Subject: [R-sig-hpc] Rmpi in "Depends"
+In-Reply-To: <624934630907160607m4cc51354wc2a5201f7dddeb44@mail.gmail.com>
+References: <624934630907160607m4cc51354wc2a5201f7dddeb44@mail.gmail.com>
+Message-ID: <4A5F2B2C.8000505@braverock.com>
+
+Ramon Diaz-Uriarte wrote:
+> Dear All,
+>
+> I have one package where I listed Rmpi in the "Depends" line in the
+> DESCRIPTION file. But this leads to unwanted behavior: installing the
+> package will try to start the lam universe (I am using LAM/MPI here).
+> This will not work if done as root, and is annoying when done as a
+> regular user.
+>
+> I just checked, and no package in CRAN is listed that has a reverse
+> Depends on Rmpi. I've googled around, but haven't been able to locate
+> anything, though I think I remember this issue has appeared in the
+> past in some list.
+>
+> Any ideas of the best way to proceed?
+>
+> Thanks,
+>
+> R.
+>
+>   
+Sure, list it as "Suggests" in the package DESCRIPTION. 
+
+Inside your code, check to see if it is installed, and throw a warning 
+or stop() error if the package is not available without starting up the 
+lam universe.  Make clear in your documentation why you've done this.
+
+Regards,
+
+  - Brian
+
+-- 
+Brian G. Peterson
+http://braverock.com/brian/
+Ph: 773-459-4973
+IM: bgpbraverock
+
+
+From hyu at stats.uwo.ca  Thu Jul 16 15:53:12 2009
+From: hyu at stats.uwo.ca (Hao Yu)
+Date: Thu, 16 Jul 2009 09:53:12 -0400 (EDT)
+Subject: [R-sig-hpc] Error in library(Rmpi)
+In-Reply-To: <77cd02930907151700j7d49bfbay935330203045e75f@mail.gmail.com>
+References: <77cd02930907151700j7d49bfbay935330203045e75f@mail.gmail.com>
+Message-ID: <9f90442b8cea5eec233db40c8832b103.squirrel@www.stats.uwo.ca>
+
+Did you turn on dynamic lib when you were installing lam? The default was
+static lib. Rmpi needs libmpi.so and liblam.so to work. Also use
+             R CMD ldd path_to_Rmpi.so
+to see if Rmpi finds all libs.
+
+Hao
+
+Arash Fard wrote:
+> Hi,
+> I successfully installed Rmpi_0.5-7 for R-2.9.1; the installation command
+> was:
+>
+> ./R CMD INSTALL /root/src/Rmpi/Rmpi_0.5-7.tar.gz
+> --configure-args=--with-mpi=/usr/lam
+>
+> However, when I call it inside R, I face this error:
+>
+>> library(Rmpi)
+> Error in dyn.load(file, DLLpath = DLLpath, ...) :
+>   unable to load shared library
+> '/usr/local/lib64/R/library/Rmpi/libs/Rmpi.so':
+>   /usr/local/lib64/R/library/Rmpi/libs/Rmpi.so: undefined symbol:
+> lam_mpi_double
+> Error in library(Rmpi) : .First.lib failed for 'Rmpi'
+> Error in dyn.unload(file.path(libpath, "libs", paste("Rmpi",
+> .Platform$dynlib.ext,  :
+>   dynamic/shared library '/usr/local/lib64/R/library/Rmpi/libs/Rmpi.so'
+> was
+> not loaded
+>
+> Please be informed that the environmental variables that I have set for
+> LAM
+> are:
+> LD_LIBRARY_PATH=/usr/lib64/LAM/gnu:$LD_LIBRARY_PATH
+> PATH=/usr/lam/bin/gnu:/usr/lam/bin:$PATH
+> MANPATH=/usr/lam/share/man:$MANPATH
+>
+> The result for "lamboot -v" is:
+> LAM 7.1.2/MPI 2 C++/ROMIO/bproc - Indiana University
+>
+> n-1<26696> ssi:boot:bproc: beomap now in use, ignoring boot schema file
+> n-1<26696> ssi:boot:bproc: found master node (scyld.localdomain).
+> Skipping
+> checks.
+> n-1<26696> ssi:boot:bproc:vector: launching on nodes -1
+> n-1<26696> ssi:boot:base:linear_windowed: booting n0 (scyld.localdomain)
+> n-1<26696> ssi:boot:bproc: starting lamd on (scyld.localdomain)
+>
+> The result for "lamnodes" is:
+> n0      master:1:origin,this_node
+>
+> The result for "lamexec C hostname" is:
+> furcatus.ecology.uga.edu
+>
+> I also added LD_LIBRARY_PATH to R script, but it was useless. I would
+> appreciate it if you could help me.
+>
+> Thank you,
+> Arash
+>
+> Odum School of Ecology
+> The University of Georgia
+>
+> 	[[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+-- 
+Department of Statistics & Actuarial Sciences
+Fax Phone#:(519)-661-3813
+The University of Western Ontario
+Office Phone#:(519)-661-3622
+London, Ontario N6A 5B7
+http://www.stats.uwo.ca/faculty/yu
+
+
+From mwkimpel at gmail.com  Thu Jul 16 19:34:13 2009
+From: mwkimpel at gmail.com (Mark Kimpel)
+Date: Thu, 16 Jul 2009 13:34:13 -0400
+Subject: [R-sig-hpc] The foreach, iterators and doMC packages
+In-Reply-To: <4f7bf0100907151050t4c1c78cfn8db2ed666b6f763d@mail.gmail.com>
+References: <4f7bf0100907011956q53dad194xf20f79e833b75000@mail.gmail.com>
+	<6b93d1830907150954g7139fae2g6778d21ebe3108cd@mail.gmail.com>
+	<4f7bf0100907151050t4c1c78cfn8db2ed666b6f763d@mail.gmail.com>
+Message-ID: <6b93d1830907161034j757a0128nbb1f50a3e1a555de@mail.gmail.com>
+
+Steve,
+
+I used a non-trivial example and got a nice speed boost, so thanks for
+that advice.
+
+Now I need advice on a real-world application. I am working with a
+genomic data-set that involves a lot of calculations on a data-frame
+as well as parallel sub-settting of an annotation data-frame. The
+data.frames initially have about 30k rows and up to 100 columns. If,
+for example, I have 5 cores to work with, it seems to me that the most
+efficient way, rather than making repeated calls to the cores, would
+be to parcel things out by the number of rows divided by the number of
+cores. That would mean sending data.frames to the functions that
+do.par calls rather than vectors. Below is some a self-contained
+example. It doesn't work because i doesn't get incremented after the
+%dopar% operator.
+
+I'm new to the parallel processing world, so if I am not taking the
+right approach let me know, or, if another package might work better.
+
+Thanks,
+Mark
+
+###########################################################
+require(foreach)
+require(multicore)
+require(doMC)
+
+Ncore <- 5
+registerDoMC(cores=Ncore)
+Ncol <- 300
+Nrow <- 500
+
+do.par.test.called.func <- function(Mat1, Mat2){
+  Mat3 <- Mat1 + Mat2
+  for(i in 1:nrow(Mat3)){
+    for (j in 1:ncol(Mat3)){
+      Mat3[i,j] <- sqrt(abs(Mat3[i,j]))
+    }
+  }
+  Mat3
+}
+
+do.par.test.func <- function(Nrow, Ncol, Ncore){
+  x.mat <- matrix(rnorm(Ncol * Nrow), Nrow, Ncol)
+  y.mat <- matrix(rnorm(Ncol * Nrow), Nrow, Ncol)
+  N <- ceiling(Nrow/Ncore)
+  b <- foreach(i = 1:Ncore) %dopar% do.par.test.called.func(x.mat[(i *
+N): (((i + 1) * N) -1),], y.mat[(i * N): (((i + 1) * N) -1),])
+  b
+}
+#
+do.par.out <- do.par.test.func(Nrow, Ncol, Ncore)
+############################################
+
+------------------------------------------------------------
+Mark W. Kimpel MD  ** Neuroinformatics ** Dept. of Psychiatry
+Indiana University School of Medicine
+
+15032 Hunter Court, Westfield, IN  46074
+
+(317) 490-5129 Work, & Mobile & VoiceMail
+
+"The real problem is not whether machines think but whether men do."
+-- B. F. Skinner
+******************************************************************
+
+
+
+On Wed, Jul 15, 2009 at 1:50 PM, Steve
+Weston<steve at revolution-computing.com> wrote:
+> And you can get much better results using sqrt directly on the vector,
+> as it is intended to be called. ?The sqrt function is so fast that it's
+> crazy to call it in parallel the way my vignette shows. ?The
+> overhead kills you. ?But I have this bad habit of using sqrt in my
+> parallel programming examples. ?I actually put a footnote in the
+> vignette saying you should never do what I just did, but I can see
+> now that I wasn't nearly explicit enough. ?I should probably include
+> a big disclaimer saying not to try this at home.
+>
+> I'm pretty sure that the next version of foreach will issue warnings
+> if the tasks execute in less than a second. ?But I'll definitely fix
+> the vignette. ?Sorry about that.
+>
+> - Steve
+>
+>
+>
+> On Wed, Jul 15, 2009 at 12:54 PM, Mark Kimpel<mwkimpel at gmail.com> wrote:
+>> I'm having trouble getting these packages to work as I believe they
+>> should. I have a new Debian Lenny box running on an Intel i7 with 12
+>> GB of memory and wrote a test script to see how much performance
+>> increase I could achieve with foreach. For this purpose, I used code
+>> extracted from the vignette. Below is the code, the system.time
+>> output, and sessionInfo(). I should add that I've run this multiple
+>> times and always achieved similar results. These last were achieved
+>> after doing init 1 to get me into a strict terminal mode and avoid the
+>> GUI.
+>>
+>> As you can see, the results seem to be the opposite of what one would
+>> expect. The fastest time, by an order of magnitude, is achieved by a
+>> simple for loop, and %do% slightly outperforms %dopar%
+>>
+>> How can this be explained?
+>> Mark
+>> ####################################
+>> require(foreach)
+>> require(multicore)
+>> require(doMC)
+>> registerDoMC(cores=5)
+>> z <- 30000
+>>
+>>
+>> for.each.do.time <- system.time(
+>> ? ? ? ? ? ?a <- foreach(i = 1:z, .combine = "c") %do% sqrt(i)
+>> ? ? ? ? ? ?)
+>> #
+>> for.each.do.par.time <- system.time(
+>> ? ? ? ? ? ?b <- foreach(i = 1:z, .combine = "c") %dopar% sqrt(i)
+>> ? ? ? ? ? ?)
+>>
+>> #
+>> c <- rep(0,z)
+>> loop.time <- system.time(
+>> ? ? ? ? ? ?for (i in 1:length(c))
+>> ? ? ? ? ? ?c[i] <- sqrt(i)
+>> ? ? ? ? ? ?)
+>> #
+>> out <- rbind(unclass(for.each.do.time), unclass(for.each.do.par.time),
+>> unclass(loop.time))
+>> out
+>> "user.self" ? ? "sys.self" ? ? ?"elapsed" ? ? ? "user.child" ? ?"sys.child"
+>> 25.713 ?0 ? ? ? 25.712 ?0 ? ? ? 0
+>> 25.918 ?0.016 ? 26.015 ?0.192 ? 0.192
+>> 0.207999999999998 ? ? ? 0 ? ? ? 0.206000000000003 ? ? ? 0 ? ? ? 0
+>> #
+>> "R.version.platform" "x86_64-unknown-linux-gnu"
+>> "R.version.arch" "x86_64"
+>> "R.version.os" "linux-gnu"
+>> "R.version.system" "x86_64, linux-gnu"
+>> "R.version.status" ""
+>> "R.version.major" "2"
+>> "R.version.minor" "9.1"
+>> "R.version.year" "2009"
+>> "R.version.month" "06"
+>> "R.version.day" "26"
+>> "R.version.svn rev" "48839"
+>> "R.version.language" "R"
+>> "R.version.version.string" "R version 2.9.1 (2009-06-26)"
+>> "locale" "LC_CTYPE=en_US.UTF-8;LC_NUMERIC=C;LC_TIME=en_US.UTF-8;LC_COLLATE=en_US.UTF-8;LC_MONETARY=C;LC_MESSAGES=en_US.UTF-8;LC_PAPER=en_US.UTF-8;LC_NAME=C;LC_ADDRESS=C;LC_TELEPHONE=C;LC_MEASUREMENT=en_US.UTF-8;LC_IDENTIFICATION=C"
+>> "basePkgs1" "stats"
+>> "basePkgs2" "graphics"
+>> "basePkgs3" "grDevices"
+>> "basePkgs4" "datasets"
+>> "basePkgs5" "utils"
+>> "basePkgs6" "methods"
+>> "basePkgs7" "base"
+>>
+>>
+>>
+>> ------------------------------------------------------------
+>> Mark W. Kimpel MD ?** Neuroinformatics ** Dept. of Psychiatry
+>> Indiana University School of Medicine
+>>
+>> 15032 Hunter Court, Westfield, IN ?46074
+>>
+>> (317) 490-5129 Work, & Mobile & VoiceMail
+>>
+>> "The real problem is not whether machines think but whether men do."
+>> -- B. F. Skinner
+>> ******************************************************************
+>>
+>>
+>>
+>> On Wed, Jul 1, 2009 at 10:56 PM, Steve
+>> Weston<steve at revolution-computing.com> wrote:
+>>> There have been several announcements of three new packages that I've
+>>> recently uploaded to CRAN: foreach, iterators, and doMC. ?You can read
+>>> one description on David Smith's blog, at:
+>>>
+>>> ? ?http://blog.revolution-computing.com
+>>> or:
+>>> ? ?http://bit.ly/tygLz
+>>>
+>>> You can also read the vignette that I wrote for foreach on a CRAN
+>>> website.
+>>>
+>>> I would like to mention that one of the goals of the foreach package is
+>>> to make it easy to write an R package that allows the end user to choose
+>>> what parallel computing engine to use. ?That's useful because the user
+>>> may already have and use a parallel computing system, and not want to
+>>> install and maintain yet another one. ?(The foreach and iterators packages
+>>> themselves are trivial to install, since they provide a framework for using
+>>> parallel computing systems such as multicore and nws.)
+>>>
+>>> Currently, only the doMC "parallel backend" for multicore is publicly
+>>> available on CRAN, but I'm hoping to get a chance to write and release
+>>> other backend packages, to support MPI and shared memory, for example.
+>>>
+>>> I'd love to hear from R package authors on how to improve foreach
+>>> so that it's a more attractive platform on which to develop parallel
+>>> applications. ?Especially if you've had difficulty using parallel
+>>> computing systems in the past.
+>>>
+>>> --
+>>> Steve Weston
+>>> REvolution Computing
+>>> One Century Tower | 265 Church Street, Suite 1006
+>>> New Haven, CT ?06510
+>>> P: 203-777-7442 x266 | www.revolution-computing.com
+>>>
+>>> _______________________________________________
+>>> R-sig-hpc mailing list
+>>> R-sig-hpc at r-project.org
+>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>
+>>
+>
+>
+>
+> --
+> Steve Weston
+> REvolution Computing
+> One Century Tower | 265 Church Street, Suite 1006
+> New Haven, CT ?06510
+> P: 203-777-7442 x266 | www.revolution-computing.com
+>
+
+
+From steve at revolution-computing.com  Thu Jul 16 23:58:44 2009
+From: steve at revolution-computing.com (Steve Weston)
+Date: Thu, 16 Jul 2009 17:58:44 -0400
+Subject: [R-sig-hpc] The foreach, iterators and doMC packages
+In-Reply-To: <6b93d1830907161034j757a0128nbb1f50a3e1a555de@mail.gmail.com>
+References: <4f7bf0100907011956q53dad194xf20f79e833b75000@mail.gmail.com>
+	<6b93d1830907150954g7139fae2g6778d21ebe3108cd@mail.gmail.com>
+	<4f7bf0100907151050t4c1c78cfn8db2ed666b6f763d@mail.gmail.com>
+	<6b93d1830907161034j757a0128nbb1f50a3e1a555de@mail.gmail.com>
+Message-ID: <4f7bf0100907161458k21b530c0w1a2e8bb511489655@mail.gmail.com>
+
+On Thu, Jul 16, 2009 at 1:34 PM, Mark Kimpel<mwkimpel at gmail.com> wrote:
+> Steve,
+>
+> I used a non-trivial example and got a nice speed boost, so thanks for
+> that advice.
+
+That's good to hear.
+
+> Now I need advice on a real-world application. I am working with a
+> genomic data-set that involves a lot of calculations on a data-frame
+> as well as parallel sub-settting of an annotation data-frame. The
+> data.frames initially have about 30k rows and up to 100 columns. If,
+> for example, I have 5 cores to work with, it seems to me that the most
+> efficient way, rather than making repeated calls to the cores, would
+> be to parcel things out by the number of rows divided by the number of
+> cores. That would mean sending data.frames to the functions that
+> do.par calls rather than vectors. Below is some a self-contained
+> example. It doesn't work because i doesn't get incremented after the
+> %dopar% operator.
+
+Your basic strategy seems reasonable, but I think there's a problem in
+the way that you're indexing into the matrices x.mat and y.mat.
+I would do it this way:
+
+do.par.test.func <- function(Nrow, Ncol, Ncore){
+ x.mat <- matrix(rnorm(Ncol * Nrow), Nrow, Ncol)
+ y.mat <- matrix(rnorm(Ncol * Nrow), Nrow, Ncol)
+ N <- ceiling(Nrow/Ncore)
+ foreach(i = 0:(Ncore-1), .combine='rbind') %dopar%
+   do.par.test.called.func(x.mat[(i * N + 1):((i+1) * N),], y.mat[(i *
+N + 1):((i+1) * N),])
+}
+
+I also threw in the use of the .combine option to rbind the submatrices into
+the full matrix.   That seems preferable to returning a list of submatrices.
+
+I'm not sure what you mean by i not being incremented.  Let me know
+if this change to the indexing doesn't fix the code.
+
+- Steve
+
+
+From arash at drakeresearchlab.com  Fri Jul 17 00:25:47 2009
+From: arash at drakeresearchlab.com (Arash Fard)
+Date: Thu, 16 Jul 2009 18:25:47 -0400
+Subject: [R-sig-hpc] Error in library(Rmpi)
+In-Reply-To: <9f90442b8cea5eec233db40c8832b103.squirrel@www.stats.uwo.ca>
+References: <77cd02930907151700j7d49bfbay935330203045e75f@mail.gmail.com>
+	<9f90442b8cea5eec233db40c8832b103.squirrel@www.stats.uwo.ca>
+Message-ID: <77cd02930907161525nb991f7fs6da82c5ee84de000@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090716/0ad646eb/attachment.pl>
+
+From rdiaz02 at gmail.com  Fri Jul 17 15:42:33 2009
+From: rdiaz02 at gmail.com (Ramon Diaz-Uriarte)
+Date: Fri, 17 Jul 2009 15:42:33 +0200
+Subject: [R-sig-hpc] Rmpi in "Depends"
+In-Reply-To: <4A5F2B2C.8000505@braverock.com>
+References: <624934630907160607m4cc51354wc2a5201f7dddeb44@mail.gmail.com>
+	<4A5F2B2C.8000505@braverock.com>
+Message-ID: <624934630907170642j745c422al4a0be3aed552c513@mail.gmail.com>
+
+Dear Brian,
+
+Thanks. Yes, listing as "Suggests" is one approach (what I am doing
+now, and what some of my other packages in CRAN that use Rmpi do), but
+it seems somewhat like cheating (the fact is that the package does
+depend on Rmpi) and not very elegant (I'd rather have the failure at
+install time than at run time). So something like having the
+dependency check without actually starting the LAM/MPI universe.
+
+Best,
+
+R.
+
+
+
+
+
+On Thu, Jul 16, 2009 at 3:29 PM, Brian G. Peterson<brian at braverock.com> wrote:
+> Ramon Diaz-Uriarte wrote:
+>>
+>> Dear All,
+>>
+>> I have one package where I listed Rmpi in the "Depends" line in the
+>> DESCRIPTION file. But this leads to unwanted behavior: installing the
+>> package will try to start the lam universe (I am using LAM/MPI here).
+>> This will not work if done as root, and is annoying when done as a
+>> regular user.
+>>
+>> I just checked, and no package in CRAN is listed that has a reverse
+>> Depends on Rmpi. I've googled around, but haven't been able to locate
+>> anything, though I think I remember this issue has appeared in the
+>> past in some list.
+>>
+>> Any ideas of the best way to proceed?
+>>
+>> Thanks,
+>>
+>> R.
+>>
+>>
+>
+> Sure, list it as "Suggests" in the package DESCRIPTION.
+> Inside your code, check to see if it is installed, and throw a warning or
+> stop() error if the package is not available without starting up the lam
+> universe. ?Make clear in your documentation why you've done this.
+>
+> Regards,
+>
+> ?- Brian
+>
+> --
+> Brian G. Peterson
+> http://braverock.com/brian/
+> Ph: 773-459-4973
+> IM: bgpbraverock
+>
+>
+
+
+
+-- 
+Ramon Diaz-Uriarte
+Structural Biology and Biocomputing Programme
+Spanish National Cancer Centre (CNIO)
+http://ligarto.org/rdiaz
+Phone: +34-91-732-8000 ext. 3019
+
+
+From arash at drakeresearchlab.com  Fri Jul 17 16:28:14 2009
+From: arash at drakeresearchlab.com (Arash Fard)
+Date: Fri, 17 Jul 2009 10:28:14 -0400
+Subject: [R-sig-hpc] Error in library(Rmpi)
+In-Reply-To: <9f90442b8cea5eec233db40c8832b103.squirrel@www.stats.uwo.ca>
+References: <77cd02930907151700j7d49bfbay935330203045e75f@mail.gmail.com>
+	<9f90442b8cea5eec233db40c8832b103.squirrel@www.stats.uwo.ca>
+Message-ID: <77cd02930907170728j22132035mf9fba25798989e82@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090717/dfaa7379/attachment.pl>
+
+From hyu at stats.uwo.ca  Fri Jul 17 16:53:53 2009
+From: hyu at stats.uwo.ca (Hao Yu)
+Date: Fri, 17 Jul 2009 10:53:53 -0400 (EDT)
+Subject: [R-sig-hpc] Error in library(Rmpi)
+In-Reply-To: <77cd02930907170728j22132035mf9fba25798989e82@mail.gmail.com>
+References: <77cd02930907151700j7d49bfbay935330203045e75f@mail.gmail.com>
+	<9f90442b8cea5eec233db40c8832b103.squirrel@www.stats.uwo.ca>
+	<77cd02930907170728j22132035mf9fba25798989e82@mail.gmail.com>
+Message-ID: <3b7099b820a1b681598c41046226ad09.squirrel@www.stats.uwo.ca>
+
+If you are able to
+./R CMD INSTALL /root/src/Rmpi/Rmpi_0.5-7.tar.gz
+ --configure-args=--with-mpi=/usr/lam
+
+I assume Lam is in /usr/lam. So its lib must be in /usr/lam/lib or
+usr/lam/lib64. Modify R script and add
+LD_LIBRARY_PATH=/usr/lam/lib64
+
+right after the first two lines. Then run R CMD ldd again to see if all
+libs are sourced properly.
+
+Hao
+
+Arash Fard wrote:
+> Dear Hao,
+>
+> I recognized that Rmoi.so points to MPICH libraries by mistake, as you may
+> see followed the result of "R CMD ldd path_to_Rmpi.so". It must be the
+> cause
+> of its wrong behavior at run time. May you please advise me how I can
+> dictate the right pathe to LAM libraries at the installation time.
+>
+> Thank you,
+> Arash
+> Odum School of Ecology
+> The University of Georgia
+>
+> [root at furcatus ~]# R CMD ldd /usr/local/lib64/R/library/Rmpi/libs/Rmpi.so
+>         PIC => not found
+>         libmpich-gnu.so.1 => /usr/lib64/MPICH/p4/gnu/libmpich-gnu.so.1
+> (0x0000002a95697000)
+>         libutil.so.1 => /lib64/libutil.so.1 (0x0000002a9586b000)
+>         libpthread.so.0 => /lib64/tls/libpthread.so.0 (0x0000002a9596e000)
+>         libc.so.6 => /lib64/tls/libc.so.6 (0x0000002a95a84000)
+>         libX11.so.6 => /usr/X11R6/lib64/libX11.so.6 (0x0000002a95cbd000)
+>         libbproc.so.2 => /usr/lib64/libbproc.so.2 (0x0000002a95eb6000)
+>         libbeomap.so.0.1 => /usr/lib64/libbeomap.so.0.1
+> (0x0000002a95fbd000)
+>         libbeostat.so.0 => /usr/lib64/libbeostat.so.0 (0x0000002a960c0000)
+>         libdl.so.2 => /lib64/libdl.so.2 (0x0000002a961c4000)
+>         /lib64/ld-linux-x86-64.so.2 (0x000000552aaaa000)
+>
+>
+> On Thu, Jul 16, 2009 at 9:53 AM, Hao Yu <hyu at stats.uwo.ca> wrote:
+>
+>> Did you turn on dynamic lib when you were installing lam? The default
+>> was
+>> static lib. Rmpi needs libmpi.so and liblam.so to work. Also use
+>>             R CMD ldd path_to_Rmpi.so
+>> to see if Rmpi finds all libs.
+>>
+>> Hao
+>>
+>> Arash Fard wrote:
+>> > Hi,
+>> > I successfully installed Rmpi_0.5-7 for R-2.9.1; the installation
+>> command
+>> > was:
+>> >
+>> > ./R CMD INSTALL /root/src/Rmpi/Rmpi_0.5-7.tar.gz
+>> > --configure-args=--with-mpi=/usr/lam
+>> >
+>> > However, when I call it inside R, I face this error:
+>> >
+>> >> library(Rmpi)
+>> > Error in dyn.load(file, DLLpath = DLLpath, ...) :
+>> >   unable to load shared library
+>> > '/usr/local/lib64/R/library/Rmpi/libs/Rmpi.so':
+>> >   /usr/local/lib64/R/library/Rmpi/libs/Rmpi.so: undefined symbol:
+>> > lam_mpi_double
+>> > Error in library(Rmpi) : .First.lib failed for 'Rmpi'
+>> > Error in dyn.unload(file.path(libpath, "libs", paste("Rmpi",
+>> > .Platform$dynlib.ext,  :
+>> >   dynamic/shared library
+>> '/usr/local/lib64/R/library/Rmpi/libs/Rmpi.so'
+>> > was
+>> > not loaded
+>> >
+>> > Please be informed that the environmental variables that I have set
+>> for
+>> > LAM
+>> > are:
+>> > LD_LIBRARY_PATH=/usr/lib64/LAM/gnu:$LD_LIBRARY_PATH
+>> > PATH=/usr/lam/bin/gnu:/usr/lam/bin:$PATH
+>> > MANPATH=/usr/lam/share/man:$MANPATH
+>> >
+>> > The result for "lamboot -v" is:
+>> > LAM 7.1.2/MPI 2 C++/ROMIO/bproc - Indiana University
+>> >
+>> > n-1<26696> ssi:boot:bproc: beomap now in use, ignoring boot schema
+>> file
+>> > n-1<26696> ssi:boot:bproc: found master node (scyld.localdomain).
+>> > Skipping
+>> > checks.
+>> > n-1<26696> ssi:boot:bproc:vector: launching on nodes -1
+>> > n-1<26696> ssi:boot:base:linear_windowed: booting n0
+>> (scyld.localdomain)
+>> > n-1<26696> ssi:boot:bproc: starting lamd on (scyld.localdomain)
+>> >
+>> > The result for "lamnodes" is:
+>> > n0      master:1:origin,this_node
+>> >
+>> > The result for "lamexec C hostname" is:
+>> > furcatus.ecology.uga.edu
+>> >
+>> > I also added LD_LIBRARY_PATH to R script, but it was useless. I would
+>> > appreciate it if you could help me.
+>> >
+>> > Thank you,
+>> > Arash
+>> >
+>> > Odum School of Ecology
+>> > The University of Georgia
+>> >
+>> >       [[alternative HTML version deleted]]
+>> >
+>> > _______________________________________________
+>> > R-sig-hpc mailing list
+>> > R-sig-hpc at r-project.org
+>> > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>> >
+>>
+>>
+>> --
+>> Department of Statistics & Actuarial Sciences
+>> Fax Phone#:(519)-661-3813
+>> The University of Western Ontario
+>> Office Phone#:(519)-661-3622
+>> London, Ontario N6A 5B7
+>> http://www.stats.uwo.ca/faculty/yu
+>>
+>
+
+
+-- 
+Department of Statistics & Actuarial Sciences
+Fax Phone#:(519)-661-3813
+The University of Western Ontario
+Office Phone#:(519)-661-3622
+London, Ontario N6A 5B7
+http://www.stats.uwo.ca/faculty/yu
+
+
+From hyu at stats.uwo.ca  Fri Jul 17 17:02:18 2009
+From: hyu at stats.uwo.ca (Hao Yu)
+Date: Fri, 17 Jul 2009 11:02:18 -0400 (EDT)
+Subject: [R-sig-hpc] Rmpi in "Depends"
+In-Reply-To: <624934630907170642j745c422al4a0be3aed552c513@mail.gmail.com>
+References: <624934630907160607m4cc51354wc2a5201f7dddeb44@mail.gmail.com>
+	<4A5F2B2C.8000505@braverock.com>
+	<624934630907170642j745c422al4a0be3aed552c513@mail.gmail.com>
+Message-ID: <cad56e00ceaefca42bf8106902c24cd8.squirrel@www.stats.uwo.ca>
+
+lamboot is launched in zzz.R at:
+    if (.Platform$OS=="unix"){
+        if(.Call("mpidist",PACKAGE="Rmpi") == 2){
+            if (length(system("lamnodes",TRUE,ignore.stderr = TRUE)) == 0){
+                #cat("\n\tLAM/MPI runtime environment is not operating.\n")
+                #cat("\tStarting LAM/MPI runtime environment.\n")
+                system("lamboot -H",ignore.stderr = TRUE)
+            }
+        }
+    }
+
+One way is to temporally stop lamboot. Another way is to check if user is
+superuser or not. If there is no significant delay during loading, I will
+try to implement the second approach.
+
+Hao
+
+
+Ramon Diaz-Uriarte wrote:
+> Dear Brian,
+>
+> Thanks. Yes, listing as "Suggests" is one approach (what I am doing
+> now, and what some of my other packages in CRAN that use Rmpi do), but
+> it seems somewhat like cheating (the fact is that the package does
+> depend on Rmpi) and not very elegant (I'd rather have the failure at
+> install time than at run time). So something like having the
+> dependency check without actually starting the LAM/MPI universe.
+>
+> Best,
+>
+> R.
+>
+>
+>
+>
+>
+> On Thu, Jul 16, 2009 at 3:29 PM, Brian G. Peterson<brian at braverock.com>
+> wrote:
+>> Ramon Diaz-Uriarte wrote:
+>>>
+>>> Dear All,
+>>>
+>>> I have one package where I listed Rmpi in the "Depends" line in the
+>>> DESCRIPTION file. But this leads to unwanted behavior: installing the
+>>> package will try to start the lam universe (I am using LAM/MPI here).
+>>> This will not work if done as root, and is annoying when done as a
+>>> regular user.
+>>>
+>>> I just checked, and no package in CRAN is listed that has a reverse
+>>> Depends on Rmpi. I've googled around, but haven't been able to locate
+>>> anything, though I think I remember this issue has appeared in the
+>>> past in some list.
+>>>
+>>> Any ideas of the best way to proceed?
+>>>
+>>> Thanks,
+>>>
+>>> R.
+>>>
+>>>
+>>
+>> Sure, list it as "Suggests" in the package DESCRIPTION.
+>> Inside your code, check to see if it is installed, and throw a warning
+>> or
+>> stop() error if the package is not available without starting up the lam
+>> universe. ?Make clear in your documentation why you've done this.
+>>
+>> Regards,
+>>
+>> ?- Brian
+>>
+>> --
+>> Brian G. Peterson
+>> http://braverock.com/brian/
+>> Ph: 773-459-4973
+>> IM: bgpbraverock
+>>
+>>
+>
+>
+>
+> --
+> Ramon Diaz-Uriarte
+> Structural Biology and Biocomputing Programme
+> Spanish National Cancer Centre (CNIO)
+> http://ligarto.org/rdiaz
+> Phone: +34-91-732-8000 ext. 3019
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+-- 
+Department of Statistics & Actuarial Sciences
+Fax Phone#:(519)-661-3813
+The University of Western Ontario
+Office Phone#:(519)-661-3622
+London, Ontario N6A 5B7
+http://www.stats.uwo.ca/faculty/yu
+
+
+From arash at drakeresearchlab.com  Fri Jul 17 17:14:03 2009
+From: arash at drakeresearchlab.com (Arash Fard)
+Date: Fri, 17 Jul 2009 11:14:03 -0400
+Subject: [R-sig-hpc] Error in library(Rmpi)
+In-Reply-To: <3b7099b820a1b681598c41046226ad09.squirrel@www.stats.uwo.ca>
+References: <77cd02930907151700j7d49bfbay935330203045e75f@mail.gmail.com>
+	<9f90442b8cea5eec233db40c8832b103.squirrel@www.stats.uwo.ca>
+	<77cd02930907170728j22132035mf9fba25798989e82@mail.gmail.com>
+	<3b7099b820a1b681598c41046226ad09.squirrel@www.stats.uwo.ca>
+Message-ID: <77cd02930907170814h15906a33hc1ebf4865cf21c79@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090717/8b227488/attachment.pl>
+
+From steve at revolution-computing.com  Fri Jul 17 17:21:19 2009
+From: steve at revolution-computing.com (Steve Weston)
+Date: Fri, 17 Jul 2009 11:21:19 -0400
+Subject: [R-sig-hpc] The foreach, iterators and doMC packages
+In-Reply-To: <6b93d1830907161034j757a0128nbb1f50a3e1a555de@mail.gmail.com>
+References: <4f7bf0100907011956q53dad194xf20f79e833b75000@mail.gmail.com>
+	<6b93d1830907150954g7139fae2g6778d21ebe3108cd@mail.gmail.com>
+	<4f7bf0100907151050t4c1c78cfn8db2ed666b6f763d@mail.gmail.com>
+	<6b93d1830907161034j757a0128nbb1f50a3e1a555de@mail.gmail.com>
+Message-ID: <4f7bf0100907170821w70a311c6s8cbc2ee09a1ac96e@mail.gmail.com>
+
+Mark,
+
+I've been playing with your example a bit more, and thought
+that I should mention that splitting up matrices (or data frames)
+as you're doing can be a bit tricky.  Mostly it has to do with
+handling special cases properly, like when the number of rows
+is less than the number of cores, and other things that don't
+happen often, but are confusing when they do.
+
+My plan has been to provide tools in the iterators package to
+help with those kinds of tasks.  There isn't a lot yet, but the
+idiv function can actually be used to help provide a different
+solution to your problem.  I'm using the idiv function to help
+implement a function that returns a "block row" iterator which
+works on both matrices and data frames:
+
+iblkrow <- function(a, ...) {
+  i <- 1
+  it <- idiv(nrow(a), ...)
+
+  nextEl <- function() {
+    n <- nextElem(it)
+    r <- seq(i, length=n)
+    i <<- i + n
+    a[r,, drop=FALSE]
+  }
+
+  obj <- list(nextElem=nextEl)
+  class(obj) <- c('abstractiter', 'iter')
+  obj
+}
+
+This can be used with foreach for your example as follows:
+
+foreach(x=iblkrow(x.mat, chunks=Ncore), y=iblkrow(y.mat, chunks=Ncore),
+              .combine='rbind') %dopar%
+    do.par.test.called.func(x, y)
+
+This creates two iterators, one for each matrix, and completely handles
+the indexing in the iterator itself.  This approach is also more efficient
+if you're using a distributed memory parallel backend, because less
+data is being sent over the network, but that isn't an issue when using
+doMC.
+
+Also note that idiv takes either a "chunks" or "chunkSize" argument,
+which is passed along to iblkrow.  That allows you to specify either
+the number of pieces to split the matrix into (using chunks, as in
+this example), or the number of rows per task (using chunkSize,
+which is sometimes useful).
+
+I hope this doesn't seem overwhelming.  You don't have to use
+iterators with foreach, but they are powerful and can be very helpful
+at times. You might also want to take a look at David Smith's blog,
+which is on iterators today.
+
+- Steve
+
+
+On Thu, Jul 16, 2009 at 1:34 PM, Mark Kimpel<mwkimpel at gmail.com> wrote:
+> Steve,
+>
+> I used a non-trivial example and got a nice speed boost, so thanks for
+> that advice.
+>
+> Now I need advice on a real-world application. I am working with a
+> genomic data-set that involves a lot of calculations on a data-frame
+> as well as parallel sub-settting of an annotation data-frame. The
+> data.frames initially have about 30k rows and up to 100 columns. If,
+> for example, I have 5 cores to work with, it seems to me that the most
+> efficient way, rather than making repeated calls to the cores, would
+> be to parcel things out by the number of rows divided by the number of
+> cores. That would mean sending data.frames to the functions that
+> do.par calls rather than vectors. Below is some a self-contained
+> example. It doesn't work because i doesn't get incremented after the
+> %dopar% operator.
+>
+> I'm new to the parallel processing world, so if I am not taking the
+> right approach let me know, or, if another package might work better.
+>
+> Thanks,
+> Mark
+>
+> ###########################################################
+> require(foreach)
+> require(multicore)
+> require(doMC)
+>
+> Ncore <- 5
+> registerDoMC(cores=Ncore)
+> Ncol <- 300
+> Nrow <- 500
+>
+> do.par.test.called.func <- function(Mat1, Mat2){
+> ?Mat3 <- Mat1 + Mat2
+> ?for(i in 1:nrow(Mat3)){
+> ? ?for (j in 1:ncol(Mat3)){
+> ? ? ?Mat3[i,j] <- sqrt(abs(Mat3[i,j]))
+> ? ?}
+> ?}
+> ?Mat3
+> }
+>
+> do.par.test.func <- function(Nrow, Ncol, Ncore){
+> ?x.mat <- matrix(rnorm(Ncol * Nrow), Nrow, Ncol)
+> ?y.mat <- matrix(rnorm(Ncol * Nrow), Nrow, Ncol)
+> ?N <- ceiling(Nrow/Ncore)
+> ?b <- foreach(i = 1:Ncore) %dopar% do.par.test.called.func(x.mat[(i *
+> N): (((i + 1) * N) -1),], y.mat[(i * N): (((i + 1) * N) -1),])
+> ?b
+> }
+> #
+> do.par.out <- do.par.test.func(Nrow, Ncol, Ncore)
+> ############################################
+>
+> ------------------------------------------------------------
+> Mark W. Kimpel MD ?** Neuroinformatics ** Dept. of Psychiatry
+> Indiana University School of Medicine
+>
+> 15032 Hunter Court, Westfield, IN ?46074
+>
+> (317) 490-5129 Work, & Mobile & VoiceMail
+>
+> "The real problem is not whether machines think but whether men do."
+> -- B. F. Skinner
+> ******************************************************************
+>
+>
+>
+> On Wed, Jul 15, 2009 at 1:50 PM, Steve
+> Weston<steve at revolution-computing.com> wrote:
+>> And you can get much better results using sqrt directly on the vector,
+>> as it is intended to be called. ?The sqrt function is so fast that it's
+>> crazy to call it in parallel the way my vignette shows. ?The
+>> overhead kills you. ?But I have this bad habit of using sqrt in my
+>> parallel programming examples. ?I actually put a footnote in the
+>> vignette saying you should never do what I just did, but I can see
+>> now that I wasn't nearly explicit enough. ?I should probably include
+>> a big disclaimer saying not to try this at home.
+>>
+>> I'm pretty sure that the next version of foreach will issue warnings
+>> if the tasks execute in less than a second. ?But I'll definitely fix
+>> the vignette. ?Sorry about that.
+>>
+>> - Steve
+>>
+>>
+>>
+>> On Wed, Jul 15, 2009 at 12:54 PM, Mark Kimpel<mwkimpel at gmail.com> wrote:
+>>> I'm having trouble getting these packages to work as I believe they
+>>> should. I have a new Debian Lenny box running on an Intel i7 with 12
+>>> GB of memory and wrote a test script to see how much performance
+>>> increase I could achieve with foreach. For this purpose, I used code
+>>> extracted from the vignette. Below is the code, the system.time
+>>> output, and sessionInfo(). I should add that I've run this multiple
+>>> times and always achieved similar results. These last were achieved
+>>> after doing init 1 to get me into a strict terminal mode and avoid the
+>>> GUI.
+>>>
+>>> As you can see, the results seem to be the opposite of what one would
+>>> expect. The fastest time, by an order of magnitude, is achieved by a
+>>> simple for loop, and %do% slightly outperforms %dopar%
+>>>
+>>> How can this be explained?
+>>> Mark
+>>> ####################################
+>>> require(foreach)
+>>> require(multicore)
+>>> require(doMC)
+>>> registerDoMC(cores=5)
+>>> z <- 30000
+>>>
+>>>
+>>> for.each.do.time <- system.time(
+>>> ? ? ? ? ? ?a <- foreach(i = 1:z, .combine = "c") %do% sqrt(i)
+>>> ? ? ? ? ? ?)
+>>> #
+>>> for.each.do.par.time <- system.time(
+>>> ? ? ? ? ? ?b <- foreach(i = 1:z, .combine = "c") %dopar% sqrt(i)
+>>> ? ? ? ? ? ?)
+>>>
+>>> #
+>>> c <- rep(0,z)
+>>> loop.time <- system.time(
+>>> ? ? ? ? ? ?for (i in 1:length(c))
+>>> ? ? ? ? ? ?c[i] <- sqrt(i)
+>>> ? ? ? ? ? ?)
+>>> #
+>>> out <- rbind(unclass(for.each.do.time), unclass(for.each.do.par.time),
+>>> unclass(loop.time))
+>>> out
+>>> "user.self" ? ? "sys.self" ? ? ?"elapsed" ? ? ? "user.child" ? ?"sys.child"
+>>> 25.713 ?0 ? ? ? 25.712 ?0 ? ? ? 0
+>>> 25.918 ?0.016 ? 26.015 ?0.192 ? 0.192
+>>> 0.207999999999998 ? ? ? 0 ? ? ? 0.206000000000003 ? ? ? 0 ? ? ? 0
+>>> #
+>>> "R.version.platform" "x86_64-unknown-linux-gnu"
+>>> "R.version.arch" "x86_64"
+>>> "R.version.os" "linux-gnu"
+>>> "R.version.system" "x86_64, linux-gnu"
+>>> "R.version.status" ""
+>>> "R.version.major" "2"
+>>> "R.version.minor" "9.1"
+>>> "R.version.year" "2009"
+>>> "R.version.month" "06"
+>>> "R.version.day" "26"
+>>> "R.version.svn rev" "48839"
+>>> "R.version.language" "R"
+>>> "R.version.version.string" "R version 2.9.1 (2009-06-26)"
+>>> "locale" "LC_CTYPE=en_US.UTF-8;LC_NUMERIC=C;LC_TIME=en_US.UTF-8;LC_COLLATE=en_US.UTF-8;LC_MONETARY=C;LC_MESSAGES=en_US.UTF-8;LC_PAPER=en_US.UTF-8;LC_NAME=C;LC_ADDRESS=C;LC_TELEPHONE=C;LC_MEASUREMENT=en_US.UTF-8;LC_IDENTIFICATION=C"
+>>> "basePkgs1" "stats"
+>>> "basePkgs2" "graphics"
+>>> "basePkgs3" "grDevices"
+>>> "basePkgs4" "datasets"
+>>> "basePkgs5" "utils"
+>>> "basePkgs6" "methods"
+>>> "basePkgs7" "base"
+>>>
+>>>
+>>>
+>>> ------------------------------------------------------------
+>>> Mark W. Kimpel MD ?** Neuroinformatics ** Dept. of Psychiatry
+>>> Indiana University School of Medicine
+>>>
+>>> 15032 Hunter Court, Westfield, IN ?46074
+>>>
+>>> (317) 490-5129 Work, & Mobile & VoiceMail
+>>>
+>>> "The real problem is not whether machines think but whether men do."
+>>> -- B. F. Skinner
+>>> ******************************************************************
+>>>
+>>>
+>>>
+>>> On Wed, Jul 1, 2009 at 10:56 PM, Steve
+>>> Weston<steve at revolution-computing.com> wrote:
+>>>> There have been several announcements of three new packages that I've
+>>>> recently uploaded to CRAN: foreach, iterators, and doMC. ?You can read
+>>>> one description on David Smith's blog, at:
+>>>>
+>>>> ? ?http://blog.revolution-computing.com
+>>>> or:
+>>>> ? ?http://bit.ly/tygLz
+>>>>
+>>>> You can also read the vignette that I wrote for foreach on a CRAN
+>>>> website.
+>>>>
+>>>> I would like to mention that one of the goals of the foreach package is
+>>>> to make it easy to write an R package that allows the end user to choose
+>>>> what parallel computing engine to use. ?That's useful because the user
+>>>> may already have and use a parallel computing system, and not want to
+>>>> install and maintain yet another one. ?(The foreach and iterators packages
+>>>> themselves are trivial to install, since they provide a framework for using
+>>>> parallel computing systems such as multicore and nws.)
+>>>>
+>>>> Currently, only the doMC "parallel backend" for multicore is publicly
+>>>> available on CRAN, but I'm hoping to get a chance to write and release
+>>>> other backend packages, to support MPI and shared memory, for example.
+>>>>
+>>>> I'd love to hear from R package authors on how to improve foreach
+>>>> so that it's a more attractive platform on which to develop parallel
+>>>> applications. ?Especially if you've had difficulty using parallel
+>>>> computing systems in the past.
+>>>>
+>>>> --
+>>>> Steve Weston
+>>>> REvolution Computing
+>>>> One Century Tower | 265 Church Street, Suite 1006
+>>>> New Haven, CT ?06510
+>>>> P: 203-777-7442 x266 | www.revolution-computing.com
+>>>>
+>>>> _______________________________________________
+>>>> R-sig-hpc mailing list
+>>>> R-sig-hpc at r-project.org
+>>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>>
+>>>
+>>
+>>
+>>
+>> --
+>> Steve Weston
+>> REvolution Computing
+>> One Century Tower | 265 Church Street, Suite 1006
+>> New Haven, CT ?06510
+>> P: 203-777-7442 x266 | www.revolution-computing.com
+>>
+>
+
+
+
+-- 
+Steve Weston
+REvolution Computing
+One Century Tower | 265 Church Street, Suite 1006
+New Haven, CT  06510
+P: 203-777-7442 x266 | www.revolution-computing.com
+
+
+From arash at drakeresearchlab.com  Fri Jul 17 18:17:05 2009
+From: arash at drakeresearchlab.com (Arash Fard)
+Date: Fri, 17 Jul 2009 12:17:05 -0400
+Subject: [R-sig-hpc] Error in library(Rmpi)
+In-Reply-To: <77cd02930907170814h15906a33hc1ebf4865cf21c79@mail.gmail.com>
+References: <77cd02930907151700j7d49bfbay935330203045e75f@mail.gmail.com>
+	<9f90442b8cea5eec233db40c8832b103.squirrel@www.stats.uwo.ca>
+	<77cd02930907170728j22132035mf9fba25798989e82@mail.gmail.com>
+	<3b7099b820a1b681598c41046226ad09.squirrel@www.stats.uwo.ca>
+	<77cd02930907170814h15906a33hc1ebf4865cf21c79@mail.gmail.com>
+Message-ID: <77cd02930907170917l736bc6f0ja2f750cbd7a523c8@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090717/cd4533fa/attachment.pl>
+
+From rdiaz02 at gmail.com  Mon Jul 20 10:15:58 2009
+From: rdiaz02 at gmail.com (Ramon Diaz-Uriarte)
+Date: Mon, 20 Jul 2009 10:15:58 +0200
+Subject: [R-sig-hpc] Rmpi in "Depends"
+In-Reply-To: <cad56e00ceaefca42bf8106902c24cd8.squirrel@www.stats.uwo.ca>
+References: <624934630907160607m4cc51354wc2a5201f7dddeb44@mail.gmail.com>
+	<4A5F2B2C.8000505@braverock.com>
+	<624934630907170642j745c422al4a0be3aed552c513@mail.gmail.com>
+	<cad56e00ceaefca42bf8106902c24cd8.squirrel@www.stats.uwo.ca>
+Message-ID: <624934630907200115g2b7ab0fbi7b740ec9db81f88f@mail.gmail.com>
+
+Dear Hao,
+
+Thanks for your answer.
+
+
+On Fri, Jul 17, 2009 at 5:02 PM, Hao Yu<hyu at stats.uwo.ca> wrote:
+> lamboot is launched in zzz.R at:
+> ? ?if (.Platform$OS=="unix"){
+> ? ? ? ?if(.Call("mpidist",PACKAGE="Rmpi") == 2){
+> ? ? ? ? ? ?if (length(system("lamnodes",TRUE,ignore.stderr = TRUE)) == 0){
+> ? ? ? ? ? ? ? ?#cat("\n\tLAM/MPI runtime environment is not operating.\n")
+> ? ? ? ? ? ? ? ?#cat("\tStarting LAM/MPI runtime environment.\n")
+> ? ? ? ? ? ? ? ?system("lamboot -H",ignore.stderr = TRUE)
+> ? ? ? ? ? ?}
+> ? ? ? ?}
+> ? ?}
+>
+> One way is to temporally stop lamboot. Another way is to check if user is
+
+So could lamboot be delayed until any of the Rmpi functions are called?
+
+> superuser or not. If there is no significant delay during loading, I will
+> try to implement the second approach.
+>
+
+That would fix the "installing as root" issue (but would still launch
+universes if installed as non-root).
+
+Best,
+
+
+R.
+
+
+> Hao
+>
+>
+> Ramon Diaz-Uriarte wrote:
+>> Dear Brian,
+>>
+>> Thanks. Yes, listing as "Suggests" is one approach (what I am doing
+>> now, and what some of my other packages in CRAN that use Rmpi do), but
+>> it seems somewhat like cheating (the fact is that the package does
+>> depend on Rmpi) and not very elegant (I'd rather have the failure at
+>> install time than at run time). So something like having the
+>> dependency check without actually starting the LAM/MPI universe.
+>>
+>> Best,
+>>
+>> R.
+>>
+>>
+>>
+>>
+>>
+>> On Thu, Jul 16, 2009 at 3:29 PM, Brian G. Peterson<brian at braverock.com>
+>> wrote:
+>>> Ramon Diaz-Uriarte wrote:
+>>>>
+>>>> Dear All,
+>>>>
+>>>> I have one package where I listed Rmpi in the "Depends" line in the
+>>>> DESCRIPTION file. But this leads to unwanted behavior: installing the
+>>>> package will try to start the lam universe (I am using LAM/MPI here).
+>>>> This will not work if done as root, and is annoying when done as a
+>>>> regular user.
+>>>>
+>>>> I just checked, and no package in CRAN is listed that has a reverse
+>>>> Depends on Rmpi. I've googled around, but haven't been able to locate
+>>>> anything, though I think I remember this issue has appeared in the
+>>>> past in some list.
+>>>>
+>>>> Any ideas of the best way to proceed?
+>>>>
+>>>> Thanks,
+>>>>
+>>>> R.
+>>>>
+>>>>
+>>>
+>>> Sure, list it as "Suggests" in the package DESCRIPTION.
+>>> Inside your code, check to see if it is installed, and throw a warning
+>>> or
+>>> stop() error if the package is not available without starting up the lam
+>>> universe. ?Make clear in your documentation why you've done this.
+>>>
+>>> Regards,
+>>>
+>>> ?- Brian
+>>>
+>>> --
+>>> Brian G. Peterson
+>>> http://braverock.com/brian/
+>>> Ph: 773-459-4973
+>>> IM: bgpbraverock
+>>>
+>>>
+>>
+>>
+>>
+>> --
+>> Ramon Diaz-Uriarte
+>> Structural Biology and Biocomputing Programme
+>> Spanish National Cancer Centre (CNIO)
+>> http://ligarto.org/rdiaz
+>> Phone: +34-91-732-8000 ext. 3019
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>
+>
+> --
+> Department of Statistics & Actuarial Sciences
+> Fax Phone#:(519)-661-3813
+> The University of Western Ontario
+> Office Phone#:(519)-661-3622
+> London, Ontario N6A 5B7
+> http://www.stats.uwo.ca/faculty/yu
+>
+
+
+
+-- 
+Ramon Diaz-Uriarte
+Structural Biology and Biocomputing Programme
+Spanish National Cancer Centre (CNIO)
+http://ligarto.org/rdiaz
+Phone: +34-91-732-8000 ext. 3019
+
+
+From Thomas.H.Hampton at dartmouth.edu  Mon Jul 20 14:44:11 2009
+From: Thomas.H.Hampton at dartmouth.edu (Thomas Hampton)
+Date: Mon, 20 Jul 2009 08:44:11 -0400
+Subject: [R-sig-hpc] Rmpi, mpich2 and Red Hat Setup Question
+Message-ID: <E1346D5A-AD83-4D12-A02C-1DCEE1192948@dartmouth.edu>
+
+We are trying to use papply and Rmpi on a linux computer (RHEL v5.2)  
+where Rmpi was built with mpich2 v1.1. We have read the rpmi  
+documentation but can't figure out how to tell rmpi how many processes  
+we want to use.
+
+We issued an mpdboot command where we specified the number of proceses  
+to use in a hosts file.  How do we tell R how many processes to use?  
+We are running R v2.9.1.
+
+So far we have tried the simple examples from the papply help but they  
+indicate they are running serially.
+
+Thanks,
+
+Tom
+
+
+From Thomas.H.Hampton at Dartmouth.edu  Tue Jul 21 14:33:26 2009
+From: Thomas.H.Hampton at Dartmouth.edu (Thomas Hampton)
+Date: Tue, 21 Jul 2009 08:33:26 -0400
+Subject: [R-sig-hpc] Easiest Road to Parallel R?
+Message-ID: <18737D74-CFF1-4027-8C43-9B66A7F05213@Dartmouth.edu>
+
+We have a substantial beowulf cluster and would like to
+get parallel R going. Our systems administrators attempted
+without success to get the R function papply to run
+properly without success. I passed their comments/questions on to this
+list in a previous message. The way I understand it, the various  
+pieces are
+there and report no errors, but the final result is that no  
+parallelism is achieved.
+
+Is there some more bullet-proof route to parallel R than mpich2, Rmpi  
+and papply?
+
+We are on a beowulf cluster, red hat linux.
+
+Best,
+
+Tom
+
+
+From brian at braverock.com  Tue Jul 21 14:39:52 2009
+From: brian at braverock.com (Brian G. Peterson)
+Date: Tue, 21 Jul 2009 07:39:52 -0500
+Subject: [R-sig-hpc] Easiest Road to Parallel R?
+In-Reply-To: <18737D74-CFF1-4027-8C43-9B66A7F05213@Dartmouth.edu>
+References: <18737D74-CFF1-4027-8C43-9B66A7F05213@Dartmouth.edu>
+Message-ID: <4A65B718.8000700@braverock.com>
+
+Thomas Hampton wrote:
+> We have a substantial beowulf cluster and would like to
+> get parallel R going. Our systems administrators attempted
+> without success to get the R function papply to run
+> properly without success. I passed their comments/questions on to this
+> list in a previous message. The way I understand it, the various 
+> pieces are
+> there and report no errors, but the final result is that no 
+> parallelism is achieved.
+>
+> Is there some more bullet-proof route to parallel R than mpich2, Rmpi 
+> and papply?
+>
+> We are on a beowulf cluster, red hat linux.
+In the future, it would be best if you simply "Reply All" to your 
+previous message to keep the thread intact.  It makes it easier to find 
+the thread.
+
+Have you verified that MPI is running correctly and can pass messages 
+between machines?  In any parallel system made up of many parts, you 
+need to verify each component independently.  Your prior message was 
+extremely short on details of what had been tried to establish 
+communications.
+
+Regards,
+
+  - Brian
+
+-- 
+Brian G. Peterson
+http://braverock.com/brian/
+Ph: 773-459-4973
+IM: bgpbraverock
+
+
+From andy_liaw at merck.com  Tue Jul 21 14:42:13 2009
+From: andy_liaw at merck.com (Liaw, Andy)
+Date: Tue, 21 Jul 2009 08:42:13 -0400
+Subject: [R-sig-hpc] Easiest Road to Parallel R?
+In-Reply-To: <18737D74-CFF1-4027-8C43-9B66A7F05213@Dartmouth.edu>
+References: <18737D74-CFF1-4027-8C43-9B66A7F05213@Dartmouth.edu>
+Message-ID: <39B6DDB9048D0F4DAD42CB26AAFF0AFA07903B84@usctmx1106.merck.com>
+
+We've had pretty good results with lam and Rmpi on our Scyld
+ClusterWare/CentOS cluster.  I believe Rmpi need a bit of patching (to
+make sure it finds lam on the beowulf system).
+
+Andy 
+
+From: Thomas Hampton
+> 
+> We have a substantial beowulf cluster and would like to
+> get parallel R going. Our systems administrators attempted
+> without success to get the R function papply to run
+> properly without success. I passed their comments/questions on to this
+> list in a previous message. The way I understand it, the various  
+> pieces are
+> there and report no errors, but the final result is that no  
+> parallelism is achieved.
+> 
+> Is there some more bullet-proof route to parallel R than 
+> mpich2, Rmpi  
+> and papply?
+> 
+> We are on a beowulf cluster, red hat linux.
+> 
+> Best,
+> 
+> Tom
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+Notice:  This e-mail message, together with any attachme...{{dropped:12}}
+
+
+From edd at debian.org  Tue Jul 21 15:18:54 2009
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Tue, 21 Jul 2009 08:18:54 -0500
+Subject: [R-sig-hpc] Easiest Road to Parallel R?
+In-Reply-To: <18737D74-CFF1-4027-8C43-9B66A7F05213@Dartmouth.edu>
+References: <18737D74-CFF1-4027-8C43-9B66A7F05213@Dartmouth.edu>
+Message-ID: <19045.49214.808228.660291@ron.nulle.part>
+
+
+Tom,
+
+On 21 July 2009 at 08:33, Thomas Hampton wrote:
+| We have a substantial beowulf cluster and would like to
+| get parallel R going. Our systems administrators attempted
+| without success to get the R function papply to run
+| properly without success. I passed their comments/questions on to this
+| list in a previous message. The way I understand it, the various  
+| pieces are
+| there and report no errors, but the final result is that no  
+| parallelism is achieved.
+| 
+| Is there some more bullet-proof route to parallel R than mpich2, Rmpi  
+| and papply?
+| 
+| We are on a beowulf cluster, red hat linux.
+
+There are a few questions here that may profit from separation:
+
+0: Should you use R in parallel?  Yup, so that's a given.
+
+1: What _software level_ is recommended?  If you follow the Schmidberger et
+al survey paper (linked from the CRAN Task View on High Performance Computing
+and otherwise to be had via Google or 'real soon now' at JSS) then you land
+at Rmpi and Snow.
+
+2: Given a stated preference for Rmpi, how do you get it going?  Hao Yu does
+an admirable job trying to let the configure script find Open MPI, LAM,
+MPICH2, DeinoMPI, ...   I have had good results with Rmpi on Debian and
+Ubuntu but had to at times makes changes to the configure script which Hao
+then incorporated.  Rmpi and friends tend to work out of the box on Debian
+and Ubuntu, using the binaries provided by the distro.
+
+3: Given that you are on RH system, maybe you should also seek help on
+r-sig-fedora for the distro-specific hints.  
+
+And as a general rule that we echo often here, test components in 'layers'.
+I.e. before attempting to get Rmpi installed, verify that you actually send
+an MPI variant of "hello, world" around etc.
+
+Hth, Dirk
+
+-- 
+Three out of two people have difficulties with fractions.
+
+
+From Thomas.H.Hampton at dartmouth.edu  Tue Jul 21 15:22:26 2009
+From: Thomas.H.Hampton at dartmouth.edu (Thomas Hampton)
+Date: Tue, 21 Jul 2009 09:22:26 -0400
+Subject: [R-sig-hpc] Easiest Road to Parallel R?
+In-Reply-To: <4A65B718.8000700@braverock.com>
+References: <18737D74-CFF1-4027-8C43-9B66A7F05213@Dartmouth.edu>
+	<4A65B718.8000700@braverock.com>
+Message-ID: <ADAE55BE-26FF-4EFE-A432-270504D63BF0@dartmouth.edu>
+
+Hi Brian,
+
+As I understand it (I will check) MPI is the basis of everything they  
+do in this computer in
+terms of parallel computing, so we know that it works.
+
+The Rmpi library loads fine, though that took a bit of doing.
+
+papply() creates an error-free status message when it runs a trivial  
+example, but it reports
+that is is running in serial mode.
+
+I can get on this machine easily and answer any specific questions you  
+can come up with
+promptly.
+
+Thanks very much for your assistance. I feel that the cavalry has  
+arrived.
+
+Yours,
+
+T
+
+On Jul 21, 2009, at 8:39 AM, Brian G. Peterson wrote:
+
+> Thomas Hampton wrote:
+>> We have a substantial beowulf cluster and would like to
+>> get parallel R going. Our systems administrators attempted
+>> without success to get the R function papply to run
+>> properly without success. I passed their comments/questions on to  
+>> this
+>> list in a previous message. The way I understand it, the various  
+>> pieces are
+>> there and report no errors, but the final result is that no  
+>> parallelism is achieved.
+>>
+>> Is there some more bullet-proof route to parallel R than mpich2,  
+>> Rmpi and papply?
+>>
+>> We are on a beowulf cluster, red hat linux.
+> In the future, it would be best if you simply "Reply All" to your  
+> previous message to keep the thread intact.  It makes it easier to  
+> find the thread.
+>
+> Have you verified that MPI is running correctly and can pass  
+> messages between machines?  In any parallel system made up of many  
+> parts, you need to verify each component independently.  Your prior  
+> message was extremely short on details of what had been tried to  
+> establish communications.
+>
+> Regards,
+>
+> - Brian
+>
+> -- 
+> Brian G. Peterson
+> http://braverock.com/brian/
+> Ph: 773-459-4973
+> IM: bgpbraverock
+>
+
+
+From brian at braverock.com  Tue Jul 21 17:59:47 2009
+From: brian at braverock.com (Brian G. Peterson)
+Date: Tue, 21 Jul 2009 10:59:47 -0500
+Subject: [R-sig-hpc] Easiest Road to Parallel R?
+In-Reply-To: <ADAE55BE-26FF-4EFE-A432-270504D63BF0@dartmouth.edu>
+References: <18737D74-CFF1-4027-8C43-9B66A7F05213@Dartmouth.edu>
+	<4A65B718.8000700@braverock.com>
+	<ADAE55BE-26FF-4EFE-A432-270504D63BF0@dartmouth.edu>
+Message-ID: <4A65E5F3.80604@braverock.com>
+
+Per the papply manual:
+"If Rmpi is not available, or there are no slaves, implements this as a 
+non-parallel algorithm."
+
+so it seems that you have most likely not spawned any slaves.
+
+Dirk has already suggested SNOW on top of Rmpi to simplify the spawning 
+of worker processes.  This might be the most advisable next move. (Also, 
+do read the survey paper he suggests)
+
+Barring that, have you called the mpi.spawn.Rslaves() command to spawn 
+workers?  Then you can also test Rmpi with mpi.apply() directly.
+
+Regards,
+
+  - Brian
+
+Thomas Hampton wrote:
+> Hi Brian,
+>
+> As I understand it (I will check) MPI is the basis of everything they 
+> do in this computer in
+> terms of parallel computing, so we know that it works.
+>
+> The Rmpi library loads fine, though that took a bit of doing.
+>
+> papply() creates an error-free status message when it runs a trivial 
+> example, but it reports
+> that is is running in serial mode.
+>
+> I can get on this machine easily and answer any specific questions you 
+> can come up with
+> promptly.
+>
+> Thanks very much for your assistance. I feel that the cavalry has 
+> arrived.
+>
+> Yours,
+>
+> T
+>
+> On Jul 21, 2009, at 8:39 AM, Brian G. Peterson wrote:
+>
+>> Thomas Hampton wrote:
+>>> We have a substantial beowulf cluster and would like to
+>>> get parallel R going. Our systems administrators attempted
+>>> without success to get the R function papply to run
+>>> properly without success. I passed their comments/questions on to this
+>>> list in a previous message. The way I understand it, the various 
+>>> pieces are
+>>> there and report no errors, but the final result is that no 
+>>> parallelism is achieved.
+>>>
+>>> Is there some more bullet-proof route to parallel R than mpich2, 
+>>> Rmpi and papply?
+>>>
+>>> We are on a beowulf cluster, red hat linux.
+>> In the future, it would be best if you simply "Reply All" to your 
+>> previous message to keep the thread intact.  It makes it easier to 
+>> find the thread.
+>>
+>> Have you verified that MPI is running correctly and can pass messages 
+>> between machines?  In any parallel system made up of many parts, you 
+>> need to verify each component independently.  Your prior message was 
+>> extremely short on details of what had been tried to establish 
+>> communications.
+>>
+>> Regards,
+>>
+>> - Brian
+>>
+>> -- 
+>> Brian G. Peterson
+>> http://braverock.com/brian/
+>> Ph: 773-459-4973
+>> IM: bgpbraverock
+>>
+
+
+-- 
+Brian G. Peterson
+http://braverock.com/brian/
+Ph: 773-459-4973
+IM: bgpbraverock
+
+
+From ahala2000 at yahoo.com  Wed Jul 22 01:06:27 2009
+From: ahala2000 at yahoo.com (elton wang)
+Date: Tue, 21 Jul 2009 16:06:27 -0700 (PDT)
+Subject: [R-sig-hpc] help on Rmpi and deinoMPI error  in mpi.comm.spawn
+Message-ID: <178763.58214.qm@web31406.mail.mud.yahoo.com>
+
+
+Dear List,
+I got a problem on installing Rmpi and deinoMPI. please help. tjhanks!
+
+I installed deinoMPI ver 1.1.0 and Rmpi 0.5-7.zip for deinoMPI from http://www.stats.uwo.ca/faculty/yu/Rmpi/.
+My operating system is 32-bit windows xp sp3 English verison, R version is 2.9.1.
+I got error as below
+> library(Rmpi)
+> mpi.spawn.Rslaves()
+Error in mpi.comm.spawn(slave = system.file("Rslaves.bat", package = "Rmpi"),  : 
+  MPI_Comm_spawnA(102)..........: 
+MPI_Comm_spawn(193)...........: MPI_Comm_spawn(cmd="C:/PROGRA~1/R/R-29~1.1/library/Rmpi/Rslaves.bat", argv=0x05EED7B8, maxprocs=4, MPI_INFO_NULL, root=0, MPI_COMM_SELF, intercomm=0x059D7030, errors=0x05834A18) failed
+MPID_Comm_spawn_multiple(57)..: 
+MPIDI_Comm_spawn_multiple(282): PMI_Spawn_multiple returned -1, Object reference not set to an instance of an object.
+> 
+
+If I uninstall deinoMPI ver 1.1.0 and install deinoMPI 2.0, I got error even earlier on >library(Rmpi):
+SystemError: The program can't start because deino_mpich2mpi.dll is missing from your computer.
+
+I also tried combination of R 2.8.1/R 2.9.0/ deinoMPI version of Rmpi 0.5-6.zip. no luck.
+
+Thanks for any reply.
+
+elton wang
+
+
+From ahala2000 at yahoo.com  Wed Jul 22 02:44:27 2009
+From: ahala2000 at yahoo.com (elton wang)
+Date: Tue, 21 Jul 2009 17:44:27 -0700 (PDT)
+Subject: [R-sig-hpc] help on Rmpi and deinoMPI error  in mpi.comm.spawn
+Message-ID: <935919.82419.qm@web31406.mail.mud.yahoo.com>
+
+
+Sorry for  the spam of my previous message. It seems the error is due to the deinoMPI service did not start automatically.
+> mpi.spawn.Rslaves()
+        4 slaves are spawned successfully. 0 failed.
+
+
+
+
+----- Original Message ----
+From: elton wang <ahala2000 at yahoo.com>
+To: r-sig-hpc at r-project.org
+Sent: Tuesday, July 21, 2009 7:06:27 PM
+Subject: help on Rmpi and deinoMPI error  in mpi.comm.spawn
+
+Dear List,
+I got a problem on installing Rmpi and deinoMPI. please help. tjhanks!
+
+I installed deinoMPI ver 1.1.0 and Rmpi 0.5-7.zip for deinoMPI from http://www.stats.uwo.ca/faculty/yu/Rmpi/.
+My operating system is 32-bit windows xp sp3 English verison, R version is 2.9.1.
+I got error as below
+> library(Rmpi)
+> mpi.spawn.Rslaves()
+Error in mpi.comm.spawn(slave = system.file("Rslaves.bat", package = "Rmpi"),  : 
+  MPI_Comm_spawnA(102)..........: 
+MPI_Comm_spawn(193)...........: MPI_Comm_spawn(cmd="C:/PROGRA~1/R/R-29~1.1/library/Rmpi/Rslaves.bat", argv=0x05EED7B8, maxprocs=4, MPI_INFO_NULL, root=0, MPI_COMM_SELF, intercomm=0x059D7030, errors=0x05834A18) failed
+MPID_Comm_spawn_multiple(57)..: 
+MPIDI_Comm_spawn_multiple(282): PMI_Spawn_multiple returned -1, Object reference not set to an instance of an object.
+> 
+
+If I uninstall deinoMPI ver 1.1.0 and install deinoMPI 2.0, I got error even earlier on >library(Rmpi):
+SystemError: The program can't start because deino_mpich2mpi.dll is missing from your computer.
+
+I also tried combination of R 2.8.1/R 2.9.0/ deinoMPI version of Rmpi 0.5-6.zip. no luck.
+
+Thanks for any reply.
+
+elton wang
+
+
+From Thomas.H.Hampton at dartmouth.edu  Thu Jul 23 04:50:42 2009
+From: Thomas.H.Hampton at dartmouth.edu (Thomas Hampton)
+Date: Wed, 22 Jul 2009 22:50:42 -0400
+Subject: [R-sig-hpc]  Rmpi over mpich2 working, new questions
+In-Reply-To: <19045.49214.808228.660291@ron.nulle.part>
+References: <18737D74-CFF1-4027-8C43-9B66A7F05213@Dartmouth.edu>
+	<19045.49214.808228.660291@ron.nulle.part>
+Message-ID: <BC365850-3396-44E0-828F-2A0A41B826CE@dartmouth.edu>
+
+We worked through our problems and got Rmpi to work on Red Hat, even  
+calling it from
+papply. Thanks for your help.
+
+Interestingly, a  parallelization of 1,000 trivial operations involving
+7 slaves took  32 seconds on our system. Is it possible that the
+message passing overhead is borne in serial and takes 32
+milliseconds per task?
+
+
+Thanks again,
+
+Tom
+
+
+From win at comets.de  Thu Jul 23 13:38:04 2009
+From: win at comets.de (Melwin)
+Date: Thu, 23 Jul 2009 13:38:04 +0200
+Subject: [R-sig-hpc] Rmpi and LAM: no spawning between 64 bit and 32 bit
+	systems?
+Message-ID: <op.uxiqlqbsyqqyib@mueggelsee.geoecology.uni-potsdam.de>
+
+Hi there,
+thanks to the list, I got Rmpi and LAM running on a Suse 64 bit system.
+Connecting LAM to slaves running Suse 32 bit (vm-linuxgeco1,  
+vm-linuxgeco2) works fine as checked with lamexec on either machine:
+> lamexec C hostname
+	linuxmodel
+	linuxmodel
+	vm-linuxgeco1
+	vm-linuxgeco1
+	vm-linuxgeco2
+	vm-linuxgeco2
+
+However, spawning 32-bit slaves from from R on the 64 bit machine  
+(linuxmodel) or vice versa gives an error:
+	
+mpi.spawn.Rslaves()
+
+	Fehler in mpi.comm.spawn(slave = system.file("Rslaves.sh", package =  
+"Rmpi"),  :
+	  MPI_Error_string: error spawning process
+
+while spawning from a 32 bit machine using only the other 32 bit slave  
+works fine.
+
+Is there a general requirement to have the same architecture and/or file  
+layout in a Rmpi comm?
+
+I suspect e.g. the parameter Rscript  
+(=system.file("Rslaves.sh",package="Rmpi") by default) evaluates  
+differently for the two architectures. Is there any need & way to specify  
+this separately for each slave?
+
+Thanks in advance,
+
+Melwin
+
+--
+
+
+From mtmorgan at fhcrc.org  Thu Jul 23 21:06:22 2009
+From: mtmorgan at fhcrc.org (Martin Morgan)
+Date: Thu, 23 Jul 2009 12:06:22 -0700
+Subject: [R-sig-hpc] slurm resource use and mpi.spawn.Rslaves
+Message-ID: <4A68B4AE.2010501@fhcrc.org>
+
+Hi --
+
+I'm trying to understand how slurm interacts with Rmpi. One way of using
+Rmpi is
+
+  salloc -n 20 \
+    mpirun -n 1 \
+      R -e "library(Rmpi); mpi.spawn.Rslaves(); mpi.quit()"
+
+I understand this to say 'give me 20 cores, and on 1 launch an R that
+spawns slaves to fill the universe with 20 additional R'.
+
+The question is about slurm accounting -- does slurm think that it has
+20 cores that are now 'in use', even though mpirun launches only a
+single job, i.e., are the spawned R processes sneaking in unnoticed by
+slurm?
+
+I'm also wondering how slurm does its accounting with salloc -N 20
+mpirun -n 1 ..., both when R launches mpi.universe.size() [which is 20,
+despite the multiple cores available] slaves and when mpi.spawn.Rslaves
+over-allocates.
+
+Any help appreciated.
+
+
+Martin
+
+
+From mtmorgan at fhcrc.org  Thu Jul 23 21:39:07 2009
+From: mtmorgan at fhcrc.org (Martin Morgan)
+Date: Thu, 23 Jul 2009 12:39:07 -0700
+Subject: [R-sig-hpc] Rmpi over mpich2 working, new questions
+In-Reply-To: <BC365850-3396-44E0-828F-2A0A41B826CE@dartmouth.edu>
+References: <18737D74-CFF1-4027-8C43-9B66A7F05213@Dartmouth.edu>	<19045.49214.808228.660291@ron.nulle.part>
+	<BC365850-3396-44E0-828F-2A0A41B826CE@dartmouth.edu>
+Message-ID: <4A68BC5B.2010205@fhcrc.org>
+
+Thomas Hampton wrote:
+> We worked through our problems and got Rmpi to work on Red Hat, even
+> calling it from
+> papply. Thanks for your help.
+> 
+> Interestingly, a  parallelization of 1,000 trivial operations involving
+> 7 slaves took  32 seconds on our system. Is it possible that the
+> message passing overhead is borne in serial and takes 32
+> milliseconds per task?
+
+I don't know how papply does things in particular, but communication
+costs can be considerable, especially when trying out 'trivial'
+computations. Try realistic tasks (i.e., substantial computation) where
+you've thought carefully about minimizing the data to be sent to and
+returned from the workers. Personally, I use Rmpi directly (e.g.,
+mpi.parLapply) for its flexibility.
+
+Martin
+
+> 
+> 
+> Thanks again,
+> 
+> Tom
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From matteo.mattiuzzi at boku.ac.at  Fri Jul 24 11:42:57 2009
+From: matteo.mattiuzzi at boku.ac.at (Matteo Mattiuzzi)
+Date: Fri, 24 Jul 2009 11:42:57 +0200
+Subject: [R-sig-hpc] splitting Work on different CPUs
+Message-ID: <4A699E410200002700003599@gwia2.boku.ac.at>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090724/3c5fb4f8/attachment.pl>
+
+From Thomas.H.Hampton at Dartmouth.edu  Sat Jul 25 17:27:37 2009
+From: Thomas.H.Hampton at Dartmouth.edu (Thomas Hampton)
+Date: Sat, 25 Jul 2009 11:27:37 -0400
+Subject: [R-sig-hpc] Rmpi and node swamping
+Message-ID: <7402A12C-3934-459C-B90F-E07A5F9A77B8@Dartmouth.edu>
+
+
+I am using qsusb, Rmpi and papply.
+
+Anyone out there using this combo?
+
+I am running into a problem where all my R slaves end up on the
+first two nodes, swamping them.
+
+Not even sure how you would do this in you intended to, because
+I am not actually specifying which processes go where.
+
+Anyway, any insight you all might have would be greatly appreciated.
+
+Thanks,
+
+Tom
+
+
+From Thomas.H.Hampton at Dartmouth.edu  Sat Jul 25 22:26:37 2009
+From: Thomas.H.Hampton at Dartmouth.edu (Thomas Hampton)
+Date: Sat, 25 Jul 2009 16:26:37 -0400
+Subject: [R-sig-hpc] Rmpi and node swamping
+In-Reply-To: <7402A12C-3934-459C-B90F-E07A5F9A77B8@Dartmouth.edu>
+References: <7402A12C-3934-459C-B90F-E07A5F9A77B8@Dartmouth.edu>
+Message-ID: <F1567F16-E1D3-4DAD-A839-C13279C743C6@Dartmouth.edu>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090725/40ec5450/attachment.pl>
+
+From oncstat at gmail.com  Sun Jul 26 16:38:32 2009
+From: oncstat at gmail.com (J Wu)
+Date: Sun, 26 Jul 2009 10:38:32 -0400
+Subject: [R-sig-hpc] Rmpi can't find deinom_mpich2mpi.dll
+Message-ID: <4b568aa90907260738m2646f454n32da42080a6e8634@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090726/67a2c56b/attachment.pl>
+
+From ross at biostat.ucsf.edu  Thu Jul 30 04:40:46 2009
+From: ross at biostat.ucsf.edu (Ross Boylan)
+Date: Wed, 29 Jul 2009 19:40:46 -0700
+Subject: [R-sig-hpc] rsprng wiki page
+Message-ID: <1248921646.18270.45.camel@corn.betterworld.us>
+
+http://wiki.r-project.org/rwiki/doku.php?id=packages:cran:rsprng has a
+page I just created on parallel random number generation under R with
+SPRNG.
+
+It includes some cautions about how to use the package and some thoughts
+about how to enhance it.  I'm working on code changes along the lines
+suggested there.
+
+I hope that the information there is accurate; it's quite possible it is
+not.  In particular, although I think earlier discussion (can't find it
+now) indicated that rsprng uses the simple interface to SPRNG, the code
+doesn't look that way.  I think with the simple interface my C code
+would get the same random number stream as the R code, because there is
+only one stream.  Without it, my C code needs the stream id from R in
+order to access the same stream.
+
+The page also indicates a number of things I'm uncertain about.
+
+If you're interested, please look, comment, and edit as you see fit.
+
+Ross Boylan
+
+
+From nakama at ki.rim.or.jp  Thu Jul 30 06:44:39 2009
+From: nakama at ki.rim.or.jp (Ei-ji Nakama)
+Date: Thu, 30 Jul 2009 13:44:39 +0900
+Subject: [R-sig-hpc] rsprng wiki page
+In-Reply-To: <1248921646.18270.45.camel@corn.betterworld.us>
+References: <1248921646.18270.45.camel@corn.betterworld.us>
+Message-ID: <dc41e1260907292144x4bb57e17qce13eb5a68f67e64@mail.gmail.com>
+
+I let rsprng support SPRNG4 to inspect a difference by the version of SPRNG.
+# I got caught up at work and just forgot all about this....
+
+http://prs.ism.ac.jp/~nakama/mascagni/README
+http://prs.ism.ac.jp/~nakama/mascagni/rsprng_0.5-2.tar.gz
+
+2009/7/30 Ross Boylan <ross at biostat.ucsf.edu>:
+> http://wiki.r-project.org/rwiki/doku.php?id=packages:cran:rsprng has a
+> page I just created on parallel random number generation under R with
+> SPRNG.
+>
+> It includes some cautions about how to use the package and some thoughts
+> about how to enhance it. ?I'm working on code changes along the lines
+> suggested there.
+>
+> I hope that the information there is accurate; it's quite possible it is
+> not. ?In particular, although I think earlier discussion (can't find it
+> now) indicated that rsprng uses the simple interface to SPRNG, the code
+> doesn't look that way. ?I think with the simple interface my C code
+> would get the same random number stream as the R code, because there is
+> only one stream. ?Without it, my C code needs the stream id from R in
+> order to access the same stream.
+>
+> The page also indicates a number of things I'm uncertain about.
+>
+> If you're interested, please look, comment, and edit as you see fit.
+>
+> Ross Boylan
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+>
+>
+
+-- 
+EI-JI Nakama  <nakama (a) ki.rim.or.jp>
+"\u4e2d\u9593\u6804\u6cbb"  <nakama (a) ki.rim.or.jp>
+
+
+From ross at biostat.ucsf.edu  Thu Jul 30 22:14:27 2009
+From: ross at biostat.ucsf.edu (Ross Boylan)
+Date: Thu, 30 Jul 2009 13:14:27 -0700
+Subject: [R-sig-hpc] rsprng patches
+Message-ID: <1248984867.18270.94.camel@corn.betterworld.us>
+
+This is a work in progress, but I thought I might share the changes I've
+made so far to rsprng (based on v 0.4) to integrate it more fully with
+R's random number framework.  Untested, but enough to give a flavor.
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: rsprng-rb.patch
+Type: text/x-patch
+Size: 3214 bytes
+Desc: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090730/10587bba/attachment.bin>
+
+From Thomas.H.Hampton at Dartmouth.edu  Thu Jul 30 22:35:00 2009
+From: Thomas.H.Hampton at Dartmouth.edu (Thomas Hampton)
+Date: Thu, 30 Jul 2009 16:35:00 -0400
+Subject: [R-sig-hpc] Quick rsprng questions
+Message-ID: <6AA166DA-1EEC-4768-ADB7-840F60A7BF5D@Dartmouth.edu>
+
+Hello Ross,
+
+We recently installed rsprng on our beowulf cluster. My recollection  
+was that
+R routines like sample() gave weird results before we did this --  
+namely,
+you could sample as many times as you like and you would get the same  
+result, as if
+you were setting the seed to some fixed value (even when you did not).
+
+I am not observing this behavior now.
+
+My questions are these.
+
+First, is it a normal feature of clusters to show odd random number  
+properties if
+you do not have something like rsprng in there?
+
+Second, if you install rspring, does the problem just magically go  
+away, or do you need
+to make special calls in your R code to take advantage of rsprng?
+
+Finally, why (roughly) is random number generation different in the  
+parallel environment to begin with?
+
+Thanks very much,
+
+Tom
+
+
+From ross at biostat.ucsf.edu  Thu Jul 30 23:20:44 2009
+From: ross at biostat.ucsf.edu (Ross Boylan)
+Date: Thu, 30 Jul 2009 14:20:44 -0700
+Subject: [R-sig-hpc] Quick rsprng questions
+In-Reply-To: <6AA166DA-1EEC-4768-ADB7-840F60A7BF5D@Dartmouth.edu>
+References: <6AA166DA-1EEC-4768-ADB7-840F60A7BF5D@Dartmouth.edu>
+Message-ID: <1248988844.18270.115.camel@corn.betterworld.us>
+
+I'm far from an authority, but I'll try to answer.
+
+On Thu, 2009-07-30 at 16:35 -0400, Thomas Hampton wrote:
+> Hello Ross,
+> 
+> We recently installed rsprng on our beowulf cluster. My recollection  
+> was that
+> R routines like sample() gave weird results before we did this --  
+> namely,
+> you could sample as many times as you like and you would get the same  
+> result, as if
+> you were setting the seed to some fixed value (even when you did not).
+> 
+> I am not observing this behavior now.
+> 
+> My questions are these.
+> 
+> First, is it a normal feature of clusters to show odd random number  
+> properties if
+> you do not have something like rsprng in there?
+I would not expect the behavior you described above.  The only
+misbehavior that seems likely is that each node/process in the cluster
+gets the same, or at least not fully independent, streams of random
+numbers.
+> 
+> Second, if you install rspring, does the problem just magically go  
+> away, or do you need
+> to make special calls in your R code to take advantage of rsprng?
+First, you need to initialize rsprng properly and second you need to be
+able to access it.
+
+Unless something else initializes rsprng (e.g., snow provides
+setupSPRNG), you need to by calling init.rsprng with appropriate
+parameters (which include the total number of processes and the rank of
+the process executing the initialization).  This will create independent
+streams.
+
+The second issue is getting access to these random numbers.  The uniform
+random number generator and anything derived from it should work.  I'm
+not sure if the normal random number generator will use SPRNG or not; I
+suspect it will.
+
+If you're trying to access the random number stream from C code, it's
+tricky.  There are more details on the web page I announced:
+http://wiki.r-project.org/rwiki/doku.php?id=packages:cran:rsprng.
+> 
+> Finally, why (roughly) is random number generation different in the  
+> parallel environment to begin with?
+In the simplest case, you might get the same random number stream in
+each parallel process.  This means the extra runs are pointless and, if
+you use them naively, you will think you have a much bigger sample than
+you really do.
+
+A more complex problem is that the random number streams could be
+dependent, but in a more subtle way.
+
+A simple strategy is to generate a list of random integers to serve as
+seeds, ship a different seed to each process, and then set the seed in
+each process.  This works with non-parallel RNG's and is probably good
+enough in most cases (it's a popular move in the biostat dept here).  I
+suspect there are some issues with it, though, because otherwise there'd
+be no need to for explicit parallel random number generators like SPRNG.
+
+Ross
+> 
+> Thanks very much,
+> 
+> Tom
+
+
+From saptarshi.guha at gmail.com  Thu Jul 30 23:26:49 2009
+From: saptarshi.guha at gmail.com (Sapsi)
+Date: Thu, 30 Jul 2009 17:26:49 -0400
+Subject: [R-sig-hpc] Quick rsprng questions
+In-Reply-To: <1248988844.18270.115.camel@corn.betterworld.us>
+References: <6AA166DA-1EEC-4768-ADB7-840F60A7BF5D@Dartmouth.edu>
+	<1248988844.18270.115.camel@corn.betterworld.us>
+Message-ID: <805FB42D-61C0-46ED-BE00-84383633726C@gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090730/8bfdf0a2/attachment.pl>
+
+From edd at debian.org  Fri Jul 31 17:46:54 2009
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Fri, 31 Jul 2009 10:46:54 -0500
+Subject: [R-sig-hpc] rsprng wiki page
+In-Reply-To: <dc41e1260907292144x4bb57e17qce13eb5a68f67e64@mail.gmail.com>
+References: <1248921646.18270.45.camel@corn.betterworld.us>
+	<dc41e1260907292144x4bb57e17qce13eb5a68f67e64@mail.gmail.com>
+Message-ID: <19059.4590.932300.934689@ron.nulle.part>
+
+
+Dear Ei-ji,
+
+On 30 July 2009 at 13:44, Ei-ji Nakama wrote:
+| I let rsprng support SPRNG4 to inspect a difference by the version of SPRNG.
+| # I got caught up at work and just forgot all about this....
+| 
+| http://prs.ism.ac.jp/~nakama/mascagni/README
+| http://prs.ism.ac.jp/~nakama/mascagni/rsprng_0.5-2.tar.gz
+
+Did you get SPRNG4 to build on Debian?  The last time I looked (which,
+admittedly, was a while ago) there where some issues. I think it only builds
+a static library -- and we'd rather have a dynamic library.  
+
+Did you build a statically linked libsprng4 for your rsprng?
+
+Dirk
+
+-- 
+Three out of two people have difficulties with fractions.
+
+
+From ross at biostat.ucsf.edu  Fri Jul 31 19:56:46 2009
+From: ross at biostat.ucsf.edu (Ross Boylan)
+Date: Fri, 31 Jul 2009 10:56:46 -0700
+Subject: [R-sig-hpc] rsprng wiki page
+In-Reply-To: <1248921646.18270.45.camel@corn.betterworld.us>
+References: <1248921646.18270.45.camel@corn.betterworld.us>
+Message-ID: <1249063006.18270.134.camel@corn.betterworld.us>
+
+I have verified that rsprng does control the random normal generator as
+well as others; I was uncertain about this before.  I've updated the
+page to reflect this, as well as some other information about when to
+initialize and free the stream.
+
+Na (Michael) Li, the package author, confirms that rsprng uses the
+default, rather than simple, interface to SPRNG.  This means that C code
+in other packages do not have direct access to the stream.
+
+On Wed, 2009-07-29 at 19:40 -0700, Ross Boylan wrote:
+> http://wiki.r-project.org/rwiki/doku.php?id=packages:cran:rsprng has a
+> page I just created on parallel random number generation under R with
+> SPRNG.
+> 
+> It includes some cautions about how to use the package and some thoughts
+> about how to enhance it.  I'm working on code changes along the lines
+> suggested there.
+> 
+> I hope that the information there is accurate; it's quite possible it is
+> not.  In particular, although I think earlier discussion (can't find it
+> now) indicated that rsprng uses the simple interface to SPRNG, the code
+> doesn't look that way.  I think with the simple interface my C code
+> would get the same random number stream as the R code, because there is
+> only one stream.  Without it, my C code needs the stream id from R in
+> order to access the same stream.
+> 
+> The page also indicates a number of things I'm uncertain about.
+> 
+> If you're interested, please look, comment, and edit as you see fit.
+> 
+> Ross Boylan
+>
+
+

@@ -1,0 +1,1290 @@
+From cboettig at gmail.com  Wed Feb  2 23:10:10 2011
+From: cboettig at gmail.com (Carl Boettiger)
+Date: Wed, 2 Feb 2011 14:10:10 -0800
+Subject: [R-sig-hpc] snowfall errors and ~./sfCluster
+Message-ID: <AANLkTikQLdrv9gynKn_BvfXSkzvf4_p-7_3D1pWMaasU@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110202/8fa6301b/attachment.pl>
+
+From jens.oehlschlaegel at truecluster.com  Thu Feb  3 13:17:01 2011
+From: jens.oehlschlaegel at truecluster.com (=?UTF-8?Q? Jens_Oehlschl=C3=A4gel ?=)
+Date: Thu, 3 Feb 2011 13:17:01 +0100 (CET)
+Subject: [R-sig-hpc] Problem creating a package with high-resolution timer
+Message-ID: <1061455830.5904083.1296735421744.JavaMail.fmail@mwmweb018>
+
+Dear experts,
+
+I am trying to INSTALL to R-2.12.1 a package with a high-resolution time (timer_gettime and friends).
+I learned that I need to compile with the real time option "gcc -lrc" and on my 64bit ubuntu 10.04 this 
+works if compling a C program standalone. I compiled R and my package with this option, but still I get at the end of the package INSTALL
+
+Error in dyn.load(file, DLLpath = DLLpath, ...) :
+  unable to load shared object '/usr/local/lib64/R/library/mypackage/libs/mypackage.so':
+  /usr/local/lib64/R/library/mypackage/libs/mypackage.so: undefined symbol: timer_settime
+ERROR: loading failed
+
+Any idea?
+
+
+Jens Oehlschl?gel
+
+
+From olafm at datensplitter.net  Thu Feb  3 13:34:31 2011
+From: olafm at datensplitter.net (Olaf Mersmann)
+Date: Thu, 3 Feb 2011 13:34:31 +0100
+Subject: [R-sig-hpc] Problem creating a package with high-resolution
+	timer
+In-Reply-To: <1061455830.5904083.1296735421744.JavaMail.fmail@mwmweb018>
+References: <1061455830.5904083.1296735421744.JavaMail.fmail@mwmweb018>
+Message-ID: <AANLkTikQua=fe0eS28HaDyZeium6bw2r28F3WA+zNejv@mail.gmail.com>
+
+Dear Jens,
+
+2011/2/3 "Jens Oehlschl?gel" <jens.oehlschlaegel at truecluster.com>:
+> I am trying to INSTALL to R-2.12.1 a package with a high-resolution time (timer_gettime and friends).
+> I learned that I need to compile with the real time option "gcc -lrc"
+
+This should be "gcc -lrt" iirc. Is this a typo? Does it also fail if
+you link against librt?
+
+Cheers,
+Olaf Mersmann
+
+
+From jens.oehlschlaegel at truecluster.com  Thu Feb  3 15:37:56 2011
+From: jens.oehlschlaegel at truecluster.com (=?UTF-8?Q? Jens_Oehlschl=C3=A4gel ?=)
+Date: Thu, 3 Feb 2011 15:37:56 +0100 (CET)
+Subject: [R-sig-hpc] Problem creating a package with high-resolution
+ timer
+In-Reply-To: <AANLkTikQua=fe0eS28HaDyZeium6bw2r28F3WA+zNejv@mail.gmail.com>
+References: <1061455830.5904083.1296735421744.JavaMail.fmail@mwmweb018>,
+	<AANLkTikQua=fe0eS28HaDyZeium6bw2r28F3WA+zNejv@mail.gmail.com>
+Message-ID: <2028204397.5984988.1296743876459.JavaMail.fmail@mwmweb018>
+
+Thanks Olaf,
+Thanks Daniel,
+
+Problem solved. The typo was only in the mail. But I funneld the -lrt flag via the R CMD INSTALL mechanics to the compiler instead of to the linker. 
+Setting PKG_LIBS=-lrt in Makevars did it. 
+
+Cheers
+Jens
+
+
+
+-----Urspr?ngliche Nachricht-----
+Von: "Olaf Mersmann" <olafm at datensplitter.net>
+Gesendet: Feb 3, 2011 1:34:31 PM
+An: r-sig-hpc at r-project.org
+Betreff: Re: [R-sig-hpc] Problem creating a package with high-resolution timer
+
+>Dear Jens,
+>
+>2011/2/3 "Jens Oehlschl?gel" <jens.oehlschlaegel at truecluster.com>:
+>> I am trying to INSTALL to R-2.12.1 a package with a high-resolution time (timer_gettime and friends).
+>> I learned that I need to compile with the real time option "gcc -lrc"
+>
+>This should be "gcc -lrt" iirc. Is this a typo? Does it also fail if
+>you link against librt
+>Cheers,
+>Olaf Mersmann
+>
+>_______________________________________________
+>R-sig-hpc mailing list
+>R-sig-hpc at r-project.org
+>https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From matloff at cs.ucdavis.edu  Fri Feb  4 09:15:55 2011
+From: matloff at cs.ucdavis.edu (Norm Matloff)
+Date: Fri, 4 Feb 2011 00:15:55 -0800
+Subject: [R-sig-hpc] Version 1.1 of Rdsm
+Message-ID: <20110204081555.GA12302@laura>
+
+The new version of my Rdsm package (threads programming for R) is now on
+CRAN.  Some of the changes include an improved autolaunch, a streamlined
+variable creation function, and an expanded thread signalling
+capability.
+
+Rdsm now also includes an interface to bigmemory.  Some of you may
+recall that when I released the first version of Rdsm, I stated that I
+had plans to implement a version for Jay Emerson and Mike Kane's
+bigmemory package.  I had written a prototype, but there were in the
+midst of upgrading bigmemory, so I decided to wait until their new
+version came out.  However, busy academic lives being what they are, I
+never followed through.
+
+However, recently I realized that that no modifications were necessary
+anyway.  I realized that my Rdsm package can be used directly on
+bigmemory, without any bigmemory-specific changes to Rdsm.  Indeed, the
+user can write application code in which Rdsm variables and bigmemory
+variables coexist.  
+
+So, the new Rdsm version includes a function to create bigmemory
+variables, and examples of using Rdsm with bigmemory.
+
+Norm Matloff
+
+
+From renaud at mancala.cbio.uct.ac.za  Tue Feb  8 14:28:24 2011
+From: renaud at mancala.cbio.uct.ac.za (Renaud Gaujoux)
+Date: Tue, 08 Feb 2011 15:28:24 +0200
+Subject: [R-sig-hpc] Using rstream for reproducible parallel computations
+Message-ID: <4D5144F8.8040208@cbio.uct.ac.za>
+
+Hi,
+
+I want to use the package rstream in order to ensure reproducibility of 
+parallel independent computations.
+
+To implement the computation I use a foreach loop, which should work 
+with both parallel backends doMC and doMPI. The idea I follow to ensure 
+reproducibility and flexibility is to create all the required random 
+streams before starting loop and pass them to the workers, one by one as 
+these complete their tasks. I saw pieces of code around the web that 
+does this using the package rlecuyer. I like the unified approach of 
+rstream though, so I would like to use this package (that also provides 
+L'Ecuyer's RNGstream generator). Parallel stuff can get tricky with 
+hidden side effects, that's why I'd like to have some comments on the 
+following code.
+Thank you.
+
+Renaud
+
+# this function creates n streams, starting with a given seed ( <=> 
+rlecuyer::.lec.CreateStream)
+createStream <- function(n, seed){
+
+     # check parameters
+     if( n <= 0 )
+         stop("NMF::createStream - invalid value for 'n' [positive value 
+expected]")
+
+     s <- new('rstream.mrg32k3a', seed=seed, force.seed=TRUE)
+     rstream.packed(s) <- TRUE
+     s <- list(s)
+     if( n > 1 )
+         s <- c(s, replicate(n-1,{ s <- new('rstream.mrg32k3a'); 
+rstream.packed(s) <- TRUE; s} ))
+
+     invisible(s)
+}
+
+library(rstream)
+library(doMC)
+
+registerDoMC()
+dummy <- foreach(i=1:10, s=createStream(10, 1:6)) %dopar% {
+     print(s)
+     # do stuff
+}
+
+
+
+ 
+
+###
+UNIVERSITY OF CAPE TOWN 
+
+This e-mail is subject to the UCT ICT policies and e-mai...{{dropped:5}}
+
+
+From renaud at mancala.cbio.uct.ac.za  Tue Feb  8 14:35:39 2011
+From: renaud at mancala.cbio.uct.ac.za (Renaud Gaujoux)
+Date: Tue, 08 Feb 2011 15:35:39 +0200
+Subject: [R-sig-hpc] rstream.RNG does not reset the RNG to its initial state
+Message-ID: <4D5146AB.1040102@cbio.uct.ac.za>
+
+Hi,
+
+playing around with the package rstream, I came across the following issue.
+Am I doing something wrong?
+Thank you.
+
+Regards,
+Renaud
+
+
+###################
+library(rstream)
+set.seed(1)
+
+# using the rstream interface for the built-in RNG: everything is fine
+old <- rstream.RNG()
+runif(4)
+rstream.RNG(old)
+runif(4)
+
+# using the rstream interface for mrg32k3a
+m <- new('rstream.mrg32k3a')
+rstream.RNG(m)
+runif(4)
+# if I reset the RNG to its previous state, the generated values are shifted
+rstream.RNG(m)
+runif(4)
+
+# if I reset the RNG to the built-in generator and then back again to 
+mrg32k3a, then it works fine
+rstream.RNG(old)
+runif(4)
+rstream.RNG(m)
+runif(4)
+# But again...
+rstream.RNG(m)
+runif(4)
+
+
+
+R version 2.12.1 (2010-12-16)
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+locale:
+  [1] LC_CTYPE=en_ZA.utf8       LC_NUMERIC=C              
+LC_TIME=en_ZA.utf8        LC_COLLATE=en_ZA.utf8     
+LC_MONETARY=C             LC_MESSAGES=en_ZA.utf8    LC_PAPER=en_ZA.utf8
+  [8] LC_NAME=C                 LC_ADDRESS=C              
+LC_TELEPHONE=C            LC_MEASUREMENT=en_ZA.utf8 LC_IDENTIFICATION=C
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base
+
+other attached packages:
+[1] rstream_1.2.5
+
+
+ 
+
+###
+UNIVERSITY OF CAPE TOWN 
+
+This e-mail is subject to the UCT ICT policies and e-mai...{{dropped:5}}
+
+
+From edd at debian.org  Tue Feb  8 15:02:29 2011
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Tue, 8 Feb 2011 08:02:29 -0600
+Subject: [R-sig-hpc] Using rstream for reproducible parallel computations
+In-Reply-To: <4D5144F8.8040208@cbio.uct.ac.za>
+References: <4D5144F8.8040208@cbio.uct.ac.za>
+Message-ID: <19793.19701.35663.225563@max.nulle.part>
+
+
+On 8 February 2011 at 15:28, Renaud Gaujoux wrote:
+| Hi,
+| 
+| I want to use the package rstream in order to ensure reproducibility of 
+| parallel independent computations.
+| 
+| To implement the computation I use a foreach loop, which should work 
+| with both parallel backends doMC and doMPI. The idea I follow to ensure 
+| reproducibility and flexibility is to create all the required random 
+| streams before starting loop and pass them to the workers, one by one as 
+| these complete their tasks. I saw pieces of code around the web that 
+| does this using the package rlecuyer. I like the unified approach of 
+| rstream though, so I would like to use this package (that also provides 
+| L'Ecuyer's RNGstream generator). Parallel stuff can get tricky with 
+| hidden side effects, that's why I'd like to have some comments on the 
+| following code.
+
+It's tricky and important to get this stuff right: The foreach and do*
+families do not support it out of the box.
+
+You could try to make your life easier by switching to the snow package. With
+the doSNOW plugin and by using the MC and/or MPI backends supported by snow
+you would get the snow integration to rlecuyer and rsprng for free.
+
+That said, it would be awfully nice if someone could work similar logic into
+do* as a general solution.
+
+Dirk
+
+| Thank you.
+| 
+| Renaud
+| 
+| # this function creates n streams, starting with a given seed ( <=> 
+| rlecuyer::.lec.CreateStream)
+| createStream <- function(n, seed){
+| 
+|      # check parameters
+|      if( n <= 0 )
+|          stop("NMF::createStream - invalid value for 'n' [positive value 
+| expected]")
+| 
+|      s <- new('rstream.mrg32k3a', seed=seed, force.seed=TRUE)
+|      rstream.packed(s) <- TRUE
+|      s <- list(s)
+|      if( n > 1 )
+|          s <- c(s, replicate(n-1,{ s <- new('rstream.mrg32k3a'); 
+| rstream.packed(s) <- TRUE; s} ))
+| 
+|      invisible(s)
+| }
+| 
+| library(rstream)
+| library(doMC)
+| 
+| registerDoMC()
+| dummy <- foreach(i=1:10, s=createStream(10, 1:6)) %dopar% {
+|      print(s)
+|      # do stuff
+| }
+| 
+| 
+| 
+|  
+| 
+| ###
+| UNIVERSITY OF CAPE TOWN 
+| 
+| This e-mail is subject to the UCT ICT policies and e-mai...{{dropped:5}}
+| 
+| _______________________________________________
+| R-sig-hpc mailing list
+| R-sig-hpc at r-project.org
+| https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+-- 
+Dirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com
+
+
+From renaud at mancala.cbio.uct.ac.za  Tue Feb  8 15:13:08 2011
+From: renaud at mancala.cbio.uct.ac.za (Renaud Gaujoux)
+Date: Tue, 08 Feb 2011 16:13:08 +0200
+Subject: [R-sig-hpc] Using rstream for reproducible parallel computations
+In-Reply-To: <19793.19701.35663.225563@max.nulle.part>
+References: <4D5144F8.8040208@cbio.uct.ac.za>
+	<19793.19701.35663.225563@max.nulle.part>
+Message-ID: <4D514F74.8020500@cbio.uct.ac.za>
+
+Hi Dirk,
+
+I had first chosen the multicore package for simplicity (though 
+reproducibility was an issue), but I might switch to snow and doSNOW as 
+you suggest.
+I would also make multicore computation possible under Windows, am I 
+correct?
+Thank you.
+
+Renaud
+
+On 08/02/2011 16:02, Dirk Eddelbuettel wrote:
+> On 8 February 2011 at 15:28, Renaud Gaujoux wrote:
+> | Hi,
+> |
+> | I want to use the package rstream in order to ensure reproducibility of
+> | parallel independent computations.
+> |
+> | To implement the computation I use a foreach loop, which should work
+> | with both parallel backends doMC and doMPI. The idea I follow to ensure
+> | reproducibility and flexibility is to create all the required random
+> | streams before starting loop and pass them to the workers, one by one as
+> | these complete their tasks. I saw pieces of code around the web that
+> | does this using the package rlecuyer. I like the unified approach of
+> | rstream though, so I would like to use this package (that also provides
+> | L'Ecuyer's RNGstream generator). Parallel stuff can get tricky with
+> | hidden side effects, that's why I'd like to have some comments on the
+> | following code.
+>
+> It's tricky and important to get this stuff right: The foreach and do*
+> families do not support it out of the box.
+>
+> You could try to make your life easier by switching to the snow package. With
+> the doSNOW plugin and by using the MC and/or MPI backends supported by snow
+> you would get the snow integration to rlecuyer and rsprng for free.
+>
+> That said, it would be awfully nice if someone could work similar logic into
+> do* as a general solution.
+>
+> Dirk
+>
+> | Thank you.
+> |
+> | Renaud
+> |
+> | # this function creates n streams, starting with a given seed (<=>
+> | rlecuyer::.lec.CreateStream)
+> | createStream<- function(n, seed){
+> |
+> |      # check parameters
+> |      if( n<= 0 )
+> |          stop("NMF::createStream - invalid value for 'n' [positive value
+> | expected]")
+> |
+> |      s<- new('rstream.mrg32k3a', seed=seed, force.seed=TRUE)
+> |      rstream.packed(s)<- TRUE
+> |      s<- list(s)
+> |      if( n>  1 )
+> |          s<- c(s, replicate(n-1,{ s<- new('rstream.mrg32k3a');
+> | rstream.packed(s)<- TRUE; s} ))
+> |
+> |      invisible(s)
+> | }
+> |
+> | library(rstream)
+> | library(doMC)
+> |
+> | registerDoMC()
+> | dummy<- foreach(i=1:10, s=createStream(10, 1:6)) %dopar% {
+> |      print(s)
+> |      # do stuff
+> | }
+> |
+> |
+> |
+> |
+> |
+> | ###
+> | UNIVERSITY OF CAPE TOWN
+> |
+> | This e-mail is subject to the UCT ICT policies and e-mai...{{dropped:5}}
+> |
+> | _______________________________________________
+> | R-sig-hpc mailing list
+> | R-sig-hpc at r-project.org
+> | https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+ 
+
+###
+UNIVERSITY OF CAPE TOWN 
+
+This e-mail is subject to the UCT ICT policies and e-mai...{{dropped:5}}
+
+
+From edd at debian.org  Tue Feb  8 16:01:59 2011
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Tue, 8 Feb 2011 09:01:59 -0600
+Subject: [R-sig-hpc] Using rstream for reproducible parallel computations
+In-Reply-To: <4D514F74.8020500@cbio.uct.ac.za>
+References: <4D5144F8.8040208@cbio.uct.ac.za>
+	<19793.19701.35663.225563@max.nulle.part>
+	<4D514F74.8020500@cbio.uct.ac.za>
+Message-ID: <19793.23271.886839.587509@max.nulle.part>
+
+
+On 8 February 2011 at 16:13, Renaud Gaujoux wrote:
+| Hi Dirk,
+| 
+| I had first chosen the multicore package for simplicity (though 
+| reproducibility was an issue), but I might switch to snow and doSNOW as 
+| you suggest.
+| I would also make multicore computation possible under Windows, am I 
+| correct?
+
+Nope. multicore uses facilities not exposed by Windoze.
+
+Revolution helped by writing and even open-sourcing doSMP.
+
+snow and sockets is probably still the best bet for "simple and cross-platform".
+
+Dirk
+
+| Thank you.
+| 
+| Renaud
+| 
+| On 08/02/2011 16:02, Dirk Eddelbuettel wrote:
+| > On 8 February 2011 at 15:28, Renaud Gaujoux wrote:
+| > | Hi,
+| > |
+| > | I want to use the package rstream in order to ensure reproducibility of
+| > | parallel independent computations.
+| > |
+| > | To implement the computation I use a foreach loop, which should work
+| > | with both parallel backends doMC and doMPI. The idea I follow to ensure
+| > | reproducibility and flexibility is to create all the required random
+| > | streams before starting loop and pass them to the workers, one by one as
+| > | these complete their tasks. I saw pieces of code around the web that
+| > | does this using the package rlecuyer. I like the unified approach of
+| > | rstream though, so I would like to use this package (that also provides
+| > | L'Ecuyer's RNGstream generator). Parallel stuff can get tricky with
+| > | hidden side effects, that's why I'd like to have some comments on the
+| > | following code.
+| >
+| > It's tricky and important to get this stuff right: The foreach and do*
+| > families do not support it out of the box.
+| >
+| > You could try to make your life easier by switching to the snow package. With
+| > the doSNOW plugin and by using the MC and/or MPI backends supported by snow
+| > you would get the snow integration to rlecuyer and rsprng for free.
+| >
+| > That said, it would be awfully nice if someone could work similar logic into
+| > do* as a general solution.
+| >
+| > Dirk
+| >
+| > | Thank you.
+| > |
+| > | Renaud
+| > |
+| > | # this function creates n streams, starting with a given seed (<=>
+| > | rlecuyer::.lec.CreateStream)
+| > | createStream<- function(n, seed){
+| > |
+| > |      # check parameters
+| > |      if( n<= 0 )
+| > |          stop("NMF::createStream - invalid value for 'n' [positive value
+| > | expected]")
+| > |
+| > |      s<- new('rstream.mrg32k3a', seed=seed, force.seed=TRUE)
+| > |      rstream.packed(s)<- TRUE
+| > |      s<- list(s)
+| > |      if( n>  1 )
+| > |          s<- c(s, replicate(n-1,{ s<- new('rstream.mrg32k3a');
+| > | rstream.packed(s)<- TRUE; s} ))
+| > |
+| > |      invisible(s)
+| > | }
+| > |
+| > | library(rstream)
+| > | library(doMC)
+| > |
+| > | registerDoMC()
+| > | dummy<- foreach(i=1:10, s=createStream(10, 1:6)) %dopar% {
+| > |      print(s)
+| > |      # do stuff
+| > | }
+| > |
+| > |
+| > |
+| > |
+| > |
+| > | ###
+| > | UNIVERSITY OF CAPE TOWN
+| > |
+| > | This e-mail is subject to the UCT ICT policies and e-mai...{{dropped:5}}
+| > |
+| > | _______________________________________________
+| > | R-sig-hpc mailing list
+| > | R-sig-hpc at r-project.org
+| > | https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+| >
+| 
+|  
+| 
+| ###
+| UNIVERSITY OF CAPE TOWN 
+| 
+| This e-mail is subject to the UCT ICT policies and e-mail disclaimer published on our website at http://www.uct.ac.za/about/policies/emaildisclaimer/ or obtainable from +27 21 650 9111. This e-mail is intended only for the person(s) to whom it is addressed. If the e-mail has reached you in error, please notify the author. If you are not the intended recipient of the e-mail you may not use, disclose, copy, redirect or print the content. If this e-mail is not related to the business of UCT it is sent by the sender in the sender's individual capacity.
+| 
+| ###
+|  
+| 
+
+-- 
+Dirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com
+
+
+From tom.hilinski at colostate.edu  Wed Feb  9 00:31:51 2011
+From: tom.hilinski at colostate.edu (Tom Hilinski)
+Date: Tue, 08 Feb 2011 16:31:51 -0700
+Subject: [R-sig-hpc] issue building R 2.12.1 on CrayXT
+Message-ID: <4D51D267.9070601@colostate.edu>
+
+Hi, I'm having an issue building R successfully on a Cray XT system. If
+you can suggest a solution, I would be very appreciative.
+
+Am building with gcc 4.4 module installed.
+configure cmd:
+  ./configure --prefix=<cut> CC=cc CXX=CC FC=ftn F77=ftn F90=ftn
+--without-x --without-blas --without-lapack --disable-shared
+--disable-R-profiling
+
+I've omitted the last 2 options w/out any change in the issues.
+
+So here's what I'm coming up with:
+While the base packages are being built, I get a dynamic load error:
+
+    make[6]: Entering directory `<cut>/R-2.12.1/src/library/tools/src'
+    ../../../../library/tools/libs/tools.so is unchanged
+    make[6]: Leaving directory `<cut>/R-2.12.1/src/library/tools/src'
+    make[5]: Leaving directory `<cut>/R-2.12.1/src/library/tools/src'
+    make[4]: Leaving directory `<cut>/R-2.12.1/src/library/tools'
+    Error in dyn.load(file, DLLpath = DLLpath, ...) :
+    unable to load shared object
+'<cut>/R-2.12.1/library/tools/libs/tools.so':
+    <cut>/R-2.12.1/library/tools/libs/tools.so: undefined symbol: R_NaString
+    Calls: ::: ... tryCatch -> tryCatchList -> tryCatchOne -> <Anonymous>
+    Execution halted
+    make[3]: *** [all] Error 1
+
+There is a file "library/tools/libs/tools.so".
+
+Any ideas as to the cause?
+
+
+From renaud at mancala.cbio.uct.ac.za  Wed Feb  9 10:21:36 2011
+From: renaud at mancala.cbio.uct.ac.za (Renaud Gaujoux)
+Date: Wed, 09 Feb 2011 11:21:36 +0200
+Subject: [R-sig-hpc] Using rstream for reproducible parallel computations
+In-Reply-To: <19793.23271.886839.587509@max.nulle.part>
+References: <4D5144F8.8040208@cbio.uct.ac.za>	<19793.19701.35663.225563@max.nulle.part>	<4D514F74.8020500@cbio.uct.ac.za>
+	<19793.23271.886839.587509@max.nulle.part>
+Message-ID: <4D525CA0.5070901@cbio.uct.ac.za>
+
+Hi Dirk,
+
+I checked for the possibility of me using snow instead of multicore.
+Currently I make use of mutexes (package synchronicity) to modify an 
+object in shared memory (package bigmemory), and this mechanism might 
+not work with snow and doSNOW. I will investigate this with the the 
+packages' authors.
+
+Renaud
+
+
+On 08/02/2011 17:01, Dirk Eddelbuettel wrote:
+> On 8 February 2011 at 16:13, Renaud Gaujoux wrote:
+> | Hi Dirk,
+> |
+> | I had first chosen the multicore package for simplicity (though
+> | reproducibility was an issue), but I might switch to snow and doSNOW as
+> | you suggest.
+> | I would also make multicore computation possible under Windows, am I
+> | correct?
+>
+> Nope. multicore uses facilities not exposed by Windoze.
+>
+> Revolution helped by writing and even open-sourcing doSMP.
+>
+> snow and sockets is probably still the best bet for "simple and cross-platform".
+>
+> Dirk
+>
+> | Thank you.
+> |
+> | Renaud
+> |
+> | On 08/02/2011 16:02, Dirk Eddelbuettel wrote:
+> |>  On 8 February 2011 at 15:28, Renaud Gaujoux wrote:
+> |>  | Hi,
+> |>  |
+> |>  | I want to use the package rstream in order to ensure reproducibility of
+> |>  | parallel independent computations.
+> |>  |
+> |>  | To implement the computation I use a foreach loop, which should work
+> |>  | with both parallel backends doMC and doMPI. The idea I follow to ensure
+> |>  | reproducibility and flexibility is to create all the required random
+> |>  | streams before starting loop and pass them to the workers, one by one as
+> |>  | these complete their tasks. I saw pieces of code around the web that
+> |>  | does this using the package rlecuyer. I like the unified approach of
+> |>  | rstream though, so I would like to use this package (that also provides
+> |>  | L'Ecuyer's RNGstream generator). Parallel stuff can get tricky with
+> |>  | hidden side effects, that's why I'd like to have some comments on the
+> |>  | following code.
+> |>
+> |>  It's tricky and important to get this stuff right: The foreach and do*
+> |>  families do not support it out of the box.
+> |>
+> |>  You could try to make your life easier by switching to the snow package. With
+> |>  the doSNOW plugin and by using the MC and/or MPI backends supported by snow
+> |>  you would get the snow integration to rlecuyer and rsprng for free.
+> |>
+> |>  That said, it would be awfully nice if someone could work similar logic into
+> |>  do* as a general solution.
+> |>
+> |>  Dirk
+> |>
+> |>  | Thank you.
+> |>  |
+> |>  | Renaud
+> |>  |
+> |>  | # this function creates n streams, starting with a given seed (<=>
+> |>  | rlecuyer::.lec.CreateStream)
+> |>  | createStream<- function(n, seed){
+> |>  |
+> |>  |      # check parameters
+> |>  |      if( n<= 0 )
+> |>  |          stop("NMF::createStream - invalid value for 'n' [positive value
+> |>  | expected]")
+> |>  |
+> |>  |      s<- new('rstream.mrg32k3a', seed=seed, force.seed=TRUE)
+> |>  |      rstream.packed(s)<- TRUE
+> |>  |      s<- list(s)
+> |>  |      if( n>   1 )
+> |>  |          s<- c(s, replicate(n-1,{ s<- new('rstream.mrg32k3a');
+> |>  | rstream.packed(s)<- TRUE; s} ))
+> |>  |
+> |>  |      invisible(s)
+> |>  | }
+> |>  |
+> |>  | library(rstream)
+> |>  | library(doMC)
+> |>  |
+> |>  | registerDoMC()
+> |>  | dummy<- foreach(i=1:10, s=createStream(10, 1:6)) %dopar% {
+> |>  |      print(s)
+> |>  |      # do stuff
+> |>  | }
+> |>  |
+> |>  |
+> |>  |
+> |>  |
+> |>  |
+> |>  | ###
+> |>  | UNIVERSITY OF CAPE TOWN
+> |>  |
+> |>  | This e-mail is subject to the UCT ICT policies and e-mai...{{dropped:5}}
+> |>  |
+> |>  | _______________________________________________
+> |>  | R-sig-hpc mailing list
+> |>  | R-sig-hpc at r-project.org
+> |>  | https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> |>
+> |
+> |
+> |
+> | ###
+> | UNIVERSITY OF CAPE TOWN
+> |
+> | This e-mail is subject to the UCT ICT policies and e-mail disclaimer published on our website at http://www.uct.ac.za/about/policies/emaildisclaimer/ or obtainable from +27 21 650 9111. This e-mail is intended only for the person(s) to whom it is addressed. If the e-mail has reached you in error, please notify the author. If you are not the intended recipient of the e-mail you may not use, disclose, copy, redirect or print the content. If this e-mail is not related to the business of UCT it is sent by the sender in the sender's individual capacity.
+> |
+> | ###
+> |
+> |
+>
+
+ 
+
+###
+UNIVERSITY OF CAPE TOWN 
+
+This e-mail is subject to the UCT ICT policies and e-mai...{{dropped:5}}
+
+
+From pauljohn32 at gmail.com  Wed Feb  9 19:33:06 2011
+From: pauljohn32 at gmail.com (Paul Johnson)
+Date: Wed, 9 Feb 2011 12:33:06 -0600
+Subject: [R-sig-hpc] issue building R 2.12.1 on CrayXT
+In-Reply-To: <4D51D267.9070601@colostate.edu>
+References: <4D51D267.9070601@colostate.edu>
+Message-ID: <AANLkTimOzPbpZ0=AkeR-MOGDSAqjmj0sDgLitO68S-G3@mail.gmail.com>
+
+Hello!
+
+I don't have a Cray to test with :)  I have built R on all varieties
+of Linux.  My first suggestion would be to simplify your configure
+options.  You can add those in later if you really need to, but they
+may be causing damage you don't expect.
+
+Right now, I am trying to compile R with the same options you have, on
+a Rocks LInux cluster with gcc.  Your spec calls for  non-GCC
+compilers, which I don't have, and the configure fails, so I tried
+this:
+
+./configure --prefix=/tmp/trash CC=gcc CXX=g++ --without-x
+--without-blas --without-lapack
+
+If that build finishes before I have to close this email, I will let
+you know what happens.
+
+OK, I'm back.  That compile did work and all the packages built too.
+So aside from your specification of compilers, I can't say much about
+what is wrong on your system.
+
+Have you tried the vanilla
+
+./configure --prefix=/tmp/whatever
+
+to see what happens?
+
+pj
+
+On Tue, Feb 8, 2011 at 5:31 PM, Tom Hilinski <tom.hilinski at colostate.edu> wrote:
+> Hi, I'm having an issue building R successfully on a Cray XT system. If
+> you can suggest a solution, I would be very appreciative.
+>
+> Am building with gcc 4.4 module installed.
+> configure cmd:
+> ?./configure --prefix=<cut> CC=cc CXX=CC FC=ftn F77=ftn F90=ftn
+> --without-x --without-blas --without-lapack --disable-shared
+> --disable-R-profiling
+>
+> I've omitted the last 2 options w/out any change in the issues.
+>
+> So here's what I'm coming up with:
+> While the base packages are being built, I get a dynamic load error:
+>
+> ? ?make[6]: Entering directory `<cut>/R-2.12.1/src/library/tools/src'
+> ? ?../../../../library/tools/libs/tools.so is unchanged
+> ? ?make[6]: Leaving directory `<cut>/R-2.12.1/src/library/tools/src'
+> ? ?make[5]: Leaving directory `<cut>/R-2.12.1/src/library/tools/src'
+> ? ?make[4]: Leaving directory `<cut>/R-2.12.1/src/library/tools'
+> ? ?Error in dyn.load(file, DLLpath = DLLpath, ...) :
+> ? ?unable to load shared object
+> '<cut>/R-2.12.1/library/tools/libs/tools.so':
+> ? ?<cut>/R-2.12.1/library/tools/libs/tools.so: undefined symbol: R_NaString
+> ? ?Calls: ::: ... tryCatch -> tryCatchList -> tryCatchOne -> <Anonymous>
+> ? ?Execution halted
+> ? ?make[3]: *** [all] Error 1
+>
+> There is a file "library/tools/libs/tools.so".
+>
+> Any ideas as to the cause?
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+
+-- 
+Paul E. Johnson
+Professor, Political Science
+1541 Lilac Lane, Room 504
+University of Kansas
+
+
+From matteo.mattiuzzi at boku.ac.at  Thu Feb 10 15:27:18 2011
+From: matteo.mattiuzzi at boku.ac.at (Matteo Mattiuzzi)
+Date: Thu, 10 Feb 2011 15:27:18 +0100
+Subject: [R-sig-hpc] how to set nice Level for workers
+Message-ID: <4D5403D6020000270000CFE1@gwia2.boku.ac.at>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110210/fc80695c/attachment.pl>
+
+From clement.tisseuil at gmail.com  Thu Feb 10 15:29:21 2011
+From: clement.tisseuil at gmail.com (clement)
+Date: Thu, 10 Feb 2011 15:29:21 +0100
+Subject: [R-sig-hpc] ff: "aggregate" function for ff matrix ?
+Message-ID: <4D53F641.3050700@gmail.com>
+
+Hello,
+
+Playing around the ff package, I wonder if there are some possibilities 
+to develop functions like "aggregate" based on the ffcolapply or ffapply 
+ff functions, which would split the big ff matrix into subsets according 
+to the different levels of a factorial vector, computes summary 
+statistics for each level, and returns the result in a ff object ?
+
+Thanks in advance.
+
+Regards
+
+-- 
+Cl?ment Tisseuil
+
+
+From markus.schmidberger at mytum.de  Thu Feb 10 15:46:09 2011
+From: markus.schmidberger at mytum.de (Markus Schmidberger)
+Date: Thu, 10 Feb 2011 15:46:09 +0100
+Subject: [R-sig-hpc] Workshop "Grid and Cloud Computing for Computational
+	(Bio-)Statistics"
+Message-ID: <4D53FA31.3030805@mytum.de>
+
+Dear Colleagues ,
+
+the Rost Lab (TU Munich) and the Working Group "Statistical Computing" 
+(IBS-DR, GMDS) are jointly organizing a workshop on
+
+"Grid and Cloud Computing for Computational (Bio-)Statistics"
+
+which will take place at March 23, 2011, in Munich.
+
+Grid and Cloud Computing are state-of-the-art technologies that promise 
+access to a large amount of computing resources on demand and at 
+reasonable cost. So far these technologies have not been embraced by 
+(Bio-)Statistics to the extent they might deserve. But there are first 
+best-practice implementations available, which highlight considerable 
+benefits.
+
+This workshop will introduce (bio-)statisticians and bioinformaticians 
+to Grid and Cloud Computing and demonstrate the usability and challenges 
+with several real-life examples. The aim is to discuss requirements of 
+(Bio-)Statistics for Grid and Cloud Computing, and to start cooperations 
+for simplifying access to these new technologies. The nature of the 
+workshop will be very informal, to provide enough room for discussion. 
+We also welcome contributions in the form of talks, but would generally 
+ask for a short notification if you plan to participate (e-mail to 
+Markus Schmidberger, schmidberger at rostlab.org, until March 11, 2011).
+
+For more details see http://rostlab.org/cms/cloudstat2011/
+
+We are looking forward to see you in Munich.
+
+Markus Schmidberger, Manuel Eugster, Harald Binder and Matthias Schmid
+
+
+From jens.oehlschlaegel at truecluster.com  Thu Feb 10 17:38:16 2011
+From: jens.oehlschlaegel at truecluster.com (=?UTF-8?Q? Jens_Oehlschl=C3=A4gel ?=)
+Date: Thu, 10 Feb 2011 17:38:16 +0100 (CET)
+Subject: [R-sig-hpc] ff: "aggregate" function for ff matrix ?
+In-Reply-To: <1894361067.596738.1297355587882.JavaMail.fmail@mwmweb018>
+References: <4D53F641.3050700@gmail.com>,
+	<1894361067.596738.1297355587882.JavaMail.fmail@mwmweb018>
+Message-ID: <683540846.599074.1297355896616.JavaMail.fmail@mwmweb018>
+
+
+Cl?ment,
+
+First note that aggegate is not about atomic matrices
+but about dataframes, i.e. not about atomic ff objects but about ffdf
+objects.
+The easiest thing to do - if yo have enough RAM - is just
+working with few columns and read those into RAM as a standard
+dataframe.
+If you need to work with less RAM, instead of apply
+functions for atomic ffs, you need to aggregate row chunks first, then
+aggregate the aggregates.
+Example below.
+
+If you want to create a generic solution, in order to not reinvent a wheel here, it might be wise to look at package 'plyr'.
+My understanding is that Hadley Wickham has thought carefully about how to break tasks into pieces and recombine the results.
+I
+have never tried to combine ff with plyr - go ahead. If a specific
+feature in ff would be needed to make this possible, please let me know.
+
+Jens Oehlschl?gel
+
+
+> # here is a simple aggregate example
+> aggregate(cbind(Ozone, Temp) ~ Month, data = airquality, mean)
+Month Ozone Temp
+1 5 23.61538 66.73077
+2 6 29.44444 78.22222
+3 7 59.11538 83.88462
+4 8 59.96154 83.96154
+5 9 31.44828 76.89655
+>
+> # in order to aggregate chunked results we not only need the chunk means but also the number of valid observations
+> nmean <- function(x)c(mean=mean(x), nvalid=sum(!is.na(x)))
+> aggregate(cbind(Ozone, Temp) ~ Month, data = airquality, nmean)
+Month Ozone.mean Ozone.nvalid Temp.mean Temp.nvalid
+1 5 23.61538 26.00000 66.73077 26.00000
+2 6 29.44444 9.00000 78.22222 9.00000
+3 7 59.11538 26.00000 83.88462 26.00000
+4 8 59.96154 26.00000 83.96154 26.00000
+5 9 31.44828 29.00000 76.89655 29.00000
+>
+> # let's create a ffdf
+> library(ff)
+> ffair <- as.ffdf(airquality[sample(nrow(airquality)),])
+> # and define a chunking with two chunks (very small ones for demo here)
+> cs <- chunk(ffair, length=2)
+>
+> # now we can apply our aggregate statement to each chunk
+> lapply(cs, function(i){
++ dfchunk <- ffair[i, , drop=FALSE]
++ aggregate(cbind(Ozone, Temp) ~ Month, data = dfchunk, nmean)
++ })
+[[1]]
+Month Ozone.mean Ozone.nvalid Temp.mean Temp.nvalid
+1 5 14.33333 9.00000 64.11111 9.00000
+2 6 30.00000 2.00000 77.00000 2.00000
+3 7 68.87500 8.00000 85.00000 8.00000
+4 8 63.72727 11.00000 84.36364 11.00000
+5 9 19.50000 8.00000 72.87500 8.00000
+
+[[2]]
+Month Ozone.mean Ozone.nvalid Temp.mean Temp.nvalid
+1 5 28.52941 17.00000 68.11765 17.00000
+2 6 29.28571 7.00000 78.57143 7.00000
+3 7 54.77778 18.00000 83.38889 18.00000
+4 8 57.20000 15.00000 83.66667 15.00000
+5 9 36.00000 21.00000 78.42857 21.00000
+
+>
+> # aggregating the chunked results is nothing specific to ff
+
+
+
+
+-----Urspr?ngliche Nachricht-----
+Von: clement <clement.tisseuil at gmail.com>
+Gesendet: Feb 10, 2011 3:29:21 PM
+An: "R SIG High Performance Computing" <r-sig-hpc at r-project.org>
+Betreff: [R-sig-hpc] ff: "aggregate" function for ff matrix ?
+
+>Hello,
+>
+>Playing around the ff package, I wonder if there are some possibilities
+>to develop functions like "aggregate" based on the ffcolapply or ffapply
+>ff functions, which would split the big ff matrix into subsets according
+>to the different levels of a factorial vector, computes summary
+>statistics for each level, and returns the result in a ff object ?
+>
+>Thanks in advance.
+>
+>Regards
+>
+>--
+>Cl?ment Tisseuil
+>
+>_______________________________________________
+>R-sig-hpc mailing list
+>R-sig-hpc at r-project.org
+>[https://stat.ethz.ch/mail]
+
+
+From clement.tisseuil at gmail.com  Thu Feb 10 18:40:19 2011
+From: clement.tisseuil at gmail.com (clement)
+Date: Thu, 10 Feb 2011 18:40:19 +0100
+Subject: [R-sig-hpc] ff: "aggregate" function for ff matrix ?
+In-Reply-To: <683540846.599074.1297355896616.JavaMail.fmail@mwmweb018>
+References: <4D53F641.3050700@gmail.com>,
+	<1894361067.596738.1297355587882.JavaMail.fmail@mwmweb018>
+	<683540846.599074.1297355896616.JavaMail.fmail@mwmweb018>
+Message-ID: <4D542303.4070100@gmail.com>
+
+Dear Jens,
+
+Thank you very much for your advise. For the moment, working 
+successively with a few number of columns at a time and applying the 
+traditional "aggregate" function is the solution that I have tried. It 
+takes a while but it works fine. By the way, do you have a simple 
+suggestion how to apply this aggregation approach in parallel on several 
+nodes based on the original ff matrix?
+
+Cheers
+
+Clem
+
+On 2/10/2011 5:38 PM, Jens Oehlschl?gel wrote:
+> Cl?ment,
+>
+> First note that aggegate is not about atomic matrices
+> but about dataframes, i.e. not about atomic ff objects but about ffdf
+> objects.
+> The easiest thing to do - if yo have enough RAM - is just
+> working with few columns and read those into RAM as a standard
+> dataframe.
+> If you need to work with less RAM, instead of apply
+> functions for atomic ffs, you need to aggregate row chunks first, then
+> aggregate the aggregates.
+> Example below.
+>
+> If you want to create a generic solution, in order to not reinvent a wheel here, it might be wise to look at package 'plyr'.
+> My understanding is that Hadley Wickham has thought carefully about how to break tasks into pieces and recombine the results.
+> I
+> have never tried to combine ff with plyr - go ahead. If a specific
+> feature in ff would be needed to make this possible, please let me know.
+>
+> Jens Oehlschl?gel
+>
+>
+>> # here is a simple aggregate example
+>> aggregate(cbind(Ozone, Temp) ~ Month, data = airquality, mean)
+> Month Ozone Temp
+> 1 5 23.61538 66.73077
+> 2 6 29.44444 78.22222
+> 3 7 59.11538 83.88462
+> 4 8 59.96154 83.96154
+> 5 9 31.44828 76.89655
+>> # in order to aggregate chunked results we not only need the chunk means but also the number of valid observations
+>> nmean<- function(x)c(mean=mean(x), nvalid=sum(!is.na(x)))
+>> aggregate(cbind(Ozone, Temp) ~ Month, data = airquality, nmean)
+> Month Ozone.mean Ozone.nvalid Temp.mean Temp.nvalid
+> 1 5 23.61538 26.00000 66.73077 26.00000
+> 2 6 29.44444 9.00000 78.22222 9.00000
+> 3 7 59.11538 26.00000 83.88462 26.00000
+> 4 8 59.96154 26.00000 83.96154 26.00000
+> 5 9 31.44828 29.00000 76.89655 29.00000
+>> # let's create a ffdf
+>> library(ff)
+>> ffair<- as.ffdf(airquality[sample(nrow(airquality)),])
+>> # and define a chunking with two chunks (very small ones for demo here)
+>> cs<- chunk(ffair, length=2)
+>>
+>> # now we can apply our aggregate statement to each chunk
+>> lapply(cs, function(i){
+> + dfchunk<- ffair[i, , drop=FALSE]
+> + aggregate(cbind(Ozone, Temp) ~ Month, data = dfchunk, nmean)
+> + })
+> [[1]]
+> Month Ozone.mean Ozone.nvalid Temp.mean Temp.nvalid
+> 1 5 14.33333 9.00000 64.11111 9.00000
+> 2 6 30.00000 2.00000 77.00000 2.00000
+> 3 7 68.87500 8.00000 85.00000 8.00000
+> 4 8 63.72727 11.00000 84.36364 11.00000
+> 5 9 19.50000 8.00000 72.87500 8.00000
+>
+> [[2]]
+> Month Ozone.mean Ozone.nvalid Temp.mean Temp.nvalid
+> 1 5 28.52941 17.00000 68.11765 17.00000
+> 2 6 29.28571 7.00000 78.57143 7.00000
+> 3 7 54.77778 18.00000 83.38889 18.00000
+> 4 8 57.20000 15.00000 83.66667 15.00000
+> 5 9 36.00000 21.00000 78.42857 21.00000
+>
+>> # aggregating the chunked results is nothing specific to ff
+>
+>
+>
+> -----Urspr?ngliche Nachricht-----
+> Von: clement<clement.tisseuil at gmail.com>
+> Gesendet: Feb 10, 2011 3:29:21 PM
+> An: "R SIG High Performance Computing"<r-sig-hpc at r-project.org>
+> Betreff: [R-sig-hpc] ff: "aggregate" function for ff matrix ?
+>
+>> Hello,
+>>
+>> Playing around the ff package, I wonder if there are some possibilities
+>> to develop functions like "aggregate" based on the ffcolapply or ffapply
+>> ff functions, which would split the big ff matrix into subsets according
+>> to the different levels of a factorial vector, computes summary
+>> statistics for each level, and returns the result in a ff object ?
+>>
+>> Thanks in advance.
+>>
+>> Regards
+>>
+>> --
+>> Cl?ment Tisseuil
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> [https://stat.ethz.ch/mail]
+
+-- 
+Cl?ment Tisseuil
+
+
+From tom.hilinski at colostate.edu  Fri Feb 11 04:02:12 2011
+From: tom.hilinski at colostate.edu (Tom Hilinski)
+Date: Thu, 10 Feb 2011 20:02:12 -0700
+Subject: [R-sig-hpc] issue building R 2.12.1 on CrayXT
+In-Reply-To: <AANLkTimOzPbpZ0=AkeR-MOGDSAqjmj0sDgLitO68S-G3@mail.gmail.com>
+References: <4D51D267.9070601@colostate.edu>
+	<AANLkTimOzPbpZ0=AkeR-MOGDSAqjmj0sDgLitO68S-G3@mail.gmail.com>
+Message-ID: <4D54A6B4.6070609@colostate.edu>
+
+Thanks for the suggestions. Tried a vanilla build in a couple of ways,
+same result. After much coffee and eye strain, I figured out there are 2
+types of issues involved, the Cray enviroment, and problems with the R
+configure script. I'll provide details here just in case they are helpful.
+
+The Cray uses "modules" to specify a set of tools, libraries, and
+configurations. However, the type of GNU environment did not seem to
+affect the issues. One thing you do on the Cray is replace your compiler
+command with generic names whose real command varies according to the
+modules loaded. So gcc becomes "cc", and gfortran, "ftn", for instance.
+The other thing I had to do was add the flag "-dynamic" to the ld flags.
+
+The configure script's results had several issues:
+* Added an extra "/" to /usr/local/lib.
+* Declared and used the archaic GNU C library function __setfpucw.
+* "make clean" only cleans some things, but not exes nor libraries.
+* configure switches --without-blas and --without-lapack apparently do
+nothing, since the libraries are built and linked anyway.
+
+Here's how I managed to build R on the Cray XT:
+
+1. Load the modules I wanted:
+    module unload PrgEnv-cray
+    module load PrgEnv-gnu
+    module unload gcc/4.1.2
+    module load gcc/4.4.4
+
+2. Clean up my previous mess properly:
+    make clean
+    rm bin/R*
+    rm lib/lib*
+
+3. configure command:
+
+./configure --prefix=~/lustrefs CC=cc CXX=CC FC=ftn F77=ftn F90=ftn
+--without-x --disable-R-profiling
+
+4. Issue: In Makeconf, "/usr/local//lib"
+    Fix:   Delete extra slash.
+
+5. Issue: cc line needs "-dynamic" option or will not find "-lRblas".
+    Fix:   In Makeconf, add option to macro below
+            MAIN_LDFLAGS = -dynamic [...]
+
+6. Issue: __setfpucw not loaded. Used in src/unix/sys-unix.c.
+    Fix:   In src/include/config.h change from 1 to zero for the macro:
+       #undef NEED___SETFPUCW
+
+
+Now all builds and runs! Off I go with hundreds of cores waiting for my
+commands...
+
+
+From jens.oehlschlaegel at truecluster.com  Fri Feb 11 14:59:47 2011
+From: jens.oehlschlaegel at truecluster.com (=?UTF-8?Q? Jens_Oehlschl=C3=A4gel ?=)
+Date: Fri, 11 Feb 2011 14:59:47 +0100 (CET)
+Subject: [R-sig-hpc] ff: "aggregate" function for ff matrix ?
+In-Reply-To: <4D542303.4070100@gmail.com>
+References: <4D53F641.3050700@gmail.com>,
+	<1894361067.596738.1297355587882.JavaMail.fmail@mwmweb018>
+	<683540846.599074.1297355896616.JavaMail.fmail@mwmweb018>,
+	<4D542303.4070100@gmail.com>
+Message-ID: <1974296775.987417.1297432787939.JavaMail.fmail@mwmweb018>
+
+
+Dear Clem,
+
+>Thank you very much for your advise. For the moment, working 
+>successively with a few number of columns at a time and applying the 
+>traditional "aggregate" function is the solution that I have tried. It 
+>takes a while but it works fine. 
+
+Reading complete columns at once gets the fastest throughput in ff. If not aggregate is the bottleneck, to speed this up you probably need faster/more RAID0 disks. 
+Note that an ffdf can have its columns spread over multiple disks, but so far [.ffdf will not read in parallel. However, you can exctract columns in parallel using snowfall.
+
+> By the way, do you have a simple 
+>suggestion how to apply this aggregation approach in parallel on several 
+>nodes based on the original ff matrix?
+
+There are examples with snowfall on http://ff.r-forge.r-project.org/.
+Check the UseR!2009 and the 2010 presentation. 
+Keep in mind that this will speed-up your calculation if CPU is the bottleneck. If I/O is the bottleneck, parallel execution only helps if you manage to work in parallel on parallel disks.
+Also keep in mind that more processes in parallel need more RAM.
+
+Kind regards
+Jens
+
+
+From prashantha.hebbar at yahoo.com  Thu Feb 17 13:20:19 2011
+From: prashantha.hebbar at yahoo.com (Prashantha Hebbar)
+Date: Thu, 17 Feb 2011 04:20:19 -0800 (PST)
+Subject: [R-sig-hpc] Help install Rmpi on MPICH2
+Message-ID: <286.48616.qm@web110106.mail.gq1.yahoo.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110217/cf631b33/attachment.pl>
+
+From olivier.garo at laposte.net  Fri Feb 18 09:37:27 2011
+From: olivier.garo at laposte.net (olivier.garo at laposte.net)
+Date: Fri, 18 Feb 2011 09:37:27 +0100
+Subject: [R-sig-hpc] R on a windows HPC 2008 cluster
+Message-ID: <4D5E2FC7.7010109@laposte.net>
+
+Hello
+i m looking for information on how to install and configure R on a 
+cluster of 14 nodes under windows HPC 2008 server?
+best regard
+oliver
+
+
+From carey.vj at gmail.com  Mon Feb 28 22:35:24 2011
+From: carey.vj at gmail.com (Vincenzo Carey)
+Date: Mon, 28 Feb 2011 16:35:24 -0500
+Subject: [R-sig-hpc] multicore: when a core wanders off...
+Message-ID: <AANLkTinxe6Eu4W-G8YQfGmW_PckYstzm=jywkFnBUN-7@mail.gmail.com>
+
+I have been working with a system in which, most of the time,
+a long-running mclapply will fail ostensibly because at least
+one node has simply lost the child process assigned
+to it.  Other nodes succeed in writing some data;
+stderr from the R process in which mclapply was invoked has no
+interesting information, it seems R simply
+dies.  Any suggestions on how to get more diagnostic
+information? gdb on the master R process doesn't seem relevant.
+
+It seems feasible, using parallel/collect, to write a fault-tolerant
+mclapply-like function that would attempt to fill-in list cells
+that failed to populate in the expected time.  Has anyone undertaken such?
+
+

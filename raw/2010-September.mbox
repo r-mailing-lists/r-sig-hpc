@@ -1,0 +1,1771 @@
+From pauljohn32 at gmail.com  Tue Sep  7 04:27:29 2010
+From: pauljohn32 at gmail.com (Paul Johnson)
+Date: Mon, 6 Sep 2010 21:27:29 -0500
+Subject: [R-sig-hpc] Cluster R "environment" trouble. Using Rmpi
+In-Reply-To: <7f6dd654eb80ff122c360f3e16357064.squirrel@www.stats.uwo.ca>
+References: <AANLkTikGQD2NyXVVSpWhSu7n9fWOKxQA2D+hnLzKZvF6@mail.gmail.com>
+	<7f6dd654eb80ff122c360f3e16357064.squirrel@www.stats.uwo.ca>
+Message-ID: <AANLkTin4LvkWP=f7G=HMGF5Mu=s+EPzzBJSJbio2VfNe@mail.gmail.com>
+
+Dear Professor:
+
+Thanks very much for the feedback.  That has helped me to cut errors
+and get one of the user programs working.  One program is still
+causing trouble, and I have a couple of questions below. I am sorry
+that these are so elementary, but if I can understand this, then I can
+write up some clear working examples for everybody.
+
+On Wed, Aug 18, 2010 at 1:05 PM, Hao Yu <hyu at stats.uwo.ca> wrote:
+> Hi Paul,
+>
+> Just got back from two conferences.
+>
+> First of all, when R slaves are spawned, they are "naked", meaning they
+> are started with basic R functions/lib even that they are in the same dir
+> with master. You have to tell slaves to get all necessary objects or to
+> load libraries specifically. There are a few ways to do so.
+>
+> Use mpi.bcast.Robj2slave(an Robj) to send "an Robj" from master to all
+> slaves. If a function to be executed on slaves depends on many
+> functions/data, those functions/data must be sent to slaves first.
+>
+> Use mpi.bcast.cmd (cmd()) to tell salves to run cmd() like
+> source("SimJob.R") (make sure to remove any execution commands in
+> SimJob.R).
+
+Can you please explain what "execution commands" means here?
+
+I am *guessing* that anything that is forbidden in a "sourced" file is
+also forbidden in a function that is passed to a node. Right?
+
+Should it work to hide the source command inside a function, as in:
+
+myThing <- function (i = 0){
+
+     source("someGreatCode.R")
+     ## blah  blah
+}
+
+mpi.bcast.Robj2slave( myThing )
+mpi.bcast.cmd( myThing )
+
+Is that supposed to work?
+
+You mention a "race problem."  Can I ask how I could tell if I have
+that problem?
+
+Here's why I ask. One user has a job that uses source() and it runs
+very slowly.  It may take 1000 x as long as it would if the separate
+parts were sent without Rmpi. I can't understand why it works at all,
+frankly.  Unfortunately, his code is private and I can't share it to
+you, but I'm trying to build a test case to reproduce the problem.  If
+you tell me how to diagnose the race question, then perhaps I can
+figure it out.
+
+In the other cases I've tested, my mistakes cause crashes and there is
+an error message from a node saying that a function is not defined, so
+I know I have to send it to the nodes.  If I can get a program to
+crash, I can usually fix it.  It is the ones that run forever, or
+almost forever, that I can't fix.
+
+pj
+
+> I don't know if race condition will be an issue since slaves
+> are competing for the same file.
+>
+> mpi.scatter.Robj/mpi.gather.Rojb can also be used to send/receive objects
+> among master and slaves.
+>
+> Hao
+>
+>
+> Paul Johnson wrote:
+>> Hi, everybody.
+>>
+>> A user came in with a problem on our Rocks Linux Cluster. His function
+>> runs fine in an interactive session, but when he sends the function to
+>> compute nodes with Rmpi, they never return. ?I'd not seen that before.
+>> ?We are sending out a few big tasks to a few nodes.
+>>
+>> So I took his code, which is hundreds of lines long, spread across 4
+>> files, and I've been staring at it for hours. ?It makes me wonder ...
+>>
+>> Question 1. How do auxiliary functions find their way onto compute nodes?
+>>
+>> On the master, this sends "SimJob" to the compute nodes. SimJob is
+>> inside "SimJob.R", as is "pars". ?But if SimJob calls other functions,
+>> how does the compute node find them?
+>>
+>> ############################################
+>> library(Rmpi)
+>> mpi.spawn.Rslaves(nslaves=4)
+>>
+>> source("SimJob.R")
+>> pars
+>>
+>> ExitStatus <- mpi.parApply(pars, MARGIN=1, fun=SimJob)
+>> cat("\n",table(ExitStatus),"\n")
+>>
+>> mpi.close.Rslaves()
+>> mpi.quit()
+>> ############################################
+>>
+>> The SimJob.R does lots of things, it creates the object "pars" and
+>> many other functions and definitions.
+>>
+>> ?"SimJob.R" has some interlinked functions like this:
+>>
+>> pre1 <- function(i) ? { ?whatever; source("someFile.R") }
+>>
+>> pre2 <- function (j, something) { ?whatever(something);
+>> source("someOtherFile.R") }
+>>
+>> pre3 <- function(i) { whatever }
+>>
+>> SimJob <- function(x,i, j){
+>> ? ? result1 <- ?pre(i)
+>> ? ? result2 <- pre2(j, result1)
+>> ? ? result3 <- someRFunction(result1, result2)
+>> }
+>>
+>> someRFunction is in an R package, say "lm" or something like that.
+>>
+>> How does a compute node ?get functions "pre" and "pre2" and the files
+>> they source?
+>>
+>> What if the implementation of pre2 calls some function pre3?
+>>
+>> We ARE on an NFS system with home folder available on all compute
+>> nodes. ?But the compute nodes don't inherit the working directory of
+>> the master, do they?
+>>
+>> Here's the frustrating part. I can run interactively on the master
+>>
+>>> SimJob( pars[1, ] )
+>>
+>> But the whole job won't run on the compute nodes.
+>>
+>> 2. Suppose a function that we send to a node tries to write a result.
+>> It has "save(whatever,file="blha.Rda") ?in it. ? Where does that file
+>> go? ?What is the "current working directory" on the compute node?
+>>
+>> I think that we have to re-write this so we return the information to
+>> the master node and save it there.
+>>
+>>
+>> 3. Is there a way I can find out what is going on "over there" on a
+>> compute node while it is working?
+>>
+>> I wish I could put a bunch of print statements in so I could track the
+>> thing's progress, but don't know ?how to monitor them.
+>>
+>> When this program runs interactively, it spits out some messages to
+>> StdOut. ?On a compute node, where do those go?
+>>
+>> I've used the web program "ganglia" to see that nodes are actually
+>> being used. ?They are, using lots of CPU.
+>>
+>>
+>> I've re-worked this code so that it ?is all in one file (no more use
+>> of source). ?Still the same thing.
+>>
+>> I can run SimJob () on the interactively, ?but it never runs on the
+>> slaves.
+>>
+>> Well, so long, I would appreciate your ideas.
+>>
+>> --
+>> Paul E. Johnson
+>> Professor, Political Science
+>> 1541 Lilac Lane, Room 504
+>> University of Kansas
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>
+>
+> --
+> Department of Statistics & Actuarial Sciences
+> Fax Phone#:(519)-661-3813
+> The University of Western Ontario
+> Office Phone#:(519)-661-3622
+> London, Ontario N6A 5B7
+> http://www.stats.uwo.ca/faculty/yu
+>
+
+
+
+-- 
+Paul E. Johnson
+Professor, Political Science
+1541 Lilac Lane, Room 504
+University of Kansas
+
+
+From hyu at stats.uwo.ca  Tue Sep  7 16:41:42 2010
+From: hyu at stats.uwo.ca (Hao Yu)
+Date: Tue, 7 Sep 2010 10:41:42 -0400
+Subject: [R-sig-hpc] Cluster R "environment" trouble. Using Rmpi
+In-Reply-To: <AANLkTin4LvkWP=f7G=HMGF5Mu=s+EPzzBJSJbio2VfNe@mail.gmail.com>
+References: <AANLkTikGQD2NyXVVSpWhSu7n9fWOKxQA2D+hnLzKZvF6@mail.gmail.com>
+	<7f6dd654eb80ff122c360f3e16357064.squirrel@www.stats.uwo.ca>
+	<AANLkTin4LvkWP=f7G=HMGF5Mu=s+EPzzBJSJbio2VfNe@mail.gmail.com>
+Message-ID: <0c1ad2b1c78e70ffc396c1b6f84713cb.squirrel@www.stats.uwo.ca>
+
+> mpi.bcast.Robj2slave( myThing )
+
+will send the R object myThing to all slaves.
+
+> mpi.bcast.cmd( myThing )
+
+will tell all slaves to run myThing. But this just prints the function
+myThing itself on slave. You need
+
+mpi.bcast.cmd( myThing() )
+
+to execute the function myThing.
+
+Race condition: when source("someGreatCode.R") is executed on slaves, they
+will try to load "someGreatCode.R" at the same time. But a file can only
+be accessed once a time. If "someGreatCode.R" contains execution codes, it
+is possible that the file access is locked to a particular slave until it
+is done.  This prevents other slaves to access "someGreatCode.R" until the
+lock is released.
+
+If "someGreatCode.R" load from slaves are slow, it might be better to load
+it on master and use mpi.bcastRobj2slave to move all necessary objects to
+slaves. Make sure "someGreatCode.R" doesn't contain any lengthy execution
+commands.
+
+
+Hao
+
+Paul Johnson wrote:
+> Dear Professor:
+>
+> Thanks very much for the feedback.  That has helped me to cut errors
+> and get one of the user programs working.  One program is still
+> causing trouble, and I have a couple of questions below. I am sorry
+> that these are so elementary, but if I can understand this, then I can
+> write up some clear working examples for everybody.
+>
+> On Wed, Aug 18, 2010 at 1:05 PM, Hao Yu <hyu at stats.uwo.ca> wrote:
+>> Hi Paul,
+>>
+>> Just got back from two conferences.
+>>
+>> First of all, when R slaves are spawned, they are "naked", meaning they
+>> are started with basic R functions/lib even that they are in the same
+>> dir
+>> with master. You have to tell slaves to get all necessary objects or to
+>> load libraries specifically. There are a few ways to do so.
+>>
+>> Use mpi.bcast.Robj2slave(an Robj) to send "an Robj" from master to all
+>> slaves. If a function to be executed on slaves depends on many
+>> functions/data, those functions/data must be sent to slaves first.
+>>
+>> Use mpi.bcast.cmd (cmd()) to tell salves to run cmd() like
+>> source("SimJob.R") (make sure to remove any execution commands in
+>> SimJob.R).
+>
+> Can you please explain what "execution commands" means here?
+>
+> I am *guessing* that anything that is forbidden in a "sourced" file is
+> also forbidden in a function that is passed to a node. Right?
+>
+> Should it work to hide the source command inside a function, as in:
+>
+> myThing <- function (i = 0){
+>
+>      source("someGreatCode.R")
+>      ## blah  blah
+> }
+>
+> mpi.bcast.Robj2slave( myThing )
+> mpi.bcast.cmd( myThing )
+>
+> Is that supposed to work?
+>
+> You mention a "race problem."  Can I ask how I could tell if I have
+> that problem?
+>
+> Here's why I ask. One user has a job that uses source() and it runs
+> very slowly.  It may take 1000 x as long as it would if the separate
+> parts were sent without Rmpi. I can't understand why it works at all,
+> frankly.  Unfortunately, his code is private and I can't share it to
+> you, but I'm trying to build a test case to reproduce the problem.  If
+> you tell me how to diagnose the race question, then perhaps I can
+> figure it out.
+>
+> In the other cases I've tested, my mistakes cause crashes and there is
+> an error message from a node saying that a function is not defined, so
+> I know I have to send it to the nodes.  If I can get a program to
+> crash, I can usually fix it.  It is the ones that run forever, or
+> almost forever, that I can't fix.
+>
+> pj
+>
+>> I don't know if race condition will be an issue since slaves
+>> are competing for the same file.
+>>
+>> mpi.scatter.Robj/mpi.gather.Rojb can also be used to send/receive
+>> objects
+>> among master and slaves.
+>>
+>> Hao
+>>
+>>
+>> Paul Johnson wrote:
+>>> Hi, everybody.
+>>>
+>>> A user came in with a problem on our Rocks Linux Cluster. His function
+>>> runs fine in an interactive session, but when he sends the function to
+>>> compute nodes with Rmpi, they never return. ?I'd not seen that before.
+>>> ?We are sending out a few big tasks to a few nodes.
+>>>
+>>> So I took his code, which is hundreds of lines long, spread across 4
+>>> files, and I've been staring at it for hours. ?It makes me wonder ...
+>>>
+>>> Question 1. How do auxiliary functions find their way onto compute
+>>> nodes?
+>>>
+>>> On the master, this sends "SimJob" to the compute nodes. SimJob is
+>>> inside "SimJob.R", as is "pars". ?But if SimJob calls other functions,
+>>> how does the compute node find them?
+>>>
+>>> ############################################
+>>> library(Rmpi)
+>>> mpi.spawn.Rslaves(nslaves=4)
+>>>
+>>> source("SimJob.R")
+>>> pars
+>>>
+>>> ExitStatus <- mpi.parApply(pars, MARGIN=1, fun=SimJob)
+>>> cat("\n",table(ExitStatus),"\n")
+>>>
+>>> mpi.close.Rslaves()
+>>> mpi.quit()
+>>> ############################################
+>>>
+>>> The SimJob.R does lots of things, it creates the object "pars" and
+>>> many other functions and definitions.
+>>>
+>>> ?"SimJob.R" has some interlinked functions like this:
+>>>
+>>> pre1 <- function(i) ? { ?whatever; source("someFile.R") }
+>>>
+>>> pre2 <- function (j, something) { ?whatever(something);
+>>> source("someOtherFile.R") }
+>>>
+>>> pre3 <- function(i) { whatever }
+>>>
+>>> SimJob <- function(x,i, j){
+>>> ? ? result1 <- ?pre(i)
+>>> ? ? result2 <- pre2(j, result1)
+>>> ? ? result3 <- someRFunction(result1, result2)
+>>> }
+>>>
+>>> someRFunction is in an R package, say "lm" or something like that.
+>>>
+>>> How does a compute node ?get functions "pre" and "pre2" and the files
+>>> they source?
+>>>
+>>> What if the implementation of pre2 calls some function pre3?
+>>>
+>>> We ARE on an NFS system with home folder available on all compute
+>>> nodes. ?But the compute nodes don't inherit the working directory of
+>>> the master, do they?
+>>>
+>>> Here's the frustrating part. I can run interactively on the master
+>>>
+>>>> SimJob( pars[1, ] )
+>>>
+>>> But the whole job won't run on the compute nodes.
+>>>
+>>> 2. Suppose a function that we send to a node tries to write a result.
+>>> It has "save(whatever,file="blha.Rda") ?in it. ? Where does that file
+>>> go? ?What is the "current working directory" on the compute node?
+>>>
+>>> I think that we have to re-write this so we return the information to
+>>> the master node and save it there.
+>>>
+>>>
+>>> 3. Is there a way I can find out what is going on "over there" on a
+>>> compute node while it is working?
+>>>
+>>> I wish I could put a bunch of print statements in so I could track the
+>>> thing's progress, but don't know ?how to monitor them.
+>>>
+>>> When this program runs interactively, it spits out some messages to
+>>> StdOut. ?On a compute node, where do those go?
+>>>
+>>> I've used the web program "ganglia" to see that nodes are actually
+>>> being used. ?They are, using lots of CPU.
+>>>
+>>>
+>>> I've re-worked this code so that it ?is all in one file (no more use
+>>> of source). ?Still the same thing.
+>>>
+>>> I can run SimJob () on the interactively, ?but it never runs on the
+>>> slaves.
+>>>
+>>> Well, so long, I would appreciate your ideas.
+>>>
+>>> --
+>>> Paul E. Johnson
+>>> Professor, Political Science
+>>> 1541 Lilac Lane, Room 504
+>>> University of Kansas
+>>>
+>>> _______________________________________________
+>>> R-sig-hpc mailing list
+>>> R-sig-hpc at r-project.org
+>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>
+>>
+>>
+>> --
+>> Department of Statistics & Actuarial Sciences
+>> Fax Phone#:(519)-661-3813
+>> The University of Western Ontario
+>> Office Phone#:(519)-661-3622
+>> London, Ontario N6A 5B7
+>> http://www.stats.uwo.ca/faculty/yu
+>>
+>
+>
+>
+> --
+> Paul E. Johnson
+> Professor, Political Science
+> 1541 Lilac Lane, Room 504
+> University of Kansas
+>
+
+
+-- 
+Department of Statistics & Actuarial Sciences
+Fax Phone#:(519)-661-3813
+The University of Western Ontario
+Office Phone#:(519)-661-3622
+London, Ontario N6A 5B7
+http://www.stats.uwo.ca/faculty/yu
+
+
+From clement.tisseuil at gmail.com  Wed Sep  8 09:11:10 2010
+From: clement.tisseuil at gmail.com (clement)
+Date: Wed, 08 Sep 2010 09:11:10 +0200
+Subject: [R-sig-hpc] Rmpi and ncdf4
+Message-ID: <4C87370E.8030705@gmail.com>
+
+Dear List Members,
+
+I am using the ncdf4 package to work on General Circulation Model (GCM) 
+data (NetCDF file format) and I would like to parallelize some 
+calculations using Rmpi. Does anyone have an experience or advices in 
+using Rmpi and ncdf4 packages?
+
+-- 
+Clement Tisseuil (Ph.D)
+UMR BOREA 7208  ? Biologie des Organismes et Ecosyst?mes Aquatiques ?
+(CNRS-MNHN-UPMC-IRD), Equipe ? Biodiversit? et Macro?cologie ?,
+43 rue Cuvier, 75005 Paris, France
+Tel: 00 33 1 40 79 37 45
+Fax: 00 33 1 40 79 37 71
+webpage: http://www.clement-tisseuil.eu
+
+
+From riccardovisca at yahoo.it  Wed Sep  8 17:03:31 2010
+From: riccardovisca at yahoo.it (riccardo visca)
+Date: Wed, 8 Sep 2010 15:03:31 +0000 (GMT)
+Subject: [R-sig-hpc] Cluster question
+Message-ID: <278131.59609.qm@web27304.mail.ukl.yahoo.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100908/a23608ca/attachment.pl>
+
+From clement.tisseuil at gmail.com  Fri Sep 10 18:12:42 2010
+From: clement.tisseuil at gmail.com (clement)
+Date: Fri, 10 Sep 2010 18:12:42 +0200
+Subject: [R-sig-hpc] Rmpi and ncdf4
+In-Reply-To: <4C87370E.8030705@gmail.com>
+References: <4C87370E.8030705@gmail.com>
+Message-ID: <4C8A58FA.50902@gmail.com>
+
+Dear members,
+
+I have started to adapt the "task pull" approach with Rmpi to 
+parallelize my calculations on a NetCDF file of dimension lat[1:6], 
+lon[1:6] and time[1:11323]. The basic idea is to parallelize the 
+calculation by splitting the process according to each latitudinal 
+coordinate i.e. for lat=1, lat=2, ..., lat=6. Please, see the code below 
+and the link to the NetCDF file if you want to try : 
+https://www.transferbigfiles.com/e4d7acd2-c186-4867-b4bf-82fe5aee4023?rid=jIcbZN%2blDcQz3kMeEHCQog%3d%3d
+
+In the given example, the function works perfectly because the NetCDF 
+file is quite small (~ 2 Mo). However, some difficulties occur when I 
+try the function with larger NetCDF files (~ 8 Go), covering the entire 
+globe, of dimensions lat[1:576], lon[1:1152] and time[1:11323]. The 
+problem is that each processor (slave) needs to "connect" the NetCDF 
+file before extracting the data required according to the latitudinal 
+coordinate of interest. This connection takes more than 2 minutes.
+
+I wondered if there was a possibility to avoid this problem of "time 
+connection"  when a process is sent to a new slave. The best solution 
+would be to open the connection to the NetCDF file in the master 
+process, then to "send this connection" to the slaves. I do not know how 
+it works exactly, but maybe there is something to check around the ncdf4 
+package (which is based on the NetCDF4 library) to allow multiple 
+connections to a single file... If you have ideas, I am opened !
+
+Thanks in advance.
+
+##path_job="/scratch/ctisseuil/job/Test_DWS_Rmpi"
+path_job="/media/partage/Test_DWS_Rmpi"
+file.log=paste(path_job,"Test_DWS_Rmpi.res",sep="/")
+system(paste("rm -rf",file.log, sep=" "))
+write("file.log was initialized",file=file.log,append=T)
+ObsRp=paste(path_job,"ObsRp.nc",sep="/")
+
+## Load libraries
+library(Rmpi)
+library(ncdf4)
+write("Libraries are loaded",file=file.log,append=T)
+
+mpi.spawn.Rslaves()
+write("Available slaves are spawn",file=file.log,append=T)
+
+## Check the number of slaves
+if (mpi.comm.size() < 2) {
+   mpi.close.Rslaves(); mpi.spawn.Rslaves()
+   if (mpi.comm.size() < 2) {
+     write("More slave processes are required.",file=file.log,append=T)
+     mpi.quit()
+   }
+}
+.Last= function(){
+   if (is.loaded("mpi_initialize")){
+     if (mpi.comm.size(1) > 0){
+       write("Please use mpi.close.Rslaves() to close 
+slaves.",file=file.log,append=T)
+       mpi.close.Rslaves()
+     }
+     write("Please use mpi.quit() to quit R",file=file.log,append=T)
+     .Call("mpi_finalize")
+   }
+}
+write("The number of slaves was checked",file=file.log,append=T)
+
+slavefunction=function() {
+   ## Note the use of the tag for sent messages:
+   ##     1=ready_for_task, 2=done_task, 3=exiting
+   ## Note the use of the tag for received messages:
+   ##     1=task, 2=done_tasks
+   junk= 0
+   done=0
+   while (done != 1) {
+     ## Signal being ready to receive a new task
+     mpi.send.Robj(junk,0,1)
+     ## Receive a task
+     task=mpi.recv.Robj(mpi.any.source(),mpi.any.tag())
+     task_info=mpi.get.sourcetag()
+     tag=task_info[2]
+     if (tag == 1) {
+       lat.sel=task$lat.sel
+       start.sel=start
+       count.sel=count
+       start.sel["lat"]=lat.sel
+       count.sel["lat"]=1
+       data=ncvar_get(file.nc,varid=var.name,start=start.sel, 
+count=count.sel)
+       ##data=get.var.ncdf(file.nc,varid=var.name,start=start.lat, 
+count=count.lat)
+       file.save=paste(file.log,lat.sel,"res",sep=".")
+       system(paste("rm -rf",file.save,sep=" "))
+       ##write(lat.sel,file=file.save)
+       results=list(lat.sel=lat.sel,result="done")
+       mpi.send.Robj(results,0,2)
+       write(paste("Process done for",lat.sel,sep=" : 
+"),file=file.log,append=T)
+     } else if (tag == 2) {
+       done=1
+     }
+     ## We'll just ignore any unknown messages
+   }
+   mpi.send.Robj(junk,0,3)
+}
+write("Slave function created",file=file.log,append=T)
+
+## Record spatial characteristics of the NetCDF file
+file.nc=nc_open(ObsRp,write=F,readunlim=T)
+lat=file.nc$dim$lat$vals
+lat.n=length(lat)
+lon.n=length(file.nc$dim$lon$vals)
+tim.n=length(file.nc$dim$time$vals)
+lat.id=c(1:lat.n)
+start=rep(1,3)
+names(start)=c("lon","lat","time")
+count=start
+count["lon"]=lon.n
+count["time"]=tim.n
+count["lat"]=lat.n
+write("Record spatial characteristics",file=file.log,append=T)
+
+## Create the vector of
+status=character(lat.n)
+names(status)=lat.id
+write("Create the table to store results",file=file.log,append=T)
+
+## Call the function in all the slaves to get them ready to
+## undertake tasks
+## Now, send the data and function to the slaves
+
+write("Send functions and data to slaves",file=file.log,append=T)
+mpi.bcast.Robj2slave(file.log)
+mpi.bcast.Robj2slave(ObsRp)
+mpi.bcast.Robj2slave(file.nc)
+mpi.bcast.Robj2slave(count)
+mpi.bcast.Robj2slave(start)
+mpi.bcast.Robj2slave(slavefunction)
+
+mpi.bcast.cmd(library(ncdf4))
+mpi.bcast.cmd(library(udunits))
+mpi.bcast.cmd(library(CDFt))
+mpi.bcast.cmd(file.nc <- nc_open(ObsRp,write=T,readunlim=T)) ## C'est la 
+bonne !!!
+mpi.bcast.cmd(slavefunction())
+##write("Call functions in all slaves",file=file.log,append=T)
+
+## Create task list
+tasks= vector('list')
+for (i in 1:length(lat.id)) {
+   tasks[[i]]=list(lat.sel=i)
+}
+
+junk=0
+closed_slaves=0
+n_slaves=mpi.comm.size()-1
+
+while (closed_slaves < n_slaves) {
+   ## Receive a message from a slave
+   message=mpi.recv.Robj(mpi.any.source(),mpi.any.tag())
+   message_info=mpi.get.sourcetag()
+   slave_id=message_info[1]
+   tag=message_info[2]
+   if (tag == 1) {
+     ## slave is ready for a task. Give it the next task, or tell it tasks
+     ## are done if there are none.
+     if (length(tasks) > 0) {
+       ## Send a task, and then remove it from the task list
+       mpi.send.Robj(tasks[[1]], slave_id, 1)
+       tasks[[1]]=NULL
+     } else {
+       mpi.send.Robj(junk, slave_id, 2)
+     }
+   } else if (tag == 2) {
+     ## The message contains results. Do something with the results.
+     ## Store them in the data structure
+     lat.sel=message$lat.sel
+     status[lat.sel]=message$result
+
+   } else if (tag == 3) {
+     ## A slave has closed down.
+     closed_slaves=closed_slaves + 1
+   }
+}
+
+mpi.bcast.cmd(nc_close(file.nc))
+write("Close NetCDF connections in all slaves",file=file.log,append=T)
+mpi.close.Rslaves()
+write("Close slaves",file=file.log,append=T)
+
+
+On 9/8/2010 9:11 AM, clement wrote:
+> Dear List Members,
+>
+> I am using the ncdf4 package to work on General Circulation Model 
+> (GCM) data (NetCDF file format) and I would like to parallelize some 
+> calculations using Rmpi. Does anyone have an experience or advices in 
+> using Rmpi and ncdf4 packages?
+>
+
+-- 
+Cl?ment Tisseuil
+
+
+From kasperdanielhansen at gmail.com  Fri Sep 10 18:57:18 2010
+From: kasperdanielhansen at gmail.com (Kasper Daniel Hansen)
+Date: Fri, 10 Sep 2010 12:57:18 -0400
+Subject: [R-sig-hpc] Rmpi and ncdf4
+In-Reply-To: <4C8A58FA.50902@gmail.com>
+References: <4C87370E.8030705@gmail.com>
+	<4C8A58FA.50902@gmail.com>
+Message-ID: <AANLkTikr2twi-pJHVpyxw5+jQbXy6HK8BQ6yTT=mDLAf@mail.gmail.com>
+
+I suggest you start by looking through the netcdf documentation and
+ask about this on their mailing lists.  It seems to me that the
+problem is one of multiple processes accessing the same file
+simultaneously.  I would guess that the netcdf people know whether it
+is possible or not, and also what the interface should be (my guess is
+that there is an interface).  The next step is then to figure out
+whether ncdf4 implements this interface.
+
+Kasper
+
+On Fri, Sep 10, 2010 at 12:12 PM, clement <clement.tisseuil at gmail.com> wrote:
+> Dear members,
+>
+> I have started to adapt the "task pull" approach with Rmpi to parallelize my
+> calculations on a NetCDF file of dimension lat[1:6], lon[1:6] and
+> time[1:11323]. The basic idea is to parallelize the calculation by splitting
+> the process according to each latitudinal coordinate i.e. for lat=1, lat=2,
+> ..., lat=6. Please, see the code below and the link to the NetCDF file if
+> you want to try :
+> https://www.transferbigfiles.com/e4d7acd2-c186-4867-b4bf-82fe5aee4023?rid=jIcbZN%2blDcQz3kMeEHCQog%3d%3d
+>
+> In the given example, the function works perfectly because the NetCDF file
+> is quite small (~ 2 Mo). However, some difficulties occur when I try the
+> function with larger NetCDF files (~ 8 Go), covering the entire globe, of
+> dimensions lat[1:576], lon[1:1152] and time[1:11323]. The problem is that
+> each processor (slave) needs to "connect" the NetCDF file before extracting
+> the data required according to the latitudinal coordinate of interest. This
+> connection takes more than 2 minutes.
+>
+> I wondered if there was a possibility to avoid this problem of "time
+> connection" ?when a process is sent to a new slave. The best solution would
+> be to open the connection to the NetCDF file in the master process, then to
+> "send this connection" to the slaves. I do not know how it works exactly,
+> but maybe there is something to check around the ncdf4 package (which is
+> based on the NetCDF4 library) to allow multiple connections to a single
+> file... If you have ideas, I am opened !
+>
+> Thanks in advance.
+>
+> ##path_job="/scratch/ctisseuil/job/Test_DWS_Rmpi"
+> path_job="/media/partage/Test_DWS_Rmpi"
+> file.log=paste(path_job,"Test_DWS_Rmpi.res",sep="/")
+> system(paste("rm -rf",file.log, sep=" "))
+> write("file.log was initialized",file=file.log,append=T)
+> ObsRp=paste(path_job,"ObsRp.nc",sep="/")
+>
+> ## Load libraries
+> library(Rmpi)
+> library(ncdf4)
+> write("Libraries are loaded",file=file.log,append=T)
+>
+> mpi.spawn.Rslaves()
+> write("Available slaves are spawn",file=file.log,append=T)
+>
+> ## Check the number of slaves
+> if (mpi.comm.size() < 2) {
+> ?mpi.close.Rslaves(); mpi.spawn.Rslaves()
+> ?if (mpi.comm.size() < 2) {
+> ? ?write("More slave processes are required.",file=file.log,append=T)
+> ? ?mpi.quit()
+> ?}
+> }
+> .Last= function(){
+> ?if (is.loaded("mpi_initialize")){
+> ? ?if (mpi.comm.size(1) > 0){
+> ? ? ?write("Please use mpi.close.Rslaves() to close
+> slaves.",file=file.log,append=T)
+> ? ? ?mpi.close.Rslaves()
+> ? ?}
+> ? ?write("Please use mpi.quit() to quit R",file=file.log,append=T)
+> ? ?.Call("mpi_finalize")
+> ?}
+> }
+> write("The number of slaves was checked",file=file.log,append=T)
+>
+> slavefunction=function() {
+> ?## Note the use of the tag for sent messages:
+> ?## ? ? 1=ready_for_task, 2=done_task, 3=exiting
+> ?## Note the use of the tag for received messages:
+> ?## ? ? 1=task, 2=done_tasks
+> ?junk= 0
+> ?done=0
+> ?while (done != 1) {
+> ? ?## Signal being ready to receive a new task
+> ? ?mpi.send.Robj(junk,0,1)
+> ? ?## Receive a task
+> ? ?task=mpi.recv.Robj(mpi.any.source(),mpi.any.tag())
+> ? ?task_info=mpi.get.sourcetag()
+> ? ?tag=task_info[2]
+> ? ?if (tag == 1) {
+> ? ? ?lat.sel=task$lat.sel
+> ? ? ?start.sel=start
+> ? ? ?count.sel=count
+> ? ? ?start.sel["lat"]=lat.sel
+> ? ? ?count.sel["lat"]=1
+> ? ? ?data=ncvar_get(file.nc,varid=var.name,start=start.sel, count=count.sel)
+> ? ? ?##data=get.var.ncdf(file.nc,varid=var.name,start=start.lat,
+> count=count.lat)
+> ? ? ?file.save=paste(file.log,lat.sel,"res",sep=".")
+> ? ? ?system(paste("rm -rf",file.save,sep=" "))
+> ? ? ?##write(lat.sel,file=file.save)
+> ? ? ?results=list(lat.sel=lat.sel,result="done")
+> ? ? ?mpi.send.Robj(results,0,2)
+> ? ? ?write(paste("Process done for",lat.sel,sep=" :
+> "),file=file.log,append=T)
+> ? ?} else if (tag == 2) {
+> ? ? ?done=1
+> ? ?}
+> ? ?## We'll just ignore any unknown messages
+> ?}
+> ?mpi.send.Robj(junk,0,3)
+> }
+> write("Slave function created",file=file.log,append=T)
+>
+> ## Record spatial characteristics of the NetCDF file
+> file.nc=nc_open(ObsRp,write=F,readunlim=T)
+> lat=file.nc$dim$lat$vals
+> lat.n=length(lat)
+> lon.n=length(file.nc$dim$lon$vals)
+> tim.n=length(file.nc$dim$time$vals)
+> lat.id=c(1:lat.n)
+> start=rep(1,3)
+> names(start)=c("lon","lat","time")
+> count=start
+> count["lon"]=lon.n
+> count["time"]=tim.n
+> count["lat"]=lat.n
+> write("Record spatial characteristics",file=file.log,append=T)
+>
+> ## Create the vector of
+> status=character(lat.n)
+> names(status)=lat.id
+> write("Create the table to store results",file=file.log,append=T)
+>
+> ## Call the function in all the slaves to get them ready to
+> ## undertake tasks
+> ## Now, send the data and function to the slaves
+>
+> write("Send functions and data to slaves",file=file.log,append=T)
+> mpi.bcast.Robj2slave(file.log)
+> mpi.bcast.Robj2slave(ObsRp)
+> mpi.bcast.Robj2slave(file.nc)
+> mpi.bcast.Robj2slave(count)
+> mpi.bcast.Robj2slave(start)
+> mpi.bcast.Robj2slave(slavefunction)
+>
+> mpi.bcast.cmd(library(ncdf4))
+> mpi.bcast.cmd(library(udunits))
+> mpi.bcast.cmd(library(CDFt))
+> mpi.bcast.cmd(file.nc <- nc_open(ObsRp,write=T,readunlim=T)) ## C'est la
+> bonne !!!
+> mpi.bcast.cmd(slavefunction())
+> ##write("Call functions in all slaves",file=file.log,append=T)
+>
+> ## Create task list
+> tasks= vector('list')
+> for (i in 1:length(lat.id)) {
+> ?tasks[[i]]=list(lat.sel=i)
+> }
+>
+> junk=0
+> closed_slaves=0
+> n_slaves=mpi.comm.size()-1
+>
+> while (closed_slaves < n_slaves) {
+> ?## Receive a message from a slave
+> ?message=mpi.recv.Robj(mpi.any.source(),mpi.any.tag())
+> ?message_info=mpi.get.sourcetag()
+> ?slave_id=message_info[1]
+> ?tag=message_info[2]
+> ?if (tag == 1) {
+> ? ?## slave is ready for a task. Give it the next task, or tell it tasks
+> ? ?## are done if there are none.
+> ? ?if (length(tasks) > 0) {
+> ? ? ?## Send a task, and then remove it from the task list
+> ? ? ?mpi.send.Robj(tasks[[1]], slave_id, 1)
+> ? ? ?tasks[[1]]=NULL
+> ? ?} else {
+> ? ? ?mpi.send.Robj(junk, slave_id, 2)
+> ? ?}
+> ?} else if (tag == 2) {
+> ? ?## The message contains results. Do something with the results.
+> ? ?## Store them in the data structure
+> ? ?lat.sel=message$lat.sel
+> ? ?status[lat.sel]=message$result
+>
+> ?} else if (tag == 3) {
+> ? ?## A slave has closed down.
+> ? ?closed_slaves=closed_slaves + 1
+> ?}
+> }
+>
+> mpi.bcast.cmd(nc_close(file.nc))
+> write("Close NetCDF connections in all slaves",file=file.log,append=T)
+> mpi.close.Rslaves()
+> write("Close slaves",file=file.log,append=T)
+>
+>
+> On 9/8/2010 9:11 AM, clement wrote:
+>>
+>> Dear List Members,
+>>
+>> I am using the ncdf4 package to work on General Circulation Model (GCM)
+>> data (NetCDF file format) and I would like to parallelize some calculations
+>> using Rmpi. Does anyone have an experience or advices in using Rmpi and
+>> ncdf4 packages?
+>>
+>
+> --
+> Cl?ment Tisseuil
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From pauljohn32 at gmail.com  Tue Sep 14 20:30:05 2010
+From: pauljohn32 at gmail.com (Paul Johnson)
+Date: Tue, 14 Sep 2010 13:30:05 -0500
+Subject: [R-sig-hpc] Rmpi and ncdf4
+In-Reply-To: <4C8A58FA.50902@gmail.com>
+References: <4C87370E.8030705@gmail.com>
+	<4C8A58FA.50902@gmail.com>
+Message-ID: <AANLkTinOeP5K8guRGiHvoFnT3zU-Y_70eL9Dds7nG_EJ@mail.gmail.com>
+
+On Fri, Sep 10, 2010 at 11:12 AM, clement <clement.tisseuil at gmail.com> wrote:
+> Dear members,
+
+>
+>> I am using the ncdf4 package to work on General Circulation Model (GCM)
+>> data (NetCDF file format) and I would like to parallelize some calculations
+>> using Rmpi. Does anyone have an experience or advices in using Rmpi and
+>> ncdf4 packages?
+>>
+
+Dear Clement:
+
+Thanks for posting your code. It really helps me to learn when I can
+read through what other people try.
+
+I found myself wondering "how much" of the whole data set is used by
+each slave.  Supposing the slave needs only a smaller piece,   I think
+your problem would work more efficiently if you have the master load
+the data one time and have it send the separate pieces to the slaves
+for the work.  Well, that's what I would do because I've had very bad
+experience when lots of nodes try to access the same file on NFS.  (It
+causes something like a traffic jam as the processes fight over each
+other).
+
+Instead of doing system(rm ...), I'd suggest you clean files with the
+file.remove function (see ?files) .  That will work across platforms,
+so even people who use Windows might someday be able to run your code.
+
+pj
+-- 
+Paul E. Johnson
+Professor, Political Science
+1541 Lilac Lane, Room 504
+University of Kansas
+
+
+From clement.tisseuil at gmail.com  Wed Sep 15 09:49:22 2010
+From: clement.tisseuil at gmail.com (clement)
+Date: Wed, 15 Sep 2010 09:49:22 +0200
+Subject: [R-sig-hpc] Rmpi and ncdf4
+In-Reply-To: <AANLkTinOeP5K8guRGiHvoFnT3zU-Y_70eL9Dds7nG_EJ@mail.gmail.com>
+References: <4C87370E.8030705@gmail.com>	<4C8A58FA.50902@gmail.com>
+	<AANLkTinOeP5K8guRGiHvoFnT3zU-Y_70eL9Dds7nG_EJ@mail.gmail.com>
+Message-ID: <4C907A82.50807@gmail.com>
+
+Dear Paul,
+
+I do agree with your suggestion that I have successfully experimented. 
+Namely, the NetCDF file is opened one time in the Master process. The 
+subset of data required for the calculation is also extracted from the 
+Master process before being sent to the available slave. When the 
+calculation is done, results are sent to the Master process that writes 
+the results to the NetCDF file. The "task pull" method (described for 
+the Rmpi package at http://math.acadiau.ca/ACMMaC/Rmpi/task_pull.R) is 
+particularly well adapted for this problem.
+
+Thanks for your assistance.
+
+Cheers
+
+Clement
+
+
+On 9/14/2010 8:30 PM, Paul Johnson wrote:
+> On Fri, Sep 10, 2010 at 11:12 AM, clement<clement.tisseuil at gmail.com>  wrote:
+>    
+>> Dear members,
+>>      
+>    
+>>      
+>>> I am using the ncdf4 package to work on General Circulation Model (GCM)
+>>> data (NetCDF file format) and I would like to parallelize some calculations
+>>> using Rmpi. Does anyone have an experience or advices in using Rmpi and
+>>> ncdf4 packages?
+>>>
+>>>        
+> Dear Clement:
+>
+> Thanks for posting your code. It really helps me to learn when I can
+> read through what other people try.
+>
+> I found myself wondering "how much" of the whole data set is used by
+> each slave.  Supposing the slave needs only a smaller piece,   I think
+> your problem would work more efficiently if you have the master load
+> the data one time and have it send the separate pieces to the slaves
+> for the work.  Well, that's what I would do because I've had very bad
+> experience when lots of nodes try to access the same file on NFS.  (It
+> causes something like a traffic jam as the processes fight over each
+> other).
+>
+> Instead of doing system(rm ...), I'd suggest you clean files with the
+> file.remove function (see ?files) .  That will work across platforms,
+> so even people who use Windows might someday be able to run your code.
+>
+> pj
+>    
+
+-- 
+Cl?ment Tisseuil
+
+
+From xsw1024 at yeah.net  Fri Sep 17 10:42:03 2010
+From: xsw1024 at yeah.net (xsw1024)
+Date: Fri, 17 Sep 2010 16:42:03 +0800 (CST)
+Subject: [R-sig-hpc] about the  chechForRemoteError(val)  of snowfall
+Message-ID: <62b50672.65fa.12b1edb8119.Coremail.xsw1024@yeah.net>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100917/d4d94fe8/attachment.pl>
+
+From jens.oehlschlaegel at truecluster.com  Tue Sep 21 17:46:26 2010
+From: jens.oehlschlaegel at truecluster.com (=?UTF-8?Q? Jens_Oehlschl=C3=A4gel ?=)
+Date: Tue, 21 Sep 2010 17:46:26 +0200 (CEST)
+Subject: [R-sig-hpc] using rbind to combine RODBC result sets using ffdf
+In-Reply-To: <525247.25318.qm@web26102.mail.ukl.yahoo.com>
+References: <525247.25318.qm@web26102.mail.ukl.yahoo.com>
+Message-ID: <845866933.676960.1285083986618.JavaMail.fmail@mwmweb020>
+
+Hi Steve,
+
+>I have a fairly large (~4M rows, 27 double columns) data set I am attempting to 
+>read in in R on Windows using RODBC and find I am running out of memory.
+
+Fairly small under Rwin64 with enough RAM, and reasonably small for ff under RWin32.
+
+>I thought I could easily workaround the problem by reading in smaller number of 
+>rows and then rbind the results together as below:-
+
+Fair approach, will work. So far we don't have an rbind for ffdf (but all pieces are there, see below). If we had rbind.ffdf it ideally would cover the following situations
+
+1) combing two (or more) ffdf into a third one
+2) growing an existing ffdf by another (or more) ffdf
+3) growing an existing ffdf by another (or more) data.frame
+
+Technicaly all the pieces are there. You can 
+first.ffdf <- as.ffdf(first.data.frame)
+third.ffdf <- clone(first.ffdf)
+and grow an ffdf by assigning nrow like in  
+nrow(third.ffdf) <- nrow(third.ffdf) + nrow(second.ffdf)
+
+Then the devil is in some details like maintaining appropriate factor levels. Example for how this works is in read.table.ffdf. Should be easy to abstract a rbind.ffdf from this, think I will do this soon - but first have to prepare the next release of ff which will support RWin64, sorting, ordering and using positive ff integers as subscripts. If you abstract rbind.fdf from read.table.ffdf before I do, please let me know, then I am happy to include in ff and give credit.
+
+I recently had a similar request from Xiaobo Gu who uses a different data.base driver and who wrote code which covers some of the functionality in read.table.ffdf for his database connection. Maybe he is willing to share the code with you, I cc him.
+
+[r-sig-hpc at r-project.org] is the appropriate list for questions on ff, I cc.
+
+Cheers
+Jens
+
+
+From renaud at mancala.cbio.uct.ac.za  Wed Sep 22 13:08:52 2010
+From: renaud at mancala.cbio.uct.ac.za (Renaud Gaujoux)
+Date: Wed, 22 Sep 2010 13:08:52 +0200
+Subject: [R-sig-hpc] multi-threaded R/MPI jobs using SGE
+Message-ID: <4C99E3C4.5030800@cbio.uct.ac.za>
+
+Hi,
+
+I want to run an MPI-multithread job on our local cluster (Rocks + SGE).
+My R script uses the doMPI/doMC packages to compute, say 10 tasks.
+I'd like to compute each task using as many CPUs available on a 
+worker-host (meaning all available and assigned slots by SGE).
+Suppose I know each host as 4 slots.
+
+1. SGE question: ideally I'd like to be able to ask for say 9 slots, 
+allocated on 3 hosts (4 + 4 + 1), using the isolated slot to run the 
+master thread.
+This way I can spawn one master, two 4-core workers to perform the tasks.
+I read one can configure an SGE parallel environment to pass to qsub -pe 
+<pe_name> to ensure the allocation follows this rule.
+Has anybody this kind of environment available on its cluster?
+Would this one work?
+
+pe_name           mtmpich
+slots             9999
+user_lists        NONE
+xuser_lists       NONE
+start_proc_args   /opt/gridengine/mpi/startmpi.sh -catch_rsh $pe_hostfile
+stop_proc_args    /opt/gridengine/mpi/stopmpi.sh
+allocation_rule   $pe_slots
+control_slaves    TRUE
+job_is_first_task FALSE
+urgency_slots     min
+
+
+2. Rmpi/doMPI question: suppose I cannot be sure the slots are allocated 
+in such a way, say I get (2+2+3+2). This means that other users are 
+using the other CPUs, which I do not want to over-use. Currently when I 
+registerDoMC() it registers all 4 CPUs which interferes with the other 
+users' jobs.
+Is it possible from within R to figure out which worker-host is running 
+the code and the number of CPU I am allowed to use on it?
+
+3. If anybody has successfully done this kind of thing, please let me 
+know how.
+
+Thank you.
+Renaud
+
+-- 
+Renaud Gaujoux
+Computational Biology - University of Cape Town
+South Africa
+
+
+ 
+
+###
+UNIVERSITY OF CAPE TOWN 
+
+This e-mail is subject to the UCT ICT policies and e-mail disclaimer published on our website at http://www.uct.ac.za/about/policies/emaildisclaimer/ or obtainable from +27 21 650 4500. This e-mail is intended only for the person(s) to whom it is addressed. If the e-mail has reached you in error, please notify the author. If you are not the intended recipient of the e-mail you may not use, disclose, copy, redirect or print the content. If this e-mail is not related to the business of UCT it is sent by the sender in the sender's individual capacity.
+
+###
+
+
+From kasperdanielhansen at gmail.com  Wed Sep 22 15:18:59 2010
+From: kasperdanielhansen at gmail.com (Kasper Daniel Hansen)
+Date: Wed, 22 Sep 2010 09:18:59 -0400
+Subject: [R-sig-hpc] multi-threaded R/MPI jobs using SGE
+In-Reply-To: <4C99E3C4.5030800@cbio.uct.ac.za>
+References: <4C99E3C4.5030800@cbio.uct.ac.za>
+Message-ID: <AANLkTim0KF2uWP4OhdedVefDmSh2ME0wK4RCw-SD9G18@mail.gmail.com>
+
+Your question is more advanced than my current experience.  But I can
+tell you what I do with SGE when I use multicore (where all cores
+should be on the same node).
+
+Our sysadmin has setup a parallel environment called "local" which
+makes sure that all the cores I request will be on the same node.  I
+use it like
+  qsub -pe local 6-12
+The 6-12 means give me between 6 and 12 cores (SGE will always give me
+the most I request, but that probably depend on the cluster setup).
+The actual number of cores I get, gets stored in the environment
+variable NSLOTS (or is it N_SLOTS, I don't recall), so in R I do
+
+CORES = as.integer(Sys.getenv("NSLOTS"))
+mclapply(LIST, FUN, mc.cores = CORES)
+
+You clearly have a more advanced use case, but I would guess that
+someone has done it (perhaps not using R).  I would furthermore guess
+that the way to do it is the same as above: your allocated resources
+gets stored in some environment variable that you then read from R and
+feed into the doMPI setup.
+
+Kasper
+
+
+On Wed, Sep 22, 2010 at 7:08 AM, Renaud Gaujoux
+<renaud at mancala.cbio.uct.ac.za> wrote:
+> Hi,
+>
+> I want to run an MPI-multithread job on our local cluster (Rocks + SGE).
+> My R script uses the doMPI/doMC packages to compute, say 10 tasks.
+> I'd like to compute each task using as many CPUs available on a worker-host
+> (meaning all available and assigned slots by SGE).
+> Suppose I know each host as 4 slots.
+>
+> 1. SGE question: ideally I'd like to be able to ask for say 9 slots,
+> allocated on 3 hosts (4 + 4 + 1), using the isolated slot to run the master
+> thread.
+> This way I can spawn one master, two 4-core workers to perform the tasks.
+> I read one can configure an SGE parallel environment to pass to qsub -pe
+> <pe_name> to ensure the allocation follows this rule.
+> Has anybody this kind of environment available on its cluster?
+> Would this one work?
+>
+> pe_name ? ? ? ? ? mtmpich
+> slots ? ? ? ? ? ? 9999
+> user_lists ? ? ? ?NONE
+> xuser_lists ? ? ? NONE
+> start_proc_args ? /opt/gridengine/mpi/startmpi.sh -catch_rsh $pe_hostfile
+> stop_proc_args ? ?/opt/gridengine/mpi/stopmpi.sh
+> allocation_rule ? $pe_slots
+> control_slaves ? ?TRUE
+> job_is_first_task FALSE
+> urgency_slots ? ? min
+>
+>
+> 2. Rmpi/doMPI question: suppose I cannot be sure the slots are allocated in
+> such a way, say I get (2+2+3+2). This means that other users are using the
+> other CPUs, which I do not want to over-use. Currently when I registerDoMC()
+> it registers all 4 CPUs which interferes with the other users' jobs.
+> Is it possible from within R to figure out which worker-host is running the
+> code and the number of CPU I am allowed to use on it?
+>
+> 3. If anybody has successfully done this kind of thing, please let me know
+> how.
+>
+> Thank you.
+> Renaud
+>
+> --
+> Renaud Gaujoux
+> Computational Biology - University of Cape Town
+> South Africa
+>
+>
+>
+>
+> ###
+> UNIVERSITY OF CAPE TOWN
+> This e-mail is subject to the UCT ICT policies and e-mail disclaimer
+> published on our website at
+> http://www.uct.ac.za/about/policies/emaildisclaimer/ or obtainable from +27
+> 21 650 4500. This e-mail is intended only for the person(s) to whom it is
+> addressed. If the e-mail has reached you in error, please notify the author.
+> If you are not the intended recipient of the e-mail you may not use,
+> disclose, copy, redirect or print the content. If this e-mail is not related
+> to the business of UCT it is sent by the sender in the sender's individual
+> capacity.
+>
+> ###
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From renaud at mancala.cbio.uct.ac.za  Wed Sep 22 15:36:05 2010
+From: renaud at mancala.cbio.uct.ac.za (Renaud Gaujoux)
+Date: Wed, 22 Sep 2010 15:36:05 +0200
+Subject: [R-sig-hpc] multi-threaded R/MPI jobs using SGE
+In-Reply-To: <AANLkTim0KF2uWP4OhdedVefDmSh2ME0wK4RCw-SD9G18@mail.gmail.com>
+References: <4C99E3C4.5030800@cbio.uct.ac.za>
+	<AANLkTim0KF2uWP4OhdedVefDmSh2ME0wK4RCw-SD9G18@mail.gmail.com>
+Message-ID: <4C9A0645.7040300@cbio.uct.ac.za>
+
+Hi,
+
+thanks for sharing your experience Kasper.
+I had envisaged this solution but I'd like to be able to use more than 4 
+cores (as our nodes are 'limited' quad-cores), which would mean getting 
+more than one node assigned to me.
+
+One question though in your case. Say you asked for 12 cores but get 
+only 6 (the 6 others being already assigned and used by other users).
+Do you know if 'mclapply' fork the 6 processes on the correct CPUs and 
+not on some of those that are not assigned to you?
+
+Thanks,
+Renaud
+
+-- 
+Renaud Gaujoux
+Computational Biology - University of Cape Town
+South Africa
+
+
+On 22/09/2010 15:18, Kasper Daniel Hansen wrote:
+> Your question is more advanced than my current experience.  But I can
+> tell you what I do with SGE when I use multicore (where all cores
+> should be on the same node).
+>
+> Our sysadmin has setup a parallel environment called "local" which
+> makes sure that all the cores I request will be on the same node.  I
+> use it like
+>    qsub -pe local 6-12
+> The 6-12 means give me between 6 and 12 cores (SGE will always give me
+> the most I request, but that probably depend on the cluster setup).
+> The actual number of cores I get, gets stored in the environment
+> variable NSLOTS (or is it N_SLOTS, I don't recall), so in R I do
+>
+> CORES = as.integer(Sys.getenv("NSLOTS"))
+> mclapply(LIST, FUN, mc.cores = CORES)
+>
+> You clearly have a more advanced use case, but I would guess that
+> someone has done it (perhaps not using R).  I would furthermore guess
+> that the way to do it is the same as above: your allocated resources
+> gets stored in some environment variable that you then read from R and
+> feed into the doMPI setup.
+>
+> Kasper
+>
+>
+> On Wed, Sep 22, 2010 at 7:08 AM, Renaud Gaujoux
+> <renaud at mancala.cbio.uct.ac.za>  wrote:
+>    
+>> Hi,
+>>
+>> I want to run an MPI-multithread job on our local cluster (Rocks + SGE).
+>> My R script uses the doMPI/doMC packages to compute, say 10 tasks.
+>> I'd like to compute each task using as many CPUs available on a worker-host
+>> (meaning all available and assigned slots by SGE).
+>> Suppose I know each host as 4 slots.
+>>
+>> 1. SGE question: ideally I'd like to be able to ask for say 9 slots,
+>> allocated on 3 hosts (4 + 4 + 1), using the isolated slot to run the master
+>> thread.
+>> This way I can spawn one master, two 4-core workers to perform the tasks.
+>> I read one can configure an SGE parallel environment to pass to qsub -pe
+>> <pe_name>  to ensure the allocation follows this rule.
+>> Has anybody this kind of environment available on its cluster?
+>> Would this one work?
+>>
+>> pe_name           mtmpich
+>> slots             9999
+>> user_lists        NONE
+>> xuser_lists       NONE
+>> start_proc_args   /opt/gridengine/mpi/startmpi.sh -catch_rsh $pe_hostfile
+>> stop_proc_args    /opt/gridengine/mpi/stopmpi.sh
+>> allocation_rule   $pe_slots
+>> control_slaves    TRUE
+>> job_is_first_task FALSE
+>> urgency_slots     min
+>>
+>>
+>> 2. Rmpi/doMPI question: suppose I cannot be sure the slots are allocated in
+>> such a way, say I get (2+2+3+2). This means that other users are using the
+>> other CPUs, which I do not want to over-use. Currently when I registerDoMC()
+>> it registers all 4 CPUs which interferes with the other users' jobs.
+>> Is it possible from within R to figure out which worker-host is running the
+>> code and the number of CPU I am allowed to use on it?
+>>
+>> 3. If anybody has successfully done this kind of thing, please let me know
+>> how.
+>>
+>> Thank you.
+>> Renaud
+>>
+>> --
+>> Renaud Gaujoux
+>> Computational Biology - University of Cape Town
+>> South Africa
+>>
+>>
+>>
+>>
+>> ###
+>> UNIVERSITY OF CAPE TOWN
+>> This e-mail is subject to the UCT ICT policies and e-mail disclaimer
+>> published on our website at
+>> http://www.uct.ac.za/about/policies/emaildisclaimer/ or obtainable from +27
+>> 21 650 4500. This e-mail is intended only for the person(s) to whom it is
+>> addressed. If the e-mail has reached you in error, please notify the author.
+>> If you are not the intended recipient of the e-mail you may not use,
+>> disclose, copy, redirect or print the content. If this e-mail is not related
+>> to the business of UCT it is sent by the sender in the sender's individual
+>> capacity.
+>>
+>> ###
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>>      
+
+ 
+
+###
+UNIVERSITY OF CAPE TOWN 
+
+This e-mail is subject to the UCT ICT policies and e-mail disclaimer published on our website at http://www.uct.ac.za/about/policies/emaildisclaimer/ or obtainable from +27 21 650 4500. This e-mail is intended only for the person(s) to whom it is addressed. If the e-mail has reached you in error, please notify the author. If you are not the intended recipient of the e-mail you may not use, disclose, copy, redirect or print the content. If this e-mail is not related to the business of UCT it is sent by the sender in the sender's individual capacity.
+
+###
+
+
+From jthetzel at gmail.com  Thu Sep 23 19:53:44 2010
+From: jthetzel at gmail.com (Jeremy Hetzel)
+Date: Thu, 23 Sep 2010 13:53:44 -0400
+Subject: [R-sig-hpc] using rbind to combine RODBC result sets using ffdf
+In-Reply-To: <845866933.676960.1285083986618.JavaMail.fmail@mwmweb020>
+References: <525247.25318.qm@web26102.mail.ukl.yahoo.com>
+	<845866933.676960.1285083986618.JavaMail.fmail@mwmweb020>
+Message-ID: <AANLkTimbN3Qsu66_6gmZrv7wj3uOZ3eZgeZFUUdx20Lm@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100923/6c7bbb85/attachment.pl>
+
+From pauljohn32 at gmail.com  Tue Sep 28 00:43:08 2010
+From: pauljohn32 at gmail.com (Paul Johnson)
+Date: Mon, 27 Sep 2010 17:43:08 -0500
+Subject: [R-sig-hpc] what causes this fork warning from openmpi
+Message-ID: <AANLkTi=9F7=kVz_qVdvM6abu1ThXtTQucLLPfBLh9aAX@mail.gmail.com>
+
+Hi, I wonder if you have seen this message from openmpi-1.4.1 and R-2.11.1.
+
+I have built a small sample program that causes this error/warning
+every time.  In fact, I still get this error/warning if I only just
+ask Rmpi to spawn the slaves.
+
+I see the following in the "e" file that is created automatically.
+This used to be an intermittent thing that I thought was caused by
+trying to use multicore, but now I see it every time I run the
+example.
+
+--------------------------------------------------------------------------
+An MPI process has executed an operation involving a call to the
+"fork()" system call to create a child process.  Open MPI is currently
+operating in a condition that could result in memory corruption or
+other system errors; your MPI job may hang, crash, or produce silent
+data corruption.  The use of fork() (or system() or other calls that
+create child processes) is strongly discouraged.
+
+The process that invoked fork was:
+
+  Local host:          compute-2-19.local (PID 10000)
+  MPI_COMM_WORLD rank: 0
+
+If you are *absolutely sure* that your application will successfully
+and correctly survive a call to fork(), you may disable this warning
+by setting the mpi_warn_on_fork MCA parameter to 0.
+--------------------------------------------------------------------------
+
+I have Centos Linux ("Rocks" cluster) with openmpi-1.4.1
+
+> sessionInfo()
+R version 2.11.1 (2010-05-31)
+x86_64-redhat-linux-gnu
+
+locale:
+ [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C
+ [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8
+ [5] LC_MONETARY=C              LC_MESSAGES=en_US.UTF-8
+ [7] LC_PAPER=en_US.UTF-8       LC_NAME=C
+ [9] LC_ADDRESS=C               LC_TELEPHONE=C
+[11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base
+
+
+Small working example that causes this problem:
+
+Submission script
+
+======== sub-test.sh=============================
+
+$ cat sub-test.sh
+#!/bin/sh
+#
+#This is a submission script to batch out the full sim
+#
+#These commands set up the Grid Environment for your job:
+#PBS -N MpiParallel
+#PBS -l nodes=12:ppn=4
+#PBS -l walltime=480:00:00
+#PBS -M pauljohnku.edu
+#PBS -m bea
+
+cd $PBS_O_WORKDIR
+
+orterun --hostfile $PBS_NODEFILE -n 1 R --no-save --vanilla -f mi-test.R
+
+====================================================
+
+=========mi-test.R==========================
+
+if (!is.loaded("mpi_intitialize")){
+  library(Rmpi)
+}
+
+## see http://math.acadiau.ca/ACMMaC/Rmpi/sample.html
+
+### Try worker processes;
+mpi.spawn.Rslaves(nslaves=8)
+
+# In case R exits unexpectedly, have it automatically clean up
+# resources taken up by Rmpi (slaves, memory, etc...)
+.Last <- function(){
+  if (is.loaded("mpi_initialize")){
+    if (mpi.comm.size(1) > 0){
+      print("Please use mpi.close.Rslaves() to close slaves.")
+      mpi.close.Rslaves()
+    }
+    print("Please use mpi.quit() to quit R")
+    .Call("mpi_finalize")
+  }
+}
+
+### here's where I used to have mpi commands  :)
+
+
+mpi.close.Rslaves()
+mpi.quit()
+
+====================================================
+
+
+See? I've cut out everything except the spawn command.
+
+In the output file, I see no trouble in that part
+
+
+> mpi.spawn.Rslaves(nslaves=8)
+        8 slaves are spawned successfully. 0 failed.
+master (rank 0, comm 1) of size 9 is running on: compute-2-19
+slave1 (rank 1, comm 1) of size 9 is running on: compute-2-19
+slave2 (rank 2, comm 1) of size 9 is running on: compute-2-19
+slave3 (rank 3, comm 1) of size 9 is running on: compute-2-19
+slave4 (rank 4, comm 1) of size 9 is running on: compute-2-18
+slave5 (rank 5, comm 1) of size 9 is running on: compute-2-18
+slave6 (rank 6, comm 1) of size 9 is running on: compute-2-18
+slave7 (rank 7, comm 1) of size 9 is running on: compute-2-18
+slave8 (rank 8, comm 1) of size 9 is running on: compute-2-17
+
+
+I  promise, I've run Rmpi lots of times, and I've never had such a simple bit
+of code cause the fork error/warning.
+
+pj
+
+
+-- 
+Paul E. Johnson
+Professor, Political Science
+1541 Lilac Lane, Room 504
+University of Kansas
+
+
+From edd at debian.org  Tue Sep 28 02:49:49 2010
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Mon, 27 Sep 2010 19:49:49 -0500
+Subject: [R-sig-hpc] what causes this fork warning from openmpi
+In-Reply-To: <AANLkTi=9F7=kVz_qVdvM6abu1ThXtTQucLLPfBLh9aAX@mail.gmail.com>
+References: <AANLkTi=9F7=kVz_qVdvM6abu1ThXtTQucLLPfBLh9aAX@mail.gmail.com>
+Message-ID: <19617.15277.795295.719015@max.nulle.part>
+
+
+Paul,
+
+
+On 27 September 2010 at 17:43, Paul Johnson wrote:
+| Hi, I wonder if you have seen this message from openmpi-1.4.1 and R-2.11.1.
+| 
+| I have built a small sample program that causes this error/warning
+| every time.  In fact, I still get this error/warning if I only just
+| ask Rmpi to spawn the slaves.
+| 
+| I see the following in the "e" file that is created automatically.
+| This used to be an intermittent thing that I thought was caused by
+| trying to use multicore, but now I see it every time I run the
+| example.
+| 
+| --------------------------------------------------------------------------
+| An MPI process has executed an operation involving a call to the
+| "fork()" system call to create a child process.  Open MPI is currently
+| operating in a condition that could result in memory corruption or
+| other system errors; your MPI job may hang, crash, or produce silent
+| data corruption.  The use of fork() (or system() or other calls that
+| create child processes) is strongly discouraged.
+| 
+| The process that invoked fork was:
+| 
+|   Local host:          compute-2-19.local (PID 10000)
+|   MPI_COMM_WORLD rank: 0
+| 
+| If you are *absolutely sure* that your application will successfully
+| and correctly survive a call to fork(), you may disable this warning
+| by setting the mpi_warn_on_fork MCA parameter to 0.
+| --------------------------------------------------------------------------
+| 
+| I have Centos Linux ("Rocks" cluster) with openmpi-1.4.1
+| 
+| > sessionInfo()
+| R version 2.11.1 (2010-05-31)
+| x86_64-redhat-linux-gnu
+| 
+| locale:
+|  [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C
+|  [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8
+|  [5] LC_MONETARY=C              LC_MESSAGES=en_US.UTF-8
+|  [7] LC_PAPER=en_US.UTF-8       LC_NAME=C
+|  [9] LC_ADDRESS=C               LC_TELEPHONE=C
+| [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C
+| 
+| attached base packages:
+| [1] stats     graphics  grDevices utils     datasets  methods   base
+| 
+| 
+| Small working example that causes this problem:
+| 
+| Submission script
+| 
+| ======== sub-test.sh=============================
+| 
+| $ cat sub-test.sh
+| #!/bin/sh
+| #
+| #This is a submission script to batch out the full sim
+| #
+| #These commands set up the Grid Environment for your job:
+| #PBS -N MpiParallel
+| #PBS -l nodes=12:ppn=4
+| #PBS -l walltime=480:00:00
+| #PBS -M pauljohnku.edu
+| #PBS -m bea
+| 
+| cd $PBS_O_WORKDIR
+| 
+| orterun --hostfile $PBS_NODEFILE -n 1 R --no-save --vanilla -f mi-test.R
+| 
+| ====================================================
+| 
+| =========mi-test.R==========================
+| 
+| if (!is.loaded("mpi_intitialize")){
+|   library(Rmpi)
+| }
+| 
+| ## see http://math.acadiau.ca/ACMMaC/Rmpi/sample.html
+| 
+| ### Try worker processes;
+| mpi.spawn.Rslaves(nslaves=8)
+| 
+| # In case R exits unexpectedly, have it automatically clean up
+| # resources taken up by Rmpi (slaves, memory, etc...)
+| .Last <- function(){
+|   if (is.loaded("mpi_initialize")){
+|     if (mpi.comm.size(1) > 0){
+|       print("Please use mpi.close.Rslaves() to close slaves.")
+|       mpi.close.Rslaves()
+|     }
+|     print("Please use mpi.quit() to quit R")
+|     .Call("mpi_finalize")
+|   }
+| }
+| 
+| ### here's where I used to have mpi commands  :)
+| 
+| 
+| mpi.close.Rslaves()
+| mpi.quit()
+| 
+| ====================================================
+
+That looks odd: mpi.close.Rslaves() and mpi.quit() constitute the end; they
+close MPI and the you then try to execute more MPI commands via .Last().
+
+When I run your script, I end up with a seg.fault. 
+
+If I comment out your .Last() routine, everything is dapper.  So if I were
+you, I'd try to get by without the .Last() function.
+
+FWIW I used R 2.11.1, Open MPI 1.4.1, launched via orterun and littler / r.
+
+Hth, Dirk
+
+
+-- 
+Dirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com
+
+
+From pauljohn32 at gmail.com  Tue Sep 28 05:43:28 2010
+From: pauljohn32 at gmail.com (Paul Johnson)
+Date: Mon, 27 Sep 2010 22:43:28 -0500
+Subject: [R-sig-hpc] what causes this fork warning from openmpi
+In-Reply-To: <19617.15277.795295.719015@max.nulle.part>
+References: <AANLkTi=9F7=kVz_qVdvM6abu1ThXtTQucLLPfBLh9aAX@mail.gmail.com>
+	<19617.15277.795295.719015@max.nulle.part>
+Message-ID: <AANLkTi=fX62mX+UQAjB08wmLT9LHZE=YgKtZYNimW-bx@mail.gmail.com>
+
+On Mon, Sep 27, 2010 at 7:49 PM, Dirk Eddelbuettel <edd at debian.org> wrote:
+>
+> Paul,
+>
+> | --------------------------------------------------------------------------
+> | An MPI process has executed an operation involving a call to the
+> | "fork()" system call to create a child process. ?Open MPI is currently
+> | operating in a condition that could result in memory corruption or
+> | other system errors; your MPI job may hang, crash, or produce silent
+> | data corruption. ?The use of fork() (or system() or other calls that
+> | create child processes) is strongly discouraged.
+> |
+> | The process that invoked fork was:
+> |
+> | ? Local host: ? ? ? ? ?compute-2-19.local (PID 10000)
+> | ? MPI_COMM_WORLD rank: 0
+> |
+> | If you are *absolutely sure* that your application will successfully
+> | and correctly survive a call to fork(), you may disable this warning
+> | by setting the mpi_warn_on_fork MCA parameter to 0.
+> | ====================================================
+>
+> That looks odd: mpi.close.Rslaves() and mpi.quit() constitute the end; they
+> close MPI and the you then try to execute more MPI commands via .Last().
+>
+> When I run your script, I end up with a seg.fault.
+>
+> If I comment out your .Last() routine, everything is dapper. ?So if I were
+> you, I'd try to get by without the .Last() function.
+>
+> FWIW I used R 2.11.1, Open MPI 1.4.1, launched via orterun and littler / r.
+>
+> Hth, Dirk
+>
+
+
+Hi, Dirk:
+
+I can't tell you how reassuring it is to send out a distress call and
+find an answer so quickly.  I don't think you are correct, but I've
+been wrong so often this past week that I'm second guessing myself
+again.
+
+The .Last idiom you think is the source of the trouble in the examples
+on the acadia site--you know this one:
+
+http://math.acadiau.ca/ACMMaC/Rmpi/sample.html
+
+If the idiom were wrong, it seems somebody besides  you or me would
+have noticed already--that is one of the few well documented working
+examples of RMPI that many people have run.
+
+I'm almost more puzzled that you get a seg fault instead of just the
+scary warning.
+
+I've been googling more and more on this and I'm starting to suspect
+I've run into a somewhat deceptive warning message from OpenMPI on
+heterogeneous networks in which there are some Infiniband devices.
+
+http://comments.gmane.org/gmane.comp.clustering.open-mpi.user/10148
+
+I did not connect the two things before.  In the cluster where I'm
+working, the nodes named compute-0-XX and compute-1-XX are gigabit
+ethernet connected, but compute-2-XX is infiniband. I can't say I've
+ever had a job spill over to the infiniband rack before.
+
+I think one test on my end will be to restrict my jobs from going onto
+the infiniband nodes to see if the same warning appears.
+
+pj
+
+-- 
+Paul E. Johnson
+Professor, Political Science
+1541 Lilac Lane, Room 504
+University of Kansas
+
+

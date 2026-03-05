@@ -1,0 +1,431 @@
+From jimmaasuk at gmail.com  Sun Dec 15 19:05:27 2013
+From: jimmaasuk at gmail.com (Jim Maas)
+Date: Sun, 15 Dec 2013 19:05:27 +0100
+Subject: [R-sig-hpc] problem when sourcing a file
+Message-ID: <CAGQ6_y_hbr339abK7EeE2DqZxQxzPcV6yETN=B7PJgSsNcog-A@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20131215/392a4d18/attachment.pl>
+
+From jolmsted at princeton.edu  Sun Dec 15 20:00:38 2013
+From: jolmsted at princeton.edu (Jonathan Olmsted)
+Date: Sun, 15 Dec 2013 14:00:38 -0500
+Subject: [R-sig-hpc] problem when sourcing a file
+In-Reply-To: <CAGQ6_y_hbr339abK7EeE2DqZxQxzPcV6yETN=B7PJgSsNcog-A@mail.gmail.com>
+References: <CAGQ6_y_hbr339abK7EeE2DqZxQxzPcV6yETN=B7PJgSsNcog-A@mail.gmail.com>
+Message-ID: <CABMO4ostuRUCw6GmywCSnZw1O794NUefpo3v0bbMKUie7qUONg@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20131215/6fb7524d/attachment.pl>
+
+From may.katharina at googlemail.com  Mon Dec 16 11:31:25 2013
+From: may.katharina at googlemail.com (Katharina May)
+Date: Mon, 16 Dec 2013 11:31:25 +0100
+Subject: [R-sig-hpc] Spanning a memory intensive call to lme
+Message-ID: <CALRJQiMODZc-vr+E=gSUR663jhSwe37k6YFj-cwYkpACB6AJvA@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20131216/12015d06/attachment.pl>
+
+From glock at sdsc.edu  Wed Dec 18 02:38:28 2013
+From: glock at sdsc.edu (Lockwood, Glenn)
+Date: Wed, 18 Dec 2013 01:38:28 +0000
+Subject: [R-sig-hpc] Spanning a memory intensive call to lme
+In-Reply-To: <CALRJQiMODZc-vr+E=gSUR663jhSwe37k6YFj-cwYkpACB6AJvA@mail.gmail.com>
+References: <CALRJQiMODZc-vr+E=gSUR663jhSwe37k6YFj-cwYkpACB6AJvA@mail.gmail.com>
+Message-ID: <22413CF9-50B9-4480-BB9C-7F4E00D44E3F@sdsc.edu>
+
+Katharina,
+
+I don't think that what you are trying to do can be accomplished nearly that easily.  Using Rmpi directly is not for the faint of heart, and I strongly recommend using a nicer interface like snow or snowfall first.
+
+More importantly though, you have to explicitly send the data that your parallel workers will operate on to each of your worker nodes before telling them to execute lme.  If you are having trouble fitting your entire dataset into memory, Rmpi will not help you since you would still have to load the dataset into the master node before sending pieces of it out to the workers.  The act of sending pieces to the workers, and the act of having the workers understand what to do with those pieces, is also something you will have to code in yourself.
+
+In general, using Rmpi (or snow, or other libraries which built upon Rmpi) to get around memory limitations is very challenging.  Rmpi is meant to address problems which are bounded by compute speed, not memory limits.  I'm afraid it'll be an uphill battle because there is very little magic in what Rmpi does.
+
+Glenn
+
+
+--
+Glenn K. Lockwood, Ph.D.
+User Services Group
+San Diego Supercomputer Center
+glock at sdsc.edu / (858) 246-1075
+
+On Dec 16, 2013, at 2:31 AM, Katharina May <may.katharina at googlemail.com> wrote:
+
+> Dear all,
+> 
+> I'm starting to use rmpi for a lme (nlme) model which is very memory
+> intensive, and I want to run the lme call therefore on a linux cluster.
+> However, I haven't exactly found a proper example how to accomplish this
+> and I'm not really familiar with rmpi. Hence, I hope somebody might help
+> with this I guess rather trivial problem...
+> Here is the code I wanted to use, but I'm not sure if the lme call like it
+> is written here, will actually be spanned across several hosts within the
+> cluster to come by the memory problem?
+> 
+> 
+> #Load libraries
+> library(nlme)
+> library(mgcv)
+> 
+> # Load the R MPI package if it is not already loaded.
+> if  (!is.loaded("mpi_initialize")) {
+>  library("Rmpi")
+> }
+> 
+> # In case R exits unexpectedly, have it automatically clean up
+> # resources taken up by Rmpi (slaves, memory, etc...)
+> .Last <- function(){
+>  if (is.loaded("mpi_initialize")){
+>    if (mpi.comm.size(1) > 0){
+>      print("Please use mpi.close.Rslaves() to close slaves.")
+>      mpi.close.Rslaves()
+>    }
+>    print("Please use mpi.quit() to quit R")
+>    .Call("mpi_finalize")
+>  }
+> }
+> 
+> #actual call
+> xylemRohTimeBoth41.lme <- mpi.remote.exec(lme(sapflow ~ NthSampling,
+> random= ~NthSampling|site/sensor, data=xylemRoh2011, method="REML",
+> na.action=na.omit,  control=lmeControl(opt = "optim")) simplify = TRUE,
+> comm = 1, ret = TRUE)
+> 
+> Any help is very much appreciated and sorry for this I guess very basic
+> question...
+> 
+> Many thanks.
+> 
+>           Katharina
+> 
+> 	[[alternative HTML version deleted]]
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From ross at biostat.ucsf.edu  Thu Dec 19 22:28:41 2013
+From: ross at biostat.ucsf.edu (Ross Boylan)
+Date: Thu, 19 Dec 2013 13:28:41 -0800
+Subject: [R-sig-hpc] parallel library's random numbers
+Message-ID: <1387488521.10351.43.camel@localhost>
+
+Conceptually, I have 2,000 tasks and I want each task to have access to
+an independent, repeatable random number stream.  Many of the tasks will
+run on the same node.  For example, a typical job would be to do tasks
+200 to 400.
+
+I might do one run with 10 nodes and a later one with 50, but I want the
+same streams for each task.
+
+The facilities in parallel seem designed to achieve repeatable
+randomization for a fixed number of nodes.  Is there a way to get them
+to do what I want?
+
+The documentation does not explain what nextRNGStream and
+nextRNGSubStream do nor how that relates to the initialization done by
+clusterSetRNGStream.  For example, if I do nextRNGStream on node 1, do I
+get the same stream as is being used on node 2?
+
+The documentation does not say that calling nextRNGStream actually
+resets the seed, though that seems to be implicit in the example (and is
+explicit in one book I found on the net).  I'm also unsure if calling
+mc.reset.stream() is necessary after calling clusterSetRNGStream.
+
+Ross Boylan
+
+P.S. Using R 3.0.1
+
+
+From ross at biostat.ucsf.edu  Thu Dec 19 23:08:43 2013
+From: ross at biostat.ucsf.edu (Ross Boylan)
+Date: Thu, 19 Dec 2013 14:08:43 -0800
+Subject: [R-sig-hpc] parallel library's random numbers
+In-Reply-To: <1387488521.10351.43.camel@localhost>
+References: <1387488521.10351.43.camel@localhost>
+Message-ID: <1387490923.10351.55.camel@localhost>
+
+On Thu, 2013-12-19 at 13:28 -0800, Ross Boylan wrote:
+> Conceptually, I have 2,000 tasks and I want each task to have access to
+> an independent, repeatable random number stream.  Many of the tasks will
+> run on the same node.  For example, a typical job would be to do tasks
+> 200 to 400.
+> 
+> I might do one run with 10 nodes and a later one with 50, but I want the
+> same streams for each task.
+> 
+> The facilities in parallel seem designed to achieve repeatable
+> randomization for a fixed number of nodes.  Is there a way to get them
+> to do what I want?
+I'm thinking maybe I should just ignore the parallel random number stuff
+and do set.seed(t) before task t.  It's easy to imagine that is not an
+entirely safe method, however.
+
+Ross
+> 
+> The documentation does not explain what nextRNGStream and
+> nextRNGSubStream do nor how that relates to the initialization done by
+> clusterSetRNGStream.  For example, if I do nextRNGStream on node 1, do I
+> get the same stream as is being used on node 2?
+> 
+> The documentation does not say that calling nextRNGStream actually
+> resets the seed, though that seems to be implicit in the example (and is
+> explicit in one book I found on the net).  I'm also unsure if calling
+> mc.reset.stream() is necessary after calling clusterSetRNGStream.
+> 
+> Ross Boylan
+> 
+> P.S. Using R 3.0.1
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From georgeost at gmail.com  Fri Dec 20 04:24:26 2013
+From: georgeost at gmail.com (George Ostrouchov)
+Date: Thu, 19 Dec 2013 22:24:26 -0500
+Subject: [R-sig-hpc] parallel library's random numbers
+In-Reply-To: <1387490923.10351.55.camel@localhost>
+References: <1387488521.10351.43.camel@localhost>
+	<1387490923.10351.55.camel@localhost>
+Message-ID: <52B3B86A.5050102@gmail.com>
+
+Ross,
+
+Consider writing this SPMD style and run as Rscript. Here is a short 
+example:
+
+library(pbdMPI, quiet=TRUE)
+init()
+comm.set.seed(1234567, diff=TRUE)
+r <- runif(5)
+comm.print(r, all.rank=TRUE)
+finalize()
+
+Put the above 6 lines of R code into file rand.r and then run
+mpirun -np 2 Rscript rand.r
+Experiment with diff=FALSE and with more than 2 nodes. Then start 
+reading the vignette for the pbdDEMOpackage.
+
+If diff=TRUE, the streams are independent. This uses the package rlecuyer.
+
+Good luck!
+
+George
+
+P.S. I assume your 50 nodes are in a cluster, probably managed with PBS. 
+Then the mpirun is issued after a "qsub -I ..." interactive allocation.
+
+On 12/19/13 5:08 PM, Ross Boylan wrote:
+> On Thu, 2013-12-19 at 13:28 -0800, Ross Boylan wrote:
+>> Conceptually, I have 2,000 tasks and I want each task to have access to
+>> an independent, repeatable random number stream.  Many of the tasks will
+>> run on the same node.  For example, a typical job would be to do tasks
+>> 200 to 400.
+>>
+>> I might do one run with 10 nodes and a later one with 50, but I want the
+>> same streams for each task.
+>>
+>> The facilities in parallel seem designed to achieve repeatable
+>> randomization for a fixed number of nodes.  Is there a way to get them
+>> to do what I want?
+> I'm thinking maybe I should just ignore the parallel random number stuff
+> and do set.seed(t) before task t.  It's easy to imagine that is not an
+> entirely safe method, however.
+>
+> Ross
+>> The documentation does not explain what nextRNGStream and
+>> nextRNGSubStream do nor how that relates to the initialization done by
+>> clusterSetRNGStream.  For example, if I do nextRNGStream on node 1, do I
+>> get the same stream as is being used on node 2?
+>>
+>> The documentation does not say that calling nextRNGStream actually
+>> resets the seed, though that seems to be implicit in the example (and is
+>> explicit in one book I found on the net).  I'm also unsure if calling
+>> mc.reset.stream() is necessary after calling clusterSetRNGStream.
+>>
+>> Ross Boylan
+>>
+>> P.S. Using R 3.0.1
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From hanas at uw.edu  Fri Dec 20 11:51:11 2013
+From: hanas at uw.edu (Hana Sevcikova)
+Date: Fri, 20 Dec 2013 10:51:11 +0000
+Subject: [R-sig-hpc] parallel library's random numbers
+In-Reply-To: <52B3B86A.5050102@gmail.com>
+References: <1387488521.10351.43.camel@localhost>	<1387490923.10351.55.camel@localhost>
+	<52B3B86A.5050102@gmail.com>
+Message-ID: <52B4211F.2050908@uw.edu>
+
+Another way is to use the snowFT package which assigns one stream per 
+task instead of one stream per node.
+
+Hana
+
+
+On 20/12/2013 03:24, George Ostrouchov wrote:
+> Ross,
+>
+> Consider writing this SPMD style and run as Rscript. Here is a short
+> example:
+>
+> library(pbdMPI, quiet=TRUE)
+> init()
+> comm.set.seed(1234567, diff=TRUE)
+> r <- runif(5)
+> comm.print(r, all.rank=TRUE)
+> finalize()
+>
+> Put the above 6 lines of R code into file rand.r and then run
+> mpirun -np 2 Rscript rand.r
+> Experiment with diff=FALSE and with more than 2 nodes. Then start
+> reading the vignette for the pbdDEMOpackage.
+>
+> If diff=TRUE, the streams are independent. This uses the package rlecuyer.
+>
+> Good luck!
+>
+> George
+>
+> P.S. I assume your 50 nodes are in a cluster, probably managed with PBS.
+> Then the mpirun is issued after a "qsub -I ..." interactive allocation.
+>
+> On 12/19/13 5:08 PM, Ross Boylan wrote:
+>> On Thu, 2013-12-19 at 13:28 -0800, Ross Boylan wrote:
+>>> Conceptually, I have 2,000 tasks and I want each task to have access to
+>>> an independent, repeatable random number stream.  Many of the tasks will
+>>> run on the same node.  For example, a typical job would be to do tasks
+>>> 200 to 400.
+>>>
+>>> I might do one run with 10 nodes and a later one with 50, but I want the
+>>> same streams for each task.
+>>>
+>>> The facilities in parallel seem designed to achieve repeatable
+>>> randomization for a fixed number of nodes.  Is there a way to get them
+>>> to do what I want?
+>> I'm thinking maybe I should just ignore the parallel random number stuff
+>> and do set.seed(t) before task t.  It's easy to imagine that is not an
+>> entirely safe method, however.
+>>
+>> Ross
+>>> The documentation does not explain what nextRNGStream and
+>>> nextRNGSubStream do nor how that relates to the initialization done by
+>>> clusterSetRNGStream.  For example, if I do nextRNGStream on node 1, do I
+>>> get the same stream as is being used on node 2?
+>>>
+>>> The documentation does not say that calling nextRNGStream actually
+>>> resets the seed, though that seems to be implicit in the example (and is
+>>> explicit in one book I found on the net).  I'm also unsure if calling
+>>> mc.reset.stream() is necessary after calling clusterSetRNGStream.
+>>>
+>>> Ross Boylan
+>>>
+>>> P.S. Using R 3.0.1
+>>>
+>>> _______________________________________________
+>>> R-sig-hpc mailing list
+>>> R-sig-hpc at r-project.org
+>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From martin.ivanov at ifg.uni-tuebingen.de  Fri Dec 20 15:58:15 2013
+From: martin.ivanov at ifg.uni-tuebingen.de (Martin Ivanov)
+Date: Fri, 20 Dec 2013 15:58:15 +0100
+Subject: [R-sig-hpc] Comparison of RNG streams in pbdMPI and parallel
+Message-ID: <52B45B07.6000602@ifg.uni-tuebingen.de>
+
+Dear all,
+
+Please compare the following simple scripts:
+script 1:
+
+library(pbdMPI, quiet = TRUE)
+init()
+# here all ranks get the same RNS stream
+comm.set.seed(seed=123456)
+comm.print(rnorm(5), all.rank = TRUE)
+comm.end.seed()
+# here each rank gets a different RNG stream
+comm.set.seed(seed=123456, diff = TRUE)
+comm.print(rnorm(5), all.rank = TRUE)
+comm.end.seed()
+
+finalize()
+
+and script 2:
+
+library(parallel, quiet = TRUE)
+np <- 2L;
+cl <- makeCluster(spec=np, type="MPI", outfile=""); # here all processes 
+get the same RNS stream
+a <- parSapply(cl=cl, X=1:2, FUN=function(x) { set.seed(seed=123456, 
+kind="L'Ecuyer"); print(rnorm(5));});
+stopCluster(cl=cl);
+
+cl <- makeCluster(spec=np, type="MPI", outfile="");
+clusterSetRNGStream(cl=cl, iseed=123456); # here each process gets a 
+different RNS stream
+a <- parSapply(cl=cl, X=1:2, FUN=function(x) print(rnorm(5)));
+stopCluster(cl=cl);
+mpi.quit();
+
+You can run script 1 with "mpirun -np 2 Rscript script1.R" and script 2 
+with "mpirun -np 1 Rscript script2.R".
+
+I have the following questons:
+1. In script 1, the streams are completely different when diff=TRUE from 
+when diff=FALSE. Shouldn't one of the random vectors in the case
+diff=TRUE be the same as in the case diff=FALSE? This is exactly the 
+case in script 2.
+2. Why are the random vectors generated in script 1 completely different 
+than those generated with script 2,
+despite that the seed is the same, that is seed=123456 in both script 1 
+and script 2?
+3. Is there a better way to implement the same stream for all workers in 
+script 2?
+
+Best regards,
+
+Martin Ivanov
+
+-- 
+Dr. Martin Ivanov
+Eberhard-Karls-Universit?t T?bingen
+Mathematisch-Naturwissenschaftliche Fakult?t
+Fachbereich Geowissenschaften
+Water & Earth System Science (WESS)
+H?lderlinstra?e 12, 72074 T?bingen, Deutschland
+Tel. +4970712974213
+
+

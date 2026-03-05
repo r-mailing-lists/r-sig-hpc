@@ -1,0 +1,561 @@
+From cgf at isep.ipp.pt  Sat Jan 16 13:59:52 2016
+From: cgf at isep.ipp.pt (Carlos Ferreira)
+Date: Sat, 16 Jan 2016 12:59:52 +0000
+Subject: [R-sig-hpc] Extended Deadlines: VECPAR 2016 - High Performance
+ Computing for Computational Science
+Message-ID: <VI1PR04MB1183D279BDA850B289C389C6FACE0@VI1PR04MB1183.eurprd04.prod.outlook.com>
+
+------------------------------------------------------------------------------------------
+                             CALL FOR PAPERS
+12th International Meeting on High-Performance Computing
+         for Computational Science (VECPAR 2016)
+
+                 University of Porto, Porto, Portugal
+                            June 27 - 30, 2016
+                       http://vecpar.fe.up.pt/2016/
+-------------------------------------------------------------------------------------------
+
+IMPORTANT DATES: (EXTENDED DEADLINES!)
+
+Deadline for submission:      *** February 5th, 2016 ***
+Notification of acceptance:   March 20th, 2016
+Camera? ready version:         May 2nd, 2016
+
+
+The International Meeting on High? Performance Computing for Computational Science (VECPAR) is
+the premier venue for presenting and discussing the latest research and practice in high? end
+computer modeling and complex systems. VECPAR encourages submission of research contributions
+from academia, research laboratories and industry to address pressing issues in computational
+science resulting from applications of interest to society and hardware innovations. VECPAR'16,
+the 12th edition of the VECPAR series of conferences is organized by the University of Porto,
+Portugal, and will be held at the Department of Computer Science, School of Sciences.
+
+An award is planned for best student papers.
+
+Contributions are solicited in all areas of computational science and engineering (CS&E),
+including (but not limited to) the following topics:
+
+* Large? scale Simulations in CS&E
+* Parallel and Distributed Computing
+* Parallel Algorithms
+* Numerical Algorithms on Multicore, GPUs and Emerging Architectures
+* Symbolic algorithms on Multicore, GPUs and Emerging Architectures
+* Support Tools and Environments
+* Scheduling and Load Balancing
+* Performance Analysis, Evaluation and Tuning
+
+You should make your submissions through EasyChair at:
+https://www.easychair.org/conferences/?conf=vecpar2016
+
+Submitted papers must be formatted according to  the rules of the Springer Series Lecture Notes in
+Computer Science (LNCS):
+http://www.springer.com/computer/lncs?SGWID=0-164-6-793341-0
+
+Please note that papers (for conference presentation) must not exceed 8 pages in length, using the
+LNCS format. Accepted papers will be distributed in electronic format to participants of VECPAR'16.
+Printed versions of the invited talks and a set of selected papers will be published by Springer in
+the series entitled Lecture Notes in Computer Science. Selected papers will be limited to 14 pages
+and will be judged based on relevance, significance, originality, correctness and clarity. More
+information about this process will be sent to interested authors after the conference.
+
+
+
+Carlos Ferreira
+
+
+[http://www2.isep.ipp.pt/assinatura_email/EMAIL_ISEP.png]
+ISEP | Instituto Superior de Engenharia do Porto
+Rua Dr. Ant?nio Bernardino de Almeida, 431
+4249-015 Porto - PORTUGAL
+tel. +351 228 340 500 | fax +351 228 321 159
+mail at isep.ipp.pt | www.isep.ipp.pt<http://www.isep.ipp.pt>
+
+	[[alternative HTML version deleted]]
+
+
+From gene at ccs.neu.edu  Thu Jan 21 00:59:07 2016
+From: gene at ccs.neu.edu (Gene Cooperman)
+Date: Wed, 20 Jan 2016 18:59:07 -0500
+Subject: [R-sig-hpc] RFC:  Checkpoint-Restart for R/HPC (DMTCP)
+Message-ID: <20160120235907.GA25104@login.ccs.neu.edu>
+
+Hello Everyone,
+
+The R language currently allows the ability through save.image(), for
+saving all objects in a workspace.  But what if you are in the middle of
+a long-running computation in R, and you're worrying about the computer
+crashing?  Wouldn't it be nice if that computation restarted from the
+point that it failed, and continue to complete the computation?
+
+Our group has developed and implemented the DMTCP (Distributed
+MultiThreaded Checkpointing) concepts for more than a decade, which is
+widely-accessed and adopted, and currently is at version 2.4.3.  It allows
+for checkpoint-restart of Linux processes (such as an R session), while
+the calculations are still processing.
+
+ DMTCP information is here:
+    http://dmtcp.sourceforge.net
+
+Building DMTCP is as easy as untar/configure/make.  Below is a simple
+example of how to run R through the DMTCP wrapper:
+
+   $ dmctp_launch --interval 300 R
+      # This session will start R where one would proceed with the
+      # computation;
+      # In this session, at every 300 seconds (5 minutes), it will save:
+      #    1) A checkpoint image file and
+      #    2) A dmtcp_restart_script.sh in the current directory.
+   *** CRASH! *** ( Let's assume the computer crashes, and one then
+reboots.)
+
+   # To restart the computation at the last checkpoint, R is launched as
+   # follows
+:
+   $ ./dmtcp_restart_script.sh
+
+As the BioConductor community is one of the most diverse and largest
+users of R, we would like to get an idea if people would find these
+features helpful.  We would be more than glad to help the R/BioCondutor
+community in creating a package that implements these concepts.  We would
+also be happy to answer any questions you might have.  If you would like
+more details on DMTCP, feel free to look through the questions/answers
+in the DMTCP FAQ ( http://dmtcp.sourceforge.net/FAQ.html ) or you can
+just ask your questions here.
+
+We also have a DMTCP forum, as well as other venues to provide
+a friendly way to get further help from the DMTCP team:
+  http://dmtcp.sourceforge.net/contactUs.html
+
+We look forward to your comments.
+
+Best wishes,
+- Gene Cooperman
+
+
+From b.h.mevik at usit.uio.no  Thu Jan 21 10:05:55 2016
+From: b.h.mevik at usit.uio.no (=?utf-8?Q?Bj=C3=B8rn-Helge_Mevik?=)
+Date: Thu, 21 Jan 2016 10:05:55 +0100
+Subject: [R-sig-hpc] RFC:  Checkpoint-Restart for R/HPC (DMTCP)
+In-Reply-To: <20160120235907.GA25104@login.ccs.neu.edu> (Gene Cooperman's
+	message of "Wed, 20 Jan 2016 18:59:07 -0500")
+References: <20160120235907.GA25104@login.ccs.neu.edu>
+Message-ID: <s3s8u3jz4i4.fsf@varelg.uio.no>
+
+As an administrator for an HPC cluster, I'd say dmtcp for R would be
+very useful.  Some HPC clusters (including our :) implement a
+"lowpri"/"opportunistic" queue, where jobs can be requeued any time a
+higher priority job needs the resources.
+
+An R package that implemented dmtcp integration would be very usable
+also for many users not using BioConductor, so I would suggest creating
+a package that is uploaded to CRAN, so one wouldn't have to install
+BioConductor to use it.
+
+-- 
+Regards,
+Bj?rn-Helge Mevik
+
+
+From cgf at isep.ipp.pt  Fri Jan 22 17:05:26 2016
+From: cgf at isep.ipp.pt (Carlos Ferreira)
+Date: Fri, 22 Jan 2016 16:05:26 +0000
+Subject: [R-sig-hpc] CALL FOR WORKSHOP PROPOSALS: VECPAR 2016 - High
+ Performance Computing for Computational Science
+Message-ID: <VI1PR04MB118388BA59F2358BEBBB4D4AFAC40@VI1PR04MB1183.eurprd04.prod.outlook.com>
+
+As part of the 12th VECPAR International Meeting on High Performance Computing for Computational
+Science, we are seeking proposals for affiliated workshops.
+
+The workshops should be focused in fresh topics related to parallel and distributed computational
+science, from theory to practice, where new ideas, subjects, open problems and works on progress
+can be discussed and explored.
+
+The accepted workshops will be held on 1st of July 2016 and may be organized as half- or full-day.
+
+
+IMPORTANT DATES
+Deadline for workshop proposals: February 15th, 2016
+Notification of acceptance: February 19th, 2016
+Deadline for paper submission: To be defined by the chairs
+Author notification: To be defined by the chairs
+Camera-ready version of papers: May 15th, 2016
+
+
+PROPOSALS GUIDELINES
+Workshop title and acronym;
+Workshop description (150-200 words) to be included in the VECPAR website;
+Name and short bio of the workshop proponents;
+A list of the tentative program committee.
+
+Responsibilities of the Workshop Chairs:
+Prepare a dedicated call for papers;
+Maintain the workshop website;
+Define the workshop program committee;
+Select the papers by a peer review process.
+
+PROCEEDINGS
+The papers of the workshops will be published under the Springer LNCS series. The authors may
+be asked to revise the paper after the conference in order to meet the series requirements.
+
+BUDGET
+VECPAR 2016 will not pay for travel or other arrangements for workshop organizers or any of
+their invited guests.
+
+HOW TO SUBMIT
+The workshop proposals should be sent by email to the Workshops Chair:
+Jo?o Manuel R. S. Tavares
+Faculty of Engineering of the University of Porto, Portugal
+tavares at fe.up.pt
+
+
+Carlos Ferreira
+
+
+[http://www2.isep.ipp.pt/assinatura_email/EMAIL_ISEP.png]
+ISEP | Instituto Superior de Engenharia do Porto
+Rua Dr. Ant?nio Bernardino de Almeida, 431
+4249-015 Porto - PORTUGAL
+tel. +351 228 340 500 | fax +351 228 321 159
+mail at isep.ipp.pt | www.isep.ipp.pt<http://www.isep.ipp.pt>
+
+	[[alternative HTML version deleted]]
+
+
+From anand.chirag at gmail.com  Mon Jan 25 12:56:58 2016
+From: anand.chirag at gmail.com (Chirag Anand)
+Date: Mon, 25 Jan 2016 17:26:58 +0530
+Subject: [R-sig-hpc] RFC: Checkpoint-Restart for R/HPC (DMTCP)
+In-Reply-To: <20160120235907.GA25104@login.ccs.neu.edu>
+References: <20160120235907.GA25104@login.ccs.neu.edu>
+Message-ID: <CAOS9=__PogZN033Ah016zgj6aUSvcHvOXS3j+aTow56B7=4-6A@mail.gmail.com>
+
+This can indeed be very useful, especially while using one of the
+cloud services. Cloud VMs often crash because of an error on the main
+system, thereby, losing state of the program (R computations). I think
+Google Cloud Engine supports live migration of VMs, though not sure
+which technology they are using, but AWS does not.
+
+On 21 January 2016 at 05:29, Gene Cooperman <gene at ccs.neu.edu> wrote:
+> Hello Everyone,
+>
+> The R language currently allows the ability through save.image(), for
+> saving all objects in a workspace.  But what if you are in the middle of
+> a long-running computation in R, and you're worrying about the computer
+> crashing?  Wouldn't it be nice if that computation restarted from the
+> point that it failed, and continue to complete the computation?
+>
+> Our group has developed and implemented the DMTCP (Distributed
+> MultiThreaded Checkpointing) concepts for more than a decade, which is
+> widely-accessed and adopted, and currently is at version 2.4.3.  It allows
+> for checkpoint-restart of Linux processes (such as an R session), while
+> the calculations are still processing.
+>
+>  DMTCP information is here:
+>     http://dmtcp.sourceforge.net
+>
+> Building DMTCP is as easy as untar/configure/make.  Below is a simple
+> example of how to run R through the DMTCP wrapper:
+>
+>    $ dmctp_launch --interval 300 R
+>       # This session will start R where one would proceed with the
+>       # computation;
+>       # In this session, at every 300 seconds (5 minutes), it will save:
+>       #    1) A checkpoint image file and
+>       #    2) A dmtcp_restart_script.sh in the current directory.
+>    *** CRASH! *** ( Let's assume the computer crashes, and one then
+> reboots.)
+>
+>    # To restart the computation at the last checkpoint, R is launched as
+>    # follows
+> :
+>    $ ./dmtcp_restart_script.sh
+>
+> As the BioConductor community is one of the most diverse and largest
+> users of R, we would like to get an idea if people would find these
+> features helpful.  We would be more than glad to help the R/BioCondutor
+> community in creating a package that implements these concepts.  We would
+> also be happy to answer any questions you might have.  If you would like
+> more details on DMTCP, feel free to look through the questions/answers
+> in the DMTCP FAQ ( http://dmtcp.sourceforge.net/FAQ.html ) or you can
+> just ask your questions here.
+>
+> We also have a DMTCP forum, as well as other venues to provide
+> a friendly way to get further help from the DMTCP team:
+>   http://dmtcp.sourceforge.net/contactUs.html
+>
+> We look forward to your comments.
+>
+> Best wishes,
+> - Gene Cooperman
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+
+-- 
+Chirag Anand
+http://atvariance.in/chiraganand
+
+
+From gene at ccs.neu.edu  Tue Jan 26 01:54:35 2016
+From: gene at ccs.neu.edu (Gene Cooperman)
+Date: Mon, 25 Jan 2016 19:54:35 -0500
+Subject: [R-sig-hpc] RFC: Checkpoint-Restart for R/HPC (DMTCP)
+In-Reply-To: <mailman.5.1453374001.22365.r-sig-hpc@r-project.org>
+References: <mailman.5.1453374001.22365.r-sig-hpc@r-project.org>
+Message-ID: <20160126005435.GQ31628@login.ccs.neu.edu>
+
+Hi Bjorn-Helge,
+
+I'd be very happy to package DMTCP as an R package.  However,
+DMTCP is a package written in C/C++ for Linux.  We usually build it as:
+
+  tar zxvf dmtcp.tar.gz
+  cd dmtcp && ./configure && make -j
+
+After that, we would invoke it as:
+
+  path_to_dmtcp_root/bin/dmtcp_launch Rscript myscript.R
+
+or something similar.  In another window, we can then type:
+
+  path_to_dmtcp_root/bin/dmtcp_command --checkpoint
+
+So we're using DMTCP from the outside of R.  If it's easier for
+users to invoke DMTCP from inside R, I'm happy to collaborate,
+but I'm not an expert in R, and would appreciate advice.
+
+Best,
+- Gene
+
+> Date: Thu, 21 Jan 2016 10:05:55 +0100
+> From: Bj?rn-Helge Mevik <b.h.mevik at usit.uio.no>
+> To: r-sig-hpc at r-project.org
+> Subject: Re: [R-sig-hpc] RFC:  Checkpoint-Restart for R/HPC (DMTCP)
+> Message-ID: <s3s8u3jz4i4.fsf at varelg.uio.no>
+> Content-Type: text/plain; charset=utf-8
+> 
+> As an administrator for an HPC cluster, I'd say dmtcp for R would be
+> very useful.  Some HPC clusters (including our :) implement a
+> "lowpri"/"opportunistic" queue, where jobs can be requeued any time a
+> higher priority job needs the resources.
+> 
+> An R package that implemented dmtcp integration would be very usable
+> also for many users not using BioConductor, so I would suggest creating
+> a package that is uploaded to CRAN, so one wouldn't have to install
+> BioConductor to use it.
+> 
+> -- 
+> Regards,
+> Bj?rn-Helge Mevik
+
+
+From gene at ccs.neu.edu  Tue Jan 26 02:03:52 2016
+From: gene at ccs.neu.edu (Gene Cooperman)
+Date: Mon, 25 Jan 2016 20:03:52 -0500
+Subject: [R-sig-hpc] RFC: Checkpoint-Restart for R/HPC (DMTCP)
+In-Reply-To: <CAOS9=__PogZN033Ah016zgj6aUSvcHvOXS3j+aTow56B7=4-6A@mail.gmail.com>
+References: <20160120235907.GA25104@login.ccs.neu.edu>
+	<CAOS9=__PogZN033Ah016zgj6aUSvcHvOXS3j+aTow56B7=4-6A@mail.gmail.com>
+Message-ID: <20160126010352.GR31628@login.ccs.neu.edu>
+
+Hi Chirag,
+
+    This should work.  In my case, I would probably try running
+a job on a cloud as follows:
+
+    [ copy DMTCP executables to job submission directory ]
+    path_to_dmtcp_root/bin/dmtcp_launch -i 30 Rscript myscript.R
+
+This would create a checkpoint every 30 seconds.  So, every 30 seconds,
+we get a new version of the following files:
+
+    ckpt_myscript.R_*.dmtcp
+    dmtcp_restart_script_*.sh
+    dmtpc_restart_script.sh  (symbolic link to dmtcp_restart_script_*.sh)
+
+If a job crashes, one copies the above files to a new directory, and
+submits a new Cloud job:
+
+    [ copy DMTCP executables to job submission directory ]
+    ./dmtcp_restart_script.sh -i 30
+
+The script should automatically link to the file ckpt_myscript.R_*.dmtcp .
+An alternative approach would be:
+
+    path_to_dmtcp_root/bin/dmtcp_restart -i 30 ckpt_myscript.R_*.dmtcp
+
+Please don't hesitate to ask, if I can help further.
+
+Best,
+- Gene
+
+
+On Mon, Jan 25, 2016 at 05:26:58PM +0530, Chirag Anand wrote:
+> This can indeed be very useful, especially while using one of the
+> cloud services. Cloud VMs often crash because of an error on the main
+> system, thereby, losing state of the program (R computations). I think
+> Google Cloud Engine supports live migration of VMs, though not sure
+> which technology they are using, but AWS does not.
+> 
+...
+> 
+> -- 
+> Chirag Anand
+> http://atvariance.in/chiraganand
+
+
+From rkoenker at illinois.edu  Fri Jan 29 15:26:09 2016
+From: rkoenker at illinois.edu (Roger)
+Date: Fri, 29 Jan 2016 08:26:09 -0600
+Subject: [R-sig-hpc] RFC: Checkpoint-Restart for R/HPC (DMTCP)Qaqaoi
+In-Reply-To: <930340e110874a13aed2e128bf09040b@CITESHT2.ad.uillinois.edu>
+References: <mailman.5.1453374001.22365.r-sig-hpc@r-project.org>
+	<930340e110874a13aed2e128bf09040b@CITESHT2.ad.uillinois.edu>
+Message-ID: <562AAE68-DE6E-43CD-8ADD-A2CA4BF4E5BC@illinois.edu>
+
+cats w
+
+Sent from my iPhone
+
+> On Jan 25, 2016, at 6:54 PM, Gene Cooperman <gene at ccs.neu.edu> wrote:
+> 
+> Hi Bjorn-Helge,
+> 
+> I'd be very happy to package DMTCP as an R package.  However,
+> DMTCP is a package written in C/C++ for Linux.  We usually build it as:
+> 
+>  tar zxvf dmtcp.tar.gz
+>  cd dmtcp && ./configure && make -j
+> 
+> After that, we would invoke it as:
+> 
+>  path_to_dmtcp_root/bin/dmtcp_launch Rscript myscript.R
+> 
+> or something similar.  In another window, we can then type:
+> 
+>  path_to_dmtcp_root/bin/dmtcp_command --checkpoint
+> 
+> So we're using DMTCP from the outside of R.  If it's easier for
+> users to invoke DMTCP from inside R, I'm happy to collaborate,
+> but I'm not an expert in R, and would appreciate advice.
+> 
+> Best,
+> - Gene
+> 
+>> Date: Thu, 21 Jan 2016 10:05:55 +0100
+>> From: Bj?rn-Helge Mevik <b.h.mevik at usit.uio.no>
+>> To: r-sig-hpc at r-project.org
+>> Subject: Re: [R-sig-hpc] RFC:  Checkpoint-Restart for R/HPC (DMTCP)
+>> Message-ID: <s3s8u3jz4i4.fsf at varelg.uio.no>
+>> Content-Type: text/plain; charset=utf-8
+>> 
+>> As an administrator for an HPC cluster, I'd say dmtcp for R would be
+>> very useful.  Some HPC clusters (including our :) implement a
+>> "lowpri"/"opportunistic" queue, where jobs can be requeued any time a
+>> higher priority job needs the resources.
+>> 
+>> An R package that implemented dmtcp integration would be very usable
+>> also for many users not using BioConductor, so I would suggest creating
+>> a package that is uploaded to CRAN, so one wouldn't have to install
+>> BioConductor to use it.
+>> 
+>> -- 
+>> Regards,
+>> Bj?rn-Helge Mevik
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From qkou at umail.iu.edu  Sun Jan 31 04:04:37 2016
+From: qkou at umail.iu.edu (Qiang Kou)
+Date: Sat, 30 Jan 2016 22:04:37 -0500
+Subject: [R-sig-hpc] RFC: Checkpoint-Restart for R/HPC (DMTCP)
+In-Reply-To: <20160126010352.GR31628@login.ccs.neu.edu>
+References: <20160120235907.GA25104@login.ccs.neu.edu>
+	<CAOS9=__PogZN033Ah016zgj6aUSvcHvOXS3j+aTow56B7=4-6A@mail.gmail.com>
+	<20160126010352.GR31628@login.ccs.neu.edu>
+Message-ID: <CAJ_LAMD5FjrNmn=8uwVFk+1RcNFV+SnMKxS2AfcAqfCPhcYtyw@mail.gmail.com>
+
+Hi, Gene,
+
+I know DMTCP from the scipy conference. Your colleague showed a python
+binding.
+
+I have also tried to invoke dmtcp inside R just like your python binding.
+
+It is not difficult as I remember.
+
+Best,
+
+KK
+
+On Mon, Jan 25, 2016 at 8:03 PM, Gene Cooperman <gene at ccs.neu.edu> wrote:
+
+> Hi Chirag,
+>
+>     This should work.  In my case, I would probably try running
+> a job on a cloud as follows:
+>
+>     [ copy DMTCP executables to job submission directory ]
+>     path_to_dmtcp_root/bin/dmtcp_launch -i 30 Rscript myscript.R
+>
+> This would create a checkpoint every 30 seconds.  So, every 30 seconds,
+> we get a new version of the following files:
+>
+>     ckpt_myscript.R_*.dmtcp
+>     dmtcp_restart_script_*.sh
+>     dmtpc_restart_script.sh  (symbolic link to dmtcp_restart_script_*.sh)
+>
+> If a job crashes, one copies the above files to a new directory, and
+> submits a new Cloud job:
+>
+>     [ copy DMTCP executables to job submission directory ]
+>     ./dmtcp_restart_script.sh -i 30
+>
+> The script should automatically link to the file ckpt_myscript.R_*.dmtcp .
+> An alternative approach would be:
+>
+>     path_to_dmtcp_root/bin/dmtcp_restart -i 30 ckpt_myscript.R_*.dmtcp
+>
+> Please don't hesitate to ask, if I can help further.
+>
+> Best,
+> - Gene
+>
+>
+> On Mon, Jan 25, 2016 at 05:26:58PM +0530, Chirag Anand wrote:
+> > This can indeed be very useful, especially while using one of the
+> > cloud services. Cloud VMs often crash because of an error on the main
+> > system, thereby, losing state of the program (R computations). I think
+> > Google Cloud Engine supports live migration of VMs, though not sure
+> > which technology they are using, but AWS does not.
+> >
+> ...
+> >
+> > --
+> > Chirag Anand
+> > http://atvariance.in/chiraganand
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+
+-- 
+Qiang Kou
+qkou at umail.iu.edu
+School of Informatics and Computing, Indiana University
+
+	[[alternative HTML version deleted]]
+
+

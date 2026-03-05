@@ -1,0 +1,3233 @@
+From Debabrata.Midya at services.nsw.gov.au  Wed Dec  9 05:02:33 2009
+From: Debabrata.Midya at services.nsw.gov.au (Debabrata Midya)
+Date: Wed, 09 Dec 2009 15:02:33 +1100
+Subject: [R-sig-hpc] Parallel version of the code below - Dual core or more
+Message-ID: <4B1FBC09.5860.00D0.0@services.nsw.gov.au>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20091209/4a2cf156/attachment.pl>
+
+From saptarshi.guha at gmail.com  Wed Dec  9 16:44:27 2009
+From: saptarshi.guha at gmail.com (Saptarshi Guha)
+Date: Wed, 9 Dec 2009 10:44:27 -0500
+Subject: [R-sig-hpc] Snow, nws: machine failures and task re-assignment
+Message-ID: <1e7471d50912090744k304eaa71wb8c7c762743e569f@mail.gmail.com>
+
+Hello,
+Suppose I run snow on  cluster using MPI as the backend. Does it
+handle the case of a compute node(the entire machine)
+failing and reassigning the task to the another machine?
+
+Regards
+Saptarshi
+
+
+From stephen.b.weston at gmail.com  Wed Dec  9 16:49:44 2009
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Wed, 9 Dec 2009 10:49:44 -0500
+Subject: [R-sig-hpc] new doMPI package available on CRAN
+Message-ID: <57e838140912090749i4f9f2b85v65636e9eb9d00b9c@mail.gmail.com>
+
+I'd like to announce the availability of the new "doMPI" package, a
+parallel backend for the "foreach" package, which acts as an adaptor to
+the "Rmpi" package.  The package has been uploaded to CRAN and is now
+available.
+
+I wrote this package after leaving REvolution Computing because I liked
+the foreach package, wanted to learn more about the Rmpi package, and
+thought it might be of value to the R community by combining the speed
+of Rmpi with the ease of use of foreach.  Perhaps that's an odd way to
+spend my time when my wife probably thinks I should be looking for a job.
+I guess I'm obsessive.  And I thought it would only take a week or two.
+
+I'm not really sure if I succeeded in making a package that is substantially
+better than the doSNOW package that I wrote previously, at least on smaller
+clusters where broadcasting isn't very helpful.  I ended up adding tuning
+arguments that allow broadcasting to be turned off, force the use of piggy-
+backing shared data with the first task, etc.  At any rate, I learned a lot,
+had fun, and gained an even deeper appreciation of the excellent snow
+package during my testing and benchmarking.
+
+I would like to thank Dirk Eddelbuettel and Bryan Lewis for their help
+on the doMPI package.  Both found problems in the package, and gave me
+valuable feedback.  I was also greatly helped by Dirk's excellent "HPC
+with R" tutorial.  It has information on using Rmpi that I didn't find
+anywhere else.  Bryan researched various MPI topics for me, and gave me
+access to an excellent little cluster for testing purposes.
+
+Also note that the package includes a vignette which has information
+on running doMPI scripts using the orterun command.  I'm tempted to
+write a similar article for snow, since there doesn't seem to be much
+information available on that subject outside of Dirk's tutorial.
+
+- Steve Weston
+
+
+From stephen.b.weston at gmail.com  Wed Dec  9 17:12:29 2009
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Wed, 9 Dec 2009 11:12:29 -0500
+Subject: [R-sig-hpc] Snow, nws: machine failures and task re-assignment
+In-Reply-To: <1e7471d50912090744k304eaa71wb8c7c762743e569f@mail.gmail.com>
+References: <1e7471d50912090744k304eaa71wb8c7c762743e569f@mail.gmail.com>
+Message-ID: <57e838140912090812i25c393c0m5353b609287bcc8@mail.gmail.com>
+
+No, it doesn't do that.  I believe that's the idea of the
+snowFT package, but it uses PVM/rpvm, not MPI.
+
+- Steve
+
+
+On Wed, Dec 9, 2009 at 10:44 AM, Saptarshi Guha
+<saptarshi.guha at gmail.com> wrote:
+> Hello,
+> Suppose I run snow on ?cluster using MPI as the backend. Does it
+> handle the case of a compute node(the entire machine)
+> failing and reassigning the task to the another machine?
+>
+> Regards
+> Saptarshi
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From Debabrata.Midya at services.nsw.gov.au  Wed Dec  9 23:12:10 2009
+From: Debabrata.Midya at services.nsw.gov.au (Debabrata Midya)
+Date: Thu, 10 Dec 2009 09:12:10 +1100
+Subject: [R-sig-hpc] foreach package - Parallel Apply (Section 5.2 in
+	Vignettes	foreach Manual)
+Message-ID: <4B20BB69.5860.00D0.0@services.nsw.gov.au>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20091210/abeafe99/attachment.pl>
+
+From edd at debian.org  Wed Dec  9 23:38:30 2009
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Wed, 9 Dec 2009 16:38:30 -0600
+Subject: [R-sig-hpc] foreach package - Parallel Apply (Section 5.2
+	in	Vignettes	foreach Manual)
+In-Reply-To: <4B20BB69.5860.00D0.0@services.nsw.gov.au>
+References: <4B20BB69.5860.00D0.0@services.nsw.gov.au>
+Message-ID: <19232.9958.553470.462263@ron.nulle.part>
+
+
+On 10 December 2009 at 09:12, Debabrata Midya wrote:
+| Dear hpc users,
+|  
+| Thanks in advance.
+|  
+| I am using R 2.10.0 on Windows XP, Intel(R) Core(TM) 2 Duo CPU E8400 @3.00GHz 2.99GHz, 1.96 of RAM.
+|  
+| I need you assistance to solve the problem below:
+|  
+| foreach package - Parallel Apply (Section 5.2 in Vignettes foreach Manual)
+|  
+| "Now we're only sending any given column of the matrix to one parallel execution worker. But it
+| would be even more efficient if we sent the matrix in bigger chunks. To do that, we use a function
+| called iblkcol that returns an iterator that will return multiple columns of the original matrix.
+| That means that the R expression will need to execute the user's function once for every column in
+| its submatrix".
+|  
+| The function below is from the above Vigenette:
+|  
+| applyKernel <- function(newX, FUN, d2, d.call, dn.call = NULL, ...) {
+|  foreach(x = iblkcol(newX, 3), .combine = "c", .packages = "foreach") %dopar%
+|  {
+|     foreach(i = 1:ncol(x)) %do% FUN(array(x[, i], d.call, dn.call), ...)
+|  }
+| }
+|  
+| > applyKernel(matrix(1:16, 4), mean, 4, 4)
+|  
+| Error in eval(expr, envir, enclos) : could not find function "iblkcol"
+|  
+| How can I get this function?
+
+I am not sure how familiar you are with vignettes but the key is that they
+contain all the code.  So here it is, straight from the package sources. The
+<<...>> and @ lines are the Sweave markers, R code is in-between.
+
+<<ex13.iter, results=hide, echo=FALSE>>=
+iblkcol <- function(a, chunks) {
+  n <- ncol(a)
+  i <- 1
+
+  nextElem <- function() {
+    if (chunks <= 0 || n <= 0) stop('StopIteration')
+    m <- ceiling(n / chunks)
+    r <- seq(i, length=m)
+    i <<- i + m
+    n <<- n - m
+    chunks <<- chunks - 1
+    a[,r, drop=FALSE]
+  }
+
+  structure(list(nextElem=nextElem), class=c('iblkcol', 'iter'))
+}
+nextElem.iblkcol <- function(obj) obj$nextElem()
+@
+
+
+Use the sources for R and its packages. They are a much-underused treasure.
+
+Dirk
+
+|  
+| Once again, thank you very much for the time you have given.
+| 
+|  
+| I am looking forward for your reply.
+|  
+| Regards,
+|  
+| Deb
+| 
+| 	[[alternative HTML version deleted]]
+| 
+| _______________________________________________
+| R-sig-hpc mailing list
+| R-sig-hpc at r-project.org
+| https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+-- 
+Three out of two people have difficulties with fractions.
+
+
+From stephen.b.weston at gmail.com  Thu Dec 10 00:07:33 2009
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Wed, 9 Dec 2009 18:07:33 -0500
+Subject: [R-sig-hpc] foreach package - Parallel Apply (Section 5.2 in
+	Vignettes foreach Manual)
+In-Reply-To: <19232.9958.553470.462263@ron.nulle.part>
+References: <4B20BB69.5860.00D0.0@services.nsw.gov.au>
+	<19232.9958.553470.462263@ron.nulle.part>
+Message-ID: <57e838140912091507j4f6aba4fy2fb78237802d0d01@mail.gmail.com>
+
+It's worth noting that the iter method for matrices also allows you to iterate
+over multiple columns at a time.  But instead of specifying the number
+of blocks, you have to specify the number of columns in each block.
+
+Here's an example:
+
+> library(iterators)
+> x <- matrix(rnorm(16), 4, 4)
+> it <- iter(x, chunksize=2)
+> print(as.list(it))
+[[1]]
+           [,1]       [,2]
+[1,]  0.1811217  1.7126129
+[2,]  0.1415969  0.6980985
+[3,] -1.3921071 -0.9700261
+[4,] -1.2338734 -0.5530707
+
+[[2]]
+           [,1]        [,2]
+[1,] -1.1162171  1.09920729
+[2,]  0.9893546 -0.37677605
+[3,] -0.5508948 -0.02057267
+[4,] -0.3817569 -1.53422901
+
+The other method is more convenient when you want to
+split up the work evenly between all of the parallel workers,
+however.
+
+- Steve
+
+
+On Wed, Dec 9, 2009 at 5:38 PM, Dirk Eddelbuettel <edd at debian.org> wrote:
+>
+> On 10 December 2009 at 09:12, Debabrata Midya wrote:
+> | Dear hpc users,
+> |
+> | Thanks in advance.
+> |
+> | I am using R 2.10.0 on Windows XP, Intel(R) Core(TM) 2 Duo CPU E8400 @3.00GHz 2.99GHz, 1.96 of RAM.
+> |
+> | I need you assistance to solve the problem below:
+> |
+> | foreach package - Parallel Apply (Section 5.2 in Vignettes foreach Manual)
+> |
+> | "Now we're only sending any given column of the matrix to one parallel execution worker. But it
+> | would be even more efficient if we sent the matrix in bigger chunks. To do that, we use a function
+> | called iblkcol that returns an iterator that will return multiple columns of the original matrix.
+> | That means that the R expression will need to execute the user's function once for every column in
+> | its submatrix".
+> |
+> | The function below is from the above Vigenette:
+> |
+> | applyKernel <- function(newX, FUN, d2, d.call, dn.call = NULL, ...) {
+> | ?foreach(x = iblkcol(newX, 3), .combine = "c", .packages = "foreach") %dopar%
+> | ?{
+> | ? ? foreach(i = 1:ncol(x)) %do% FUN(array(x[, i], d.call, dn.call), ...)
+> | ?}
+> | }
+> |
+> | > applyKernel(matrix(1:16, 4), mean, 4, 4)
+> |
+> | Error in eval(expr, envir, enclos) : could not find function "iblkcol"
+> |
+> | How can I get this function?
+>
+> I am not sure how familiar you are with vignettes but the key is that they
+> contain all the code. ?So here it is, straight from the package sources. The
+> <<...>> and @ lines are the Sweave markers, R code is in-between.
+>
+> <<ex13.iter, results=hide, echo=FALSE>>=
+> iblkcol <- function(a, chunks) {
+> ?n <- ncol(a)
+> ?i <- 1
+>
+> ?nextElem <- function() {
+> ? ?if (chunks <= 0 || n <= 0) stop('StopIteration')
+> ? ?m <- ceiling(n / chunks)
+> ? ?r <- seq(i, length=m)
+> ? ?i <<- i + m
+> ? ?n <<- n - m
+> ? ?chunks <<- chunks - 1
+> ? ?a[,r, drop=FALSE]
+> ?}
+>
+> ?structure(list(nextElem=nextElem), class=c('iblkcol', 'iter'))
+> }
+> nextElem.iblkcol <- function(obj) obj$nextElem()
+> @
+>
+>
+> Use the sources for R and its packages. They are a much-underused treasure.
+>
+> Dirk
+>
+> |
+> | Once again, thank you very much for the time you have given.
+> |
+> |
+> | I am looking forward for your reply.
+> |
+> | Regards,
+> |
+> | Deb
+> |
+> | ? ? ? [[alternative HTML version deleted]]
+> |
+> | _______________________________________________
+> | R-sig-hpc mailing list
+> | R-sig-hpc at r-project.org
+> | https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+> --
+> Three out of two people have difficulties with fractions.
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From Debabrata.Midya at services.nsw.gov.au  Thu Dec 10 00:24:18 2009
+From: Debabrata.Midya at services.nsw.gov.au (Debabrata Midya)
+Date: Thu, 10 Dec 2009 10:24:18 +1100
+Subject: [R-sig-hpc] foreach package - Parallel Apply (Section 5.2	in
+	Vignettes foreach Manual)
+In-Reply-To: <57e838140912091507j4f6aba4fy2fb78237802d0d01@mail.gmail.com>
+References: <4B20BB69.5860.00D0.0@services.nsw.gov.au>
+	<19232.9958.553470.462263@ron.nulle.part>
+	<57e838140912091507j4f6aba4fy2fb78237802d0d01@mail.gmail.com>
+Message-ID: <4B20CC52.5860.00D0.0@services.nsw.gov.au>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20091210/ba491cb7/attachment.pl>
+
+From stephen.b.weston at gmail.com  Thu Dec 10 00:31:19 2009
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Wed, 9 Dec 2009 18:31:19 -0500
+Subject: [R-sig-hpc] foreach package - Parallel Apply (Section 5.2 in
+	Vignettes foreach Manual)
+In-Reply-To: <4B20CC52.5860.00D0.0@services.nsw.gov.au>
+References: <4B20BB69.5860.00D0.0@services.nsw.gov.au>
+	<19232.9958.553470.462263@ron.nulle.part>
+	<57e838140912091507j4f6aba4fy2fb78237802d0d01@mail.gmail.com>
+	<4B20CC52.5860.00D0.0@services.nsw.gov.au>
+Message-ID: <57e838140912091531k55b479bapd5ea0a29e6259605@mail.gmail.com>
+
+You can iterate by rows using the "by" argument
+as follows:
+
+> library(iterators)
+> x <- matrix(rnorm(16), 4, 4)
+> it <- iter(x, by='row', chunksize=2)
+> print(as.list(it))
+[[1]]
+          [,1]      [,2]      [,3]       [,4]
+[1,] 0.0856324  1.669167 -1.002161 -0.5635069
+[2,] 0.5784011 -2.306515 -1.335513  0.3340934
+
+[[2]]
+          [,1]       [,2]       [,3]       [,4]
+[1,] -1.548765  0.7862464 -0.5746842 -1.6977693
+[2,]  0.707212 -0.4903425  1.7908369 -0.9125944
+
+- Steve
+
+
+On Wed, Dec 9, 2009 at 6:24 PM, Debabrata Midya
+<Debabrata.Midya at services.nsw.gov.au> wrote:
+> Stephen,
+>
+> Thanks for such a quick response. Your advice will assist me a lot.
+>
+> One clarification please.
+>
+> "... allows you to iterate over multiple columns at a time. ...".
+>
+> Is it possible to do over multiple rows at a time?
+>
+> Once again, thank you very much for the time you have given.
+> I am looking forward for your reply.
+>
+> Regards,
+> Deb
+>
+>>>> Stephen Weston <stephen.b.weston at gmail.com> 10/12/2009 10:07 am >>>
+> It's worth noting that the iter method for matrices also allows you to
+> iterate
+> over multiple columns at a time.? But instead of specifying the number
+> of blocks, you have to specify the number of columns in each block.
+>
+> Here's an example:
+>
+>> library(iterators)
+>> x <- matrix(rnorm(16), 4, 4)
+>> it <- iter(x, chunksize=2)
+>> print(as.list(it))
+> [[1]]
+> ?????????? [,1]?????? [,2]
+> [1,]? 0.1811217? 1.7126129
+> [2,]? 0.1415969? 0.6980985
+> [3,] -1.3921071 -0.9700261
+> [4,] -1.2338734 -0.5530707
+>
+> [[2]]
+> ?????????? [,1]??????? [,2]
+> [1,] -1.1162171? 1.09920729
+> [2,]? 0.9893546 -0.37677605
+> [3,] -0.5508948 -0.02057267
+> [4,] -0.3817569 -1.53422901
+>
+> The other method is more convenient when you want to
+> split up the work evenly between all of the parallel workers,
+> however.
+>
+> - Steve
+>
+>
+> On Wed, Dec 9, 2009 at 5:38 PM, Dirk Eddelbuettel <edd at debian.org> wrote:
+>>
+>> On 10 December 2009 at 09:12, Debabrata Midya wrote:
+>> | Dear hpc users,
+>> |
+>> | Thanks in advance.
+>> |
+>> | I am using R 2.10.0 on Windows XP, Intel(R) Core(TM) 2 Duo CPU E8400
+>> @3.00GHz 2.99GHz, 1.96 of RAM.
+>> |
+>> | I need you assistance to solve the problem below:
+>> |
+>> | foreach package - Parallel Apply (Section 5.2 in Vignettes foreach
+>> Manual)
+>> |
+>> | "Now we're only sending any given column of the matrix to one parallel
+>> execution worker. But it
+>> | would be even more efficient if we sent the matrix in bigger chunks. To
+>> do that, we use a function
+>> | called iblkcol that returns an iterator that will return multiple
+>> columns of the original matrix.
+>> | That means that the R expression will need to execute the user's
+>> function once for every column in
+>> | its submatrix".
+>> |
+>> | The function below is from the above Vigenette:
+>> |
+>> | applyKernel <- function(newX, FUN, d2, d.call, dn.call = NULL, ...) {
+>> |? foreach(x = iblkcol(newX, 3), .combine = "c", .packages = "foreach")
+>> %dopar%
+>> |? {
+>> |???? foreach(i = 1:ncol(x)) %do% FUN(array(x[, i], d.call, dn.call), ...)
+>> |? }
+>> | }
+>> |
+>> | > applyKernel(matrix(1:16, 4), mean, 4, 4)
+>> |
+>> | Error in eval(expr, envir, enclos) : could not find function "iblkcol"
+>> |
+>> | How can I get this function?
+>>
+>> I am not sure how familiar you are with vignettes but the key is that they
+>> contain all the code.? So here it is, straight from the package sources.
+>> The
+>> <<...>> and @ lines are the Sweave markers, R code is in-between.
+>>
+>> <<ex13.iter, results=hide, echo=FALSE>>=
+>> iblkcol <- function(a, chunks) {
+>>? n <- ncol(a)
+>>? i <- 1
+>>
+>>? nextElem <- function() {
+>>??? if (chunks <= 0 || n <= 0) stop('StopIteration')
+>>??? m <- ceiling(n / chunks)
+>>??? r <- seq(i, length=m)
+>>??? i <<- i + m
+>>??? n <<- n - m
+>>??? chunks <<- chunks - 1
+>>??? a[,r, drop=FALSE]
+>>? }
+>>
+>>? structure(list(nextElem=nextElem), class=c('iblkcol', 'iter'))
+>> }
+>> nextElem.iblkcol <- function(obj) obj$nextElem()
+>> @
+>>
+>>
+>> Use the sources for R and its packages. They are a much-underused
+>> treasure.
+>>
+>> Dirk
+>>
+>> |
+>> | Once again, thank you very much for the time you have given.
+>> |
+>> |
+>> | I am looking forward for your reply.
+>> |
+>> | Regards,
+>> |
+>> | Deb
+>> |
+>> |?????? [[alternative HTML version deleted]]
+>> |
+>> | _______________________________________________
+>> | R-sig-hpc mailing list
+>> | R-sig-hpc at r-project.org
+>> | https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>> --
+>> Three out of two people have difficulties with fractions.
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>
+
+
+From Debabrata.Midya at services.nsw.gov.au  Thu Dec 10 00:52:43 2009
+From: Debabrata.Midya at services.nsw.gov.au (Debabrata Midya)
+Date: Thu, 10 Dec 2009 10:52:43 +1100
+Subject: [R-sig-hpc] Parallel version of the code below - Dual core	or
+	more
+In-Reply-To: <32e7d95c0912090854n76b5eaa2s6f88a8cc848e8235@mail.gmail.com>
+References: <4B1FBC09.5860.00D0.0@services.nsw.gov.au>
+	<32e7d95c0912090854n76b5eaa2s6f88a8cc848e8235@mail.gmail.com>
+Message-ID: <4B20D2FA.5860.00D0.0@services.nsw.gov.au>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20091210/f15c40a2/attachment.pl>
+
+From stephen.b.weston at gmail.com  Thu Dec 10 01:26:27 2009
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Wed, 9 Dec 2009 19:26:27 -0500
+Subject: [R-sig-hpc] Parallel version of the code below - Dual core or
+	more
+In-Reply-To: <4B20D2FA.5860.00D0.0@services.nsw.gov.au>
+References: <4B1FBC09.5860.00D0.0@services.nsw.gov.au>
+	<32e7d95c0912090854n76b5eaa2s6f88a8cc848e8235@mail.gmail.com>
+	<4B20D2FA.5860.00D0.0@services.nsw.gov.au>
+Message-ID: <57e838140912091626s1558997ameedce5961e92f75d@mail.gmail.com>
+
+Using doSNOW with a socket cluster is probably your best bet.
+
+- Steve
+
+
+On Wed, Dec 9, 2009 at 6:52 PM, Debabrata Midya
+<Debabrata.Midya at services.nsw.gov.au> wrote:
+> Tim,
+>
+> Thanks for your reply.
+>
+> One clarification please.
+>
+> I am using R 2.10.0 on Windows XP, Intel(R) Core(TM) 2 Duo CPU E8400 @3.00GHz 2.99GHz, 1.96 of RAM.
+> I have checked that Windows binary of doMC is not available. Any advice.
+>
+> Once again, thank you very much for the time you have given.
+>
+> Regards,
+>
+> Deb
+>
+>>>> Tim Triche <tim.triche at gmail.com> 10/12/2009 3:54 am >>>
+> library(foreach)
+> library(doMC) # or doWhatever, take your pick
+> registerDoMC(4)
+>
+> results <- foreach( j=1:itermax ) %dopar% {
+>
+> # stuff
+> if( converged ) break
+>
+> }
+>
+> The details are up to you. I don't remember how best to break out of a foreach loop, try help('foreach').
+> Have fun. It's pretty straightforward once you get used to foreach() behavior, less so up to that point.
+> But it's a really useful tool to have in your arsenal for the problem you describe. Try to loop over the biggest chunks of processing you can get away with, as fork()ing processes has some consequences.
+>
+>
+>
+> On Tue, Dec 8, 2009 at 8:02 PM, Debabrata Midya <Debabrata.Midya at services.nsw.gov.au> wrote:
+>
+>
+>
+> Dear hpc users,
+>
+> Thanks in advance.
+>
+> I am using R 2.10.0 on Windows XP, Intel(R) Core(TM) 2 Duo CPU E8400 @3.00GHz 2.99GHz, 1.96 of RAM.
+>
+> I like to have a parallel version of the code below. This is an example code only.
+>
+> A: cursol contains values of x[1], x[2], x[3] and minimum value from func using x's.
+>
+> ###########
+> # Code starts
+> ###########
+>
+> func <- function(x)
+> {
+> 10 * x[1] - 11 * x[2] + 12 * x[3]
+> }
+>
+> main <- function(xl, xu)
+> {
+> checkval <- function(x, xl, xu)
+> {
+> i <- 1
+> while (i <= 3)
+> {
+> if (x[i] < xl[i]) x[i] <- xl[i]
+> if (x[i] > xu[i]) x[i] <- xu[i]
+> i <- i + 1
+> }
+> x
+> }
+>
+> itermax <- 50
+>
+> j <- 1
+> while (j <= itermax)
+> {
+> # trainX is a matrix of 3 x 3
+> trainX <- matrix(rep(xl, 3), 3, 3, byrow=TRUE) + matrix(runif(9, 0, 1), 3, 3)
+> trainX
+> trainX <- t(apply(trainX, 1, checkval, xl, xu))
+> trainX
+> sold <- apply(trainX, 1, func)
+> osold <- cbind(1:3, sold)
+> osold <- osold[order(osold[, 2]), ]
+> osold
+>
+> if (j > 1)
+> {
+> if (osold[1, 2] < cursol[1, 4])
+> {
+> cursol <- matrix(c(trainX[osold[1,1], ], osold[1,2]), 1, 4)
+> }
+> else
+> {
+> cursol <- cursol
+> }
+> }
+>
+> if (j <= 1)
+> {
+> cursol <- matrix(c(trainX[osold[1,1], ], osold[1,2]), 1, 4)
+> }
+>
+> cursol
+> j <- j + 1
+> }
+>
+> cursol
+> }
+>
+> xl <- c(1, 2, 3)
+> xu <- c(2, 3, 4)
+>
+> cursol <- main(xl, xu)
+> cursol
+>
+>
+> ###########
+> # Code ends
+> ###########
+>
+> Once again, thank you very much for the time you have given.
+>
+> I am looking forward for your reply.
+>
+> Regards,
+>
+> Deb
+>
+>
+> [[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+>
+>
+>
+> --
+> Absolute certainty is the privilege of mathematicians and madmen.
+> It is, for scientists, an unobtainable ideal.
+> --Cassius J. Keyser
+>
+> ? ? ? ?[[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From Debabrata.Midya at services.nsw.gov.au  Thu Dec 10 04:39:58 2009
+From: Debabrata.Midya at services.nsw.gov.au (Debabrata Midya)
+Date: Thu, 10 Dec 2009 14:39:58 +1100
+Subject: [R-sig-hpc] Parallel version of the code below - Dual core	or
+	more
+In-Reply-To: <57e838140912091813g3754fe6dt750d05e31e8d69b1@mail.gmail.com>
+References: <4B1FBC09.5860.00D0.0@services.nsw.gov.au>
+	<32e7d95c0912090854n76b5eaa2s6f88a8cc848e8235@mail.gmail.com>
+	<4B20D2FA.5860.00D0.0@services.nsw.gov.au>
+	<57e838140912091626s1558997ameedce5961e92f75d@mail.gmail.com>
+	<4B204D70.8040905@fhcrc.org>
+	<57e838140912091813g3754fe6dt750d05e31e8d69b1@mail.gmail.com>
+Message-ID: <4B21083D.5860.00D0.0@services.nsw.gov.au>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20091210/e95757fd/attachment.pl>
+
+From sebastian.rohrer at basf.com  Thu Dec 10 10:32:27 2009
+From: sebastian.rohrer at basf.com (sebastian.rohrer at basf.com)
+Date: Thu, 10 Dec 2009 10:32:27 +0100
+Subject: [R-sig-hpc] Plain: Error loading Rmpi
+Message-ID: <OFA22A2261.83821AFD-ONC1257688.0034011C-C1257688.003468A1@basf-c-s.be>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20091210/9b93bb37/attachment.pl>
+
+From brian at braverock.com  Thu Dec 10 13:52:26 2009
+From: brian at braverock.com (Brian G. Peterson)
+Date: Thu, 10 Dec 2009 06:52:26 -0600
+Subject: [R-sig-hpc] Plain: Error loading Rmpi
+In-Reply-To: <OFA22A2261.83821AFD-ONC1257688.0034011C-C1257688.003468A1@basf-c-s.be>
+References: <OFA22A2261.83821AFD-ONC1257688.0034011C-C1257688.003468A1@basf-c-s.be>
+Message-ID: <4B20EF0A.5080004@braverock.com>
+
+sebastian.rohrer at basf.com wrote:
+> Dear List,
+>
+> I get the following error when trying to load Rmpi:
+>
+>   
+>> library(Rmpi)
+>>     
+> Error in dyn.load(file, DLLpath = DLLpath, ...) :
+>   unable to load shared library 
+> '/programs/R/R-2.10.0/lib64/R/library/Rmpi/libs/Rmpi.so':
+>   liblam.so.0: cannot open shared object file: No such file or directory
+> Error in library(Rmpi) : .First.lib failed for 'Rmpi'
+> Error in dyn.unload(file.path(libpath, "libs", paste("Rmpi", 
+> .Platform$dynlib.ext,  :
+>   dynamic/shared library 
+> '/programs/R/R-2.10.0/lib64/R/library/Rmpi/libs/Rmpi.so' was not loaded
+>
+>
+> Unfortunately, I dont't have a clue what could be the problem. Can anybody 
+> give me a hint?
+>   
+Find a copy of Dirk's excellent introduction to high performance 
+computing with R.
+
+Make sure your MPI installation works outside of R using a simple MPI 
+test program.
+
+Make sure Rmpi is compiled against your running MPI version (there's 
+lots of information on this in the list archives for this list)
+
+Regards,
+
+    - Brian
+
+-- 
+Brian G. Peterson
+http://braverock.com/brian/
+Ph: 773-459-4973
+IM: bgpbraverock
+
+
+From stephen.b.weston at gmail.com  Thu Dec 10 15:26:07 2009
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Thu, 10 Dec 2009 09:26:07 -0500
+Subject: [R-sig-hpc] Parallel version of the code below - Dual core or
+	more
+In-Reply-To: <4B21083D.5860.00D0.0@services.nsw.gov.au>
+References: <4B1FBC09.5860.00D0.0@services.nsw.gov.au>
+	<32e7d95c0912090854n76b5eaa2s6f88a8cc848e8235@mail.gmail.com>
+	<4B20D2FA.5860.00D0.0@services.nsw.gov.au>
+	<57e838140912091626s1558997ameedce5961e92f75d@mail.gmail.com>
+	<4B204D70.8040905@fhcrc.org>
+	<57e838140912091813g3754fe6dt750d05e31e8d69b1@mail.gmail.com>
+	<4B21083D.5860.00D0.0@services.nsw.gov.au>
+Message-ID: <57e838140912100626i264d63eav7995d0c7d236a856@mail.gmail.com>
+
+I was trying to say that it is possible to parallelize iterative solutions
+in some cases.  For instance, if you're starting from a solution that is
+based on randomness, and iteratively improving it, you could
+parallelize it in this fashion:
+
+    library(doSNOW)
+
+    # Create, initialize, and register a snow socket cluster
+    cl <- makeSOCKcluster(2)
+    clusterSetupRNG(cl)
+    registerDoSNOW(cl)
+
+    # Define a simple search function
+    lookForBestSolution <- function(itermax) {
+      # Pick a starting solution based on randomness
+      cursol <- pickRandomSolution()
+
+      # Repeatedly try to improve the solution
+      for (i in seq(length=itermax)) {
+        x <- tryToImproveSolution(cursol)
+        cursol <- bestSolution(x, cursol)
+      }
+
+      # Return the best solution found
+      cursol
+    }
+
+    # Define some very silly example functions for purposes of illustration
+    pickRandomSolution <- function() rnorm(1)
+    tryToImproveSolution <- function(x) x - rnorm(1)
+    bestSolution <- function(...) min(...)
+
+    # Define the total number of times you're willing to improve your solution
+    itermax <- 500
+
+    # Create an iterator that will return "numWorkers" values that sum
+to itermax
+    it <- idiv(itermax, chunks=getDoParWorkers())
+
+    # Pick the best solution that the cluster workers find
+    bestsol <- foreach(i=it, .combine='bestSolution') %dopar% {
+      lookForBestSolution(i)
+    }
+    print(bestsol)
+
+    # Shutdown the socket cluster
+    stopCluster(cl)
+
+
+Note that the call to clusterSetupRNG is essential for programs
+of this type.  Otherwise, you could have each worker compute
+exactly the same result, and you don't gain anything from parallelism.
+
+- Steve
+
+
+On Wed, Dec 9, 2009 at 10:39 PM, Debabrata Midya
+<Debabrata.Midya at services.nsw.gov.au> wrote:
+> Steve, Martin, Tim,
+>
+> Thanks to all of you to give some time and ideas on it.
+>
+> Your are correct Steve, "The "real" problem is bigger" at least in number of
+> dimensions (in my example code d = 3).
+>
+> The code I have provided is an example one to start with. Although, the
+> concept to the real problem will not differ much compared to the example
+> code, I have described the whole problem below in A and B.
+>
+> How can I make a parallel version of it?
+>
+> A. I have described a variable called cursol in my example code. In my final
+> code, I like to have cursol as a matrix of order m x (d+1). Where m = number
+> of possible solutions (as for example m= 100). d is the number of variables.
+> In my example code d= 3 (trainX= c(x[1], x[2] and x[3])). The d+1 -th
+> variable is the?value of the func at trainX.
+>
+> At the end of?j = 1 (iteration number 1), the best possible solution
+> (minimum value) of the problem is: cursol[1, ]; the second best solution is
+> cursol[2, ] and so on. [Note: I have ordered the matrix cursol as per
+> cursol[, d+1] from lowest value to highest]
+>
+> B. At the start of j = 2 (the iteration number 2), trainX = cursol[, 1:d].
+> And the iteration goes like A.
+>
+> That means the whole problem is:
+>
+> func <- function() {
+>
+> ?? # Some calculations
+>
+> ???value # Value of the function at some trainX
+> }
+>
+> main <- function(args) {
+>
+> ???? # Some initializations if needed
+>
+> ???? # Some calculations if needed
+>
+> ??? # trainX: Some value?/ calculated value
+>
+> ???? for i in 1:itermax)
+> ?????? {
+>
+> ???????? ? # All calculations including the call to the external function
+> func
+>
+> ???????? ? cursol <- ----
+>
+> ?????????? trainX <- cursol + runif() # Using random number
+> ?????? }
+> }
+>
+> solution <- main(args)
+>
+> Once again, thank you very much for the time you have given.
+> Regards,
+> Deb
+>
+>>>> Stephen Weston <stephen.b.weston at gmail.com> 10/12/2009 1:13 pm >>>
+> I was thinking that you'd have one task per worker, and that each
+> task would take a smaller number of iterations and return their
+> best result.? The final result would be the best result of all.
+> Of course, you'd probably have to do more total iterations in order
+> to get as good a result as in the sequential version, but I think
+> you'd still get some benefit from running in parallel.
+>
+> I haven't looked over the code too carefully, so maybe I'm
+> misreading it.? I was also assuming that the "real" problem
+> was bigger, since this version looks like it would run very quickly
+> sequentially, and so wouldn't be worth doing in parallel.
+>
+> Also, checkval should be vectorized using pmax and pmin.
+>
+> - Steve
+>
+>
+> On Wed, Dec 9, 2009 at 8:22 PM, Martin Morgan <mtmorgan at fhcrc.org> wrote:
+>> Hi Deb, Steve,
+>>
+>> Stephen Weston wrote:
+>>> Using doSNOW with a socket cluster is probably your best bet.
+>>>
+>>> - Steve
+>>>
+>>>
+>>> On Wed, Dec 9, 2009 at 6:52 PM, Debabrata Midya
+>>> <Debabrata.Midya at services.nsw.gov.au> wrote:
+>>>> Tim,
+>>>>
+>>>> Thanks for your reply.
+>>>>
+>>>> One clarification please.
+>>>>
+>>>> I am using R 2.10.0 on Windows XP, Intel(R) Core(TM) 2 Duo CPU E8400
+>>>> @3.00GHz 2.99GHz, 1.96 of RAM.
+>>>> I have checked that Windows binary of doMC is not available. Any advice.
+>>>>
+>>>> Once again, thank you very much for the time you have given.
+>>>>
+>>>> Regards,
+>>>>
+>>>> Deb
+>>>>
+>>>>>>> Tim Triche <tim.triche at gmail.com> 10/12/2009 3:54 am >>>
+>>>> library(foreach)
+>>>> library(doMC) # or doWhatever, take your pick
+>>>> registerDoMC(4)
+>>>>
+>>>> results <- foreach( j=1:itermax ) %dopar% {
+>>>>
+>>>> # stuff
+>>>> if( converged ) break
+>>>>
+>>>> }
+>>
+>> Unfortunately, the iterations are not independent; it's instructive to
+>> try to get something sensible out of
+>>
+>>? res0 <- 0
+>>? tmp <- foreach (j = 1:10) %dopar% { res0 <- res0 + j }
+>>? res0
+>>
+>> versus what you might expect
+>>
+>>? res1 <- 0
+>>? for (j in 1:10) { res1 <- res1 + j }
+>>? res1
+>>
+>> and to understand how Deb's problem maps to this case.
+>>
+>> Martin
+>>
+>>
+>>>>
+>>>> The details are up to you. I don't remember how best to break out of a
+>>>> foreach loop, try help('foreach').
+>>>> Have fun. It's pretty straightforward once you get used to foreach()
+>>>> behavior, less so up to that point.
+>>>> But it's a really useful tool to have in your arsenal for the problem
+>>>> you describe. Try to loop over the biggest chunks of processing you can get
+>>>> away with, as fork()ing processes has some consequences.
+>>>>
+>>>>
+>>>>
+>>>> On Tue, Dec 8, 2009 at 8:02 PM, Debabrata Midya
+>>>> <Debabrata.Midya at services.nsw.gov.au> wrote:
+>>>>
+>>>>
+>>>>
+>>>> Dear hpc users,
+>>>>
+>>>> Thanks in advance.
+>>>>
+>>>> I am using R 2.10.0 on Windows XP, Intel(R) Core(TM) 2 Duo CPU E8400
+>>>> @3.00GHz 2.99GHz, 1.96 of RAM.
+>>>>
+>>>> I like to have a parallel version of the code below. This is an example
+>>>> code only.
+>>>>
+>>>> A: cursol contains values of x[1], x[2], x[3] and minimum value from
+>>>> func using x's.
+>>>>
+>>>> ###########
+>>>> # Code starts
+>>>> ###########
+>>>>
+>>>> func <- function(x)
+>>>> {
+>>>> 10 * x[1] - 11 * x[2] + 12 * x[3]
+>>>> }
+>>>>
+>>>> main <- function(xl, xu)
+>>>> {
+>>>> checkval <- function(x, xl, xu)
+>>>> {
+>>>> i <- 1
+>>>> while (i <= 3)
+>>>> {
+>>>> if (x[i] < xl[i]) x[i] <- xl[i]
+>>>> if (x[i] > xu[i]) x[i] <- xu[i]
+>>>> i <- i + 1
+>>>> }
+>>>> x
+>>>> }
+>>>>
+>>>> itermax <- 50
+>>>>
+>>>> j <- 1
+>>>> while (j <= itermax)
+>>>> {
+>>>> # trainX is a matrix of 3 x 3
+>>>> trainX <- matrix(rep(xl, 3), 3, 3, byrow=TRUE) + matrix(runif(9, 0, 1),
+>>>> 3, 3)
+>>>> trainX
+>>>> trainX <- t(apply(trainX, 1, checkval, xl, xu))
+>>>> trainX
+>>>> sold <- apply(trainX, 1, func)
+>>>> osold <- cbind(1:3, sold)
+>>>> osold <- osold[order(osold[, 2]), ]
+>>>> osold
+>>>>
+>>>> if (j > 1)
+>>>> {
+>>>> if (osold[1, 2] < cursol[1, 4])
+>>>> {
+>>>> cursol <- matrix(c(trainX[osold[1,1], ], osold[1,2]), 1, 4)
+>>>> }
+>>>> else
+>>>> {
+>>>> cursol <- cursol
+>>>> }
+>>>> }
+>>>>
+>>>> if (j <= 1)
+>>>> {
+>>>> cursol <- matrix(c(trainX[osold[1,1], ], osold[1,2]), 1, 4)
+>>>> }
+>>>>
+>>>> cursol
+>>>> j <- j + 1
+>>>> }
+>>>>
+>>>> cursol
+>>>> }
+>>>>
+>>>> xl <- c(1, 2, 3)
+>>>> xu <- c(2, 3, 4)
+>>>>
+>>>> cursol <- main(xl, xu)
+>>>> cursol
+>>>>
+>>>>
+>>>> ###########
+>>>> # Code ends
+>>>> ###########
+>>>>
+>>>> Once again, thank you very much for the time you have given.
+>>>>
+>>>> I am looking forward for your reply.
+>>>>
+>>>> Regards,
+>>>>
+>>>> Deb
+>>>>
+>>>>
+>>>> [[alternative HTML version deleted]]
+>>>>
+>>>> _______________________________________________
+>>>> R-sig-hpc mailing list
+>>>> R-sig-hpc at r-project.org
+>>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>>
+>>>>
+>>>>
+>>>>
+>>>> --
+>>>> Absolute certainty is the privilege of mathematicians and madmen.
+>>>> It is, for scientists, an unobtainable ideal.
+>>>> --Cassius J. Keyser
+>>>>
+>>>>??????? [[alternative HTML version deleted]]
+>>>>
+>>>> _______________________________________________
+>>>> R-sig-hpc mailing list
+>>>> R-sig-hpc at r-project.org
+>>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>>
+>>>
+>>> _______________________________________________
+>>> R-sig-hpc mailing list
+>>> R-sig-hpc at r-project.org
+>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>>
+>> --
+>> Martin Morgan
+>> Computational Biology / Fred Hutchinson Cancer Research Center
+>> 1100 Fairview Ave. N.
+>> PO Box 19024 Seattle, WA 98109
+>>
+>> Location: Arnold Building M1 B861
+>> Phone: (206) 667-2793
+>>
+>
+
+
+From Debabrata.Midya at services.nsw.gov.au  Fri Dec 11 00:53:57 2009
+From: Debabrata.Midya at services.nsw.gov.au (Debabrata Midya)
+Date: Fri, 11 Dec 2009 10:53:57 +1100
+Subject: [R-sig-hpc] Parallel version of the code below - Dual core	or
+	more
+In-Reply-To: <57e838140912100626i264d63eav7995d0c7d236a856@mail.gmail.com>
+References: <4B1FBC09.5860.00D0.0@services.nsw.gov.au>
+	<32e7d95c0912090854n76b5eaa2s6f88a8cc848e8235@mail.gmail.com>
+	<4B20D2FA.5860.00D0.0@services.nsw.gov.au>
+	<57e838140912091626s1558997ameedce5961e92f75d@mail.gmail.com>
+	<4B204D70.8040905@fhcrc.org>
+	<57e838140912091813g3754fe6dt750d05e31e8d69b1@mail.gmail.com>
+	<4B21083D.5860.00D0.0@services.nsw.gov.au>
+	<57e838140912100626i264d63eav7995d0c7d236a856@mail.gmail.com>
+Message-ID: <4B2224C4.5860.00D0.0@services.nsw.gov.au>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20091211/a65dbada/attachment.pl>
+
+From stephen.b.weston at gmail.com  Fri Dec 11 03:02:51 2009
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Thu, 10 Dec 2009 21:02:51 -0500
+Subject: [R-sig-hpc] Parallel version of the code below - Dual core or
+	more
+In-Reply-To: <4B2224C4.5860.00D0.0@services.nsw.gov.au>
+References: <4B1FBC09.5860.00D0.0@services.nsw.gov.au>
+	<32e7d95c0912090854n76b5eaa2s6f88a8cc848e8235@mail.gmail.com>
+	<4B20D2FA.5860.00D0.0@services.nsw.gov.au>
+	<57e838140912091626s1558997ameedce5961e92f75d@mail.gmail.com>
+	<4B204D70.8040905@fhcrc.org>
+	<57e838140912091813g3754fe6dt750d05e31e8d69b1@mail.gmail.com>
+	<4B21083D.5860.00D0.0@services.nsw.gov.au>
+	<57e838140912100626i264d63eav7995d0c7d236a856@mail.gmail.com>
+	<4B2224C4.5860.00D0.0@services.nsw.gov.au>
+Message-ID: <57e838140912101802x16a06d69t250e377050f2e265@mail.gmail.com>
+
+On Thu, Dec 10, 2009 at 6:53 PM, Debabrata Midya
+<Debabrata.Midya at services.nsw.gov.au> wrote:
+
+> # Create an iterator that will return "numWorkers" values that sum to
+> itermax
+> ??? it <- idiv(itermax, chunks=getDoParWorkers())
+> I think itermax is divided into "numWorkers" and a chunk of iterations will
+> be allocated to each worker. Am I correct?
+
+I think so.  To put it formally:
+
+    itermax <- 50
+    numWorkers <- 4
+    it <- idiv(itermax, chunks=numWorkers)
+    x <- as.list(it)
+    stopifnot(itermax == sum(unlist(x)))
+    stopifnot(numWorkers == length(x))
+
+> # Pick a starting solution based on randomness
+> ????? cursol <- pickRandomSolution()
+> Does each worker?receive random solution?[that means?initial random
+> solutions are different from one worker to another]? Am I correct?
+
+I think you're correct.  The important point is for each worker to start
+searching in a different place than all of the other workers.  And if
+you're doing that with a random number generator, it's important to
+use clusterSetupRNG.
+
+> # Pick the best solution that the cluster workers find
+> ??? bestsol <- foreach(i=it, .combine='bestSolution') %dopar% {
+> ????? lookForBestSolution(i)
+> ??? }
+> At the end, .combine='bestSolution' provides best solution as per the
+> defined function bestSolution. That means this is a solution combined from
+> different workers? Am I correct?
+
+That sounds right, also.  I was using bestSolution within the
+iteration loop to test for a better solution, but it's also needed to pick
+which worker found the best result.
+
+If I were you, I would play around with foreach in an interactive
+session, without doing any parallel computing, to get a feel for
+how everything works.  You can either use %do% instead of %dopar%,
+or just don't register a parallel backend.  Running little interactive
+experiments is really important to understanding anything in R, at least
+for me.
+
+Good luck,
+
+- Steve
+
+
+From Debabrata.Midya at services.nsw.gov.au  Fri Dec 11 04:00:40 2009
+From: Debabrata.Midya at services.nsw.gov.au (Debabrata Midya)
+Date: Fri, 11 Dec 2009 14:00:40 +1100
+Subject: [R-sig-hpc] Parallel version of the code below - Dual core	or
+	more
+In-Reply-To: <57e838140912101802x16a06d69t250e377050f2e265@mail.gmail.com>
+References: <4B1FBC09.5860.00D0.0@services.nsw.gov.au>
+	<32e7d95c0912090854n76b5eaa2s6f88a8cc848e8235@mail.gmail.com>
+	<4B20D2FA.5860.00D0.0@services.nsw.gov.au>
+	<57e838140912091626s1558997ameedce5961e92f75d@mail.gmail.com>
+	<4B204D70.8040905@fhcrc.org>
+	<57e838140912091813g3754fe6dt750d05e31e8d69b1@mail.gmail.com>
+	<4B21083D.5860.00D0.0@services.nsw.gov.au>
+	<57e838140912100626i264d63eav7995d0c7d236a856@mail.gmail.com>
+	<4B2224C4.5860.00D0.0@services.nsw.gov.au>
+	<57e838140912101802x16a06d69t250e377050f2e265@mail.gmail.com>
+Message-ID: <4B225088.5860.00D0.0@services.nsw.gov.au>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20091211/638027e5/attachment.pl>
+
+From ivan.zhang at bankofamerica.com  Fri Dec 11 20:35:14 2009
+From: ivan.zhang at bankofamerica.com (Zhang, Ivan)
+Date: Fri, 11 Dec 2009 14:35:14 -0500
+Subject: [R-sig-hpc] snow and foreach memory issue?
+In-Reply-To: <4B225088.5860.00D0.0@services.nsw.gov.au>
+References: <4B1FBC09.5860.00D0.0@services.nsw.gov.au>
+	<32e7d95c0912090854n76b5eaa2s6f88a8cc848e8235@mail.gmail.com>
+	<4B20D2FA.5860.00D0.0@services.nsw.gov.au>
+	<57e838140912091626s1558997ameedce5961e92f75d@mail.gmail.com>
+	<4B204D70.8040905@fhcrc.org>
+	<57e838140912091813g3754fe6dt750d05e31e8d69b1@mail.gmail.com>
+	<4B21083D.5860.00D0.0@services.nsw.gov.au>
+	<57e838140912100626i264d63eav7995d0c7d236a856@mail.gmail.com>
+	<4B2224C4.5860.00D0.0@services.nsw.gov.au>
+	<57e838140912101802x16a06d69t250e377050f2e265@mail.gmail.com>
+	<4B225088.5860.00D0.0@services.nsw.gov.au>
+Message-ID: <338D58262CB96E438AD6AFEEE6D9482D8D74F9@ex2k.bankofamerica.com>
+
+Hi everyone,
+
+I have a question regarding ram usage of snow and foreach. 
+I am running windows XP with 4 gb ram and intel quadcore 2.66.
+
+I recently tried to implement multicore processing using 'multicore' and
+'foreach' until I realized that multicore didn't work well on Windows
+and switched to using 'snow' and 'foreach' which works nicely.
+
+I hashed out my own method without dopar however, for some reason I was
+eating up my ram really quickly.
+I wanted to see if anyone can figure out why perhaps there is something
+I don't understand about snow as I just recently started using it.
+
+Suppose X_mat is a series of regressors for Y.
+
+Datapoints is a very large matrix of points.
+
+The pseudo code is as follows: 
+someFunc = function(cl,...) {
+
+for ( i in 1:n) {
+    model = generateModel(Y[,i],X_mat)
+    dp=iter(datapoints, by='row',
+chunksize=floor(nrow(datapoints)/NUMCORES))
+
+    assign("model", model, .GlobalEnv) 		#couldn't figure out how
+to get cluster export to work within a function.
+    clusterExport(cl, "model") 			#this only reads from
+globalenv?
+
+    pred <- do.call(c, clusterApply(cl, as.list(dp), function(x)
+predict(model, x))
+	
+	...
+}
+
+}
+
+When I ran this code, my ram would go up from the initial 2.5
+incrementally up 500 mb after each run until it ate up 4 GB. So for
+n>=3, the computer would throttle.
+
+When I found out about the new registerDoSnow, it improved my
+performance (props to Stephen Weston) here's the pseudo code for the
+equivalent above.
+
+someFunc = function(cl,...) {
+registerDoSnow(cl)
+for ( i in 1:n) {
+    	model = generateModel(Y[,i],X_mat)
+	pred <- foreach(dp=iter(datapoints, by='row',
+chunksize=floor(nrow(datapoints)/NUMCORES)), .combine=c, .verbose=TRUE)
+%dopar% { predict(Tail.lo,dp) })}
+}
+
+Aside from slightly shorter lines, the performance was more stable, the
+ram ran from 2.5 up to 3.2 GB ish, and stayed stable, and performed
+better because it wouldn't run out of cache.
+
+However, I just want to understand what is the difference between the
+two treatments so that it would make such a large difference and whether
+I am doing something wrong in the first example.
+
+Thanks,
+
+-Ivan
+
+
+From edd at debian.org  Fri Dec 11 21:05:21 2009
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Fri, 11 Dec 2009 14:05:21 -0600
+Subject: [R-sig-hpc] snow and foreach memory issue?
+In-Reply-To: <338D58262CB96E438AD6AFEEE6D9482D8D74F9@ex2k.bankofamerica.com>
+References: <4B1FBC09.5860.00D0.0@services.nsw.gov.au>
+	<32e7d95c0912090854n76b5eaa2s6f88a8cc848e8235@mail.gmail.com>
+	<4B20D2FA.5860.00D0.0@services.nsw.gov.au>
+	<57e838140912091626s1558997ameedce5961e92f75d@mail.gmail.com>
+	<4B204D70.8040905@fhcrc.org>
+	<57e838140912091813g3754fe6dt750d05e31e8d69b1@mail.gmail.com>
+	<4B21083D.5860.00D0.0@services.nsw.gov.au>
+	<57e838140912100626i264d63eav7995d0c7d236a856@mail.gmail.com>
+	<4B2224C4.5860.00D0.0@services.nsw.gov.au>
+	<57e838140912101802x16a06d69t250e377050f2e265@mail.gmail.com>
+	<4B225088.5860.00D0.0@services.nsw.gov.au>
+	<338D58262CB96E438AD6AFEEE6D9482D8D74F9@ex2k.bankofamerica.com>
+Message-ID: <19234.42497.468566.55139@ron.nulle.part>
+
+
+On 11 December 2009 at 14:35, Zhang, Ivan wrote:
+| I have a question regarding ram usage of snow and foreach. 
+| I am running windows XP with 4 gb ram and intel quadcore 2.66.
+
+That is not a lot of ram and your main problem. You will be much happier with
+a 64bit OS (which typically means Linux or OS X, but can be Windows if you
+want to become a REvo customer) and more ram -- which you need to share among
+all your cores.
+
+Martin Morgan made this an explicit point in our 'parallel R' survey paper:
+available ram is likely to be a binding constraint.  
+
+Dirk
+
+-- 
+Three out of two people have difficulties with fractions.
+
+
+From ivan.zhang at bankofamerica.com  Fri Dec 11 21:11:11 2009
+From: ivan.zhang at bankofamerica.com (Zhang, Ivan)
+Date: Fri, 11 Dec 2009 15:11:11 -0500
+Subject: [R-sig-hpc] snow and foreach memory issue?
+In-Reply-To: <19234.42497.468566.55139@ron.nulle.part>
+References: <4B1FBC09.5860.00D0.0@services.nsw.gov.au>
+	<32e7d95c0912090854n76b5eaa2s6f88a8cc848e8235@mail.gmail.com>
+	<4B20D2FA.5860.00D0.0@services.nsw.gov.au>
+	<57e838140912091626s1558997ameedce5961e92f75d@mail.gmail.com>
+	<4B204D70.8040905@fhcrc.org>
+	<57e838140912091813g3754fe6dt750d05e31e8d69b1@mail.gmail.com>
+	<4B21083D.5860.00D0.0@services.nsw.gov.au>
+	<57e838140912100626i264d63eav7995d0c7d236a856@mail.gmail.com>
+	<4B2224C4.5860.00D0.0@services.nsw.gov.au>
+	<57e838140912101802x16a06d69t250e377050f2e265@mail.gmail.com>
+	<4B225088.5860.00D0.0@services.nsw.gov.au>
+	<338D58262CB96E438AD6AFEEE6D9482D8D74F9@ex2k.bankofamerica.com>
+	<19234.42497.468566.55139@ron.nulle.part>
+Message-ID: <338D58262CB96E438AD6AFEEE6D9482D8D758A@ex2k.bankofamerica.com>
+
+Thanks for your pointer, 
+
+What my concern is that if I do decide to scale this, when I use method
+1 vs. 2,
+
+one of them is significantly worse in terms of memory management, not
+sure how I could have written it differently that would have made a
+difference.
+
+Thanks,
+
+-Ivan
+-----Original Message-----
+From: Dirk Eddelbuettel [mailto:edd at debian.org] 
+Sent: Friday, December 11, 2009 3:05 PM
+To: Zhang, Ivan
+Cc: r-sig-hpc at r-project.org
+Subject: Re: [R-sig-hpc] snow and foreach memory issue?
+
+
+On 11 December 2009 at 14:35, Zhang, Ivan wrote:
+| I have a question regarding ram usage of snow and foreach. 
+| I am running windows XP with 4 gb ram and intel quadcore 2.66.
+
+That is not a lot of ram and your main problem. You will be much happier
+with
+a 64bit OS (which typically means Linux or OS X, but can be Windows if
+you
+want to become a REvo customer) and more ram -- which you need to share
+among
+all your cores.
+
+Martin Morgan made this an explicit point in our 'parallel R' survey
+paper:
+available ram is likely to be a binding constraint.  
+
+Dirk
+
+-- 
+Three out of two people have difficulties with fractions.
+
+
+From ross at biostat.ucsf.edu  Sat Dec 12 01:01:05 2009
+From: ross at biostat.ucsf.edu (Ross Boylan)
+Date: Fri, 11 Dec 2009 16:01:05 -0800
+Subject: [R-sig-hpc] Rmpi on Mac OS X 10.5.8 dual core machine
+In-Reply-To: <A868B6EE-8C72-4B7F-BADB-BE241A2F7E11@jhsph.edu>
+References: <A868B6EE-8C72-4B7F-BADB-BE241A2F7E11@jhsph.edu>
+Message-ID: <1260576065.12591.18.camel@markov.biostat.ucsf.edu>
+
+On Wed, 2009-11-18 at 17:09 -0200, Benilton Carvalho wrote:
+> Hi,
+> 
+> I decided to experiment with Rmpi on my dual core machine (Mac OS X  
+> 10.5.8).
+> 
+> So, I try the usual:
+> 
+> library(Rmpi)
+> mpi.spawn.Rslaves()
+> 
+> and let R "sit there"... I expected the R process to be idle, but for  
+> my surprise it uses, at least, 70% of CPU.
+> 
+> Is this an expected behavior? 
+I'd expect 100%, but that's based on a Linux cluster.
+OMPI does busy waiting, i.e., it runs in a tight loop checking for data.
+So it uses lots of CPU even when it's doing nothing.
+
+The developers made this choice to increase the responsiveness on MPI,
+based partly on the assumed target use-case involving a cluster in which
+nodes were allocated entirely to the job running under MPI--i.e.,
+nothing else we need the CPU.
+
+Ross
+> I'm currently assuming I'm missing  
+> something obvious.
+> 
+> Also, on a Mac OS X system, is Rmpi supposed to work without LAM?
+> 
+> Hao Yu's page makes me think it is a requirement, but, on my system,  
+> it found OpenMPI, so I didn't install LAM....
+> 
+> Comments,
+> 
+> b
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From bcarvalh at jhsph.edu  Sat Dec 12 01:02:50 2009
+From: bcarvalh at jhsph.edu (Benilton Carvalho)
+Date: Fri, 11 Dec 2009 22:02:50 -0200
+Subject: [R-sig-hpc] Rmpi on Mac OS X 10.5.8 dual core machine
+In-Reply-To: <1260576065.12591.18.camel@markov.biostat.ucsf.edu>
+References: <A868B6EE-8C72-4B7F-BADB-BE241A2F7E11@jhsph.edu>
+	<1260576065.12591.18.camel@markov.biostat.ucsf.edu>
+Message-ID: <686081CB-6468-4A46-8C7C-7CE794249E70@jhsph.edu>
+
+Hi Ross,
+thank you very much for the clarification.
+With best wishes,
+b
+
+On Dec 11, 2009, at 10:01 PM, Ross Boylan wrote:
+
+> On Wed, 2009-11-18 at 17:09 -0200, Benilton Carvalho wrote:
+>> Hi,
+>> 
+>> I decided to experiment with Rmpi on my dual core machine (Mac OS X
+>> 10.5.8).
+>> 
+>> So, I try the usual:
+>> 
+>> library(Rmpi)
+>> mpi.spawn.Rslaves()
+>> 
+>> and let R "sit there"... I expected the R process to be idle, but for
+>> my surprise it uses, at least, 70% of CPU.
+>> 
+>> Is this an expected behavior?
+> I'd expect 100%, but that's based on a Linux cluster.
+> OMPI does busy waiting, i.e., it runs in a tight loop checking for data.
+> So it uses lots of CPU even when it's doing nothing.
+> 
+> The developers made this choice to increase the responsiveness on MPI,
+> based partly on the assumed target use-case involving a cluster in which
+> nodes were allocated entirely to the job running under MPI--i.e.,
+> nothing else we need the CPU.
+> 
+> Ross
+>> I'm currently assuming I'm missing
+>> something obvious.
+>> 
+>> Also, on a Mac OS X system, is Rmpi supposed to work without LAM?
+>> 
+>> Hao Yu's page makes me think it is a requirement, but, on my system,
+>> it found OpenMPI, so I didn't install LAM....
+>> 
+>> Comments,
+>> 
+>> b
+>> 
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From edd at debian.org  Sat Dec 12 01:09:14 2009
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Fri, 11 Dec 2009 18:09:14 -0600
+Subject: [R-sig-hpc] snow and foreach memory issue?
+In-Reply-To: <338D58262CB96E438AD6AFEEE6D9482D8D758A@ex2k.bankofamerica.com>
+References: <4B1FBC09.5860.00D0.0@services.nsw.gov.au>
+	<32e7d95c0912090854n76b5eaa2s6f88a8cc848e8235@mail.gmail.com>
+	<4B20D2FA.5860.00D0.0@services.nsw.gov.au>
+	<57e838140912091626s1558997ameedce5961e92f75d@mail.gmail.com>
+	<4B204D70.8040905@fhcrc.org>
+	<57e838140912091813g3754fe6dt750d05e31e8d69b1@mail.gmail.com>
+	<4B21083D.5860.00D0.0@services.nsw.gov.au>
+	<57e838140912100626i264d63eav7995d0c7d236a856@mail.gmail.com>
+	<4B2224C4.5860.00D0.0@services.nsw.gov.au>
+	<57e838140912101802x16a06d69t250e377050f2e265@mail.gmail.com>
+	<4B225088.5860.00D0.0@services.nsw.gov.au>
+	<338D58262CB96E438AD6AFEEE6D9482D8D74F9@ex2k.bankofamerica.com>
+	<19234.42497.468566.55139@ron.nulle.part>
+	<338D58262CB96E438AD6AFEEE6D9482D8D758A@ex2k.bankofamerica.com>
+Message-ID: <19234.57130.120653.996528@ron.nulle.part>
+
+
+On 11 December 2009 at 15:11, Zhang, Ivan wrote:
+| Thanks for your pointer, 
+| 
+| What my concern is that if I do decide to scale this, when I use method
+| 1 vs. 2,
+| 
+| one of them is significantly worse in terms of memory management, not
+| sure how I could have written it differently that would have made a
+| difference.
+
+Understood -- but this is awfully hard to say "in general" so the typical
+response is: you try it with some different task sizes and profile for time
+and/or memory use.
+
+Hope this helps, Dirk
+
+-- 
+Three out of two people have difficulties with fractions.
+
+
+From ross at biostat.ucsf.edu  Sat Dec 12 01:20:11 2009
+From: ross at biostat.ucsf.edu (Ross Boylan)
+Date: Fri, 11 Dec 2009 16:20:11 -0800
+Subject: [R-sig-hpc] Rmpi on Mac OS X 10.5.8 dual core machine [typo	fix
+	+ PS]
+In-Reply-To: <1260576065.12591.18.camel@markov.biostat.ucsf.edu>
+References: <A868B6EE-8C72-4B7F-BADB-BE241A2F7E11@jhsph.edu>
+	<1260576065.12591.18.camel@markov.biostat.ucsf.edu>
+Message-ID: <1260577211.12591.28.camel@markov.biostat.ucsf.edu>
+
+On Fri, 2009-12-11 at 16:01 -0800, Ross Boylan wrote:
+> On Wed, 2009-11-18 at 17:09 -0200, Benilton Carvalho wrote:
+> > Hi,
+> > 
+> > I decided to experiment with Rmpi on my dual core machine (Mac OS
+> X  
+> > 10.5.8).
+> > 
+> > So, I try the usual:
+> > 
+> > library(Rmpi)
+> > mpi.spawn.Rslaves()
+> > 
+> > and let R "sit there"... I expected the R process to be idle, but
+> for  
+> > my surprise it uses, at least, 70% of CPU.
+> > 
+> > Is this an expected behavior? 
+> I'd expect 100%, but that's based on a Linux cluster.
+> OMPI does busy waiting, i.e., it runs in a tight loop checking for
+> data.
+> So it uses lots of CPU even when it's doing nothing.
+> 
+> The developers made this choice to increase the responsiveness on MPI,
+> based partly on the assumed target use-case involving a cluster in
+> which
+> nodes were allocated entirely to the job running under MPI--i.e.,
+> nothing else we need the CPU.
+Should be "would need the CPU."
+
+In a batch environment resources are generally reserved, so the
+assumption is accurate.
+
+We have a little cluster that doesn't fit that description; obviously
+your laptop doesn't either.
+
+Ross
+
+
+From mtmorgan at fhcrc.org  Sun Dec 13 18:50:07 2009
+From: mtmorgan at fhcrc.org (Martin Morgan)
+Date: Sun, 13 Dec 2009 09:50:07 -0800
+Subject: [R-sig-hpc] snow and foreach memory issue?
+In-Reply-To: <338D58262CB96E438AD6AFEEE6D9482D8D74F9@ex2k.bankofamerica.com>
+References: <4B1FBC09.5860.00D0.0@services.nsw.gov.au>	<32e7d95c0912090854n76b5eaa2s6f88a8cc848e8235@mail.gmail.com>	<4B20D2FA.5860.00D0.0@services.nsw.gov.au>	<57e838140912091626s1558997ameedce5961e92f75d@mail.gmail.com>	<4B204D70.8040905@fhcrc.org>	<57e838140912091813g3754fe6dt750d05e31e8d69b1@mail.gmail.com>	<4B21083D.5860.00D0.0@services.nsw.gov.au>	<57e838140912100626i264d63eav7995d0c7d236a856@mail.gmail.com>	<4B2224C4.5860.00D0.0@services.nsw.gov.au>	<57e838140912101802x16a06d69t250e377050f2e265@mail.gmail.com>	<4B225088.5860.00D0.0@services.nsw.gov.au>
+	<338D58262CB96E438AD6AFEEE6D9482D8D74F9@ex2k.bankofamerica.com>
+Message-ID: <4B25294F.5010405@fhcrc.org>
+
+Zhang, Ivan wrote:
+> Hi everyone,
+> 
+> I have a question regarding ram usage of snow and foreach. 
+> I am running windows XP with 4 gb ram and intel quadcore 2.66.
+> 
+> I recently tried to implement multicore processing using 'multicore' and
+> 'foreach' until I realized that multicore didn't work well on Windows
+> and switched to using 'snow' and 'foreach' which works nicely.
+> 
+> I hashed out my own method without dopar however, for some reason I was
+> eating up my ram really quickly.
+> I wanted to see if anyone can figure out why perhaps there is something
+> I don't understand about snow as I just recently started using it.
+> 
+> Suppose X_mat is a series of regressors for Y.
+> 
+> Datapoints is a very large matrix of points.
+> 
+> The pseudo code is as follows: 
+> someFunc = function(cl,...) {
+> 
+> for ( i in 1:n) {
+>     model = generateModel(Y[,i],X_mat)
+>     dp=iter(datapoints, by='row',
+> chunksize=floor(nrow(datapoints)/NUMCORES))
+> 
+>     assign("model", model, .GlobalEnv) 		#couldn't figure out how
+> to get cluster export to work within a function.
+>     clusterExport(cl, "model") 			#this only reads from
+> globalenv?
+> 
+>     pred <- do.call(c, clusterApply(cl, as.list(dp), function(x)
+
+as.list(iter(datapoints, <etc>)) makes a full copy of datapoints.
+clusterApply creates another copy, distributed across cores. So if
+they're on the same machine you now use 3 * sizeof(datapoints) memory,
+even before any calculations done on the workers. Ouch.
+
+A first approach might iter(datapoints, chunksize=nrow(datapoints) / N)
+coupled with clusterApplyLB -- there will be N chunks (assuming N >
+NUMCORES), and clusterApplyLB will only ever have in play a portion
+NUMCORES / N of datapoints (clusterApply would divide the N chunks into
+two groups, again forwarding the entire data to the workers!), so the
+memory use will be (2 + NUMCORES / N) * sizeof(datapoints).
+
+A better approach is to avoid the duplication implied by
+as.list(iter(<etc>)). This would require an implementation like
+snow::dynamicClusterApply, where the first NUMCORES chunks of iter() are
+forwarded to the workers, and then a loop is entered where the manager
+receives one result and forwards the next chunk to the worker that
+provided the result. Memory use would then be (1 + NUMCORES / N) *
+sizeof(datapoints). Presumably this is the strategy taken by %dopar%.
+
+multicore should be the winner here, though, since all workers should
+have access to the data without copying -- sizeof(datapoints) memory
+use. I haven't used multicore extensively, and especially not on
+windows. When you say "it didn't work well" it would be helpful to
+understand why. My limited experimentation suggested no problems when
+used with data sets that were not too close to the windows memory
+limits. Perhaps you are really just running out of memory, and multicore
+is not reporting this as nicely as it could? I'm sure the multicore
+author would appreciate something more precise in terms of user experience.
+
+A final consideration is that calculations on the workers are likely to
+duplicate a subset of datapoints, so that actual memory use will include
+an additional component that scales approximately linearly with
+NUMCORES. If the worker computations are memory intensive, then you'll
+quickly find yourself in trouble again.
+
+Hope that helps,
+
+Martin
+
+
+> predict(model, x))
+> 	
+> 	...
+> }
+> 
+> }
+> 
+> When I ran this code, my ram would go up from the initial 2.5
+> incrementally up 500 mb after each run until it ate up 4 GB. So for
+> n>=3, the computer would throttle.
+> 
+> When I found out about the new registerDoSnow, it improved my
+> performance (props to Stephen Weston) here's the pseudo code for the
+> equivalent above.
+> 
+> someFunc = function(cl,...) {
+> registerDoSnow(cl)
+> for ( i in 1:n) {
+>     	model = generateModel(Y[,i],X_mat)
+> 	pred <- foreach(dp=iter(datapoints, by='row',
+> chunksize=floor(nrow(datapoints)/NUMCORES)), .combine=c, .verbose=TRUE)
+> %dopar% { predict(Tail.lo,dp) })}
+> }
+> 
+> Aside from slightly shorter lines, the performance was more stable, the
+> ram ran from 2.5 up to 3.2 GB ish, and stayed stable, and performed
+> better because it wouldn't run out of cache.
+> 
+> However, I just want to understand what is the difference between the
+> two treatments so that it would make such a large difference and whether
+> I am doing something wrong in the first example.
+> 
+> Thanks,
+> 
+> -Ivan
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+-- 
+Martin Morgan
+Computational Biology / Fred Hutchinson Cancer Research Center
+1100 Fairview Ave. N.
+PO Box 19024 Seattle, WA 98109
+
+Location: Arnold Building M1 B861
+Phone: (206) 667-2793
+
+
+From mtmorgan at fhcrc.org  Sun Dec 13 19:47:22 2009
+From: mtmorgan at fhcrc.org (Martin Morgan)
+Date: Sun, 13 Dec 2009 10:47:22 -0800
+Subject: [R-sig-hpc] snow and foreach memory issue?
+In-Reply-To: <4B25294F.5010405@fhcrc.org>
+References: <4B1FBC09.5860.00D0.0@services.nsw.gov.au>	<32e7d95c0912090854n76b5eaa2s6f88a8cc848e8235@mail.gmail.com>	<4B20D2FA.5860.00D0.0@services.nsw.gov.au>	<57e838140912091626s1558997ameedce5961e92f75d@mail.gmail.com>	<4B204D70.8040905@fhcrc.org>	<57e838140912091813g3754fe6dt750d05e31e8d69b1@mail.gmail.com>	<4B21083D.5860.00D0.0@services.nsw.gov.au>	<57e838140912100626i264d63eav7995d0c7d236a856@mail.gmail.com>	<4B2224C4.5860.00D0.0@services.nsw.gov.au>	<57e838140912101802x16a06d69t250e377050f2e265@mail.gmail.com>	<4B225088.5860.00D0.0@services.nsw.gov.au>	<338D58262CB96E438AD6AFEEE6D9482D8D74F9@ex2k.bankofamerica.com>
+	<4B25294F.5010405@fhcrc.org>
+Message-ID: <4B2536BA.9070405@fhcrc.org>
+
+Martin Morgan wrote:
+> Zhang, Ivan wrote:
+>> Hi everyone,
+>>
+>> I have a question regarding ram usage of snow and foreach. 
+>> I am running windows XP with 4 gb ram and intel quadcore 2.66.
+>>
+>> I recently tried to implement multicore processing using 'multicore' and
+>> 'foreach' until I realized that multicore didn't work well on Windows
+>> and switched to using 'snow' and 'foreach' which works nicely.
+>>
+>> I hashed out my own method without dopar however, for some reason I was
+>> eating up my ram really quickly.
+>> I wanted to see if anyone can figure out why perhaps there is something
+>> I don't understand about snow as I just recently started using it.
+>>
+>> Suppose X_mat is a series of regressors for Y.
+>>
+>> Datapoints is a very large matrix of points.
+>>
+>> The pseudo code is as follows: 
+>> someFunc = function(cl,...) {
+>>
+>> for ( i in 1:n) {
+>>     model = generateModel(Y[,i],X_mat)
+>>     dp=iter(datapoints, by='row',
+>> chunksize=floor(nrow(datapoints)/NUMCORES))
+>>
+>>     assign("model", model, .GlobalEnv) 		#couldn't figure out how
+>> to get cluster export to work within a function.
+>>     clusterExport(cl, "model") 			#this only reads from
+>> globalenv?
+>>
+>>     pred <- do.call(c, clusterApply(cl, as.list(dp), function(x)
+> 
+> as.list(iter(datapoints, <etc>)) makes a full copy of datapoints.
+> clusterApply creates another copy, distributed across cores. So if
+> they're on the same machine you now use 3 * sizeof(datapoints) memory,
+> even before any calculations done on the workers. Ouch.
+> 
+> A first approach might iter(datapoints, chunksize=nrow(datapoints) / N)
+> coupled with clusterApplyLB -- there will be N chunks (assuming N >
+> NUMCORES), and clusterApplyLB will only ever have in play a portion
+> NUMCORES / N of datapoints (clusterApply would divide the N chunks into
+> two groups, again forwarding the entire data to the workers!), so the
+> memory use will be (2 + NUMCORES / N) * sizeof(datapoints).
+> 
+> A better approach is to avoid the duplication implied by
+> as.list(iter(<etc>)). This would require an implementation like
+> snow::dynamicClusterApply, where the first NUMCORES chunks of iter() are
+> forwarded to the workers, and then a loop is entered where the manager
+> receives one result and forwards the next chunk to the worker that
+> provided the result. Memory use would then be (1 + NUMCORES / N) *
+> sizeof(datapoints). Presumably this is the strategy taken by %dopar%.
+> 
+> multicore should be the winner here, though, since all workers should
+> have access to the data without copying -- sizeof(datapoints) memory
+> use. I haven't used multicore extensively, and especially not on
+> windows. When you say "it didn't work well" it would be helpful to
+> understand why. My limited experimentation suggested no problems when
+> used with data sets that were not too close to the windows memory
+> limits. Perhaps you are really just running out of memory, and multicore
+> is not reporting this as nicely as it could? I'm sure the multicore
+> author would appreciate something more precise in terms of user experience.
+> 
+> A final consideration is that calculations on the workers are likely to
+> duplicate a subset of datapoints, so that actual memory use will include
+> an additional component that scales approximately linearly with
+> NUMCORES. If the worker computations are memory intensive, then you'll
+> quickly find yourself in trouble again.
+> 
+> Hope that helps,
+> 
+> Martin
+> 
+> 
+>> predict(model, x))
+>> 	
+>> 	...
+>> }
+>>
+>> }
+>>
+>> When I ran this code, my ram would go up from the initial 2.5
+>> incrementally up 500 mb after each run until it ate up 4 GB. So for
+>> n>=3, the computer would throttle.
+
+I guess my previous response doesn't really address this pattern; it
+suggests that something is being retained across iterations of the for()
+loop, perhaps because in the code you don't show us (...) you retain a
+reference to a 500mb object (iter(datapoints)? pred?) that you don't
+retain in the code below.
+
+Martin
+
+>> When I found out about the new registerDoSnow, it improved my
+>> performance (props to Stephen Weston) here's the pseudo code for the
+>> equivalent above.
+>>
+>> someFunc = function(cl,...) {
+>> registerDoSnow(cl)
+>> for ( i in 1:n) {
+>>     	model = generateModel(Y[,i],X_mat)
+>> 	pred <- foreach(dp=iter(datapoints, by='row',
+>> chunksize=floor(nrow(datapoints)/NUMCORES)), .combine=c, .verbose=TRUE)
+>> %dopar% { predict(Tail.lo,dp) })}
+>> }
+>>
+>> Aside from slightly shorter lines, the performance was more stable, the
+>> ram ran from 2.5 up to 3.2 GB ish, and stayed stable, and performed
+>> better because it wouldn't run out of cache.
+>>
+>> However, I just want to understand what is the difference between the
+>> two treatments so that it would make such a large difference and whether
+>> I am doing something wrong in the first example.
+>>
+>> Thanks,
+>>
+>> -Ivan
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+> 
+
+
+-- 
+Martin Morgan
+Computational Biology / Fred Hutchinson Cancer Research Center
+1100 Fairview Ave. N.
+PO Box 19024 Seattle, WA 98109
+
+Location: Arnold Building M1 B861
+Phone: (206) 667-2793
+
+
+From stephen.b.weston at gmail.com  Mon Dec 14 16:15:46 2009
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Mon, 14 Dec 2009 10:15:46 -0500
+Subject: [R-sig-hpc] snow and foreach memory issue?
+In-Reply-To: <4B2536BA.9070405@fhcrc.org>
+References: <4B1FBC09.5860.00D0.0@services.nsw.gov.au>
+	<57e838140912091813g3754fe6dt750d05e31e8d69b1@mail.gmail.com>
+	<4B21083D.5860.00D0.0@services.nsw.gov.au>
+	<57e838140912100626i264d63eav7995d0c7d236a856@mail.gmail.com>
+	<4B2224C4.5860.00D0.0@services.nsw.gov.au>
+	<57e838140912101802x16a06d69t250e377050f2e265@mail.gmail.com>
+	<4B225088.5860.00D0.0@services.nsw.gov.au>
+	<338D58262CB96E438AD6AFEEE6D9482D8D74F9@ex2k.bankofamerica.com>
+	<4B25294F.5010405@fhcrc.org> <4B2536BA.9070405@fhcrc.org>
+Message-ID: <57e838140912140715t1cb1a652y66a45828d95f1af4@mail.gmail.com>
+
+It looks to me like the matrix datapoints might be getting captured in
+the function closure that you're passing to clusterApply.  That depends
+on where datapoints is defined, which you don't show. That could
+cause serious performance and memory problems.
+
+You can fix that by either defining the function from the
+global environment, or by removing the enclosing environment
+after you define the function, as follows:
+
+    fun <- function(x) predict(model, x)
+    environment(fun) <- globalenv()
+
+You should still be able to access "model", since you've exported it
+to the global environment of the workers.
+
+Actually, it looks to me like "model" would be captured in the
+closure, as well.  That could be another problem.
+
+Also, for the snow version, I would use the splitRows function to
+split datapoints.  There isn't really any point in creating the
+iterator, just to turn it back into a list since splitRows was designed
+for that purpose.  You might also want to try using the snow
+parRapply function.  But you still to address the capture of
+datapoints and model if that is indeed happening.
+
+- Steve
+
+
+
+On Sun, Dec 13, 2009 at 1:47 PM, Martin Morgan <mtmorgan at fhcrc.org> wrote:
+> Martin Morgan wrote:
+>> Zhang, Ivan wrote:
+>>> Hi everyone,
+>>>
+>>> I have a question regarding ram usage of snow and foreach.
+>>> I am running windows XP with 4 gb ram and intel quadcore 2.66.
+>>>
+>>> I recently tried to implement multicore processing using 'multicore' and
+>>> 'foreach' until I realized that multicore didn't work well on Windows
+>>> and switched to using 'snow' and 'foreach' which works nicely.
+>>>
+>>> I hashed out my own method without dopar however, for some reason I was
+>>> eating up my ram really quickly.
+>>> I wanted to see if anyone can figure out why perhaps there is something
+>>> I don't understand about snow as I just recently started using it.
+>>>
+>>> Suppose X_mat is a series of regressors for Y.
+>>>
+>>> Datapoints is a very large matrix of points.
+>>>
+>>> The pseudo code is as follows:
+>>> someFunc = function(cl,...) {
+>>>
+>>> for ( i in 1:n) {
+>>> ? ? model = generateModel(Y[,i],X_mat)
+>>> ? ? dp=iter(datapoints, by='row',
+>>> chunksize=floor(nrow(datapoints)/NUMCORES))
+>>>
+>>> ? ? assign("model", model, .GlobalEnv) ? ? ? ? ? ? ? #couldn't figure out how
+>>> to get cluster export to work within a function.
+>>> ? ? clusterExport(cl, "model") ? ? ? ? ? ? ? ? ? ? ? #this only reads from
+>>> globalenv?
+>>>
+>>> ? ? pred <- do.call(c, clusterApply(cl, as.list(dp), function(x)
+>>
+>> as.list(iter(datapoints, <etc>)) makes a full copy of datapoints.
+>> clusterApply creates another copy, distributed across cores. So if
+>> they're on the same machine you now use 3 * sizeof(datapoints) memory,
+>> even before any calculations done on the workers. Ouch.
+>>
+>> A first approach might iter(datapoints, chunksize=nrow(datapoints) / N)
+>> coupled with clusterApplyLB -- there will be N chunks (assuming N >
+>> NUMCORES), and clusterApplyLB will only ever have in play a portion
+>> NUMCORES / N of datapoints (clusterApply would divide the N chunks into
+>> two groups, again forwarding the entire data to the workers!), so the
+>> memory use will be (2 + NUMCORES / N) * sizeof(datapoints).
+>>
+>> A better approach is to avoid the duplication implied by
+>> as.list(iter(<etc>)). This would require an implementation like
+>> snow::dynamicClusterApply, where the first NUMCORES chunks of iter() are
+>> forwarded to the workers, and then a loop is entered where the manager
+>> receives one result and forwards the next chunk to the worker that
+>> provided the result. Memory use would then be (1 + NUMCORES / N) *
+>> sizeof(datapoints). Presumably this is the strategy taken by %dopar%.
+>>
+>> multicore should be the winner here, though, since all workers should
+>> have access to the data without copying -- sizeof(datapoints) memory
+>> use. I haven't used multicore extensively, and especially not on
+>> windows. When you say "it didn't work well" it would be helpful to
+>> understand why. My limited experimentation suggested no problems when
+>> used with data sets that were not too close to the windows memory
+>> limits. Perhaps you are really just running out of memory, and multicore
+>> is not reporting this as nicely as it could? I'm sure the multicore
+>> author would appreciate something more precise in terms of user experience.
+>>
+>> A final consideration is that calculations on the workers are likely to
+>> duplicate a subset of datapoints, so that actual memory use will include
+>> an additional component that scales approximately linearly with
+>> NUMCORES. If the worker computations are memory intensive, then you'll
+>> quickly find yourself in trouble again.
+>>
+>> Hope that helps,
+>>
+>> Martin
+>>
+>>
+>>> predict(model, x))
+>>>
+>>> ? ? ?...
+>>> }
+>>>
+>>> }
+>>>
+>>> When I ran this code, my ram would go up from the initial 2.5
+>>> incrementally up 500 mb after each run until it ate up 4 GB. So for
+>>> n>=3, the computer would throttle.
+>
+> I guess my previous response doesn't really address this pattern; it
+> suggests that something is being retained across iterations of the for()
+> loop, perhaps because in the code you don't show us (...) you retain a
+> reference to a 500mb object (iter(datapoints)? pred?) that you don't
+> retain in the code below.
+>
+> Martin
+>
+>>> When I found out about the new registerDoSnow, it improved my
+>>> performance (props to Stephen Weston) here's the pseudo code for the
+>>> equivalent above.
+>>>
+>>> someFunc = function(cl,...) {
+>>> registerDoSnow(cl)
+>>> for ( i in 1:n) {
+>>> ? ? ?model = generateModel(Y[,i],X_mat)
+>>> ? ? ?pred <- foreach(dp=iter(datapoints, by='row',
+>>> chunksize=floor(nrow(datapoints)/NUMCORES)), .combine=c, .verbose=TRUE)
+>>> %dopar% { predict(Tail.lo,dp) })}
+>>> }
+>>>
+>>> Aside from slightly shorter lines, the performance was more stable, the
+>>> ram ran from 2.5 up to 3.2 GB ish, and stayed stable, and performed
+>>> better because it wouldn't run out of cache.
+>>>
+>>> However, I just want to understand what is the difference between the
+>>> two treatments so that it would make such a large difference and whether
+>>> I am doing something wrong in the first example.
+>>>
+>>> Thanks,
+>>>
+>>> -Ivan
+>>>
+>>> _______________________________________________
+>>> R-sig-hpc mailing list
+>>> R-sig-hpc at r-project.org
+>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>>
+>
+>
+> --
+> Martin Morgan
+> Computational Biology / Fred Hutchinson Cancer Research Center
+> 1100 Fairview Ave. N.
+> PO Box 19024 Seattle, WA 98109
+>
+> Location: Arnold Building M1 B861
+> Phone: (206) 667-2793
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From drosen at sensenetworks.com  Wed Dec 16 21:15:38 2009
+From: drosen at sensenetworks.com (David Rosenberg)
+Date: Wed, 16 Dec 2009 15:15:38 -0500
+Subject: [R-sig-hpc] Large Zoo object processing with Rcpp
+Message-ID: <dab875290912161215n78201045xbbe2dabc3427f69c@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20091216/ecf102e0/attachment.pl>
+
+From david.davidr at gmail.com  Wed Dec 16 21:48:35 2009
+From: david.davidr at gmail.com (David Rosenberg)
+Date: Wed, 16 Dec 2009 15:48:35 -0500
+Subject: [R-sig-hpc] Large Zoo object processing with Rcpp
+Message-ID: <dab875290912161248r1051b5b4vead824f5b19a4e89@mail.gmail.com>
+
+Hi:
+
+(sorry about the previous posting being html)
+
+I have ~500,000 columns in  a zoo object (i.e. 500,000 time series with the
+same index set).
+
+I need to run the same function on each of the 500,000 series, and the
+function is implemented in C++/Rcpp.
+
+The storage for all the series is significant (fits into memory, but at
+least 1 Gig in size).
+
+I have no sense of whether it's better to process all 500,000 columns in the
+same C++ function, or whether to use some kind of apply function in R, to
+call the C++ function on each column individually.
+
+The issues I have in mind are:
+* time to copy the data (I vaguely recall reading that the data is copied
+when an Rcpp function is run on it, but I could be mistaken)
+* the space constraint imposed by having two copies of all the data
+* the cost of using apply in R (it seems to just be a loop), though maybe a
+different flavor of apply would be better.
+
+As an important but possibly orthogonal issue, I notice that when I access
+the zoo object in C++ (via a conversion to vector<vector<double>> using
+getDataMat() ), the data seems to be stored as follows:
+zooArrs[timeIndex][seriesNumber].
+Which means if I'm processing one series at a time, and I have a large
+number of series, I'm probably going to get a cache miss for every array
+access, as I access consecutive entries for a single series: (i.e.
+zooArrs[0][0], zooArrs[1][0], zooArrs[2][0],...).
+I'm not sure if this is how the data is stored in R/Zoo, or if there's a
+conversion to this format in Rcpp, or what.  In any case, are there any
+obvious / natural places to change the way the data are stored?
+
+
+Thanks,
+
+David
+
+
+From stranda at cofc.edu  Wed Dec 23 22:05:27 2009
+From: stranda at cofc.edu (Allan Strand)
+Date: Wed, 23 Dec 2009 16:05:27 -0500
+Subject: [R-sig-hpc] difficulty spawning Rslaves
+Message-ID: <4B328617.5020201@cofc.edu>
+
+Hi All,
+
+My setup is on a cluster running 64bit FC.  I have recently broken my 
+install Rmpi (and hence snow) by upgrading some very old versions of R, 
+lam/mpi, Rmpi, and snow (currently installed versions listed at the 
+bottom of this email).  No doubt this is a problem with my Rmpi install, 
+but I'm having trouble seeing it.
+
+I cannot seem to spawn more than a single slave (which is spawned on the 
+master node)
+e.g.:
+
+ > mpi.spawn.Rslaves(comm=1,nslaves=1)
+     1 slaves are spawned successfully. 0 failed.
+master (rank 0, comm 1) of size 2 is running on: node0
+slave1 (rank 1, comm 1) of size 2 is running on: node0
+
+ > mpi.comm.free(comm=1)
+[1] 1
+
+ > mpi.spawn.Rslaves(comm=1,nslaves=2)
+     2 slaves are spawned successfully. 0 failed.
+Error in mpi.intercomm.merge(intercomm, 0, comm) :
+   MPI_Error_string: process in local group is dead
+
+No doubt the answer is contained in the MPI_Error string, but I'm not 
+sure how to interpret it.
+
+Thanks,
+Allan
+===================================
+Versions (all installed locally in my account with directory appropriate 
+./configure settings)
+
+R 2.10.1
+LAM 7.1.4/MPI 2 C++/ROMIO - Indiana University
+Rmpi 0.5-7
+
+-- 
+Allan Strand,   Biology    http://linum.cofc.edu
+College of Charleston
+
+
+From edd at debian.org  Mon Dec 28 17:14:08 2009
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Mon, 28 Dec 2009 10:14:08 -0600
+Subject: [R-sig-hpc] difficulty spawning Rslaves
+In-Reply-To: <4B328617.5020201@cofc.edu>
+References: <4B328617.5020201@cofc.edu>
+Message-ID: <19256.55632.969613.939557@ron.nulle.part>
+
+
+Allan,
+
+On 23 December 2009 at 16:05, Allan Strand wrote:
+| My setup is on a cluster running 64bit FC.  I have recently broken my 
+| install Rmpi (and hence snow) by upgrading some very old versions of R, 
+| lam/mpi, Rmpi, and snow (currently installed versions listed at the 
+| bottom of this email).  No doubt this is a problem with my Rmpi install, 
+| but I'm having trouble seeing it.
+| 
+| I cannot seem to spawn more than a single slave (which is spawned on the 
+| master node)
+| e.g.:
+| 
+|  > mpi.spawn.Rslaves(comm=1,nslaves=1)
+|      1 slaves are spawned successfully. 0 failed.
+| master (rank 0, comm 1) of size 2 is running on: node0
+| slave1 (rank 1, comm 1) of size 2 is running on: node0
+| 
+|  > mpi.comm.free(comm=1)
+| [1] 1
+| 
+|  > mpi.spawn.Rslaves(comm=1,nslaves=2)
+|      2 slaves are spawned successfully. 0 failed.
+| Error in mpi.intercomm.merge(intercomm, 0, comm) :
+|    MPI_Error_string: process in local group is dead
+| 
+| No doubt the answer is contained in the MPI_Error string, but I'm not 
+| sure how to interpret it.
+| 
+| Thanks,
+| Allan
+| ===================================
+| Versions (all installed locally in my account with directory appropriate 
+| ./configure settings)
+| 
+| R 2.10.1
+| LAM 7.1.4/MPI 2 C++/ROMIO - Indiana University
+  ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For what it is worth, a looong time ago (two years? longer?) when I was
+helping Manual to get the Debian OpenMPI packages into and when I was
+transitioning off LAM, I had concluded that the very latest 7.1.X releases of
+LAM were broken for me.  The system was a then-current Ubuntu system with the
+LAM and OpenMPI packages compiled from Debian sources.  Provided I 'frozen'
+LAM at 7.1.2 things would work, the newer ones would not.
+
+So I'd recommend either downgrading to the last LAM that worked for you, or
+rather take the plunge and jump to Open MPI. The 1.3.* series is pretty
+already, and 1.4.0 is just around the corner.
+
+Just my $0.02. The problem may of course be entirely different.
+
+Dirk
+
+-- 
+Three out of two people have difficulties with fractions.
+
+
+From rdiaz02 at gmail.com  Mon Dec 28 18:28:56 2009
+From: rdiaz02 at gmail.com (Ramon Diaz-Uriarte)
+Date: Mon, 28 Dec 2009 18:28:56 +0100
+Subject: [R-sig-hpc] difficulty spawning Rslaves
+In-Reply-To: <19256.55632.969613.939557@ron.nulle.part>
+References: <4B328617.5020201@cofc.edu>
+	<19256.55632.969613.939557@ron.nulle.part>
+Message-ID: <624934630912280928x6ec3328ah2c3572e72952f662@mail.gmail.com>
+
+More along Dirk's comments: we currently have two clusters using LAM,
+both Debian systems, one using v. 7.1.2 of LAM's release and the other
+7.1.1. In a current Ubuntu-based laptop, things are working with
+release 7.1.2.
+
+Best,
+
+R.
+
+On Mon, Dec 28, 2009 at 5:14 PM, Dirk Eddelbuettel <edd at debian.org> wrote:
+>
+> Allan,
+>
+> On 23 December 2009 at 16:05, Allan Strand wrote:
+> | My setup is on a cluster running 64bit FC. ?I have recently broken my
+> | install Rmpi (and hence snow) by upgrading some very old versions of R,
+> | lam/mpi, Rmpi, and snow (currently installed versions listed at the
+> | bottom of this email). ?No doubt this is a problem with my Rmpi install,
+> | but I'm having trouble seeing it.
+> |
+> | I cannot seem to spawn more than a single slave (which is spawned on the
+> | master node)
+> | e.g.:
+> |
+> | ?> mpi.spawn.Rslaves(comm=1,nslaves=1)
+> | ? ? ?1 slaves are spawned successfully. 0 failed.
+> | master (rank 0, comm 1) of size 2 is running on: node0
+> | slave1 (rank 1, comm 1) of size 2 is running on: node0
+> |
+> | ?> mpi.comm.free(comm=1)
+> | [1] 1
+> |
+> | ?> mpi.spawn.Rslaves(comm=1,nslaves=2)
+> | ? ? ?2 slaves are spawned successfully. 0 failed.
+> | Error in mpi.intercomm.merge(intercomm, 0, comm) :
+> | ? ?MPI_Error_string: process in local group is dead
+> |
+> | No doubt the answer is contained in the MPI_Error string, but I'm not
+> | sure how to interpret it.
+> |
+> | Thanks,
+> | Allan
+> | ===================================
+> | Versions (all installed locally in my account with directory appropriate
+> | ./configure settings)
+> |
+> | R 2.10.1
+> | LAM 7.1.4/MPI 2 C++/ROMIO - Indiana University
+> ?^^^^^^^^^^^^^^^^^^^^^^^^^
+>
+> For what it is worth, a looong time ago (two years? longer?) when I was
+> helping Manual to get the Debian OpenMPI packages into and when I was
+> transitioning off LAM, I had concluded that the very latest 7.1.X releases of
+> LAM were broken for me. ?The system was a then-current Ubuntu system with the
+> LAM and OpenMPI packages compiled from Debian sources. ?Provided I 'frozen'
+> LAM at 7.1.2 things would work, the newer ones would not.
+>
+> So I'd recommend either downgrading to the last LAM that worked for you, or
+> rather take the plunge and jump to Open MPI. The 1.3.* series is pretty
+> already, and 1.4.0 is just around the corner.
+>
+> Just my $0.02. The problem may of course be entirely different.
+>
+> Dirk
+>
+> --
+> Three out of two people have difficulties with fractions.
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+
+-- 
+Ramon Diaz-Uriarte
+Structural Biology and Biocomputing Programme
+Spanish National Cancer Centre (CNIO)
+http://ligarto.org/rdiaz
+Phone: +34-91-732-8000 ext. 3019
+
+
+From stranda at cofc.edu  Tue Dec 29 15:37:44 2009
+From: stranda at cofc.edu (Allan Strand)
+Date: Tue, 29 Dec 2009 09:37:44 -0500
+Subject: [R-sig-hpc] difficulty spawning Rslaves
+In-Reply-To: <624934630912280928x6ec3328ah2c3572e72952f662@mail.gmail.com>
+References: <4B328617.5020201@cofc.edu>	
+	<19256.55632.969613.939557@ron.nulle.part>
+	<624934630912280928x6ec3328ah2c3572e72952f662@mail.gmail.com>
+Message-ID: <4B3A1438.2080701@cofc.edu>
+
+Thanks Dirk and Ramon.
+
+I tried Lam 7.1.2 and am still seeing the same type of behavior.  Still 
+searching for a solution, and will report back.
+
+cheers,
+a.
+
+On 12/28/2009 12:28 PM, Ramon Diaz-Uriarte wrote:
+> More along Dirk's comments: we currently have two clusters using LAM,
+> both Debian systems, one using v. 7.1.2 of LAM's release and the other
+> 7.1.1. In a current Ubuntu-based laptop, things are working with
+> release 7.1.2.
+>
+> Best,
+>
+> R.
+>
+> On Mon, Dec 28, 2009 at 5:14 PM, Dirk Eddelbuettel<edd at debian.org>  wrote:
+>    
+>> Allan,
+>>
+>> On 23 December 2009 at 16:05, Allan Strand wrote:
+>> | My setup is on a cluster running 64bit FC.  I have recently broken my
+>> | install Rmpi (and hence snow) by upgrading some very old versions of R,
+>> | lam/mpi, Rmpi, and snow (currently installed versions listed at the
+>> | bottom of this email).  No doubt this is a problem with my Rmpi install,
+>> | but I'm having trouble seeing it.
+>> |
+>> | I cannot seem to spawn more than a single slave (which is spawned on the
+>> | master node)
+>> | e.g.:
+>> |
+>> |>  mpi.spawn.Rslaves(comm=1,nslaves=1)
+>> |      1 slaves are spawned successfully. 0 failed.
+>> | master (rank 0, comm 1) of size 2 is running on: node0
+>> | slave1 (rank 1, comm 1) of size 2 is running on: node0
+>> |
+>> |>  mpi.comm.free(comm=1)
+>> | [1] 1
+>> |
+>> |>  mpi.spawn.Rslaves(comm=1,nslaves=2)
+>> |      2 slaves are spawned successfully. 0 failed.
+>> | Error in mpi.intercomm.merge(intercomm, 0, comm) :
+>> |    MPI_Error_string: process in local group is dead
+>> |
+>> | No doubt the answer is contained in the MPI_Error string, but I'm not
+>> | sure how to interpret it.
+>> |
+>> | Thanks,
+>> | Allan
+>> | ===================================
+>> | Versions (all installed locally in my account with directory appropriate
+>> | ./configure settings)
+>> |
+>> | R 2.10.1
+>> | LAM 7.1.4/MPI 2 C++/ROMIO - Indiana University
+>>   ^^^^^^^^^^^^^^^^^^^^^^^^^
+>>
+>> For what it is worth, a looong time ago (two years? longer?) when I was
+>> helping Manual to get the Debian OpenMPI packages into and when I was
+>> transitioning off LAM, I had concluded that the very latest 7.1.X releases of
+>> LAM were broken for me.  The system was a then-current Ubuntu system with the
+>> LAM and OpenMPI packages compiled from Debian sources.  Provided I 'frozen'
+>> LAM at 7.1.2 things would work, the newer ones would not.
+>>
+>> So I'd recommend either downgrading to the last LAM that worked for you, or
+>> rather take the plunge and jump to Open MPI. The 1.3.* series is pretty
+>> already, and 1.4.0 is just around the corner.
+>>
+>> Just my $0.02. The problem may of course be entirely different.
+>>
+>> Dirk
+>>
+>> --
+>> Three out of two people have difficulties with fractions.
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>>      
+>
+>
+>    
+
+-- 
+Allan Strand,   Biology    http://linum.cofc.edu
+College of Charleston      Ph. (843) 953-9189
+Charleston, SC 29424       Fax (843) 953-9199
+
+
+From ivo.welch at gmail.com  Tue Dec 29 20:53:14 2009
+From: ivo.welch at gmail.com (ivo welch)
+Date: Tue, 29 Dec 2009 14:53:14 -0500
+Subject: [R-sig-hpc] [1] private cloud; [2] openCL
+Message-ID: <50d1c22d0912291153i73c1641h52743700825fd1f3@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20091229/0fe4cb93/attachment.pl>
+
+From peak.list at verizon.net  Tue Dec 29 22:30:29 2009
+From: peak.list at verizon.net (James Jeffry Howbert)
+Date: Tue, 29 Dec 2009 13:30:29 -0800
+Subject: [R-sig-hpc] problem with Rmpi
+Message-ID: <001d01ca88ce$25240ac0$6f6c2040$@list@verizon.net>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20091229/9e47fdb5/attachment.pl>
+
+From mvalle at cscs.ch  Wed Dec 30 05:22:08 2009
+From: mvalle at cscs.ch (Mario Valle)
+Date: Wed, 30 Dec 2009 05:22:08 +0100
+Subject: [R-sig-hpc] [1] private cloud; [2] openCL
+In-Reply-To: <50d1c22d0912291153i73c1641h52743700825fd1f3@mail.gmail.com>
+References: <50d1c22d0912291153i73c1641h52743700825fd1f3@mail.gmail.com>
+Message-ID: <4B3AD570.10300@cscs.ch>
+
+Why don't start by looking at packages snow and snowfall?
+They support what you want to do without the hassles to setup a private 
+cloud (for this check project eucalyptus).
+Take a look also to the CRAN HPC task page for ideas.
+For openCL start looking at Rgpu.
+Hope it helps
+			mario
+
+On 29-Dec-09 20:53, ivo welch wrote:
+> dear R experts:
+>
+> private cloud: I know this is not the right mailing list, but I am hoping
+> that someone can point me in the right direction.  we have a heterogeneous
+> computing environment, mostly Windows-XP machines, which sit idle
+> overnight.  I have never used a cloud, but I presume a cloud would be
+> well-suited to econometric monte-carlo simulations.   so I wonder if there
+> is low-cost software that makes a private cloud out of such machines during
+> the night (and/or when idle).  would something like this based on
+> virtualbox+ubuntu  work well?  are there any whitepapers somewhere on the
+> subject?  (please email me directly; I don't want to hijack this group.)
+>
+> openCL: is there any support for openCL forthcoming in an addon for R?
+> (optimally, this would be transparent, so that even non-hackers like myself
+> can use it easily, even if it speeds up only standard linear operations,
+> such as means, sdvs, and standard least-squares.)
+>
+> regards,
+>
+> /iaw
+> ----
+> Ivo Welch (ivo.welch at brown.edu, ivo.welch at gmail.com)
+>
+> 	[[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+-- 
+Ing. Mario Valle
+Data Analysis and Visualization Group            | 
+http://www.cscs.ch/~mvalle
+Swiss National Supercomputing Centre (CSCS)      | Tel:  +41 (91) 610.82.60
+v. Cantonale Galleria 2, 6928 Manno, Switzerland | Fax:  +41 (91) 610.82.82
+
+
+From rdiaz02 at gmail.com  Wed Dec 30 12:02:08 2009
+From: rdiaz02 at gmail.com (Ramon Diaz-Uriarte)
+Date: Wed, 30 Dec 2009 12:02:08 +0100
+Subject: [R-sig-hpc] difficulty spawning Rslaves
+In-Reply-To: <4B3A1438.2080701@cofc.edu>
+References: <4B328617.5020201@cofc.edu>
+	<19256.55632.969613.939557@ron.nulle.part>
+	<624934630912280928x6ec3328ah2c3572e72952f662@mail.gmail.com>
+	<4B3A1438.2080701@cofc.edu>
+Message-ID: <624934630912300302g7984a6d5va016e2ce9dc0273f@mail.gmail.com>
+
+This might not provide any useful info, but just in case: when running
+Rmpi, a bunch of log files are temporarily created in the current
+working directory. Sometimes, they contain a little bit more info than
+"process in local group is dead".
+
+And a couple of other checks:
+
+1. After installing release 7.1.2, you of course recompiled Rmpi
+against the new versions?
+
+
+2. Before running R, do your usual lamboot routine and then:
+
+2.1. lamexec C hostname
+
+2.2 tping C N -c 2 (or anyother number after -c)
+
+
+3. Inisde Rmpi, why do you use mpi.comm.free instead of just
+mpi.close.Rslaves? For me, for instance, the following works reliably:
+
+library(Rmpi)
+mpi.spawn.Rslaves(nslaves = 1)
+mpi.close.Rslaves()
+mpi.spawn.Rslaves(nslaves = 4)
+
+
+Best,
+
+R.
+
+
+On Tue, Dec 29, 2009 at 3:37 PM, Allan Strand <stranda at cofc.edu> wrote:
+> Thanks Dirk and Ramon.
+>
+> I tried Lam 7.1.2 and am still seeing the same type of behavior. ?Still
+> searching for a solution, and will report back.
+>
+> cheers,
+> a.
+>
+> On 12/28/2009 12:28 PM, Ramon Diaz-Uriarte wrote:
+>>
+>> More along Dirk's comments: we currently have two clusters using LAM,
+>> both Debian systems, one using v. 7.1.2 of LAM's release and the other
+>> 7.1.1. In a current Ubuntu-based laptop, things are working with
+>> release 7.1.2.
+>>
+>> Best,
+>>
+>> R.
+>>
+>> On Mon, Dec 28, 2009 at 5:14 PM, Dirk Eddelbuettel<edd at debian.org> ?wrote:
+>>
+>>>
+>>> Allan,
+>>>
+>>> On 23 December 2009 at 16:05, Allan Strand wrote:
+>>> | My setup is on a cluster running 64bit FC. ?I have recently broken my
+>>> | install Rmpi (and hence snow) by upgrading some very old versions of R,
+>>> | lam/mpi, Rmpi, and snow (currently installed versions listed at the
+>>> | bottom of this email). ?No doubt this is a problem with my Rmpi
+>>> install,
+>>> | but I'm having trouble seeing it.
+>>> |
+>>> | I cannot seem to spawn more than a single slave (which is spawned on
+>>> the
+>>> | master node)
+>>> | e.g.:
+>>> |
+>>> |> ?mpi.spawn.Rslaves(comm=1,nslaves=1)
+>>> | ? ? ?1 slaves are spawned successfully. 0 failed.
+>>> | master (rank 0, comm 1) of size 2 is running on: node0
+>>> | slave1 (rank 1, comm 1) of size 2 is running on: node0
+>>> |
+>>> |> ?mpi.comm.free(comm=1)
+>>> | [1] 1
+>>> |
+>>> |> ?mpi.spawn.Rslaves(comm=1,nslaves=2)
+>>> | ? ? ?2 slaves are spawned successfully. 0 failed.
+>>> | Error in mpi.intercomm.merge(intercomm, 0, comm) :
+>>> | ? ?MPI_Error_string: process in local group is dead
+>>> |
+>>> | No doubt the answer is contained in the MPI_Error string, but I'm not
+>>> | sure how to interpret it.
+>>> |
+>>> | Thanks,
+>>> | Allan
+>>> | ===================================
+>>> | Versions (all installed locally in my account with directory
+>>> appropriate
+>>> | ./configure settings)
+>>> |
+>>> | R 2.10.1
+>>> | LAM 7.1.4/MPI 2 C++/ROMIO - Indiana University
+>>> ?^^^^^^^^^^^^^^^^^^^^^^^^^
+>>>
+>>> For what it is worth, a looong time ago (two years? longer?) when I was
+>>> helping Manual to get the Debian OpenMPI packages into and when I was
+>>> transitioning off LAM, I had concluded that the very latest 7.1.X
+>>> releases of
+>>> LAM were broken for me. ?The system was a then-current Ubuntu system with
+>>> the
+>>> LAM and OpenMPI packages compiled from Debian sources. ?Provided I
+>>> 'frozen'
+>>> LAM at 7.1.2 things would work, the newer ones would not.
+>>>
+>>> So I'd recommend either downgrading to the last LAM that worked for you,
+>>> or
+>>> rather take the plunge and jump to Open MPI. The 1.3.* series is pretty
+>>> already, and 1.4.0 is just around the corner.
+>>>
+>>> Just my $0.02. The problem may of course be entirely different.
+>>>
+>>> Dirk
+>>>
+>>> --
+>>> Three out of two people have difficulties with fractions.
+>>>
+>>> _______________________________________________
+>>> R-sig-hpc mailing list
+>>> R-sig-hpc at r-project.org
+>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>
+>>>
+>>
+>>
+>>
+>
+> --
+> Allan Strand, ? Biology ? ?http://linum.cofc.edu
+> College of Charleston ? ? ?Ph. (843) 953-9189
+> Charleston, SC 29424 ? ? ? Fax (843) 953-9199
+>
+>
+
+
+
+-- 
+Ramon Diaz-Uriarte
+Structural Biology and Biocomputing Programme
+Spanish National Cancer Centre (CNIO)
+http://ligarto.org/rdiaz
+Phone: +34-91-732-8000 ext. 3019
+
+
+From stranda at cofc.edu  Wed Dec 30 17:33:20 2009
+From: stranda at cofc.edu (Allan Strand)
+Date: Wed, 30 Dec 2009 11:33:20 -0500
+Subject: [R-sig-hpc] difficulty spawning Rslaves
+In-Reply-To: <624934630912300302g7984a6d5va016e2ce9dc0273f@mail.gmail.com>
+References: <4B328617.5020201@cofc.edu>	
+	<19256.55632.969613.939557@ron.nulle.part>	
+	<624934630912280928x6ec3328ah2c3572e72952f662@mail.gmail.com>	
+	<4B3A1438.2080701@cofc.edu>
+	<624934630912300302g7984a6d5va016e2ce9dc0273f@mail.gmail.com>
+Message-ID: <4B3B80D0.3000900@cofc.edu>
+
+Hi Ramon,
+Still having the problem.
+
+Lam definitely seems to be working (step 2 below succeeds).  I've also 
+recompiled/reinstalled Rmpi (several to many times).  As for 
+mpi.comm.free usage, the truth is that when things are working I only 
+use the snow interface, so I really have little facility with Rmpi.  
+Will use mpi.close.Rslaves() now.
+
+This error seems to be the problem, I stepped manually through 
+mpi.spawn.Rslaves() and everything succeeds until the call to 
+mpi.intercomm.merge
+
+Error in mpi.intercomm.merge(intercomm, 0, comm) :
+|    MPI_Error_string: process in local group is dead
+
+Still looking,
+cheers,
+a.
+
+On 12/30/2009 06:02 AM, Ramon Diaz-Uriarte wrote:
+> This might not provide any useful info, but just in case: when running
+> Rmpi, a bunch of log files are temporarily created in the current
+> working directory. Sometimes, they contain a little bit more info than
+> "process in local group is dead".
+>
+> And a couple of other checks:
+>
+> 1. After installing release 7.1.2, you of course recompiled Rmpi
+> against the new versions?
+>
+>
+> 2. Before running R, do your usual lamboot routine and then:
+>
+> 2.1. lamexec C hostname
+>
+> 2.2 tping C N -c 2 (or anyother number after -c)
+>
+>
+> 3. Inisde Rmpi, why do you use mpi.comm.free instead of just
+> mpi.close.Rslaves? For me, for instance, the following works reliably:
+>
+> library(Rmpi)
+> mpi.spawn.Rslaves(nslaves = 1)
+> mpi.close.Rslaves()
+> mpi.spawn.Rslaves(nslaves = 4)
+>
+>
+> Best,
+>
+> R.
+>
+>
+> On Tue, Dec 29, 2009 at 3:37 PM, Allan Strand<stranda at cofc.edu>  wrote:
+>    
+>> Thanks Dirk and Ramon.
+>>
+>> I tried Lam 7.1.2 and am still seeing the same type of behavior.  Still
+>> searching for a solution, and will report back.
+>>
+>> cheers,
+>> a.
+>>
+>> On 12/28/2009 12:28 PM, Ramon Diaz-Uriarte wrote:
+>>      
+>>> More along Dirk's comments: we currently have two clusters using LAM,
+>>> both Debian systems, one using v. 7.1.2 of LAM's release and the other
+>>> 7.1.1. In a current Ubuntu-based laptop, things are working with
+>>> release 7.1.2.
+>>>
+>>> Best,
+>>>
+>>> R.
+>>>
+>>> On Mon, Dec 28, 2009 at 5:14 PM, Dirk Eddelbuettel<edd at debian.org>    wrote:
+>>>
+>>>        
+>>>> Allan,
+>>>>
+>>>> On 23 December 2009 at 16:05, Allan Strand wrote:
+>>>> | My setup is on a cluster running 64bit FC.  I have recently broken my
+>>>> | install Rmpi (and hence snow) by upgrading some very old versions of R,
+>>>> | lam/mpi, Rmpi, and snow (currently installed versions listed at the
+>>>> | bottom of this email).  No doubt this is a problem with my Rmpi
+>>>> install,
+>>>> | but I'm having trouble seeing it.
+>>>> |
+>>>> | I cannot seem to spawn more than a single slave (which is spawned on
+>>>> the
+>>>> | master node)
+>>>> | e.g.:
+>>>> |
+>>>> |>    mpi.spawn.Rslaves(comm=1,nslaves=1)
+>>>> |      1 slaves are spawned successfully. 0 failed.
+>>>> | master (rank 0, comm 1) of size 2 is running on: node0
+>>>> | slave1 (rank 1, comm 1) of size 2 is running on: node0
+>>>> |
+>>>> |>    mpi.comm.free(comm=1)
+>>>> | [1] 1
+>>>> |
+>>>> |>    mpi.spawn.Rslaves(comm=1,nslaves=2)
+>>>> |      2 slaves are spawned successfully. 0 failed.
+>>>> | Error in mpi.intercomm.merge(intercomm, 0, comm) :
+>>>> |    MPI_Error_string: process in local group is dead
+>>>> |
+>>>> | No doubt the answer is contained in the MPI_Error string, but I'm not
+>>>> | sure how to interpret it.
+>>>> |
+>>>> | Thanks,
+>>>> | Allan
+>>>> | ===================================
+>>>> | Versions (all installed locally in my account with directory
+>>>> appropriate
+>>>> | ./configure settings)
+>>>> |
+>>>> | R 2.10.1
+>>>> | LAM 7.1.4/MPI 2 C++/ROMIO - Indiana University
+>>>>   ^^^^^^^^^^^^^^^^^^^^^^^^^
+>>>>
+>>>> For what it is worth, a looong time ago (two years? longer?) when I was
+>>>> helping Manual to get the Debian OpenMPI packages into and when I was
+>>>> transitioning off LAM, I had concluded that the very latest 7.1.X
+>>>> releases of
+>>>> LAM were broken for me.  The system was a then-current Ubuntu system with
+>>>> the
+>>>> LAM and OpenMPI packages compiled from Debian sources.  Provided I
+>>>> 'frozen'
+>>>> LAM at 7.1.2 things would work, the newer ones would not.
+>>>>
+>>>> So I'd recommend either downgrading to the last LAM that worked for you,
+>>>> or
+>>>> rather take the plunge and jump to Open MPI. The 1.3.* series is pretty
+>>>> already, and 1.4.0 is just around the corner.
+>>>>
+>>>> Just my $0.02. The problem may of course be entirely different.
+>>>>
+>>>> Dirk
+>>>>
+>>>> --
+>>>> Three out of two people have difficulties with fractions.
+>>>>
+>>>> _______________________________________________
+>>>> R-sig-hpc mailing list
+>>>> R-sig-hpc at r-project.org
+>>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>>
+>>>>
+>>>>          
+>>>
+>>>
+>>>        
+>> --
+>> Allan Strand,   Biology    http://linum.cofc.edu
+>> College of Charleston      Ph. (843) 953-9189
+>> Charleston, SC 29424       Fax (843) 953-9199
+>>
+>>
+>>      
+>
+>
+>    
+
+-- 
+Allan Strand,   Biology    http://linum.cofc.edu
+College of Charleston      Ph. (843) 953-9189
+Charleston, SC 29424       Fax (843) 953-9199
+
+
+From rdiaz02 at gmail.com  Wed Dec 30 18:41:42 2009
+From: rdiaz02 at gmail.com (Ramon Diaz-Uriarte)
+Date: Wed, 30 Dec 2009 18:41:42 +0100
+Subject: [R-sig-hpc] difficulty spawning Rslaves
+In-Reply-To: <4B3B80D0.3000900@cofc.edu>
+References: <4B328617.5020201@cofc.edu>
+	<19256.55632.969613.939557@ron.nulle.part>
+	<624934630912280928x6ec3328ah2c3572e72952f662@mail.gmail.com>
+	<4B3A1438.2080701@cofc.edu>
+	<624934630912300302g7984a6d5va016e2ce9dc0273f@mail.gmail.com>
+	<4B3B80D0.3000900@cofc.edu>
+Message-ID: <624934630912300941x64f7e4b7p13afb292070822fe@mail.gmail.com>
+
+Hummm... Already beyond my very little understanding of LAM/MPI.
+
+I guess that booting the LAM universe (with at least, say, 2 slaves,
+i.e., setting that in the config file) and then starting R and doing,
+directly
+
+library(Rmpi)
+mpi.spawn.Rslaves(nslaves = 2)
+
+also fails?
+
+
+Best,
+
+R.
+
+
+
+On Wed, Dec 30, 2009 at 5:33 PM, Allan Strand <stranda at cofc.edu> wrote:
+> Hi Ramon,
+> Still having the problem.
+>
+> Lam definitely seems to be working (step 2 below succeeds). ?I've also
+> recompiled/reinstalled Rmpi (several to many times). ?As for mpi.comm.free
+> usage, the truth is that when things are working I only use the snow
+> interface, so I really have little facility with Rmpi. ?Will use
+> mpi.close.Rslaves() now.
+>
+> This error seems to be the problem, I stepped manually through
+> mpi.spawn.Rslaves() and everything succeeds until the call to
+> mpi.intercomm.merge
+>
+> Error in mpi.intercomm.merge(intercomm, 0, comm) :
+> | ? ?MPI_Error_string: process in local group is dead
+>
+> Still looking,
+> cheers,
+> a.
+>
+> On 12/30/2009 06:02 AM, Ramon Diaz-Uriarte wrote:
+>>
+>> This might not provide any useful info, but just in case: when running
+>> Rmpi, a bunch of log files are temporarily created in the current
+>> working directory. Sometimes, they contain a little bit more info than
+>> "process in local group is dead".
+>>
+>> And a couple of other checks:
+>>
+>> 1. After installing release 7.1.2, you of course recompiled Rmpi
+>> against the new versions?
+>>
+>>
+>> 2. Before running R, do your usual lamboot routine and then:
+>>
+>> 2.1. lamexec C hostname
+>>
+>> 2.2 tping C N -c 2 (or anyother number after -c)
+>>
+>>
+>> 3. Inisde Rmpi, why do you use mpi.comm.free instead of just
+>> mpi.close.Rslaves? For me, for instance, the following works reliably:
+>>
+>> library(Rmpi)
+>> mpi.spawn.Rslaves(nslaves = 1)
+>> mpi.close.Rslaves()
+>> mpi.spawn.Rslaves(nslaves = 4)
+>>
+>>
+>> Best,
+>>
+>> R.
+>>
+>>
+>> On Tue, Dec 29, 2009 at 3:37 PM, Allan Strand<stranda at cofc.edu> ?wrote:
+>>
+>>>
+>>> Thanks Dirk and Ramon.
+>>>
+>>> I tried Lam 7.1.2 and am still seeing the same type of behavior. ?Still
+>>> searching for a solution, and will report back.
+>>>
+>>> cheers,
+>>> a.
+>>>
+>>> On 12/28/2009 12:28 PM, Ramon Diaz-Uriarte wrote:
+>>>
+>>>>
+>>>> More along Dirk's comments: we currently have two clusters using LAM,
+>>>> both Debian systems, one using v. 7.1.2 of LAM's release and the other
+>>>> 7.1.1. In a current Ubuntu-based laptop, things are working with
+>>>> release 7.1.2.
+>>>>
+>>>> Best,
+>>>>
+>>>> R.
+>>>>
+>>>> On Mon, Dec 28, 2009 at 5:14 PM, Dirk Eddelbuettel<edd at debian.org>
+>>>> ?wrote:
+>>>>
+>>>>
+>>>>>
+>>>>> Allan,
+>>>>>
+>>>>> On 23 December 2009 at 16:05, Allan Strand wrote:
+>>>>> | My setup is on a cluster running 64bit FC. ?I have recently broken my
+>>>>> | install Rmpi (and hence snow) by upgrading some very old versions of
+>>>>> R,
+>>>>> | lam/mpi, Rmpi, and snow (currently installed versions listed at the
+>>>>> | bottom of this email). ?No doubt this is a problem with my Rmpi
+>>>>> install,
+>>>>> | but I'm having trouble seeing it.
+>>>>> |
+>>>>> | I cannot seem to spawn more than a single slave (which is spawned on
+>>>>> the
+>>>>> | master node)
+>>>>> | e.g.:
+>>>>> |
+>>>>> |> ? ?mpi.spawn.Rslaves(comm=1,nslaves=1)
+>>>>> | ? ? ?1 slaves are spawned successfully. 0 failed.
+>>>>> | master (rank 0, comm 1) of size 2 is running on: node0
+>>>>> | slave1 (rank 1, comm 1) of size 2 is running on: node0
+>>>>> |
+>>>>> |> ? ?mpi.comm.free(comm=1)
+>>>>> | [1] 1
+>>>>> |
+>>>>> |> ? ?mpi.spawn.Rslaves(comm=1,nslaves=2)
+>>>>> | ? ? ?2 slaves are spawned successfully. 0 failed.
+>>>>> | Error in mpi.intercomm.merge(intercomm, 0, comm) :
+>>>>> | ? ?MPI_Error_string: process in local group is dead
+>>>>> |
+>>>>> | No doubt the answer is contained in the MPI_Error string, but I'm not
+>>>>> | sure how to interpret it.
+>>>>> |
+>>>>> | Thanks,
+>>>>> | Allan
+>>>>> | ===================================
+>>>>> | Versions (all installed locally in my account with directory
+>>>>> appropriate
+>>>>> | ./configure settings)
+>>>>> |
+>>>>> | R 2.10.1
+>>>>> | LAM 7.1.4/MPI 2 C++/ROMIO - Indiana University
+>>>>> ?^^^^^^^^^^^^^^^^^^^^^^^^^
+>>>>>
+>>>>> For what it is worth, a looong time ago (two years? longer?) when I was
+>>>>> helping Manual to get the Debian OpenMPI packages into and when I was
+>>>>> transitioning off LAM, I had concluded that the very latest 7.1.X
+>>>>> releases of
+>>>>> LAM were broken for me. ?The system was a then-current Ubuntu system
+>>>>> with
+>>>>> the
+>>>>> LAM and OpenMPI packages compiled from Debian sources. ?Provided I
+>>>>> 'frozen'
+>>>>> LAM at 7.1.2 things would work, the newer ones would not.
+>>>>>
+>>>>> So I'd recommend either downgrading to the last LAM that worked for
+>>>>> you,
+>>>>> or
+>>>>> rather take the plunge and jump to Open MPI. The 1.3.* series is pretty
+>>>>> already, and 1.4.0 is just around the corner.
+>>>>>
+>>>>> Just my $0.02. The problem may of course be entirely different.
+>>>>>
+>>>>> Dirk
+>>>>>
+>>>>> --
+>>>>> Three out of two people have difficulties with fractions.
+>>>>>
+>>>>> _______________________________________________
+>>>>> R-sig-hpc mailing list
+>>>>> R-sig-hpc at r-project.org
+>>>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>>>
+>>>>>
+>>>>>
+>>>>
+>>>>
+>>>>
+>>>
+>>> --
+>>> Allan Strand, ? Biology ? ?http://linum.cofc.edu
+>>> College of Charleston ? ? ?Ph. (843) 953-9189
+>>> Charleston, SC 29424 ? ? ? Fax (843) 953-9199
+>>>
+>>>
+>>>
+>>
+>>
+>>
+>
+> --
+> Allan Strand, ? Biology ? ?http://linum.cofc.edu
+> College of Charleston ? ? ?Ph. (843) 953-9189
+> Charleston, SC 29424 ? ? ? Fax (843) 953-9199
+>
+>
+
+
+
+-- 
+Ramon Diaz-Uriarte
+Structural Biology and Biocomputing Programme
+Spanish National Cancer Centre (CNIO)
+http://ligarto.org/rdiaz
+Phone: +34-91-732-8000 ext. 3019
+
+
+From HodgessE at uhd.edu  Thu Dec 31 01:52:33 2009
+From: HodgessE at uhd.edu (Hodgess, Erin)
+Date: Wed, 30 Dec 2009 18:52:33 -0600
+Subject: [R-sig-hpc] (no subject)
+Message-ID: <101CBF5360343B45B9C9B0B05D71474C25AF46@BALI.uhd.campus>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20091230/20e037c1/attachment.pl>
+
+From rdiaz02 at gmail.com  Thu Dec 31 01:57:34 2009
+From: rdiaz02 at gmail.com (Ramon Diaz-Uriarte)
+Date: Thu, 31 Dec 2009 01:57:34 +0100
+Subject: [R-sig-hpc] (no subject)
+In-Reply-To: <101CBF5360343B45B9C9B0B05D71474C25AF46@BALI.uhd.campus>
+References: <101CBF5360343B45B9C9B0B05D71474C25AF46@BALI.uhd.campus>
+Message-ID: <624934630912301657g34b0fbe3yba4a5b701ac6e4b5@mail.gmail.com>
+
+Dear Erin,
+
+Have you used one of the random number generators for parallel
+computing, such as in
+
+library(rlecuyer)
+
+or
+
+library(rsprng)
+
+Best,
+
+R.
+
+On Thu, Dec 31, 2009 at 1:52 AM, Hodgess, Erin <HodgessE at uhd.edu> wrote:
+> Dear R HPC People:
+>
+> First of all, Happy New Year.
+>
+> I'm back to working with a simulation study. ?It works fine on a regular machine:
+>
+> Here is the code:
+> agg1 <- function(phi1=0.5) {
+> ? ? ? ?y <- arima.sim(list(order=c(1,0,0),ar=phi1),360)
+> ? ? ? ?xg <- numeric(length=120)
+> ? ? ? ?xa <- seq(from=1,by=3,length=120)
+> ? ? ? ?xb <- seq(from=3,by=3,length=120)
+> ? ? ? ?for(ik in 1:120) {
+> ? ? ? ? ? ? ? ?xg[ik] <- mean(y[xa[ik]:xb[ik]])
+> ? ? ? ?}
+>
+> ? ? ? ?check1 <- try(arima(xg,order=c(1,0,0)),silent=TRUE)
+> ? ? ? ?check2 <- arima(xg,order=c(1,0,1))
+> ? ? ? ?zz <- c(arp=check1$model$phi,arsig=check1$sigma2,
+> ? ? ? ? ? armap=check2$model$phi,
+> ? ? ? ? ? ? ? ?armam=check2$model$theta,armas=check2$sigma2)
+> ? ? ? ?return(zz)
+> }
+>
+> Here is the driver
+> aggsim <- function(phi1=0.5,n2=10) {
+> ? ? ? ?w <- matrix(0,nrow=n2,ncol=5)
+> ? ? ? ?for(ii in 1:n2) {
+> ? ? ? ? ? ? ? ?w[ii,] <- agg1(phi1)
+> ? ? ? ?}
+> ? ? ? ?ww <- matrix(0,nrow=2,ncol=5)
+> ? ? ? ?ww[1,] <- apply(w,2,mean)
+> ? ? ? ?ww[2,] <- apply(w,2,function(x)sd(x)/sqrt(n2))
+> ? ? ? ?return(ww)
+> }
+>
+> I am sure that I can do better by using Rmpi or something similar. ?I've tried all kinds of variations on the theme with Rmpi, but keep getting "duplicates"; that is, instead of all distinct values, I get duplicates of the number of nodes.
+>
+> Thank you for any help.
+>
+> Sincerely,
+> Erin
+>
+>
+> Erin M. Hodgess, PhD
+> Associate Professor
+> Department of Computer and Mathematical Sciences
+> University of Houston - Downtown
+> mailto: hodgesse at uhd.edu
+>
+>
+> ? ? ? ?[[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+
+-- 
+Ramon Diaz-Uriarte
+Structural Biology and Biocomputing Programme
+Spanish National Cancer Centre (CNIO)
+http://ligarto.org/rdiaz
+Phone: +34-91-732-8000 ext. 3019
+
+

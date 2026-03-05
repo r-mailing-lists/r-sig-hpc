@@ -1,0 +1,288 @@
+From cedric@l@ch@t @ending from u-borde@ux@fr  Thu Jul  5 11:43:58 2018
+From: cedric@l@ch@t @ending from u-borde@ux@fr (=?UTF-8?Q?C=c3=a9dric_Lachat?=)
+Date: Thu, 5 Jul 2018 11:43:58 +0200
+Subject: [R-sig-hpc] Rmpi::mpi.spawn.Rslaves() stalls
+In-Reply-To: <CAFDcVCS2fX6f+08u1Ju2cMrxhFBOD22uMDhvPr3dCEYkWyHVfA@mail.gmail.com>
+References: <CAFDcVCS2fX6f+08u1Ju2cMrxhFBOD22uMDhvPr3dCEYkWyHVfA@mail.gmail.com>
+Message-ID: <1fe8f392-2f6d-50d9-5f69-a652d9433afa@u-bordeaux.fr>
+
+Hello,
+
+I have the same issue.
+
+I launch:
+gdb Rscript
+
+I give as argument my R script.
+Then, I have this output, and program stalls:
+...
+Be patient, lcmm is running ...
+??? 4 slaves are spawned successfully. 0 failed.
+
+I kill all R:
+killall R
+
+On gdb, I have this backtrace:
+#0? 0x00007ffff733974d in poll () at ../sysdeps/unix/syscall-template.S:84
+#1? 0x00007ffff1438e58 in ?? () from /usr/lib/libopen-pal.so.13
+#2? 0x00007ffff142f6fb in opal_libevent2021_event_base_loop () from
+/usr/lib/libopen-pal.so.13
+#3? 0x00007ffff13f9238 in opal_progress () from /usr/lib/libopen-pal.so.13
+#4? 0x00007ffff1b3df65 in ompi_request_default_wait_all () from
+/usr/lib/libmpi.so.12
+#5? 0x00007ffff1b801fb in ompi_dpm_base_disconnect_waitall () from
+/usr/lib/libmpi.so.12
+#6? 0x00007fffec44544a in ?? () from
+/usr/lib/openmpi/lib/openmpi/mca_dpm_orte.so
+#7? 0x00007ffff1b52ed0 in PMPI_Comm_disconnect () from /usr/lib/libmpi.so.12
+#8? 0x00007ffff1dda969 in mpi_comm_disconnect (sexp_comm=<optimized
+out>) at Rmpi.c:1078
+#9? 0x00007ffff78f5d90 in ?? () from /usr/lib/R/lib/libR.so
+#10 0x00007ffff792c4ff in Rf_eval () from /usr/lib/R/lib/libR.so
+...
+
+My program versions are:
+Ubuntu 16.04
+OpenMPI 1.10.2
+R 3.2.3
+
+However, on CentOS 7, with OpenMPI 3.1.0 and R 3.5.0, it works!
+
+So, does the issue stem from MPI or Rmpi?
+
+Regards,
+C?dric.
+
+
+From n@k@m@ @ending from ki@rim@or@jp  Thu Jul  5 12:33:01 2018
+From: n@k@m@ @ending from ki@rim@or@jp (Ei-ji Nakama)
+Date: Thu, 5 Jul 2018 19:33:01 +0900
+Subject: [R-sig-hpc] Rmpi::mpi.spawn.Rslaves() stalls
+In-Reply-To: <1fe8f392-2f6d-50d9-5f69-a652d9433afa@u-bordeaux.fr>
+References: <CAFDcVCS2fX6f+08u1Ju2cMrxhFBOD22uMDhvPr3dCEYkWyHVfA@mail.gmail.com>
+ <1fe8f392-2f6d-50d9-5f69-a652d9433afa@u-bordeaux.fr>
+Message-ID: <CAJqeyYa45NQ-8rbdTY5GiPxLY6Rg_Dw4KgKciYCt4AL98O970Q@mail.gmail.com>
+
+2018-07-05 18:43 GMT+09:00 C?dric Lachat <cedric.lachat at u-bordeaux.fr>:
+<snip>
+> So, does the issue stem from MPI or Rmpi?
+
+Problems occurred in OpenMPI 1.8 to 2.x on the environment I know, I
+am going back to 1.6.5 or using 3.0 or later.
+Maybe chaos is made from OpenMPI.
+-- 
+Best Regards,
+-- 
+Eiji NAKAMA <nakama (a) ki.rim.or.jp>
+"\u4e2d\u9593\u6804\u6cbb"  <nakama (a) ki.rim.or.jp>
+
+
+From vincent@boucher@u @ending from gm@il@com  Wed Jul 11 22:31:33 2018
+From: vincent@boucher@u @ending from gm@il@com (Vincent Boucher)
+Date: Wed, 11 Jul 2018 16:31:33 -0400
+Subject: [R-sig-hpc] Rmpi and mpirun
+Message-ID: <CALQm=Pz4c=jgu92gMrTLJ9fQs-Mnoq7cTk2JeMY+a5ExmersOQ@mail.gmail.com>
+
+Hi,
+
+I'm running into an issue using Rmpi with Open MPI on a beowulf cluster.
+The installation of the package went without any issue. I have done the
+following:
+'mpirun -n 1 --hostfile hostfile.txt R --interactive'
+then, 'library(Rmpi)
+
+when I do 'ns <- mpi.universe.size()' I get ns=12, which is what it is
+supposed to be. However, 'mpi.spawn.Rslaves(nslaves=ns)' fails and I get
+the "not enough slots available..." message.
+It looks like when R opens, the nodes are already up and running (due to
+the mpirun) so mpi.spawn fails... I've tried to launch R directly (without
+mpirun) but then, I only get 1 node...
+
+Am I missing something?
+
+many thanks
+
+Vincent
+
+	[[alternative HTML version deleted]]
+
+
+From n@k@m@ @ending from ki@rim@or@jp  Fri Jul 13 07:17:46 2018
+From: n@k@m@ @ending from ki@rim@or@jp (Ei-ji Nakama)
+Date: Fri, 13 Jul 2018 14:17:46 +0900
+Subject: [R-sig-hpc] Rmpi and mpirun
+In-Reply-To: <CALQm=Pz4c=jgu92gMrTLJ9fQs-Mnoq7cTk2JeMY+a5ExmersOQ@mail.gmail.com>
+References: <CALQm=Pz4c=jgu92gMrTLJ9fQs-Mnoq7cTk2JeMY+a5ExmersOQ@mail.gmail.com>
+Message-ID: <CAJqeyYYiP4teCpbjBFd_2UF91zTfinzKVn87rRcFJswkjDNhUA@mail.gmail.com>
+
+Hello,
+
+When you debug the OpenMPI process...
+Read the result of the following command
+$ ompi_info --param btl base --level 9
+
+Maybe first time...try following command
+$ mpirun --mca btl_base_verbose 40 -np 1 R --interactive
+----<write script>----
+
+Debugging parameter file can also be written below
+$ mkdir -p ~/.openmpi
+$ echo "btl_base_verbose = 40" > ~/.openmpi/mca-params.conf
+
+
+
+2018-07-12 5:31 GMT+09:00 Vincent Boucher <vincent.boucher.u at gmail.com>:
+> Hi,
+>
+> I'm running into an issue using Rmpi with Open MPI on a beowulf cluster.
+> The installation of the package went without any issue. I have done the
+> following:
+> 'mpirun -n 1 --hostfile hostfile.txt R --interactive'
+> then, 'library(Rmpi)
+>
+> when I do 'ns <- mpi.universe.size()' I get ns=12, which is what it is
+> supposed to be. However, 'mpi.spawn.Rslaves(nslaves=ns)' fails and I get
+
+Since you have already started the MPI master process,
+          `mpi.universe.size() - 1'
+will be the number of slaves that can be activated.
+
+> the "not enough slots available..." message.
+> It looks like when R opens, the nodes are already up and running (due to
+> the mpirun) so mpi.spawn fails... I've tried to launch R directly (without
+> mpirun) but then, I only get 1 node...
+
+See below, orte_default_hostfile
+ompi_info --params orte all --level 9
+
+????
+   $ echo 'orte_default_hostfile = "~/hostfile.txt"' >>
+~/.openmpi/mca-params.conf
+
+For the host file format, refer to the following.
+https://www.open-mpi.org/doc/v3.0/man7/orte_hosts.7.php
+
+> Am I missing something?
+>
+> many thanks
+>
+> Vincent
+>
+>         [[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+
+Best Regards,
+-- 
+Eiji NAKAMA <nakama (a) ki.rim.or.jp>
+"\u4e2d\u9593\u6804\u6cbb"  <nakama (a) ki.rim.or.jp>
+
+
+From vincent@boucher@u @ending from gm@il@com  Fri Jul 13 15:06:02 2018
+From: vincent@boucher@u @ending from gm@il@com (Vincent Boucher)
+Date: Fri, 13 Jul 2018 13:06:02 +0000
+Subject: [R-sig-hpc] Rmpi and mpirun
+In-Reply-To: <CAJqeyYYiP4teCpbjBFd_2UF91zTfinzKVn87rRcFJswkjDNhUA@mail.gmail.com>
+References: <CALQm=Pz4c=jgu92gMrTLJ9fQs-Mnoq7cTk2JeMY+a5ExmersOQ@mail.gmail.com>
+ <CAJqeyYYiP4teCpbjBFd_2UF91zTfinzKVn87rRcFJswkjDNhUA@mail.gmail.com>
+Message-ID: <CALQm=PwGr1vJ=upXa9sRsvRKq1cK1OKxJqGfoX2bp2uhbb=tRg@mail.gmail.com>
+
+Hi,
+
+thanks for the suggestion. Nothing I could find informative in the debug
+output (or at least, that I could interpret). However, it made me think of
+playing around with the options a bit... I think I found the issue (i.e. it
+works at the moment!). I'm not sure why, but I post it here in case someone
+has a similar issue.
+I didn't discuss the setup, but I have a beowulf type cluster (a bunch of
+old computers linked through Ethernet cables). The thing is that open mpi
+first tries to find infiniband connections first (which obviously, I don't
+have). Normally this is not an issue (at least it isn't for my Fortran90
+codes) but it seems to screw with Rmpi... running the -mca btl ^openib as
+in : mpirun -n 1 -mca btl ^openib --hostfile hostfile.txt R --interactive
+Solves the problem...
+It is weird since R, or mpirun, does not really issue any error related...
+
+anyway, many thanks !
+
+Vincent
+
+On Fri, Jul 13, 2018 at 1:17 AM Ei-ji Nakama <nakama at ki.rim.or.jp> wrote:
+
+> Hello,
+>
+> When you debug the OpenMPI process...
+> Read the result of the following command
+> $ ompi_info --param btl base --level 9
+>
+> Maybe first time...try following command
+> $ mpirun --mca btl_base_verbose 40 -np 1 R --interactive
+> ----<write script>----
+>
+> Debugging parameter file can also be written below
+> $ mkdir -p ~/.openmpi
+> $ echo "btl_base_verbose = 40" > ~/.openmpi/mca-params.conf
+>
+>
+>
+> 2018-07-12 5:31 GMT+09:00 Vincent Boucher <vincent.boucher.u at gmail.com>:
+> > Hi,
+> >
+> > I'm running into an issue using Rmpi with Open MPI on a beowulf cluster.
+> > The installation of the package went without any issue. I have done the
+> > following:
+> > 'mpirun -n 1 --hostfile hostfile.txt R --interactive'
+> > then, 'library(Rmpi)
+> >
+> > when I do 'ns <- mpi.universe.size()' I get ns=12, which is what it is
+> > supposed to be. However, 'mpi.spawn.Rslaves(nslaves=ns)' fails and I get
+>
+> Since you have already started the MPI master process,
+>           `mpi.universe.size() - 1'
+> will be the number of slaves that can be activated.
+>
+> > the "not enough slots available..." message.
+> > It looks like when R opens, the nodes are already up and running (due to
+> > the mpirun) so mpi.spawn fails... I've tried to launch R directly
+> (without
+> > mpirun) but then, I only get 1 node...
+>
+> See below, orte_default_hostfile
+> ompi_info --params orte all --level 9
+>
+> ????
+>    $ echo 'orte_default_hostfile = "~/hostfile.txt"' >>
+> ~/.openmpi/mca-params.conf
+>
+> For the host file format, refer to the following.
+> https://www.open-mpi.org/doc/v3.0/man7/orte_hosts.7.php
+>
+> > Am I missing something?
+> >
+> > many thanks
+> >
+> > Vincent
+> >
+> >         [[alternative HTML version deleted]]
+> >
+> > _______________________________________________
+> > R-sig-hpc mailing list
+> > R-sig-hpc at r-project.org
+> > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+>
+>
+> Best Regards,
+> --
+> Eiji NAKAMA <nakama (a) ki.rim.or.jp>
+> "\u4e2d\u9593\u6804\u6cbb"  <nakama (a) ki.rim.or.jp>
+>
+
+	[[alternative HTML version deleted]]
+
+

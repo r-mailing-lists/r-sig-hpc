@@ -1,0 +1,3338 @@
+From megh700004 at yahoo.com  Thu Aug  4 18:38:27 2011
+From: megh700004 at yahoo.com (Megh Dal)
+Date: Thu, 4 Aug 2011 09:38:27 -0700 (PDT)
+Subject: [R-sig-hpc] Looking for some function to determine how many cores I
+	have
+Message-ID: <1312475907.45436.YahooMailNeo@web161818.mail.bf1.yahoo.com>
+
+Dear all, I am looking for some R function which will tell me how many cores I have in my machine. I am using?Windows?Vista and snowfall library for my parallel computations. However I need to automate the initializing the parallel computation using?sfInit() function, for which number of cores is one input.
+
+I can personally see the core numbers from Windows Task Manager, however want to automate (in some extend) my calculation. Is there any function to determine that number?
+
+
+Thanks,
+
+
+From zach.mayer at gmail.com  Thu Aug  4 18:41:32 2011
+From: zach.mayer at gmail.com (Zachary Mayer)
+Date: Thu, 4 Aug 2011 12:41:32 -0400
+Subject: [R-sig-hpc] Looking for some function to determine how many
+ cores I have
+In-Reply-To: <1312475907.45436.YahooMailNeo@web161818.mail.bf1.yahoo.com>
+References: <1312475907.45436.YahooMailNeo@web161818.mail.bf1.yahoo.com>
+Message-ID: <CAEr64e8rUdTeJ2TPL23JXr-2r8EXVyf0XDBw9QHB+r7T_cu32w@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110804/3d7ffa2f/attachment.pl>
+
+From zach.mayer at gmail.com  Thu Aug  4 18:47:12 2011
+From: zach.mayer at gmail.com (Zachary Mayer)
+Date: Thu, 4 Aug 2011 12:47:12 -0400
+Subject: [R-sig-hpc] Looking for some function to determine how many
+ cores I have
+In-Reply-To: <3CB7E549BE1AA14BB108ABCB4637B0251162D7@EXCHDB3.medctr.ad.wfubmc.edu>
+References: <1312475907.45436.YahooMailNeo@web161818.mail.bf1.yahoo.com>
+	<CAEr64e8rUdTeJ2TPL23JXr-2r8EXVyf0XDBw9QHB+r7T_cu32w@mail.gmail.com>
+	<3CB7E549BE1AA14BB108ABCB4637B0251162D7@EXCHDB3.medctr.ad.wfubmc.edu>
+Message-ID: <CAEr64e8j96sUXRUJQioFRdOWbFrARJdW_+CPun8ozps=7JCwXA@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110804/fe9a303b/attachment.pl>
+
+From edd at debian.org  Fri Aug  5 02:38:24 2011
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Thu, 4 Aug 2011 19:38:24 -0500
+Subject: [R-sig-hpc] Looking for some function to determine how many
+	cores I	have
+In-Reply-To: <1312475907.45436.YahooMailNeo@web161818.mail.bf1.yahoo.com>
+References: <1312475907.45436.YahooMailNeo@web161818.mail.bf1.yahoo.com>
+Message-ID: <20027.15232.529090.735056@max.nulle.part>
+
+
+On 4 August 2011 at 09:38, Megh Dal wrote:
+| Dear all, I am looking for some R function which will tell me how many cores I have in my machine. I am using?Windows?Vista and snowfall library for my parallel computations. However I need to automate the initializing the parallel computation using?sfInit() function, for which number of cores is one input.
+| 
+| I can personally see the core numbers from Windows Task Manager, however want to automate (in some extend) my calculation. Is there any function to determine that number?
+
+Brian Ripley is currently adding a new package 'parallel' to the R-devel SVN;
+this should be part of R 2.14.0 due October.
+
+It has a function to do this, but the code it pretty OS-dependent. Here is
+the R function R/detectCores.R :
+
+
+if(.Platform$OS.type == "windows") {
+detectCores <- function(all.tests = FALSE)
+    .Call("ncpus", FALSE, package = "parallel")
+} else {
+detectCores <- function(all.tests = FALSE)
+{
+    systems <-
+        list(darwin  = "/usr/sbin/sysctl -n hw.ncpu 2>/dev/null",
+             freebsd = "/sbin/sysctl -n hw.ncpu 2>/dev/null",
+             linux   = "grep processor /proc/cpuinfo 2>/dev/null | wc -l",
+             irix    = c("hinv | grep Processors | sed 's: .*::'",
+                         "hinv | grep '^Processor '| wc -l"),
+#             solaris = "/usr/sbin/psrinfo -v | grep 'Status of.*processor' | wc -l"
+             solaris = "/usr/sbin/psrinfo -p")
+    for (i in seq(systems))
+        if(all.tests ||
+           length(grep(paste("^", names(systems)[i], sep=''), R.version$os)))
+            for (cmd in systems[i]) {
+                a <- gsub("^ +","", system(cmd, TRUE)[1])
+                if (length(grep("^[1-9]", a))) return(as.integer(a))
+            }
+    NA_integer_
+}
+}
+
+
+and on Windows you have to build and execute this C function src/ncpus.c:
+
+#include <R.h>
+#include "parallel.h"
+
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
+
+SEXP ncpus(SEXP virtual)
+{
+    int virt = asLogical(virtual);
+    SYSTEM_INFO info;
+    GetSystemInfo(&info);
+    int nc = info.dwNumberOfProcessors;
+    return ScalarInteger(nc);
+}
+
+
+
+Dirk
+
+
+-- 
+Gauss once played himself in a zero-sum game and won $50.
+                      -- #11 at http://www.gaussfacts.com
+
+
+From nakama at ki.rim.or.jp  Fri Aug  5 08:41:02 2011
+From: nakama at ki.rim.or.jp (Ei-ji Nakama)
+Date: Fri, 5 Aug 2011 15:41:02 +0900
+Subject: [R-sig-hpc] Looking for some function to determine how many
+ cores I have
+In-Reply-To: <1312475907.45436.YahooMailNeo@web161818.mail.bf1.yahoo.com>
+References: <1312475907.45436.YahooMailNeo@web161818.mail.bf1.yahoo.com>
+Message-ID: <CAJqeyYaezM=r-wmZwog+ELHskaQRVmpaDFpqLDQ-vY8XRGLpvw@mail.gmail.com>
+
+Hi
+
+> I can personally see the core numbers from Windows Task Manager, however want to automate (in some extend) my calculation. Is there any function to determine that number?
+
+If you want the number of the *cores* on Windows...
+
+---------------------------------------------------------------------------
+#include <R.h>
+#include <Rdefines.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <windows.h>
+
+
+/* my SYSTEM_LOGICAL_PROCESSOR_INFORMATION */
+typedef enum my_LOGICAL_PROCESSOR_RELATIONSHIP {
+  myRelationProcessorCore,myRelationNumaNode,myRelationCache
+} myLOGICAL_PROCESSOR_RELATIONSHIP;
+
+typedef enum my_PROCESSOR_CACHE_TYPE {
+  myCacheUnified,myCacheInstruction,myCacheData,myCacheTrace
+} myPROCESSOR_CACHE_TYPE;
+
+typedef struct my_CACHE_DESCRIPTOR {
+  BYTE Level;
+  BYTE Associativity;
+  WORD LineSize;
+  DWORD Size;
+  myPROCESSOR_CACHE_TYPE Type;
+} myCACHE_DESCRIPTOR,*myPCACHE_DESCRIPTOR;
+
+typedef struct my_SYSTEM_LOGICAL_PROCESSOR_INFORMATION {
+  ULONG_PTR ProcessorMask;
+  myLOGICAL_PROCESSOR_RELATIONSHIP Relationship;
+  union {
+    struct {
+      BYTE Flags;
+    } ProcessorCore;
+    struct {
+      DWORD NodeNumber;
+    } NumaNode;
+    myCACHE_DESCRIPTOR Cache;
+    ULONGLONG Reserved[2];
+  };
+} mySYSTEM_LOGICAL_PROCESSOR_INFORMATION,*myPSYSTEM_LOGICAL_PROCESSOR_INFORMATION;
+
+SEXP get_num_cores(void)
+{
+    SEXP cores;
+    PROTECT (cores = allocVector (INTSXP, 1));
+    INTEGER(cores)[0]=1;
+    {
+      int nums = 0;
+      BOOL (WINAPI *glpi)(myPSYSTEM_LOGICAL_PROCESSOR_INFORMATION, PDWORD);
+      glpi = (void *) GetProcAddress( GetModuleHandle("kernel32"),
+				      "GetLogicalProcessorInformation");
+      if (NULL != glpi) {
+	DWORD len = 0;
+	glpi(NULL, &len);
+	{
+	  mySYSTEM_LOGICAL_PROCESSOR_INFORMATION
+buf[len/sizeof(mySYSTEM_LOGICAL_PROCESSOR_INFORMATION)];
+	  int i;
+	  glpi(buf, &len);
+	  for ( i=0; i<len/sizeof(mySYSTEM_LOGICAL_PROCESSOR_INFORMATION); i++)
+	    if( buf[i].Relationship == myRelationProcessorCore )
+	      nums++;
+	}
+      }else{
+	SYSTEM_INFO system_info;
+	GetSystemInfo(&system_info);
+	nums = system_info.dwNumberOfProcessors;
+      }
+      INTEGER(cores)[0] = nums;
+    }
+    UNPROTECT (1);
+    return cores;
+}
+-----------------------------------------------------------------------------------------------
+you save this in numofcores.c
+C:> <snip>R CMD SHLIB numofcores.c
+
+C:\> <snip>R
+> dyn.load("numofcores.dll")
+> .Call("get_num_cores")
+[1] 4
+
+
+Best Regards,
+--
+EI-JI Nakama? <nakama (a) ki.rim.or.jp>
+"\u4e2d\u9593\u6804\u6cbb"? <nakama (a) ki.rim.or.jp>
+
+
+From j.maas at uea.ac.uk  Thu Aug 11 13:40:03 2011
+From: j.maas at uea.ac.uk (Jim Maas)
+Date: Thu, 11 Aug 2011 12:40:03 +0100
+Subject: [R-sig-hpc] Error message from MPI
+Message-ID: <4E43BF93.6070200@uea.ac.uk>
+
+Hi All,
+
+I'm relatively new to this but it has worked well for me previously and
+now I'm getting errors.
+
+I'm attempting to run and R job, on a cluster using LSF operating
+system, using the packages doMPI and foreach.  In the job file I've
+requested 128 slots, and MPI gets that number quite successfully but is
+giving this error message
+
+=====================
+Loading required package: Rmpi
+Loading required package: Rmpi
+--------------------------------------------------------------------------
+[[51610,1],5]: A high-performance Open MPI point-to-point messaging
+module
+was unable to find any relevant network interfaces:
+
+Module: OpenFabrics (openib)
+   Host: cn004.private.dns.zone
+
+Another transport will be used instead, although this may result in
+lower performance.
+=====================
+
+As a test I've run the same job with a smaller number of slots, and it
+runs fine when I run it on 32 or 64 slots, but when I increase to 128
+slots, I get this error?
+
+I guess I'm asking if the R packages doMPI and foreach are scalable, and
+to what level?
+
+Thanks for any suggestions.
+
+Jim
+
+Dr. Jim Maas
+University of East Anglia
+
+
+From brian at braverock.com  Thu Aug 11 14:28:17 2011
+From: brian at braverock.com (Brian G. Peterson)
+Date: Thu, 11 Aug 2011 07:28:17 -0500
+Subject: [R-sig-hpc] Error message from MPI
+In-Reply-To: <4E43BF93.6070200@uea.ac.uk>
+References: <4E43BF93.6070200@uea.ac.uk>
+Message-ID: <1313065697.30726.12.camel@brian-rcg>
+
+On Thu, 2011-08-11 at 12:40 +0100, Jim Maas wrote:
+> I guess I'm asking if the R packages doMPI and foreach are scalable,
+> and to what level?
+
+I suspect some limitation in the configuration on your cluster. (for
+example, what is OpenFabrics and what does it have to do with MPI?)  You
+may need to speak with your cluster administrators.
+
+I've successfully used foreach and doMPI on over 250 worker nodes.
+
+Unfortunately, I'm not sure how much additional help I can be beyond my
+one data point, as I no longer have access to that particular cluster.
+
+Regards,
+
+   - Brian
+ 
+-- 
+Brian G. Peterson
+http://braverock.com/brian/
+Ph: 773-459-4973
+IM: bgpbraverock
+
+
+From greenberg at ucdavis.edu  Thu Aug 11 22:39:21 2011
+From: greenberg at ucdavis.edu (Jonathan Greenberg)
+Date: Thu, 11 Aug 2011 13:39:21 -0700
+Subject: [R-sig-hpc] OpenMPI vs MPICH2 on debian system
+Message-ID: <CABG0rftQihrh1PX8K-=6tt9d4MaQnE8UrtNNiSUXJ+dsxnqqKw@mail.gmail.com>
+
+R-sig-hpc'ers:
+
+I'm a big fan of the snow/Rmpi package, and we've recently tried to
+get it running on a new debian system in our lab.  My sysadmin is not
+too keen on non-debian package installs (you know, ./configure, make,
+make install), although I can convince him to do an apt-get -b source
+/ dpkg install.  We tried a straightforward binary install of
+openmpi-dev, but it appears to be spawning the threads only on one cpu
+(the same one the master is running on) when doing a:
+
+require("snow")
+cl <- makeCluster(4, type = "MPI")
+# look at top/gkrellm or run some stuff, only 1 CPU lights up.
+> mpi.universe.size()
+[1] 1
+stopCluster(cl)
+
+Does this have to do with something within Rmpi/snow, or is this a
+"bad" install of openmpi?  Would doing an apt-get -b source
+openmpi-dev/dpkg install solve this?  Would mpich2 (or another mpi
+flavor) be a better choice?
+
+Thanks!
+
+--j
+
+
+-- 
+Jonathan A. Greenberg, PhD
+Assistant Project Scientist
+Center for Spatial Technologies and Remote Sensing (CSTARS)
+Department of Land, Air and Water Resources
+University of California, Davis
+One Shields Avenue
+Davis, CA 95616
+Phone: 415-763-5476
+AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307
+
+
+From stephen.b.weston at gmail.com  Thu Aug 11 23:02:40 2011
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Thu, 11 Aug 2011 17:02:40 -0400
+Subject: [R-sig-hpc] OpenMPI vs MPICH2 on debian system
+In-Reply-To: <CABG0rftQihrh1PX8K-=6tt9d4MaQnE8UrtNNiSUXJ+dsxnqqKw@mail.gmail.com>
+References: <CABG0rftQihrh1PX8K-=6tt9d4MaQnE8UrtNNiSUXJ+dsxnqqKw@mail.gmail.com>
+Message-ID: <CALh21iKCGMVb2OXgYy1+qPs-M4Dkj7uhqOgi72MV9KWv9gnAeA@mail.gmail.com>
+
+Hi Jonathan,
+
+I think this is normal.  Consider the following script rmpi.R:
+
+library(Rmpi)
+print(mpi.universe.size())
+mpi.quit()
+
+If I run this using:
+
+  % R --slave -f rmpi.R
+  [1] 1
+
+the universe size is 1.  I also see this if I run the script
+interactively.
+
+Specifying three hosts using orterun:
+
+  % orterun -H localhost,localhost,localhost R --slave -f rmpi.R
+  [1] 3
+  [1] 3
+  [1] 3
+
+In this case, the script is execute three times, and each instance
+sees a universe size of 3, since I specified three hosts.
+
+If I use orterun to run the script only once, using "-n 1", as you
+would for a spawned cluster:
+
+  % orterun -n 1 -H localhost,localhost,localhost R --slave -f rmpi.R
+  [1] 3
+
+you see that one copy of the script is executed, and the universe size
+is still 3.
+
+In other words, if you don't use orterun (or mpirun, mpiexec, etc) the
+universe size is always 1, at least as far as I've been able to discover.
+
+- Steve
+
+
+
+On Thu, Aug 11, 2011 at 4:39 PM, Jonathan Greenberg
+<greenberg at ucdavis.edu> wrote:
+> R-sig-hpc'ers:
+>
+> I'm a big fan of the snow/Rmpi package, and we've recently tried to
+> get it running on a new debian system in our lab. ?My sysadmin is not
+> too keen on non-debian package installs (you know, ./configure, make,
+> make install), although I can convince him to do an apt-get -b source
+> / dpkg install. ?We tried a straightforward binary install of
+> openmpi-dev, but it appears to be spawning the threads only on one cpu
+> (the same one the master is running on) when doing a:
+>
+> require("snow")
+> cl <- makeCluster(4, type = "MPI")
+> # look at top/gkrellm or run some stuff, only 1 CPU lights up.
+>> mpi.universe.size()
+> [1] 1
+> stopCluster(cl)
+>
+> Does this have to do with something within Rmpi/snow, or is this a
+> "bad" install of openmpi? ?Would doing an apt-get -b source
+> openmpi-dev/dpkg install solve this? ?Would mpich2 (or another mpi
+> flavor) be a better choice?
+>
+> Thanks!
+>
+> --j
+>
+>
+> --
+> Jonathan A. Greenberg, PhD
+> Assistant Project Scientist
+> Center for Spatial Technologies and Remote Sensing (CSTARS)
+> Department of Land, Air and Water Resources
+> University of California, Davis
+> One Shields Avenue
+> Davis, CA 95616
+> Phone: 415-763-5476
+> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From greenberg at ucdavis.edu  Thu Aug 11 23:06:31 2011
+From: greenberg at ucdavis.edu (Jonathan Greenberg)
+Date: Thu, 11 Aug 2011 14:06:31 -0700
+Subject: [R-sig-hpc] OpenMPI vs MPICH2 on debian system
+In-Reply-To: <CALh21iKCGMVb2OXgYy1+qPs-M4Dkj7uhqOgi72MV9KWv9gnAeA@mail.gmail.com>
+References: <CABG0rftQihrh1PX8K-=6tt9d4MaQnE8UrtNNiSUXJ+dsxnqqKw@mail.gmail.com>
+	<CALh21iKCGMVb2OXgYy1+qPs-M4Dkj7uhqOgi72MV9KWv9gnAeA@mail.gmail.com>
+Message-ID: <CABG0rfvpFsnvcP4DvAQMFigDEeyY4RU0mWU6nAnJMrw0mmcM0Q@mail.gmail.com>
+
+Stephen:
+
+Thanks!  I guess the issue is that I'm seeing the slaves only spawn to
+a single CPU on a 4-core system, which makes me think that the problem
+is more significant, but I can't tell if its part of the openmpi
+install or the Rmpi call.  I don't recall having this problem on my
+other debian system, but I unfortunately forgot to document how I set
+it up on that system (also, I had root access to the original system
+but now I'm trying to get this installed via my sysadmin).
+
+--j
+
+On Thu, Aug 11, 2011 at 2:02 PM, Stephen Weston
+<stephen.b.weston at gmail.com> wrote:
+> Hi Jonathan,
+>
+> I think this is normal. ?Consider the following script rmpi.R:
+>
+> library(Rmpi)
+> print(mpi.universe.size())
+> mpi.quit()
+>
+> If I run this using:
+>
+> ?% R --slave -f rmpi.R
+> ?[1] 1
+>
+> the universe size is 1. ?I also see this if I run the script
+> interactively.
+>
+> Specifying three hosts using orterun:
+>
+> ?% orterun -H localhost,localhost,localhost R --slave -f rmpi.R
+> ?[1] 3
+> ?[1] 3
+> ?[1] 3
+>
+> In this case, the script is execute three times, and each instance
+> sees a universe size of 3, since I specified three hosts.
+>
+> If I use orterun to run the script only once, using "-n 1", as you
+> would for a spawned cluster:
+>
+> ?% orterun -n 1 -H localhost,localhost,localhost R --slave -f rmpi.R
+> ?[1] 3
+>
+> you see that one copy of the script is executed, and the universe size
+> is still 3.
+>
+> In other words, if you don't use orterun (or mpirun, mpiexec, etc) the
+> universe size is always 1, at least as far as I've been able to discover.
+>
+> - Steve
+>
+>
+>
+> On Thu, Aug 11, 2011 at 4:39 PM, Jonathan Greenberg
+> <greenberg at ucdavis.edu> wrote:
+>> R-sig-hpc'ers:
+>>
+>> I'm a big fan of the snow/Rmpi package, and we've recently tried to
+>> get it running on a new debian system in our lab. ?My sysadmin is not
+>> too keen on non-debian package installs (you know, ./configure, make,
+>> make install), although I can convince him to do an apt-get -b source
+>> / dpkg install. ?We tried a straightforward binary install of
+>> openmpi-dev, but it appears to be spawning the threads only on one cpu
+>> (the same one the master is running on) when doing a:
+>>
+>> require("snow")
+>> cl <- makeCluster(4, type = "MPI")
+>> # look at top/gkrellm or run some stuff, only 1 CPU lights up.
+>>> mpi.universe.size()
+>> [1] 1
+>> stopCluster(cl)
+>>
+>> Does this have to do with something within Rmpi/snow, or is this a
+>> "bad" install of openmpi? ?Would doing an apt-get -b source
+>> openmpi-dev/dpkg install solve this? ?Would mpich2 (or another mpi
+>> flavor) be a better choice?
+>>
+>> Thanks!
+>>
+>> --j
+>>
+>>
+>> --
+>> Jonathan A. Greenberg, PhD
+>> Assistant Project Scientist
+>> Center for Spatial Technologies and Remote Sensing (CSTARS)
+>> Department of Land, Air and Water Resources
+>> University of California, Davis
+>> One Shields Avenue
+>> Davis, CA 95616
+>> Phone: 415-763-5476
+>> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>
+
+
+
+-- 
+Jonathan A. Greenberg, PhD
+Assistant Project Scientist
+Center for Spatial Technologies and Remote Sensing (CSTARS)
+Department of Land, Air and Water Resources
+University of California, Davis
+One Shields Avenue
+Davis, CA 95616
+Phone: 415-763-5476
+AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307
+
+
+From stephen.b.weston at gmail.com  Thu Aug 11 23:40:43 2011
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Thu, 11 Aug 2011 17:40:43 -0400
+Subject: [R-sig-hpc] OpenMPI vs MPICH2 on debian system
+In-Reply-To: <CABG0rfvpFsnvcP4DvAQMFigDEeyY4RU0mWU6nAnJMrw0mmcM0Q@mail.gmail.com>
+References: <CABG0rftQihrh1PX8K-=6tt9d4MaQnE8UrtNNiSUXJ+dsxnqqKw@mail.gmail.com>
+	<CALh21iKCGMVb2OXgYy1+qPs-M4Dkj7uhqOgi72MV9KWv9gnAeA@mail.gmail.com>
+	<CABG0rfvpFsnvcP4DvAQMFigDEeyY4RU0mWU6nAnJMrw0mmcM0Q@mail.gmail.com>
+Message-ID: <CALh21iL+Wh5aPmus5UwyrSkOU_BeYkLTVZWp5VATMiPbJtbCDg@mail.gmail.com>
+
+That sounds strange.  Rmpi or Open MPI would have to go
+out of its way to restrict processes from being scheduled on
+different cores of the CPU using numactl, or something like that,
+which seems unlikely.
+
+Does "top" say each of the four workers is getting 25% of a
+CPU rather than about 100%?
+
+- Steve
+
+
+On Thu, Aug 11, 2011 at 5:06 PM, Jonathan Greenberg
+<greenberg at ucdavis.edu> wrote:
+> Stephen:
+>
+> Thanks! ?I guess the issue is that I'm seeing the slaves only spawn to
+> a single CPU on a 4-core system, which makes me think that the problem
+> is more significant, but I can't tell if its part of the openmpi
+> install or the Rmpi call. ?I don't recall having this problem on my
+> other debian system, but I unfortunately forgot to document how I set
+> it up on that system (also, I had root access to the original system
+> but now I'm trying to get this installed via my sysadmin).
+>
+> --j
+>
+> On Thu, Aug 11, 2011 at 2:02 PM, Stephen Weston
+> <stephen.b.weston at gmail.com> wrote:
+>> Hi Jonathan,
+>>
+>> I think this is normal. ?Consider the following script rmpi.R:
+>>
+>> library(Rmpi)
+>> print(mpi.universe.size())
+>> mpi.quit()
+>>
+>> If I run this using:
+>>
+>> ?% R --slave -f rmpi.R
+>> ?[1] 1
+>>
+>> the universe size is 1. ?I also see this if I run the script
+>> interactively.
+>>
+>> Specifying three hosts using orterun:
+>>
+>> ?% orterun -H localhost,localhost,localhost R --slave -f rmpi.R
+>> ?[1] 3
+>> ?[1] 3
+>> ?[1] 3
+>>
+>> In this case, the script is execute three times, and each instance
+>> sees a universe size of 3, since I specified three hosts.
+>>
+>> If I use orterun to run the script only once, using "-n 1", as you
+>> would for a spawned cluster:
+>>
+>> ?% orterun -n 1 -H localhost,localhost,localhost R --slave -f rmpi.R
+>> ?[1] 3
+>>
+>> you see that one copy of the script is executed, and the universe size
+>> is still 3.
+>>
+>> In other words, if you don't use orterun (or mpirun, mpiexec, etc) the
+>> universe size is always 1, at least as far as I've been able to discover.
+>>
+>> - Steve
+>>
+>>
+>>
+>> On Thu, Aug 11, 2011 at 4:39 PM, Jonathan Greenberg
+>> <greenberg at ucdavis.edu> wrote:
+>>> R-sig-hpc'ers:
+>>>
+>>> I'm a big fan of the snow/Rmpi package, and we've recently tried to
+>>> get it running on a new debian system in our lab. ?My sysadmin is not
+>>> too keen on non-debian package installs (you know, ./configure, make,
+>>> make install), although I can convince him to do an apt-get -b source
+>>> / dpkg install. ?We tried a straightforward binary install of
+>>> openmpi-dev, but it appears to be spawning the threads only on one cpu
+>>> (the same one the master is running on) when doing a:
+>>>
+>>> require("snow")
+>>> cl <- makeCluster(4, type = "MPI")
+>>> # look at top/gkrellm or run some stuff, only 1 CPU lights up.
+>>>> mpi.universe.size()
+>>> [1] 1
+>>> stopCluster(cl)
+>>>
+>>> Does this have to do with something within Rmpi/snow, or is this a
+>>> "bad" install of openmpi? ?Would doing an apt-get -b source
+>>> openmpi-dev/dpkg install solve this? ?Would mpich2 (or another mpi
+>>> flavor) be a better choice?
+>>>
+>>> Thanks!
+>>>
+>>> --j
+>>>
+>>>
+>>> --
+>>> Jonathan A. Greenberg, PhD
+>>> Assistant Project Scientist
+>>> Center for Spatial Technologies and Remote Sensing (CSTARS)
+>>> Department of Land, Air and Water Resources
+>>> University of California, Davis
+>>> One Shields Avenue
+>>> Davis, CA 95616
+>>> Phone: 415-763-5476
+>>> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307
+>>>
+>>> _______________________________________________
+>>> R-sig-hpc mailing list
+>>> R-sig-hpc at r-project.org
+>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>
+>>
+>
+>
+>
+> --
+> Jonathan A. Greenberg, PhD
+> Assistant Project Scientist
+> Center for Spatial Technologies and Remote Sensing (CSTARS)
+> Department of Land, Air and Water Resources
+> University of California, Davis
+> One Shields Avenue
+> Davis, CA 95616
+> Phone: 415-763-5476
+> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307
+>
+
+
+From greenberg at ucdavis.edu  Fri Aug 12 00:53:56 2011
+From: greenberg at ucdavis.edu (Jonathan Greenberg)
+Date: Thu, 11 Aug 2011 15:53:56 -0700
+Subject: [R-sig-hpc] OpenMPI vs MPICH2 on debian system
+In-Reply-To: <CALh21iL+Wh5aPmus5UwyrSkOU_BeYkLTVZWp5VATMiPbJtbCDg@mail.gmail.com>
+References: <CABG0rftQihrh1PX8K-=6tt9d4MaQnE8UrtNNiSUXJ+dsxnqqKw@mail.gmail.com>
+	<CALh21iKCGMVb2OXgYy1+qPs-M4Dkj7uhqOgi72MV9KWv9gnAeA@mail.gmail.com>
+	<CABG0rfvpFsnvcP4DvAQMFigDEeyY4RU0mWU6nAnJMrw0mmcM0Q@mail.gmail.com>
+	<CALh21iL+Wh5aPmus5UwyrSkOU_BeYkLTVZWp5VATMiPbJtbCDg@mail.gmail.com>
+Message-ID: <CABG0rfsSjOrUbk1jovkVW0oLoGzMJ6UWLAPs4KqEvv6f2_MOHg@mail.gmail.com>
+
+Stephen:
+
+I agree its a bit strange, but yeah, only a single core is being lit
+up, and divided into the number of slaves I spawn (25% if 4 slaves,
+33% if 3 slaves).
+
+--j
+
+On Thu, Aug 11, 2011 at 2:40 PM, Stephen Weston
+<stephen.b.weston at gmail.com> wrote:
+> That sounds strange. ?Rmpi or Open MPI would have to go
+> out of its way to restrict processes from being scheduled on
+> different cores of the CPU using numactl, or something like that,
+> which seems unlikely.
+>
+> Does "top" say each of the four workers is getting 25% of a
+> CPU rather than about 100%?
+>
+> - Steve
+>
+>
+> On Thu, Aug 11, 2011 at 5:06 PM, Jonathan Greenberg
+> <greenberg at ucdavis.edu> wrote:
+>> Stephen:
+>>
+>> Thanks! ?I guess the issue is that I'm seeing the slaves only spawn to
+>> a single CPU on a 4-core system, which makes me think that the problem
+>> is more significant, but I can't tell if its part of the openmpi
+>> install or the Rmpi call. ?I don't recall having this problem on my
+>> other debian system, but I unfortunately forgot to document how I set
+>> it up on that system (also, I had root access to the original system
+>> but now I'm trying to get this installed via my sysadmin).
+>>
+>> --j
+>>
+>> On Thu, Aug 11, 2011 at 2:02 PM, Stephen Weston
+>> <stephen.b.weston at gmail.com> wrote:
+>>> Hi Jonathan,
+>>>
+>>> I think this is normal. ?Consider the following script rmpi.R:
+>>>
+>>> library(Rmpi)
+>>> print(mpi.universe.size())
+>>> mpi.quit()
+>>>
+>>> If I run this using:
+>>>
+>>> ?% R --slave -f rmpi.R
+>>> ?[1] 1
+>>>
+>>> the universe size is 1. ?I also see this if I run the script
+>>> interactively.
+>>>
+>>> Specifying three hosts using orterun:
+>>>
+>>> ?% orterun -H localhost,localhost,localhost R --slave -f rmpi.R
+>>> ?[1] 3
+>>> ?[1] 3
+>>> ?[1] 3
+>>>
+>>> In this case, the script is execute three times, and each instance
+>>> sees a universe size of 3, since I specified three hosts.
+>>>
+>>> If I use orterun to run the script only once, using "-n 1", as you
+>>> would for a spawned cluster:
+>>>
+>>> ?% orterun -n 1 -H localhost,localhost,localhost R --slave -f rmpi.R
+>>> ?[1] 3
+>>>
+>>> you see that one copy of the script is executed, and the universe size
+>>> is still 3.
+>>>
+>>> In other words, if you don't use orterun (or mpirun, mpiexec, etc) the
+>>> universe size is always 1, at least as far as I've been able to discover.
+>>>
+>>> - Steve
+>>>
+>>>
+>>>
+>>> On Thu, Aug 11, 2011 at 4:39 PM, Jonathan Greenberg
+>>> <greenberg at ucdavis.edu> wrote:
+>>>> R-sig-hpc'ers:
+>>>>
+>>>> I'm a big fan of the snow/Rmpi package, and we've recently tried to
+>>>> get it running on a new debian system in our lab. ?My sysadmin is not
+>>>> too keen on non-debian package installs (you know, ./configure, make,
+>>>> make install), although I can convince him to do an apt-get -b source
+>>>> / dpkg install. ?We tried a straightforward binary install of
+>>>> openmpi-dev, but it appears to be spawning the threads only on one cpu
+>>>> (the same one the master is running on) when doing a:
+>>>>
+>>>> require("snow")
+>>>> cl <- makeCluster(4, type = "MPI")
+>>>> # look at top/gkrellm or run some stuff, only 1 CPU lights up.
+>>>>> mpi.universe.size()
+>>>> [1] 1
+>>>> stopCluster(cl)
+>>>>
+>>>> Does this have to do with something within Rmpi/snow, or is this a
+>>>> "bad" install of openmpi? ?Would doing an apt-get -b source
+>>>> openmpi-dev/dpkg install solve this? ?Would mpich2 (or another mpi
+>>>> flavor) be a better choice?
+>>>>
+>>>> Thanks!
+>>>>
+>>>> --j
+>>>>
+>>>>
+>>>> --
+>>>> Jonathan A. Greenberg, PhD
+>>>> Assistant Project Scientist
+>>>> Center for Spatial Technologies and Remote Sensing (CSTARS)
+>>>> Department of Land, Air and Water Resources
+>>>> University of California, Davis
+>>>> One Shields Avenue
+>>>> Davis, CA 95616
+>>>> Phone: 415-763-5476
+>>>> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307
+>>>>
+>>>> _______________________________________________
+>>>> R-sig-hpc mailing list
+>>>> R-sig-hpc at r-project.org
+>>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>>
+>>>
+>>
+>>
+>>
+>> --
+>> Jonathan A. Greenberg, PhD
+>> Assistant Project Scientist
+>> Center for Spatial Technologies and Remote Sensing (CSTARS)
+>> Department of Land, Air and Water Resources
+>> University of California, Davis
+>> One Shields Avenue
+>> Davis, CA 95616
+>> Phone: 415-763-5476
+>> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307
+>>
+>
+
+
+
+-- 
+Jonathan A. Greenberg, PhD
+Assistant Project Scientist
+Center for Spatial Technologies and Remote Sensing (CSTARS)
+Department of Land, Air and Water Resources
+University of California, Davis
+One Shields Avenue
+Davis, CA 95616
+Phone: 415-763-5476
+AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307
+
+
+From greenberg at ucdavis.edu  Fri Aug 12 01:46:21 2011
+From: greenberg at ucdavis.edu (Jonathan Greenberg)
+Date: Thu, 11 Aug 2011 16:46:21 -0700
+Subject: [R-sig-hpc] OpenMPI vs MPICH2 on debian system
+In-Reply-To: <CALh21iLz32j7n7jro6=BPQ_nGFWKzjnWo6J=jeKzk6QnK3rSrA@mail.gmail.com>
+References: <CABG0rftQihrh1PX8K-=6tt9d4MaQnE8UrtNNiSUXJ+dsxnqqKw@mail.gmail.com>
+	<CALh21iKCGMVb2OXgYy1+qPs-M4Dkj7uhqOgi72MV9KWv9gnAeA@mail.gmail.com>
+	<CABG0rfvpFsnvcP4DvAQMFigDEeyY4RU0mWU6nAnJMrw0mmcM0Q@mail.gmail.com>
+	<CALh21iL+Wh5aPmus5UwyrSkOU_BeYkLTVZWp5VATMiPbJtbCDg@mail.gmail.com>
+	<CABG0rfsSjOrUbk1jovkVW0oLoGzMJ6UWLAPs4KqEvv6f2_MOHg@mail.gmail.com>
+	<CALh21iLz32j7n7jro6=BPQ_nGFWKzjnWo6J=jeKzk6QnK3rSrA@mail.gmail.com>
+Message-ID: <CABG0rfsA6=QrZFe8bGdr29fyFthF7fC4rSMQ28YA72pYaVQXMg@mail.gmail.com>
+
+Very strange.  So I tried that, and it still runs on only a single
+processor (4 R processes are spawned, using 25% cpu each).  If I,
+instead, launch R 4 times separately, and run on each instance the
+non-parallel version of your command:
+
+lapply(1:4, function(i) repeat sqrt(1))
+
+It lights up all 4 processors.  Any ideas?
+
+--j
+
+On Thu, Aug 11, 2011 at 4:27 PM, Stephen Weston
+<stephen.b.weston at gmail.com> wrote:
+> You might want to try using multicore to isolate the problem.
+> Something like:
+>
+> ?> mclapply(1:4, function(i) repeat sqrt(1))
+>
+> That should certainly use four cores. ?If it doesn't, at least
+> you know the problem has nothing to do with Open MPI or
+> Rmpi.
+>
+> - Steve
+>
+>
+> On Thu, Aug 11, 2011 at 6:53 PM, Jonathan Greenberg
+> <greenberg at ucdavis.edu> wrote:
+>> Stephen:
+>>
+>> I agree its a bit strange, but yeah, only a single core is being lit
+>> up, and divided into the number of slaves I spawn (25% if 4 slaves,
+>> 33% if 3 slaves).
+>>
+>> --j
+>>
+>> On Thu, Aug 11, 2011 at 2:40 PM, Stephen Weston
+>> <stephen.b.weston at gmail.com> wrote:
+>>> That sounds strange. ?Rmpi or Open MPI would have to go
+>>> out of its way to restrict processes from being scheduled on
+>>> different cores of the CPU using numactl, or something like that,
+>>> which seems unlikely.
+>>>
+>>> Does "top" say each of the four workers is getting 25% of a
+>>> CPU rather than about 100%?
+>>>
+>>> - Steve
+>>>
+>>>
+>>> On Thu, Aug 11, 2011 at 5:06 PM, Jonathan Greenberg
+>>> <greenberg at ucdavis.edu> wrote:
+>>>> Stephen:
+>>>>
+>>>> Thanks! ?I guess the issue is that I'm seeing the slaves only spawn to
+>>>> a single CPU on a 4-core system, which makes me think that the problem
+>>>> is more significant, but I can't tell if its part of the openmpi
+>>>> install or the Rmpi call. ?I don't recall having this problem on my
+>>>> other debian system, but I unfortunately forgot to document how I set
+>>>> it up on that system (also, I had root access to the original system
+>>>> but now I'm trying to get this installed via my sysadmin).
+>>>>
+>>>> --j
+>>>>
+>>>> On Thu, Aug 11, 2011 at 2:02 PM, Stephen Weston
+>>>> <stephen.b.weston at gmail.com> wrote:
+>>>>> Hi Jonathan,
+>>>>>
+>>>>> I think this is normal. ?Consider the following script rmpi.R:
+>>>>>
+>>>>> library(Rmpi)
+>>>>> print(mpi.universe.size())
+>>>>> mpi.quit()
+>>>>>
+>>>>> If I run this using:
+>>>>>
+>>>>> ?% R --slave -f rmpi.R
+>>>>> ?[1] 1
+>>>>>
+>>>>> the universe size is 1. ?I also see this if I run the script
+>>>>> interactively.
+>>>>>
+>>>>> Specifying three hosts using orterun:
+>>>>>
+>>>>> ?% orterun -H localhost,localhost,localhost R --slave -f rmpi.R
+>>>>> ?[1] 3
+>>>>> ?[1] 3
+>>>>> ?[1] 3
+>>>>>
+>>>>> In this case, the script is execute three times, and each instance
+>>>>> sees a universe size of 3, since I specified three hosts.
+>>>>>
+>>>>> If I use orterun to run the script only once, using "-n 1", as you
+>>>>> would for a spawned cluster:
+>>>>>
+>>>>> ?% orterun -n 1 -H localhost,localhost,localhost R --slave -f rmpi.R
+>>>>> ?[1] 3
+>>>>>
+>>>>> you see that one copy of the script is executed, and the universe size
+>>>>> is still 3.
+>>>>>
+>>>>> In other words, if you don't use orterun (or mpirun, mpiexec, etc) the
+>>>>> universe size is always 1, at least as far as I've been able to discover.
+>>>>>
+>>>>> - Steve
+>>>>>
+>>>>>
+>>>>>
+>>>>> On Thu, Aug 11, 2011 at 4:39 PM, Jonathan Greenberg
+>>>>> <greenberg at ucdavis.edu> wrote:
+>>>>>> R-sig-hpc'ers:
+>>>>>>
+>>>>>> I'm a big fan of the snow/Rmpi package, and we've recently tried to
+>>>>>> get it running on a new debian system in our lab. ?My sysadmin is not
+>>>>>> too keen on non-debian package installs (you know, ./configure, make,
+>>>>>> make install), although I can convince him to do an apt-get -b source
+>>>>>> / dpkg install. ?We tried a straightforward binary install of
+>>>>>> openmpi-dev, but it appears to be spawning the threads only on one cpu
+>>>>>> (the same one the master is running on) when doing a:
+>>>>>>
+>>>>>> require("snow")
+>>>>>> cl <- makeCluster(4, type = "MPI")
+>>>>>> # look at top/gkrellm or run some stuff, only 1 CPU lights up.
+>>>>>>> mpi.universe.size()
+>>>>>> [1] 1
+>>>>>> stopCluster(cl)
+>>>>>>
+>>>>>> Does this have to do with something within Rmpi/snow, or is this a
+>>>>>> "bad" install of openmpi? ?Would doing an apt-get -b source
+>>>>>> openmpi-dev/dpkg install solve this? ?Would mpich2 (or another mpi
+>>>>>> flavor) be a better choice?
+>>>>>>
+>>>>>> Thanks!
+>>>>>>
+>>>>>> --j
+>>>>>>
+>>>>>>
+>>>>>> --
+>>>>>> Jonathan A. Greenberg, PhD
+>>>>>> Assistant Project Scientist
+>>>>>> Center for Spatial Technologies and Remote Sensing (CSTARS)
+>>>>>> Department of Land, Air and Water Resources
+>>>>>> University of California, Davis
+>>>>>> One Shields Avenue
+>>>>>> Davis, CA 95616
+>>>>>> Phone: 415-763-5476
+>>>>>> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307
+>>>>>>
+>>>>>> _______________________________________________
+>>>>>> R-sig-hpc mailing list
+>>>>>> R-sig-hpc at r-project.org
+>>>>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>>>>
+>>>>>
+>>>>
+>>>>
+>>>>
+>>>> --
+>>>> Jonathan A. Greenberg, PhD
+>>>> Assistant Project Scientist
+>>>> Center for Spatial Technologies and Remote Sensing (CSTARS)
+>>>> Department of Land, Air and Water Resources
+>>>> University of California, Davis
+>>>> One Shields Avenue
+>>>> Davis, CA 95616
+>>>> Phone: 415-763-5476
+>>>> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307
+>>>>
+>>>
+>>
+>>
+>>
+>> --
+>> Jonathan A. Greenberg, PhD
+>> Assistant Project Scientist
+>> Center for Spatial Technologies and Remote Sensing (CSTARS)
+>> Department of Land, Air and Water Resources
+>> University of California, Davis
+>> One Shields Avenue
+>> Davis, CA 95616
+>> Phone: 415-763-5476
+>> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307
+>>
+>
+
+
+
+-- 
+Jonathan A. Greenberg, PhD
+Assistant Project Scientist
+Center for Spatial Technologies and Remote Sensing (CSTARS)
+Department of Land, Air and Water Resources
+University of California, Davis
+One Shields Avenue
+Davis, CA 95616
+Phone: 415-763-5476
+AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307
+
+
+From stephen.b.weston at gmail.com  Fri Aug 12 02:35:59 2011
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Thu, 11 Aug 2011 20:35:59 -0400
+Subject: [R-sig-hpc] OpenMPI vs MPICH2 on debian system
+In-Reply-To: <CABG0rfsA6=QrZFe8bGdr29fyFthF7fC4rSMQ28YA72pYaVQXMg@mail.gmail.com>
+References: <CABG0rftQihrh1PX8K-=6tt9d4MaQnE8UrtNNiSUXJ+dsxnqqKw@mail.gmail.com>
+	<CALh21iKCGMVb2OXgYy1+qPs-M4Dkj7uhqOgi72MV9KWv9gnAeA@mail.gmail.com>
+	<CABG0rfvpFsnvcP4DvAQMFigDEeyY4RU0mWU6nAnJMrw0mmcM0Q@mail.gmail.com>
+	<CALh21iL+Wh5aPmus5UwyrSkOU_BeYkLTVZWp5VATMiPbJtbCDg@mail.gmail.com>
+	<CABG0rfsSjOrUbk1jovkVW0oLoGzMJ6UWLAPs4KqEvv6f2_MOHg@mail.gmail.com>
+	<CALh21iLz32j7n7jro6=BPQ_nGFWKzjnWo6J=jeKzk6QnK3rSrA@mail.gmail.com>
+	<CABG0rfsA6=QrZFe8bGdr29fyFthF7fC4rSMQ28YA72pYaVQXMg@mail.gmail.com>
+Message-ID: <CALh21iJxquDuCd3FirQv8tq-CZ0_qPpPFELBX+LwOUYg4gvR5Q@mail.gmail.com>
+
+What happens when you use the socket transport?
+
+    cl <- makeSOCKcluster(4)
+    clusterEvalQ(cl, repeat sqrt(1))
+
+On my Linux machine, these workers have process 1 as their parent,
+unlike the other two cases that you've tried.  That might make a difference,
+although I don't have any theory why.
+
+- Steve
+
+
+On Thu, Aug 11, 2011 at 7:46 PM, Jonathan Greenberg
+<greenberg at ucdavis.edu> wrote:
+> Very strange. ?So I tried that, and it still runs on only a single
+> processor (4 R processes are spawned, using 25% cpu each). ?If I,
+> instead, launch R 4 times separately, and run on each instance the
+> non-parallel version of your command:
+>
+> lapply(1:4, function(i) repeat sqrt(1))
+>
+> It lights up all 4 processors. ?Any ideas?
+>
+> --j
+>
+> On Thu, Aug 11, 2011 at 4:27 PM, Stephen Weston
+> <stephen.b.weston at gmail.com> wrote:
+>> You might want to try using multicore to isolate the problem.
+>> Something like:
+>>
+>> ?> mclapply(1:4, function(i) repeat sqrt(1))
+>>
+>> That should certainly use four cores. ?If it doesn't, at least
+>> you know the problem has nothing to do with Open MPI or
+>> Rmpi.
+>>
+>> - Steve
+>>
+>>
+>> On Thu, Aug 11, 2011 at 6:53 PM, Jonathan Greenberg
+>> <greenberg at ucdavis.edu> wrote:
+>>> Stephen:
+>>>
+>>> I agree its a bit strange, but yeah, only a single core is being lit
+>>> up, and divided into the number of slaves I spawn (25% if 4 slaves,
+>>> 33% if 3 slaves).
+>>>
+>>> --j
+>>>
+>>> On Thu, Aug 11, 2011 at 2:40 PM, Stephen Weston
+>>> <stephen.b.weston at gmail.com> wrote:
+>>>> That sounds strange. ?Rmpi or Open MPI would have to go
+>>>> out of its way to restrict processes from being scheduled on
+>>>> different cores of the CPU using numactl, or something like that,
+>>>> which seems unlikely.
+>>>>
+>>>> Does "top" say each of the four workers is getting 25% of a
+>>>> CPU rather than about 100%?
+>>>>
+>>>> - Steve
+>>>>
+>>>>
+>>>> On Thu, Aug 11, 2011 at 5:06 PM, Jonathan Greenberg
+>>>> <greenberg at ucdavis.edu> wrote:
+>>>>> Stephen:
+>>>>>
+>>>>> Thanks! ?I guess the issue is that I'm seeing the slaves only spawn to
+>>>>> a single CPU on a 4-core system, which makes me think that the problem
+>>>>> is more significant, but I can't tell if its part of the openmpi
+>>>>> install or the Rmpi call. ?I don't recall having this problem on my
+>>>>> other debian system, but I unfortunately forgot to document how I set
+>>>>> it up on that system (also, I had root access to the original system
+>>>>> but now I'm trying to get this installed via my sysadmin).
+>>>>>
+>>>>> --j
+>>>>>
+>>>>> On Thu, Aug 11, 2011 at 2:02 PM, Stephen Weston
+>>>>> <stephen.b.weston at gmail.com> wrote:
+>>>>>> Hi Jonathan,
+>>>>>>
+>>>>>> I think this is normal. ?Consider the following script rmpi.R:
+>>>>>>
+>>>>>> library(Rmpi)
+>>>>>> print(mpi.universe.size())
+>>>>>> mpi.quit()
+>>>>>>
+>>>>>> If I run this using:
+>>>>>>
+>>>>>> ?% R --slave -f rmpi.R
+>>>>>> ?[1] 1
+>>>>>>
+>>>>>> the universe size is 1. ?I also see this if I run the script
+>>>>>> interactively.
+>>>>>>
+>>>>>> Specifying three hosts using orterun:
+>>>>>>
+>>>>>> ?% orterun -H localhost,localhost,localhost R --slave -f rmpi.R
+>>>>>> ?[1] 3
+>>>>>> ?[1] 3
+>>>>>> ?[1] 3
+>>>>>>
+>>>>>> In this case, the script is execute three times, and each instance
+>>>>>> sees a universe size of 3, since I specified three hosts.
+>>>>>>
+>>>>>> If I use orterun to run the script only once, using "-n 1", as you
+>>>>>> would for a spawned cluster:
+>>>>>>
+>>>>>> ?% orterun -n 1 -H localhost,localhost,localhost R --slave -f rmpi.R
+>>>>>> ?[1] 3
+>>>>>>
+>>>>>> you see that one copy of the script is executed, and the universe size
+>>>>>> is still 3.
+>>>>>>
+>>>>>> In other words, if you don't use orterun (or mpirun, mpiexec, etc) the
+>>>>>> universe size is always 1, at least as far as I've been able to discover.
+>>>>>>
+>>>>>> - Steve
+>>>>>>
+>>>>>>
+>>>>>>
+>>>>>> On Thu, Aug 11, 2011 at 4:39 PM, Jonathan Greenberg
+>>>>>> <greenberg at ucdavis.edu> wrote:
+>>>>>>> R-sig-hpc'ers:
+>>>>>>>
+>>>>>>> I'm a big fan of the snow/Rmpi package, and we've recently tried to
+>>>>>>> get it running on a new debian system in our lab. ?My sysadmin is not
+>>>>>>> too keen on non-debian package installs (you know, ./configure, make,
+>>>>>>> make install), although I can convince him to do an apt-get -b source
+>>>>>>> / dpkg install. ?We tried a straightforward binary install of
+>>>>>>> openmpi-dev, but it appears to be spawning the threads only on one cpu
+>>>>>>> (the same one the master is running on) when doing a:
+>>>>>>>
+>>>>>>> require("snow")
+>>>>>>> cl <- makeCluster(4, type = "MPI")
+>>>>>>> # look at top/gkrellm or run some stuff, only 1 CPU lights up.
+>>>>>>>> mpi.universe.size()
+>>>>>>> [1] 1
+>>>>>>> stopCluster(cl)
+>>>>>>>
+>>>>>>> Does this have to do with something within Rmpi/snow, or is this a
+>>>>>>> "bad" install of openmpi? ?Would doing an apt-get -b source
+>>>>>>> openmpi-dev/dpkg install solve this? ?Would mpich2 (or another mpi
+>>>>>>> flavor) be a better choice?
+>>>>>>>
+>>>>>>> Thanks!
+>>>>>>>
+>>>>>>> --j
+>>>>>>>
+>>>>>>>
+>>>>>>> --
+>>>>>>> Jonathan A. Greenberg, PhD
+>>>>>>> Assistant Project Scientist
+>>>>>>> Center for Spatial Technologies and Remote Sensing (CSTARS)
+>>>>>>> Department of Land, Air and Water Resources
+>>>>>>> University of California, Davis
+>>>>>>> One Shields Avenue
+>>>>>>> Davis, CA 95616
+>>>>>>> Phone: 415-763-5476
+>>>>>>> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307
+>>>>>>>
+>>>>>>> _______________________________________________
+>>>>>>> R-sig-hpc mailing list
+>>>>>>> R-sig-hpc at r-project.org
+>>>>>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>>>>>
+>>>>>>
+>>>>>
+>>>>>
+>>>>>
+>>>>> --
+>>>>> Jonathan A. Greenberg, PhD
+>>>>> Assistant Project Scientist
+>>>>> Center for Spatial Technologies and Remote Sensing (CSTARS)
+>>>>> Department of Land, Air and Water Resources
+>>>>> University of California, Davis
+>>>>> One Shields Avenue
+>>>>> Davis, CA 95616
+>>>>> Phone: 415-763-5476
+>>>>> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307
+>>>>>
+>>>>
+>>>
+>>>
+>>>
+>>> --
+>>> Jonathan A. Greenberg, PhD
+>>> Assistant Project Scientist
+>>> Center for Spatial Technologies and Remote Sensing (CSTARS)
+>>> Department of Land, Air and Water Resources
+>>> University of California, Davis
+>>> One Shields Avenue
+>>> Davis, CA 95616
+>>> Phone: 415-763-5476
+>>> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307
+>>>
+>>
+>
+>
+>
+> --
+> Jonathan A. Greenberg, PhD
+> Assistant Project Scientist
+> Center for Spatial Technologies and Remote Sensing (CSTARS)
+> Department of Land, Air and Water Resources
+> University of California, Davis
+> One Shields Avenue
+> Davis, CA 95616
+> Phone: 415-763-5476
+> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307
+>
+
+
+From pauljohn32 at gmail.com  Fri Aug 12 17:51:10 2011
+From: pauljohn32 at gmail.com (Paul Johnson)
+Date: Fri, 12 Aug 2011 10:51:10 -0500
+Subject: [R-sig-hpc] Error message from MPI
+In-Reply-To: <4E43BF93.6070200@uea.ac.uk>
+References: <4E43BF93.6070200@uea.ac.uk>
+Message-ID: <CAErODj8bY6MPSAFEx3Go_+ep=-h0=9bmaMw5x1FHWvWopdoJgA@mail.gmail.com>
+
+Hello, Jim
+
+I have seen similar, but the jobs still run.  On my system, it happens
+because our cluster has a mixture of fabrics.  Some are regular old
+ethernet, some are infiniband. (suspect you are similar from openib
+message).  When I submit jobs on the cluster, and they are sent to
+nodes that are ethernet connected, the infiniband connector tries to
+connect, it can't hook up, and then it  falls back.
+
+Would you mind posting your submission script and the R code? Or post a link?
+
+My R-MPI collection is growing. here are instructions on how you can
+see.  http://web.ku.edu/~quant/cgi-bin/mw1/index.php?title=Cluster:Main
+
+On Thu, Aug 11, 2011 at 6:40 AM, Jim Maas <j.maas at uea.ac.uk> wrote:
+> Hi All,
+>
+> I'm relatively new to this but it has worked well for me previously and
+> now I'm getting errors.
+>
+> I'm attempting to run and R job, on a cluster using LSF operating
+> system, using the packages doMPI and foreach. ?In the job file I've
+> requested 128 slots, and MPI gets that number quite successfully but is
+> giving this error message
+>
+> =====================
+> Loading required package: Rmpi
+> Loading required package: Rmpi
+> --------------------------------------------------------------------------
+> [[51610,1],5]: A high-performance Open MPI point-to-point messaging
+> module
+> was unable to find any relevant network interfaces:
+>
+> Module: OpenFabrics (openib)
+> ?Host: cn004.private.dns.zone
+>
+> Another transport will be used instead, although this may result in
+> lower performance.
+> =====================
+>
+> As a test I've run the same job with a smaller number of slots, and it
+> runs fine when I run it on 32 or 64 slots, but when I increase to 128
+> slots, I get this error?
+>
+> I guess I'm asking if the R packages doMPI and foreach are scalable, and
+> to what level?
+>
+
+>
+
+
+
+-- 
+Paul E. Johnson
+Professor, Political Science
+1541 Lilac Lane, Room 504
+University of Kansas
+
+
+From HodgessE at uhd.edu  Sat Aug 13 01:13:56 2011
+From: HodgessE at uhd.edu (Hodgess, Erin)
+Date: Fri, 12 Aug 2011 18:13:56 -0500
+Subject: [R-sig-hpc] Classes on R/HPC, please?
+Message-ID: <586A4828D7AAA04CA9B258C50A28DA206DBAB1@BALI.uhd.campus>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110812/c2655a0b/attachment.pl>
+
+From matloff at cs.ucdavis.edu  Sat Aug 13 01:33:55 2011
+From: matloff at cs.ucdavis.edu (Norm Matloff)
+Date: Fri, 12 Aug 2011 16:33:55 -0700
+Subject: [R-sig-hpc] Classes on R/HPC, please?
+In-Reply-To: <586A4828D7AAA04CA9B258C50A28DA206DBAB1@BALI.uhd.campus>
+References: <586A4828D7AAA04CA9B258C50A28DA206DBAB1@BALI.uhd.campus>
+Message-ID: <20110812233355.GC17382@laura>
+
+
+Don't know of any courses, but you may find my open-source textbook on
+HPC to be of interest, at
+
+http://heather.cs.ucdavis.edu/parprocbook
+
+It's not solely on R, but it does have a lot of R examples.
+
+Norm
+
+On Fri, Aug 12, 2011 at 06:13:56PM -0500, Hodgess, Erin wrote:
+> Dear R HPC People:
+> 
+> Does anyone know of any classes on R with HPC, please?
+> 
+> Thanks in advance for any information.
+> 
+> Sincerely,
+> Erin
+> 
+> 
+> Erin M. Hodgess, PhD
+> Associate Professor
+> Department of Computer and Mathematical Sciences
+> University of Houston - Downtown
+> mailto: hodgesse at uhd.edu
+> 
+> 
+> 	[[alternative HTML version deleted]]
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From murray at stokely.org  Sat Aug 13 03:02:19 2011
+From: murray at stokely.org (Murray Stokely)
+Date: Fri, 12 Aug 2011 18:02:19 -0700
+Subject: [R-sig-hpc] Using CRAN packages with RHIPE in user-provided Map and
+	Reduce functions
+Message-ID: <CAECWzi+fNhB+vt0HnVKKA+FKQTfzHDmZz_Dni5rvPn+3GXDZFw@mail.gmail.com>
+
+Quick question for any RHIPE (The R Hadoop-based MapReduce package) users here :
+
+How does RHIPE allow the use of arbitrary libraries / code from CRAN
+in the provided Map and Reduce functions when running on e.g. EC2?
+After 20 minutes of searching every example I see is a lapply type
+operation done simply with base R commands.  How do packages from the
+calling environment get made available to the workers?
+
+Also, where does the most up to date documentation live?  Unusually,
+the google search results for rhipe are filled with broken links to
+the old location from purdue.edu.
+
+             - Murray
+
+
+From saptarshi.guha at gmail.com  Sat Aug 13 03:17:38 2011
+From: saptarshi.guha at gmail.com (Saptarshi Guha)
+Date: Fri, 12 Aug 2011 21:17:38 -0400
+Subject: [R-sig-hpc] Using CRAN packages with RHIPE in user-provided Map
+	and Reduce functions
+In-Reply-To: <CAECWzi+fNhB+vt0HnVKKA+FKQTfzHDmZz_Dni5rvPn+3GXDZFw@mail.gmail.com>
+References: <CAECWzi+fNhB+vt0HnVKKA+FKQTfzHDmZz_Dni5rvPn+3GXDZFw@mail.gmail.com>
+Message-ID: <CCE5C659-D055-4CA9-81F8-19098D6AB265@gmail.com>
+
+Hi
+There is a mailing list for rhipe. Also we've moved to ml.stat.purdue.edu/rhipe
+
+The documentation is beingobef into the package.
+
+In the setup you can type
+linbrary(ackagename)
+
+Are you getting errors?
+
+Saptarshi
+
+
+
+On Aug 12, 2011, at 9:02 PM, Murray Stokely <murray at stokely.org> wrote:
+
+> Quick question for any RHIPE (The R Hadoop-based MapReduce package)  
+> users here :
+>
+> How does RHIPE allow the use of arbitrary libraries / code from CRAN
+> in the provided Map and Reduce functions when running on e.g. EC2?
+> After 20 minutes of searching every example I see is a lapply type
+> operation done simply with base R commands.  How do packages from the
+> calling environment get made available to the workers?
+>
+> Also, where does the most up to date documentation live?  Unusually,
+> the google search results for rhipe are filled with broken links to
+> the old location from purdue.edu.
+>
+>             - Murray
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From edd at debian.org  Sat Aug 13 03:32:24 2011
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Fri, 12 Aug 2011 20:32:24 -0500
+Subject: [R-sig-hpc] Using CRAN packages with RHIPE in user-provided
+	Map	and Reduce functions
+In-Reply-To: <CCE5C659-D055-4CA9-81F8-19098D6AB265@gmail.com>
+References: <CAECWzi+fNhB+vt0HnVKKA+FKQTfzHDmZz_Dni5rvPn+3GXDZFw@mail.gmail.com>
+	<CCE5C659-D055-4CA9-81F8-19098D6AB265@gmail.com>
+Message-ID: <20037.54312.551964.463154@max.nulle.part>
+
+
+Hi Saptarshi,
+
+On 12 August 2011 at 21:17, Saptarshi Guha wrote:
+| There is a mailing list for rhipe. Also we've moved to ml.stat.purdue.edu/rhipe
+
+But the machine ml.stat.purdue.edu times out on http requests. Are the docs
+and sources mirrored somewhere?
+
+Dirk
+
+-- 
+Two new Rcpp master classes for R and C++ integration scheduled for 
+New York (Sep 24) and San Francisco (Oct 8), more details are at
+http://dirk.eddelbuettel.com/blog/2011/08/04#rcpp_classes_2011-09_and_2011-10
+http://www.revolutionanalytics.com/products/training/public/rcpp-master-class.php
+
+
+From zack80.liu at gmail.com  Sat Aug 13 17:27:58 2011
+From: zack80.liu at gmail.com (Zack Liu)
+Date: Sat, 13 Aug 2011 10:27:58 -0500
+Subject: [R-sig-hpc] RMPI installation error on CentOS cluster
+Message-ID: <CAKu22zgkLrNT0C5Qb-grez8=pE_g+Y0Hp3JH5wMNuhmAHFaBTQ@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110813/8a5ff569/attachment.pl>
+
+From saptarshi.guha at gmail.com  Sun Aug 14 00:00:48 2011
+From: saptarshi.guha at gmail.com (Saptarshi Guha)
+Date: Sat, 13 Aug 2011 15:00:48 -0700
+Subject: [R-sig-hpc] Using CRAN packages with RHIPE in user-provided Map
+ and Reduce functions
+In-Reply-To: <20037.54312.551964.463154@max.nulle.part>
+References: <CAECWzi+fNhB+vt0HnVKKA+FKQTfzHDmZz_Dni5rvPn+3GXDZFw@mail.gmail.com>
+	<CCE5C659-D055-4CA9-81F8-19098D6AB265@gmail.com>
+	<20037.54312.551964.463154@max.nulle.part>
+Message-ID: <CAJDot1oN3OaMN8q2kK_tU_Q_0jxqUqM7oEN+Lh=k77h1CNmU2g@mail.gmail.com>
+
+Hello,
+
+Yes, unfortunately, the Stat department website at purdue had gone
+down for maintenance.
+It should be up now. I'm working on
+a) pushing code to code.google.com and have bugtracker
+b) pushing docs into the R package.
+
+Cheers
+Saptarshi
+
+
+On Fri, Aug 12, 2011 at 6:32 PM, Dirk Eddelbuettel <edd at debian.org> wrote:
+>
+> Hi Saptarshi,
+>
+> On 12 August 2011 at 21:17, Saptarshi Guha wrote:
+> | There is a mailing list for rhipe. Also we've moved to ml.stat.purdue.edu/rhipe
+>
+> But the machine ml.stat.purdue.edu times out on http requests. Are the docs
+> and sources mirrored somewhere?
+>
+> Dirk
+>
+> --
+> Two new Rcpp master classes for R and C++ integration scheduled for
+> New York (Sep 24) and San Francisco (Oct 8), more details are at
+> http://dirk.eddelbuettel.com/blog/2011/08/04#rcpp_classes_2011-09_and_2011-10
+> http://www.revolutionanalytics.com/products/training/public/rcpp-master-class.php
+>
+
+
+From MSchmidberger at freenet.de  Mon Aug 15 14:25:53 2011
+From: MSchmidberger at freenet.de (Markus Schmidberger)
+Date: Mon, 15 Aug 2011 14:25:53 +0200
+Subject: [R-sig-hpc] Classes on R/HPC, please?
+In-Reply-To: <20110812233355.GC17382@laura>
+References: <586A4828D7AAA04CA9B258C50A28DA206DBAB1@BALI.uhd.campus>
+	<20110812233355.GC17382@laura>
+Message-ID: <1313411153.2558.2.camel@schmidb-TravelMate8572TG>
+
+Munich R courses:
+http://www.stat.uni-muenchen.de/R/inhalte.html#K6
+
+Best
+Markus
+
+
+Am Freitag, den 12.08.2011, 16:33 -0700 schrieb Norm Matloff:
+> Don't know of any courses, but you may find my open-source textbook on
+> HPC to be of interest, at
+> 
+> http://heather.cs.ucdavis.edu/parprocbook
+> 
+> It's not solely on R, but it does have a lot of R examples.
+> 
+> Norm
+> 
+> On Fri, Aug 12, 2011 at 06:13:56PM -0500, Hodgess, Erin wrote:
+> > Dear R HPC People:
+> > 
+> > Does anyone know of any classes on R with HPC, please?
+> > 
+> > Thanks in advance for any information.
+> > 
+> > Sincerely,
+> > Erin
+> > 
+> > 
+> > Erin M. Hodgess, PhD
+> > Associate Professor
+> > Department of Computer and Mathematical Sciences
+> > University of Houston - Downtown
+> > mailto: hodgesse at uhd.edu
+> > 
+> > 
+> > 	[[alternative HTML version deleted]]
+> > 
+> > _______________________________________________
+> > R-sig-hpc mailing list
+> > R-sig-hpc at r-project.org
+> > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From my.r.help at gmail.com  Mon Aug 15 16:13:47 2011
+From: my.r.help at gmail.com (Michael Smith)
+Date: Mon, 15 Aug 2011 22:13:47 +0800
+Subject: [R-sig-hpc] Classes on R/HPC, please?
+In-Reply-To: <1313411153.2558.2.camel@schmidb-TravelMate8572TG>
+References: <586A4828D7AAA04CA9B258C50A28DA206DBAB1@BALI.uhd.campus>
+	<20110812233355.GC17382@laura>
+	<1313411153.2558.2.camel@schmidb-TravelMate8572TG>
+Message-ID: <4E49299B.7030302@gmail.com>
+
+Markus,
+
+Looks great. Are there any lecture notes to download for this course?
+
+Thanks,
+Michael
+
+On 08/15/2011 08:25 PM, Markus Schmidberger wrote:
+> Munich R courses:
+> http://www.stat.uni-muenchen.de/R/inhalte.html#K6
+> 
+> Best
+> Markus
+> 
+> 
+> Am Freitag, den 12.08.2011, 16:33 -0700 schrieb Norm Matloff:
+>> Don't know of any courses, but you may find my open-source textbook on
+>> HPC to be of interest, at
+>>
+>> http://heather.cs.ucdavis.edu/parprocbook
+>>
+>> It's not solely on R, but it does have a lot of R examples.
+>>
+>> Norm
+>>
+>> On Fri, Aug 12, 2011 at 06:13:56PM -0500, Hodgess, Erin wrote:
+>>> Dear R HPC People:
+>>>
+>>> Does anyone know of any classes on R with HPC, please?
+>>>
+>>> Thanks in advance for any information.
+>>>
+>>> Sincerely,
+>>> Erin
+>>>
+>>>
+>>> Erin M. Hodgess, PhD
+>>> Associate Professor
+>>> Department of Computer and Mathematical Sciences
+>>> University of Houston - Downtown
+>>> mailto: hodgesse at uhd.edu
+>>>
+>>>
+>>> 	[[alternative HTML version deleted]]
+>>>
+>>> _______________________________________________
+>>> R-sig-hpc mailing list
+>>> R-sig-hpc at r-project.org
+>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From purucker.tom at gmail.com  Mon Aug 15 16:35:59 2011
+From: purucker.tom at gmail.com (Tom Purucker)
+Date: Mon, 15 Aug 2011 10:35:59 -0400
+Subject: [R-sig-hpc] Classes on R/HPC, please?
+In-Reply-To: <4E49299B.7030302@gmail.com>
+References: <586A4828D7AAA04CA9B258C50A28DA206DBAB1@BALI.uhd.campus>
+	<20110812233355.GC17382@laura>
+	<1313411153.2558.2.camel@schmidb-TravelMate8572TG>
+	<4E49299B.7030302@gmail.com>
+Message-ID: <CALz8iE1N9_-4Qyf_t7zs+U-ji-VSVYjGxA5JeZoj7r8B=OhNoA@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110815/86918703/attachment.pl>
+
+From dreiss.isb at gmail.com  Mon Aug 15 19:54:20 2011
+From: dreiss.isb at gmail.com (David Reiss)
+Date: Mon, 15 Aug 2011 10:54:20 -0700
+Subject: [R-sig-hpc] problems with latest doMC
+Message-ID: <CAEXzEYXh6H6m1ahKhqwD3aN1qVU970-rG1LcJ66-G3SW-4uucw@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110815/230819bb/attachment.pl>
+
+From stephen.b.weston at gmail.com  Mon Aug 15 20:44:03 2011
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Mon, 15 Aug 2011 14:44:03 -0400
+Subject: [R-sig-hpc] problems with latest doMC
+In-Reply-To: <CAEXzEYXh6H6m1ahKhqwD3aN1qVU970-rG1LcJ66-G3SW-4uucw@mail.gmail.com>
+References: <CAEXzEYXh6H6m1ahKhqwD3aN1qVU970-rG1LcJ66-G3SW-4uucw@mail.gmail.com>
+Message-ID: <CALh21iKxvYrgXpOw4hB84uVLYXE=7ygQofiR40ctmM9UHdHb0g@mail.gmail.com>
+
+What version of R are you using?  Did you get any warning messages
+when installing or loading doMC?  Can you execute the following:
+
+  > library(compiler)
+  > compile(4)
+
+There is no way to disable compiling currently, but I
+may add that.
+
+- Steve
+
+
+On Mon, Aug 15, 2011 at 1:54 PM, David Reiss <dreiss.isb at gmail.com> wrote:
+> Hi,
+> I had a set of functions working perfectly using doMC, until I updated the
+> doMC package in my OSX system last Friday. Now I am getting the following
+> error which seems to be related to its (new?) use of the compiler
+> functionality in R:
+>
+>> registerDoMC()
+>> foreach(i = 1:3) %dopar% sqrt(i)
+> Error in comp(expr, env = envir, options = list(suppressUndefined = TRUE)) :
+>
+> ?could not find function "makeCenv"
+>
+> I don't know why this is happening or whether there is a way to turn of the
+> compilation so that it will start to work again. Any ideas?
+> Thank you.
+> David
+>
+> ? ? ? ?[[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From dreiss at systemsbiology.org  Mon Aug 15 20:55:15 2011
+From: dreiss at systemsbiology.org (David Reiss)
+Date: Mon, 15 Aug 2011 11:55:15 -0700
+Subject: [R-sig-hpc] problems with latest doMC
+In-Reply-To: <CALh21iKxvYrgXpOw4hB84uVLYXE=7ygQofiR40ctmM9UHdHb0g@mail.gmail.com>
+References: <CAEXzEYXh6H6m1ahKhqwD3aN1qVU970-rG1LcJ66-G3SW-4uucw@mail.gmail.com>
+	<CALh21iKxvYrgXpOw4hB84uVLYXE=7ygQofiR40ctmM9UHdHb0g@mail.gmail.com>
+Message-ID: <CAEXzEYWwhfymT9yE=5oeqFtbT7WQgCqYx3zJYQ8G05LpzJZvug@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110815/dbd1e7ce/attachment.pl>
+
+From greenberg at ucdavis.edu  Wed Aug 17 22:32:59 2011
+From: greenberg at ucdavis.edu (Jonathan Greenberg)
+Date: Wed, 17 Aug 2011 13:32:59 -0700
+Subject: [R-sig-hpc] OpenMPI vs MPICH2 on debian system
+In-Reply-To: <CALh21iJxquDuCd3FirQv8tq-CZ0_qPpPFELBX+LwOUYg4gvR5Q@mail.gmail.com>
+References: <CABG0rftQihrh1PX8K-=6tt9d4MaQnE8UrtNNiSUXJ+dsxnqqKw@mail.gmail.com>
+	<CALh21iKCGMVb2OXgYy1+qPs-M4Dkj7uhqOgi72MV9KWv9gnAeA@mail.gmail.com>
+	<CABG0rfvpFsnvcP4DvAQMFigDEeyY4RU0mWU6nAnJMrw0mmcM0Q@mail.gmail.com>
+	<CALh21iL+Wh5aPmus5UwyrSkOU_BeYkLTVZWp5VATMiPbJtbCDg@mail.gmail.com>
+	<CABG0rfsSjOrUbk1jovkVW0oLoGzMJ6UWLAPs4KqEvv6f2_MOHg@mail.gmail.com>
+	<CALh21iLz32j7n7jro6=BPQ_nGFWKzjnWo6J=jeKzk6QnK3rSrA@mail.gmail.com>
+	<CABG0rfsA6=QrZFe8bGdr29fyFthF7fC4rSMQ28YA72pYaVQXMg@mail.gmail.com>
+	<CALh21iJxquDuCd3FirQv8tq-CZ0_qPpPFELBX+LwOUYg4gvR5Q@mail.gmail.com>
+Message-ID: <CABG0rfvmE1gZE_acjjmdTGTOq7e=xE69GSOpGSghmWcMOUucMg@mail.gmail.com>
+
+Stephen et al.:
+
+A little more sleuthing as well as working through this very listserv
+found the culprit.  I had to run R via orterun for it to work
+properly:
+
+orterun -n 1 R --no-save
+
+I was then able to spawn as many slaves as I needed.  I'm seeing the
+slaves are eating up 100% CPU (which I've seen mention of previously),
+so I'll want to figure out if there's a way to solve that or, for now:
+
+nice -19 orterun -n 1 R --no-save
+
+--j
+
+On Thu, Aug 11, 2011 at 5:35 PM, Stephen Weston
+<stephen.b.weston at gmail.com> wrote:
+> What happens when you use the socket transport?
+>
+> ? ?cl <- makeSOCKcluster(4)
+> ? ?clusterEvalQ(cl, repeat sqrt(1))
+>
+> On my Linux machine, these workers have process 1 as their parent,
+> unlike the other two cases that you've tried. ?That might make a difference,
+> although I don't have any theory why.
+>
+> - Steve
+>
+>
+> On Thu, Aug 11, 2011 at 7:46 PM, Jonathan Greenberg
+> <greenberg at ucdavis.edu> wrote:
+>> Very strange. ?So I tried that, and it still runs on only a single
+>> processor (4 R processes are spawned, using 25% cpu each). ?If I,
+>> instead, launch R 4 times separately, and run on each instance the
+>> non-parallel version of your command:
+>>
+>> lapply(1:4, function(i) repeat sqrt(1))
+>>
+>> It lights up all 4 processors. ?Any ideas?
+>>
+>> --j
+>>
+>> On Thu, Aug 11, 2011 at 4:27 PM, Stephen Weston
+>> <stephen.b.weston at gmail.com> wrote:
+>>> You might want to try using multicore to isolate the problem.
+>>> Something like:
+>>>
+>>> ?> mclapply(1:4, function(i) repeat sqrt(1))
+>>>
+>>> That should certainly use four cores. ?If it doesn't, at least
+>>> you know the problem has nothing to do with Open MPI or
+>>> Rmpi.
+>>>
+>>> - Steve
+>>>
+>>>
+>>> On Thu, Aug 11, 2011 at 6:53 PM, Jonathan Greenberg
+>>> <greenberg at ucdavis.edu> wrote:
+>>>> Stephen:
+>>>>
+>>>> I agree its a bit strange, but yeah, only a single core is being lit
+>>>> up, and divided into the number of slaves I spawn (25% if 4 slaves,
+>>>> 33% if 3 slaves).
+>>>>
+>>>> --j
+>>>>
+>>>> On Thu, Aug 11, 2011 at 2:40 PM, Stephen Weston
+>>>> <stephen.b.weston at gmail.com> wrote:
+>>>>> That sounds strange. ?Rmpi or Open MPI would have to go
+>>>>> out of its way to restrict processes from being scheduled on
+>>>>> different cores of the CPU using numactl, or something like that,
+>>>>> which seems unlikely.
+>>>>>
+>>>>> Does "top" say each of the four workers is getting 25% of a
+>>>>> CPU rather than about 100%?
+>>>>>
+>>>>> - Steve
+>>>>>
+>>>>>
+>>>>> On Thu, Aug 11, 2011 at 5:06 PM, Jonathan Greenberg
+>>>>> <greenberg at ucdavis.edu> wrote:
+>>>>>> Stephen:
+>>>>>>
+>>>>>> Thanks! ?I guess the issue is that I'm seeing the slaves only spawn to
+>>>>>> a single CPU on a 4-core system, which makes me think that the problem
+>>>>>> is more significant, but I can't tell if its part of the openmpi
+>>>>>> install or the Rmpi call. ?I don't recall having this problem on my
+>>>>>> other debian system, but I unfortunately forgot to document how I set
+>>>>>> it up on that system (also, I had root access to the original system
+>>>>>> but now I'm trying to get this installed via my sysadmin).
+>>>>>>
+>>>>>> --j
+>>>>>>
+>>>>>> On Thu, Aug 11, 2011 at 2:02 PM, Stephen Weston
+>>>>>> <stephen.b.weston at gmail.com> wrote:
+>>>>>>> Hi Jonathan,
+>>>>>>>
+>>>>>>> I think this is normal. ?Consider the following script rmpi.R:
+>>>>>>>
+>>>>>>> library(Rmpi)
+>>>>>>> print(mpi.universe.size())
+>>>>>>> mpi.quit()
+>>>>>>>
+>>>>>>> If I run this using:
+>>>>>>>
+>>>>>>> ?% R --slave -f rmpi.R
+>>>>>>> ?[1] 1
+>>>>>>>
+>>>>>>> the universe size is 1. ?I also see this if I run the script
+>>>>>>> interactively.
+>>>>>>>
+>>>>>>> Specifying three hosts using orterun:
+>>>>>>>
+>>>>>>> ?% orterun -H localhost,localhost,localhost R --slave -f rmpi.R
+>>>>>>> ?[1] 3
+>>>>>>> ?[1] 3
+>>>>>>> ?[1] 3
+>>>>>>>
+>>>>>>> In this case, the script is execute three times, and each instance
+>>>>>>> sees a universe size of 3, since I specified three hosts.
+>>>>>>>
+>>>>>>> If I use orterun to run the script only once, using "-n 1", as you
+>>>>>>> would for a spawned cluster:
+>>>>>>>
+>>>>>>> ?% orterun -n 1 -H localhost,localhost,localhost R --slave -f rmpi.R
+>>>>>>> ?[1] 3
+>>>>>>>
+>>>>>>> you see that one copy of the script is executed, and the universe size
+>>>>>>> is still 3.
+>>>>>>>
+>>>>>>> In other words, if you don't use orterun (or mpirun, mpiexec, etc) the
+>>>>>>> universe size is always 1, at least as far as I've been able to discover.
+>>>>>>>
+>>>>>>> - Steve
+>>>>>>>
+>>>>>>>
+>>>>>>>
+>>>>>>> On Thu, Aug 11, 2011 at 4:39 PM, Jonathan Greenberg
+>>>>>>> <greenberg at ucdavis.edu> wrote:
+>>>>>>>> R-sig-hpc'ers:
+>>>>>>>>
+>>>>>>>> I'm a big fan of the snow/Rmpi package, and we've recently tried to
+>>>>>>>> get it running on a new debian system in our lab. ?My sysadmin is not
+>>>>>>>> too keen on non-debian package installs (you know, ./configure, make,
+>>>>>>>> make install), although I can convince him to do an apt-get -b source
+>>>>>>>> / dpkg install. ?We tried a straightforward binary install of
+>>>>>>>> openmpi-dev, but it appears to be spawning the threads only on one cpu
+>>>>>>>> (the same one the master is running on) when doing a:
+>>>>>>>>
+>>>>>>>> require("snow")
+>>>>>>>> cl <- makeCluster(4, type = "MPI")
+>>>>>>>> # look at top/gkrellm or run some stuff, only 1 CPU lights up.
+>>>>>>>>> mpi.universe.size()
+>>>>>>>> [1] 1
+>>>>>>>> stopCluster(cl)
+>>>>>>>>
+>>>>>>>> Does this have to do with something within Rmpi/snow, or is this a
+>>>>>>>> "bad" install of openmpi? ?Would doing an apt-get -b source
+>>>>>>>> openmpi-dev/dpkg install solve this? ?Would mpich2 (or another mpi
+>>>>>>>> flavor) be a better choice?
+>>>>>>>>
+>>>>>>>> Thanks!
+>>>>>>>>
+>>>>>>>> --j
+>>>>>>>>
+>>>>>>>>
+>>>>>>>> --
+>>>>>>>> Jonathan A. Greenberg, PhD
+>>>>>>>> Assistant Project Scientist
+>>>>>>>> Center for Spatial Technologies and Remote Sensing (CSTARS)
+>>>>>>>> Department of Land, Air and Water Resources
+>>>>>>>> University of California, Davis
+>>>>>>>> One Shields Avenue
+>>>>>>>> Davis, CA 95616
+>>>>>>>> Phone: 415-763-5476
+>>>>>>>> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307
+>>>>>>>>
+>>>>>>>> _______________________________________________
+>>>>>>>> R-sig-hpc mailing list
+>>>>>>>> R-sig-hpc at r-project.org
+>>>>>>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>>>>>>
+>>>>>>>
+>>>>>>
+>>>>>>
+>>>>>>
+>>>>>> --
+>>>>>> Jonathan A. Greenberg, PhD
+>>>>>> Assistant Project Scientist
+>>>>>> Center for Spatial Technologies and Remote Sensing (CSTARS)
+>>>>>> Department of Land, Air and Water Resources
+>>>>>> University of California, Davis
+>>>>>> One Shields Avenue
+>>>>>> Davis, CA 95616
+>>>>>> Phone: 415-763-5476
+>>>>>> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307
+>>>>>>
+>>>>>
+>>>>
+>>>>
+>>>>
+>>>> --
+>>>> Jonathan A. Greenberg, PhD
+>>>> Assistant Project Scientist
+>>>> Center for Spatial Technologies and Remote Sensing (CSTARS)
+>>>> Department of Land, Air and Water Resources
+>>>> University of California, Davis
+>>>> One Shields Avenue
+>>>> Davis, CA 95616
+>>>> Phone: 415-763-5476
+>>>> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307
+>>>>
+>>>
+>>
+>>
+>>
+>> --
+>> Jonathan A. Greenberg, PhD
+>> Assistant Project Scientist
+>> Center for Spatial Technologies and Remote Sensing (CSTARS)
+>> Department of Land, Air and Water Resources
+>> University of California, Davis
+>> One Shields Avenue
+>> Davis, CA 95616
+>> Phone: 415-763-5476
+>> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307
+>>
+>
+
+
+
+-- 
+Jonathan A. Greenberg, PhD
+Assistant Project Scientist
+Center for Spatial Technologies and Remote Sensing (CSTARS)
+Department of Land, Air and Water Resources
+University of California, Davis
+One Shields Avenue
+Davis, CA 95616
+Phone: 415-763-5476
+AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307
+
+
+From J.Maas at uea.ac.uk  Fri Aug 19 08:10:33 2011
+From: J.Maas at uea.ac.uk (Maas James Dr (MED))
+Date: Fri, 19 Aug 2011 07:10:33 +0100
+Subject: [R-sig-hpc] nested foreach loops
+Message-ID: <9C2B89830110BF4A845878D9A31F3D925AEED614F6@UEAEXCHMBX.UEA.AC.UK>
+
+I'm using the following nested foreach loop structure which seems to work quite well.
+
+nsim = 1000 so the inner loop executes 1000 times.   I'd like to get the inner loop to randomly pick one result of the 1000 and graph it, but can't figure out how to create a function to do this.
+
+the line
+
+graphnum <- sample(1:nsim, 1)
+
+would randomly generate a variable between 1 and 1000 that I can then use to test and do the graphing when true.  My question is where can I put this ?? I've tried putting it between the two foreach statments and that doesn't work.
+
+Also, this structure is noted in the package definition for the foreach package ... but I can not find an example anywhere to show how to use them.  Would anyone have working examples?
+
+when (cond)
+e1 %:% e2
+
+Thanks
+
+Jim
+
+======================
+
+mpiresults <- foreach (j=1:nrow(inputpars), .combine=rbind) %:%
+ foreach (i=1:nsim, .combine=rbind, .final=finalprocess) %dopar%
+
+======================
+
+
+===============================
+Dr. Jim Maas
+University of East Anglia
+
+
+From stephen.b.weston at gmail.com  Fri Aug 19 20:18:26 2011
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Fri, 19 Aug 2011 14:18:26 -0400
+Subject: [R-sig-hpc] nested foreach loops
+In-Reply-To: <9C2B89830110BF4A845878D9A31F3D925AEED614F6@UEAEXCHMBX.UEA.AC.UK>
+References: <9C2B89830110BF4A845878D9A31F3D925AEED614F6@UEAEXCHMBX.UEA.AC.UK>
+Message-ID: <CALh21iJ6Zg0FkppagfnK6xwh8OV7kfZfUBQb=_keakK5WkOOEA@mail.gmail.com>
+
+The main vignette for the foreach package contains two examples of
+"when" in section 6, "List Comprehensions".  Use "vignette('foreach')"
+to view it.  The foreach man page also shows one of the same examples,
+the "qsort" example.  FInally, the "examples" directory in the
+"foreach" installation directory contains three examples that use
+"when": for.R, comprehensions.R, and qsort.R.  Those are all part of
+the standard foreach package.
+
+- Steve
+
+
+On Fri, Aug 19, 2011 at 2:10 AM, Maas James Dr (MED) <J.Maas at uea.ac.uk> wrote:
+> I'm using the following nested foreach loop structure which seems to work quite well.
+>
+> nsim = 1000 so the inner loop executes 1000 times. ? I'd like to get the inner loop to randomly pick one result of the 1000 and graph it, but can't figure out how to create a function to do this.
+>
+> the line
+>
+> graphnum <- sample(1:nsim, 1)
+>
+> would randomly generate a variable between 1 and 1000 that I can then use to test and do the graphing when true. ?My question is where can I put this ?? I've tried putting it between the two foreach statments and that doesn't work.
+>
+> Also, this structure is noted in the package definition for the foreach package ... but I can not find an example anywhere to show how to use them. ?Would anyone have working examples?
+>
+> when (cond)
+> e1 %:% e2
+>
+> Thanks
+>
+> Jim
+>
+> ======================
+>
+> mpiresults <- foreach (j=1:nrow(inputpars), .combine=rbind) %:%
+> ?foreach (i=1:nsim, .combine=rbind, .final=finalprocess) %dopar%
+>
+> ======================
+>
+>
+> ===============================
+> Dr. Jim Maas
+> University of East Anglia
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From jens.oehlschlaegel at truecluster.com  Sun Aug 21 18:26:23 2011
+From: jens.oehlschlaegel at truecluster.com (=?UTF-8?Q?=22Jens_Oehlschl=C3=A4gel=22?=)
+Date: Sun, 21 Aug 2011 18:26:23 +0200 (CEST)
+Subject: [R-sig-hpc] Question
+Message-ID: <312202542.6637202.1313943983803.JavaMail.fmail@mwmweb023>
+
+Krystian,
+
+You asked how to do
+
+b=a[a>5]
+
+with?ff objects.
+
+
+You can do that by storing the logical selection in a bit vector and then creating the target ff vector in the final size
+library(ff)
+n?<- 4e7
+s <- 1e3
+a <- ff(1:n, caching="mmeachflush")
+system.time({
+? # creating the boolean vector
+? f <- bit(n)
+? for (i in chunk(a, by=s)) f[i] <- a[i]>5
+? # now knowing the desires length create the target ff
+? b <- clone(a, length=sum(f), update=FALSE)
+? # fill it using the evaluated condition
+? n1 <- 0L
+? for (i in chunk(a, by=s)){
+??? h <- as.hi(f, range=i)
+??? n2 <- n1 + length(h)
+??? n1 <- n1 + 1L
+??? b[n1:n2] <- a[h]
+??? n1 <- n2
+? }
+})
+
+
+However you can also save the RAM for the bit vector and - more important - a second pass over the input data by growing the target ff on the fly:
+
+system.time({
+? for (i in chunk(a, by=s))
+? {
+??? x <- a[i]
+??? x <- x[x>5]
+??? if (i[[1]]==1L){
+????? b <- as.ff(x, caching="mmeachflush")
+??? }else{
+????? n1 <- length(b)
+????? n2 <- n1 + length(x)
+????? length(b) <- n2
+????? n1 <- n1 + 1L
+????? b[n1:n2] <- x
+??? }
+? }
+})
+
+
+The latter for me performs better if the ff object are bigger than RAM, the former might be better if you want to combine several logical conditions.
+
+Kind regards
+
+
+Jens Oehlschl?gel
+
+
+
+-----Urspr?ngliche Nachricht-----
+Von: kradlak <krystian.radlak at comarch.pl>
+Gesendet: 18.08.2011 11:24:21
+An: Jens.Oehlschlaegel at truecluster.com
+Betreff: Question
+
+> Hi,
+>I have a question connected to package ff.
+>I want to do operation with ff vector from packages ff like simple
+>operation in R like this.
+>Example
+>a=1:10
+>b=a[a>5]
+>
+>How to do this operation with ff packages:
+>Example :
+>a=ff(1, length=15*10^7)
+>
+>I know that I could get logical vector like this:
+>
+>k=bit(15*10^7) # from bit packages
+>a=ff(-1,15*10^7)
+>system.time(
+> for (i in chunk(a)){ k[i]<- a[i]<1}
+>)
+>
+>Any suggestions?
+>
+>Best,
+>Krystian
+
+?
+
+
+From taquito2007 at gmail.com  Mon Aug 22 08:58:44 2011
+From: taquito2007 at gmail.com (Takatsugu Kobayashi)
+Date: Mon, 22 Aug 2011 15:58:44 +0900
+Subject: [R-sig-hpc] Newbie question to Rmpi
+Message-ID: <CADL0PciKsCe9nHOf-Mbpo6td9_dsa4Ukw=bqR2Q5TKUcNYOPhQ@mail.gmail.com>
+
+Hi
+
+I am a newbie to parallel computing, let alone Rmpi, and appreciate if you could
+give me advice on R parallel computing in general.
+
+I am a database marketing analyst and was told by my boss to do some research
+to see if we could set up a parallel computing system on our current
+server system
+at work. This is because some of our clients asked us to do
+statistical analysis on
+a large data (about 30 million records * 12 columns) - multinomial
+logit model and
+some neural network analysis.
+
+Our server spec is like
+
+2* Xeon 5630
+16GB Memory
+2*500GB
+
+and we are planning to purchase another set of this server for
+small-sized cluster
+computing. While I was reading
+
+http://www.bioconductor.org/help/bioconductor-cloud-ami/
+
+the following questions occurred to me and I would like to ask you:
+
+1. Could you share websites/books/journals that I could deepen my understanding
+    of how MPICH2 and R work on linux?
+
+2. With our current server system, is this code correct?
+    "mpirun -np 1 --hostfile /usr/local/Rmpi/hostfile R --no-save -f
+/usr/local/Rmpi/xxxx.R --args 8 "
+
+3. If I use Amazon EC2 and initiate 4 extra large instances, is this
+code correct?
+   "mpiutil -a accessid -s keyid -w 16 -n clustername -t m1.large -v volumeid"
+   "mpirun -np 1 --hostfile /usr/local/Rmpi/hostfile R --no-save -f
+/usr/local/Rmpi/xxxx.R --args 16 "
+
+
+Sorry for my fundamental and perhaps invalid questions.
+Many thanks in advance.
+
+Taka
+
+
+From taquito2007 at gmail.com  Mon Aug 22 18:06:19 2011
+From: taquito2007 at gmail.com (Takatsugu Kobayashi)
+Date: Tue, 23 Aug 2011 01:06:19 +0900
+Subject: [R-sig-hpc] Any example codes for regression with Rmpi or Snow?
+Message-ID: <CADL0Pchb0by-_eD=tRw2au2GC2Gd_201R65zxQ=ok0m9ZPNydg@mail.gmail.com>
+
+Hi,
+
+I am learning how to do parallel processing on R now.
+And I wonder if there are examples/sites/books for parallel
+statistical analysis.
+
+I have seen many examples showing "mclapply(1:30, rnorm)", but haven't seen
+any actual analyses including linear regression, machine learning etc.
+
+I appreciate if you could kindly give me advice on where to look for
+good examples
+for parallel computing' + statistical analysis on R.
+
+Thanks!
+
+Taka
+
+
+From taquito2007 at gmail.com  Tue Aug 23 15:08:32 2011
+From: taquito2007 at gmail.com (Takatsugu Kobayashi)
+Date: Tue, 23 Aug 2011 22:08:32 +0900
+Subject: [R-sig-hpc] how can I
+Message-ID: <CADL0PcgncP7tpatO+7L9LZ1_RUi9Kxwo8CganY3SyvPKD9-MpA@mail.gmail.com>
+
+Hi,
+
+Currently I am trying to see how much parallel processing
+packages like multicore and snow can improve computing
+times.
+
+Then I would like to ask if I did anything wrong as I don't see
+any significant improvement between lapply and mclapply
+while following examples shown in "parallel computing in R"
+written by Chao and Wee:
+
+library(multicore)
+system.time(out <- mclapply(pair, geneCor)
+system.time(out <- lapply(pair, geneCor)
+
+I guess the reason would be that only a single core was being
+used even with multicore package.
+
+Then, how can I see if all the cores are being used for computation?
+
+Thanks!!!
+
+Taka
+
+
+From mtmorgan at fhcrc.org  Tue Aug 23 18:01:56 2011
+From: mtmorgan at fhcrc.org (Martin Morgan)
+Date: Tue, 23 Aug 2011 09:01:56 -0700
+Subject: [R-sig-hpc] how can I
+In-Reply-To: <CADL0PcgncP7tpatO+7L9LZ1_RUi9Kxwo8CganY3SyvPKD9-MpA@mail.gmail.com>
+References: <CADL0PcgncP7tpatO+7L9LZ1_RUi9Kxwo8CganY3SyvPKD9-MpA@mail.gmail.com>
+Message-ID: <4E53CEF4.5070307@fhcrc.org>
+
+On 08/23/2011 06:08 AM, Takatsugu Kobayashi wrote:
+> Hi,
+>
+> Currently I am trying to see how much parallel processing
+> packages like multicore and snow can improve computing
+> times.
+>
+> Then I would like to ask if I did anything wrong as I don't see
+> any significant improvement between lapply and mclapply
+> while following examples shown in "parallel computing in R"
+> written by Chao and Wee:
+>
+> library(multicore)
+> system.time(out<- mclapply(pair, geneCor)
+> system.time(out<- lapply(pair, geneCor)
+>
+> I guess the reason would be that only a single core was being
+> used even with multicore package.
+>
+> Then, how can I see if all the cores are being used for computation?
+
+Hi Taka --
+
+a favorite of mine is
+
+ > library(multicore)
+ > system.time(mclapply(1:4, function(i) Sys.sleep(2)))
+    user  system elapsed
+   0.005   0.006   2.008
+ > system.time(lapply(1:4, function(i) Sys.sleep(2)))
+    user  system elapsed
+   0.002   0.000   8.009
+
+the system utility 'top' is one way of seeing processors in action. If 
+there are issues then
+
+ > sessionInfo()
+R Under development (unstable) (2011-08-13 r56726)
+Platform: x86_64-unknown-linux-gnu (64-bit)
+
+locale:
+  [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C
+  [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8
+  [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8
+  [7] LC_PAPER=C                 LC_NAME=C
+  [9] LC_ADDRESS=C               LC_TELEPHONE=C
+[11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base
+
+other attached packages:
+[1] multicore_0.1-5
+
+loaded via a namespace (and not attached):
+[1] tools_2.14.0
+
+can be essential to diagnose problems.
+
+Martin
+
+
+>
+> Thanks!!!
+>
+> Taka
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+-- 
+Computational Biology
+Fred Hutchinson Cancer Research Center
+1100 Fairview Ave. N. PO Box 19024 Seattle, WA 98109
+
+Location: M1-B861
+Telephone: 206 667-2793
+
+
+From edugarpor at gmail.com  Tue Aug 23 21:08:43 2011
+From: edugarpor at gmail.com (=?ISO-8859-1?Q?Eduardo_Garc=EDa_Portugu=E9s?=)
+Date: Tue, 23 Aug 2011 21:08:43 +0200
+Subject: [R-sig-hpc] MPICH2 correctly installed and Rmpi does not run
+Message-ID: <CAJ4kw4uMg69wZkQv2zqTCfhAzTCNmn8SV-3=E+-kr0D4SF1hkg@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110823/aa0411ba/attachment.pl>
+
+From taquito2007 at gmail.com  Wed Aug 24 04:33:44 2011
+From: taquito2007 at gmail.com (Takatsugu Kobayashi)
+Date: Wed, 24 Aug 2011 11:33:44 +0900
+Subject: [R-sig-hpc] how can I
+In-Reply-To: <4E53CEF4.5070307@fhcrc.org>
+References: <CADL0PcgncP7tpatO+7L9LZ1_RUi9Kxwo8CganY3SyvPKD9-MpA@mail.gmail.com>
+	<4E53CEF4.5070307@fhcrc.org>
+Message-ID: <CADL0PcgQC8cDYSO3UEOoz_3piXK9UqER3HjHkLu+wTpPwKGxQg@mail.gmail.com>
+
+Hi Morgan
+
+I tried your code, and here is what I got.
+It looks like multiple cores are not being allocated/used for
+my computation.... I will try to figure out why with the linux
+administrator at work.
+
+> system.time(mclapply(1:4, function(i) Sys.sleep(2)))
+    user        system       elapsed
+     0.000      0.000      8.002
+> system.time(lapply(1:4, function(i) Sys.sleep(2)))
+    user        system    elapsed
+     0.000      0.000      8.002
+
+But if you have an idea of why, that would be great if you could
+share that with me.
+
+Thanks!!!
+
+Taka
+
+On Wed, Aug 24, 2011 at 1:01 AM, Martin Morgan <mtmorgan at fhcrc.org> wrote:
+> On 08/23/2011 06:08 AM, Takatsugu Kobayashi wrote:
+>>
+>> Hi,
+>>
+>> Currently I am trying to see how much parallel processing
+>> packages like multicore and snow can improve computing
+>> times.
+>>
+>> Then I would like to ask if I did anything wrong as I don't see
+>> any significant improvement between lapply and mclapply
+>> while following examples shown in "parallel computing in R"
+>> written by Chao and Wee:
+>>
+>> library(multicore)
+>> system.time(out<- mclapply(pair, geneCor)
+>> system.time(out<- lapply(pair, geneCor)
+>>
+>> I guess the reason would be that only a single core was being
+>> used even with multicore package.
+>>
+>> Then, how can I see if all the cores are being used for computation?
+>
+> Hi Taka --
+>
+> a favorite of mine is
+>
+>> library(multicore)
+>> system.time(mclapply(1:4, function(i) Sys.sleep(2)))
+> ? user ?system elapsed
+> ?0.005 ? 0.006 ? 2.008
+>> system.time(lapply(1:4, function(i) Sys.sleep(2)))
+> ? user ?system elapsed
+> ?0.002 ? 0.000 ? 8.009
+>
+> the system utility 'top' is one way of seeing processors in action. If there
+> are issues then
+>
+>> sessionInfo()
+> R Under development (unstable) (2011-08-13 r56726)
+> Platform: x86_64-unknown-linux-gnu (64-bit)
+>
+> locale:
+> ?[1] LC_CTYPE=en_US.UTF-8 ? ? ? LC_NUMERIC=C
+> ?[3] LC_TIME=en_US.UTF-8 ? ? ? ?LC_COLLATE=en_US.UTF-8
+> ?[5] LC_MONETARY=en_US.UTF-8 ? ?LC_MESSAGES=en_US.UTF-8
+> ?[7] LC_PAPER=C ? ? ? ? ? ? ? ? LC_NAME=C
+> ?[9] LC_ADDRESS=C ? ? ? ? ? ? ? LC_TELEPHONE=C
+> [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C
+>
+> attached base packages:
+> [1] stats ? ? graphics ?grDevices utils ? ? datasets ?methods ? base
+>
+> other attached packages:
+> [1] multicore_0.1-5
+>
+> loaded via a namespace (and not attached):
+> [1] tools_2.14.0
+>
+> can be essential to diagnose problems.
+>
+> Martin
+>
+>
+>>
+>> Thanks!!!
+>>
+>> Taka
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+>
+> --
+> Computational Biology
+> Fred Hutchinson Cancer Research Center
+> 1100 Fairview Ave. N. PO Box 19024 Seattle, WA 98109
+>
+> Location: M1-B861
+> Telephone: 206 667-2793
+>
+
+
+From joakim.ringblom at ki.se  Thu Aug 25 10:39:40 2011
+From: joakim.ringblom at ki.se (Joakim Ringblom)
+Date: Thu, 25 Aug 2011 08:39:40 +0000
+Subject: [R-sig-hpc] Parallelizing function with subfunctions using snowfall
+Message-ID: <3D33DE7F2E85EF41A6A8786FFBC358300C2FFF20@KIMSX02.user.ki.se>
+
+Hi
+
+I have a function (jr.parsimest) which is rather time consuming and since I want to do use it several times with different input I tried to parallelize the process using snowfall. The code works fine when running in serial with sfInit(parallel=FALSE) but I have a problem getting it to work with sfInit(parallel=TRUE, cpus=8).
+
+The problem is that the function jr.parsimest contains several subfunctions that in turn have several more subfunctions and so on and it seems that I have to export all of them with sfExport or sfExportall. This will be rather tricky and tedious at best, since I don?t really know some of the subfunctions with subfunctions since they come from a non-Cran package not written by me.  I also get a feeling that this is not the way to do things but I am not able confirm it anywhere.
+
+Is my approach fundamentally wrong? Is there a better way of doing things?
+
+Parallelizing a time-consuming subfunction is of course an idea but I rather parallelize the "topfunction" if possible.
+
+I don?t think my code is important for the questions but I post it here anyhow just in case. I run the program on windows 7 computer at the moment but I would like to run it on unix later on if that matters.
+
+Any help would be greatly appreciated.
+
+/
+Thanks in advance
+
+Joakim Ringblom
+PhD-student
+Karolinska Institutet
+Stockholm, Sweden
+joakim.ringblom at ki.se
+
+paramvect<-c(1,0.52, 1.3,4)
+paramsd<-c(1,0.52, 1.3,4)
+paramsd<-c(0,0,0,0)
+ressd<-c(0.01)
+doser<-c(0,0.381,0.475,0.564)
+gruppstorlek<-c(10,10,10,10)
+n<-1
+nrdiff<-4
+cef<-0.05
+opiter<-2
+searchnr<-1
+bestnr<-gruppstorlek
+outtable<-matrix(0,opiter,27+2*length(doser))
+colnames(outtable)<-c("Medel-BMD","Medel-BMDL","Medel-BMDU","Medel-BMDL/BMD","Medel-BMDtrue", "Medel-SquaredError", "Medel-APE", "BMD-Varians","BMDL-Varians","BMDU-Varians","BMDL/BMD-Varians","BMDtrue-Varians", "SquaredError-Varians", "APE-Varians", "Antal BMD-NAs", "Parameter","Parameter","Parameter","Parameter", "SD","SD","SD","SD", "Ressd", 1:length(doser), 1:length(doser),"n", "CES", "searchnr")
+for (k in 1:opiter){
+ iternr<-1
+ grupplist<-list()
+ grupplist[[iternr]]<-gruppstorlek
+ for (i in 1:length(doser)){
+  arbnr<-gruppstorlek
+  if (arbnr[i]>=nrdiff){
+   arbnr[i]<-arbnr[i]-nrdiff
+   for (j in 1:length(doser)){
+    tempnr<-arbnr
+    if (!(i==j)){
+     searchnr<-searchnr+1
+     iternr<-iternr+1     
+     tempnr[j]=tempnr[j]+nrdiff 
+     grupplist[[iternr]]<-tempnr  
+    }
+   }
+  }
+ }
+ sfInit(parallel=TRUE, cpus=8)
+ svar<-sfLapply(grupplist, jr.parsimest, paramvect=paramvect, paramsd=paramsd, ressd=ressd, doser=doser, n=n, CES=cef, outtable=outtable,searchnr=searchnr)
+ sfStop()
+ 
+ besteffect<-svar[[1]]
+ for (i in 2:length(svar)){
+  if (svar[[i]][7]<besteffect[7]){
+   besteffect<-svar[[i]]
+     }
+ }
+ bestnr<-c(besteffect[29],besteffect[30],besteffect[31],besteffect[32])
+ if(all(gruppstorlek==bestnr & nrdiff>1)){nrdiff<-nrdiff/2}
+ gruppstorlek<-bestnr
+ outtable[k,]<-besteffect
+ write.table(outtable, file="utskrift.txt")
+}
+return(bestnr)
+
+From stephen.b.weston at gmail.com  Thu Aug 25 15:22:54 2011
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Thu, 25 Aug 2011 09:22:54 -0400
+Subject: [R-sig-hpc] Parallelizing function with subfunctions using
+	snowfall
+In-Reply-To: <3D33DE7F2E85EF41A6A8786FFBC358300C2FFF20@KIMSX02.user.ki.se>
+References: <3D33DE7F2E85EF41A6A8786FFBC358300C2FFF20@KIMSX02.user.ki.se>
+Message-ID: <CALh21iK8J=MET5Va5XANQN6Fqaw1yB1Y8Qr0RyC8tsQ26jQDuA@mail.gmail.com>
+
+If the functions that jr.parsimest calls are all defined in a package,
+then just load that package on each your workers, and they should be
+available to jr.parsimest.  Of course, that means that the package has
+to be installed on all of the worker machines.
+
+- Steve
+
+
+On Thu, Aug 25, 2011 at 4:39 AM, Joakim Ringblom <joakim.ringblom at ki.se> wrote:
+> Hi
+>
+> I have a function (jr.parsimest) which is rather time consuming and since I want to do use it several times with different input I tried to parallelize the process using snowfall. The code works fine when running in serial with sfInit(parallel=FALSE) but I have a problem getting it to work with sfInit(parallel=TRUE, cpus=8).
+>
+> The problem is that the function jr.parsimest contains several subfunctions that in turn have several more subfunctions and so on and it seems that I have to export all of them with sfExport or sfExportall. This will be rather tricky and tedious at best, since I don?t really know some of the subfunctions with subfunctions since they come from a non-Cran package not written by me. ?I also get a feeling that this is not the way to do things but I am not able confirm it anywhere.
+>
+> Is my approach fundamentally wrong? Is there a better way of doing things?
+>
+> Parallelizing a time-consuming subfunction is of course an idea but I rather parallelize the "topfunction" if possible.
+>
+> I don?t think my code is important for the questions but I post it here anyhow just in case. I run the program on windows 7 computer at the moment but I would like to run it on unix later on if that matters.
+>
+> Any help would be greatly appreciated.
+>
+> /
+> Thanks in advance
+>
+> Joakim Ringblom
+> PhD-student
+> Karolinska Institutet
+> Stockholm, Sweden
+> joakim.ringblom at ki.se
+>
+> paramvect<-c(1,0.52, 1.3,4)
+> paramsd<-c(1,0.52, 1.3,4)
+> paramsd<-c(0,0,0,0)
+> ressd<-c(0.01)
+> doser<-c(0,0.381,0.475,0.564)
+> gruppstorlek<-c(10,10,10,10)
+> n<-1
+> nrdiff<-4
+> cef<-0.05
+> opiter<-2
+> searchnr<-1
+> bestnr<-gruppstorlek
+> outtable<-matrix(0,opiter,27+2*length(doser))
+> colnames(outtable)<-c("Medel-BMD","Medel-BMDL","Medel-BMDU","Medel-BMDL/BMD","Medel-BMDtrue", "Medel-SquaredError", "Medel-APE", "BMD-Varians","BMDL-Varians","BMDU-Varians","BMDL/BMD-Varians","BMDtrue-Varians", "SquaredError-Varians", "APE-Varians", "Antal BMD-NAs", "Parameter","Parameter","Parameter","Parameter", "SD","SD","SD","SD", "Ressd", 1:length(doser), 1:length(doser),"n", "CES", "searchnr")
+> for (k in 1:opiter){
+> ?iternr<-1
+> ?grupplist<-list()
+> ?grupplist[[iternr]]<-gruppstorlek
+> ?for (i in 1:length(doser)){
+> ?arbnr<-gruppstorlek
+> ?if (arbnr[i]>=nrdiff){
+> ? arbnr[i]<-arbnr[i]-nrdiff
+> ? for (j in 1:length(doser)){
+> ? ?tempnr<-arbnr
+> ? ?if (!(i==j)){
+> ? ? searchnr<-searchnr+1
+> ? ? iternr<-iternr+1
+> ? ? tempnr[j]=tempnr[j]+nrdiff
+> ? ? grupplist[[iternr]]<-tempnr
+> ? ?}
+> ? }
+> ?}
+> ?}
+> ?sfInit(parallel=TRUE, cpus=8)
+> ?svar<-sfLapply(grupplist, jr.parsimest, paramvect=paramvect, paramsd=paramsd, ressd=ressd, doser=doser, n=n, CES=cef, outtable=outtable,searchnr=searchnr)
+> ?sfStop()
+>
+> ?besteffect<-svar[[1]]
+> ?for (i in 2:length(svar)){
+> ?if (svar[[i]][7]<besteffect[7]){
+> ? besteffect<-svar[[i]]
+> ? ? }
+> ?}
+> ?bestnr<-c(besteffect[29],besteffect[30],besteffect[31],besteffect[32])
+> ?if(all(gruppstorlek==bestnr & nrdiff>1)){nrdiff<-nrdiff/2}
+> ?gruppstorlek<-bestnr
+> ?outtable[k,]<-besteffect
+> ?write.table(outtable, file="utskrift.txt")
+> }
+> return(bestnr)
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From joakim.ringblom at ki.se  Fri Aug 26 09:28:05 2011
+From: joakim.ringblom at ki.se (Joakim Ringblom)
+Date: Fri, 26 Aug 2011 07:28:05 +0000
+Subject: [R-sig-hpc] Parallelizing function with subfunctions using
+ snowfall
+In-Reply-To: <CALh21iK8J=MET5Va5XANQN6Fqaw1yB1Y8Qr0RyC8tsQ26jQDuA@mail.gmail.com>
+References: <3D33DE7F2E85EF41A6A8786FFBC358300C2FFF20@KIMSX02.user.ki.se>,
+	<CALh21iK8J=MET5Va5XANQN6Fqaw1yB1Y8Qr0RyC8tsQ26jQDuA@mail.gmail.com>
+Message-ID: <3D33DE7F2E85EF41A6A8786FFBC358300C300174@KIMSX02.user.ki.se>
+
+Hi
+
+Stephen: Thank you for answering, I really appreciate it.
+
+However, the workers in this case are the different cores on my octa-core processor and I have the package installed and loaded on my system. Yes, I do load the package in every session. I can?t install/load the package on to a core, can I? Any ideas from anyone are appreciated.
+
+By the way, the error message I get while running is:
+
+Error in checkForRemoteErrors(val) : 
+  8 nodes produced errors; first error: could not find function "f.ini" ?
+
+F.ini is a package-function within jr.parsimest.
+
+Thanks in advance.
+
+/
+Joakim Ringblom
+PhD-student
+Karolinska Institutet, Institutet f?r Milj?medicin
+Nobels v?g, 13
+Box 210 17177 Stockholm
+Sweden
++46- (0)733965553
+
+________________________________________
+Fr?n: Stephen Weston [stephen.b.weston at gmail.com]
+Skickat: den 25 augusti 2011 15:22
+Till: Joakim Ringblom
+Kopia: r-sig-hpc at r-project.org
+?mne: Re: [R-sig-hpc] Parallelizing function with subfunctions using snowfall
+
+If the functions that jr.parsimest calls are all defined in a package,
+then just load that package on each your workers, and they should be
+available to jr.parsimest.  Of course, that means that the package has
+to be installed on all of the worker machines.
+
+- Steve
+
+
+On Thu, Aug 25, 2011 at 4:39 AM, Joakim Ringblom <joakim.ringblom at ki.se> wrote:
+> Hi
+>
+> I have a function (jr.parsimest) which is rather time consuming and since I want to do use it several times with different input I tried to parallelize the process using snowfall. The code works fine when running in serial with sfInit(parallel=FALSE) but I have a problem getting it to work with sfInit(parallel=TRUE, cpus=8).
+>
+> The problem is that the function jr.parsimest contains several subfunctions that in turn have several more subfunctions and so on and it seems that I have to export all of them with sfExport or sfExportall. This will be rather tricky and tedious at best, since I don?t really know some of the subfunctions with subfunctions since they come from a non-Cran package not written by me.  I also get a feeling that this is not the way to do things but I am not able confirm it anywhere.
+>
+> Is my approach fundamentally wrong? Is there a better way of doing things?
+>
+> Parallelizing a time-consuming subfunction is of course an idea but I rather parallelize the "topfunction" if possible.
+>
+> I don?t think my code is important for the questions but I post it here anyhow just in case. I run the program on windows 7 computer at the moment but I would like to run it on unix later on if that matters.
+>
+> Any help would be greatly appreciated.
+>
+> /
+> Thanks in advance
+>
+> Joakim Ringblom
+> PhD-student
+> Karolinska Institutet
+> Stockholm, Sweden
+> joakim.ringblom at ki.se
+>
+> paramvect<-c(1,0.52, 1.3,4)
+> paramsd<-c(1,0.52, 1.3,4)
+> paramsd<-c(0,0,0,0)
+> ressd<-c(0.01)
+> doser<-c(0,0.381,0.475,0.564)
+> gruppstorlek<-c(10,10,10,10)
+> n<-1
+> nrdiff<-4
+> cef<-0.05
+> opiter<-2
+> searchnr<-1
+> bestnr<-gruppstorlek
+> outtable<-matrix(0,opiter,27+2*length(doser))
+> colnames(outtable)<-c("Medel-BMD","Medel-BMDL","Medel-BMDU","Medel-BMDL/BMD","Medel-BMDtrue", "Medel-SquaredError", "Medel-APE", "BMD-Varians","BMDL-Varians","BMDU-Varians","BMDL/BMD-Varians","BMDtrue-Varians", "SquaredError-Varians", "APE-Varians", "Antal BMD-NAs", "Parameter","Parameter","Parameter","Parameter", "SD","SD","SD","SD", "Ressd", 1:length(doser), 1:length(doser),"n", "CES", "searchnr")
+> for (k in 1:opiter){
+>  iternr<-1
+>  grupplist<-list()
+>  grupplist[[iternr]]<-gruppstorlek
+>  for (i in 1:length(doser)){
+>  arbnr<-gruppstorlek
+>  if (arbnr[i]>=nrdiff){
+>   arbnr[i]<-arbnr[i]-nrdiff
+>   for (j in 1:length(doser)){
+>    tempnr<-arbnr
+>    if (!(i==j)){
+>     searchnr<-searchnr+1
+>     iternr<-iternr+1
+>     tempnr[j]=tempnr[j]+nrdiff
+>     grupplist[[iternr]]<-tempnr
+>    }
+>   }
+>  }
+>  }
+>  sfInit(parallel=TRUE, cpus=8)
+>  svar<-sfLapply(grupplist, jr.parsimest, paramvect=paramvect, paramsd=paramsd, ressd=ressd, doser=doser, n=n, CES=cef, outtable=outtable,searchnr=searchnr)
+>  sfStop()
+>
+>  besteffect<-svar[[1]]
+>  for (i in 2:length(svar)){
+>  if (svar[[i]][7]<besteffect[7]){
+>   besteffect<-svar[[i]]
+>     }
+>  }
+>  bestnr<-c(besteffect[29],besteffect[30],besteffect[31],besteffect[32])
+>  if(all(gruppstorlek==bestnr & nrdiff>1)){nrdiff<-nrdiff/2}
+>  gruppstorlek<-bestnr
+>  outtable[k,]<-besteffect
+>  write.table(outtable, file="utskrift.txt")
+> }
+> return(bestnr)
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+From joakim.ringblom at ki.se  Fri Aug 26 11:38:41 2011
+From: joakim.ringblom at ki.se (Joakim Ringblom)
+Date: Fri, 26 Aug 2011 09:38:41 +0000
+Subject: [R-sig-hpc] Parallelizing function with subfunctions using
+ snowfall
+In-Reply-To: <CALh21iK8J=MET5Va5XANQN6Fqaw1yB1Y8Qr0RyC8tsQ26jQDuA@mail.gmail.com>
+References: <3D33DE7F2E85EF41A6A8786FFBC358300C2FFF20@KIMSX02.user.ki.se>,
+	<CALh21iK8J=MET5Va5XANQN6Fqaw1yB1Y8Qr0RyC8tsQ26jQDuA@mail.gmail.com>
+Message-ID: <3D33DE7F2E85EF41A6A8786FFBC358300C30019C@KIMSX02.user.ki.se>
+
+Hi
+
+I just found the answer myself, I can?t believe I missed it before. Thanks anyone who has read my post, sorry for taking your time.
+
+Regards
+
+Joakim Ringblom
+PhD-student
+Karolinska Institutet, Institutet f?r Milj?medicin
+Nobels v?g, 13
+Box 210 17177 Stockholm
+Sweden
++46- (0)733965553
+
+________________________________________
+Fr?n: Stephen Weston [stephen.b.weston at gmail.com]
+Skickat: den 25 augusti 2011 15:22
+Till: Joakim Ringblom
+Kopia: r-sig-hpc at r-project.org
+?mne: Re: [R-sig-hpc] Parallelizing function with subfunctions using snowfall
+
+If the functions that jr.parsimest calls are all defined in a package,
+then just load that package on each your workers, and they should be
+available to jr.parsimest.  Of course, that means that the package has
+to be installed on all of the worker machines.
+
+- Steve
+
+
+On Thu, Aug 25, 2011 at 4:39 AM, Joakim Ringblom <joakim.ringblom at ki.se> wrote:
+> Hi
+>
+> I have a function (jr.parsimest) which is rather time consuming and since I want to do use it several times with different input I tried to parallelize the process using snowfall. The code works fine when running in serial with sfInit(parallel=FALSE) but I have a problem getting it to work with sfInit(parallel=TRUE, cpus=8).
+>
+> The problem is that the function jr.parsimest contains several subfunctions that in turn have several more subfunctions and so on and it seems that I have to export all of them with sfExport or sfExportall. This will be rather tricky and tedious at best, since I don?t really know some of the subfunctions with subfunctions since they come from a non-Cran package not written by me.  I also get a feeling that this is not the way to do things but I am not able confirm it anywhere.
+>
+> Is my approach fundamentally wrong? Is there a better way of doing things?
+>
+> Parallelizing a time-consuming subfunction is of course an idea but I rather parallelize the "topfunction" if possible.
+>
+> I don?t think my code is important for the questions but I post it here anyhow just in case. I run the program on windows 7 computer at the moment but I would like to run it on unix later on if that matters.
+>
+> Any help would be greatly appreciated.
+>
+> /
+> Thanks in advance
+>
+> Joakim Ringblom
+> PhD-student
+> Karolinska Institutet
+> Stockholm, Sweden
+> joakim.ringblom at ki.se
+>
+> paramvect<-c(1,0.52, 1.3,4)
+> paramsd<-c(1,0.52, 1.3,4)
+> paramsd<-c(0,0,0,0)
+> ressd<-c(0.01)
+> doser<-c(0,0.381,0.475,0.564)
+> gruppstorlek<-c(10,10,10,10)
+> n<-1
+> nrdiff<-4
+> cef<-0.05
+> opiter<-2
+> searchnr<-1
+> bestnr<-gruppstorlek
+> outtable<-matrix(0,opiter,27+2*length(doser))
+> colnames(outtable)<-c("Medel-BMD","Medel-BMDL","Medel-BMDU","Medel-BMDL/BMD","Medel-BMDtrue", "Medel-SquaredError", "Medel-APE", "BMD-Varians","BMDL-Varians","BMDU-Varians","BMDL/BMD-Varians","BMDtrue-Varians", "SquaredError-Varians", "APE-Varians", "Antal BMD-NAs", "Parameter","Parameter","Parameter","Parameter", "SD","SD","SD","SD", "Ressd", 1:length(doser), 1:length(doser),"n", "CES", "searchnr")
+> for (k in 1:opiter){
+>  iternr<-1
+>  grupplist<-list()
+>  grupplist[[iternr]]<-gruppstorlek
+>  for (i in 1:length(doser)){
+>  arbnr<-gruppstorlek
+>  if (arbnr[i]>=nrdiff){
+>   arbnr[i]<-arbnr[i]-nrdiff
+>   for (j in 1:length(doser)){
+>    tempnr<-arbnr
+>    if (!(i==j)){
+>     searchnr<-searchnr+1
+>     iternr<-iternr+1
+>     tempnr[j]=tempnr[j]+nrdiff
+>     grupplist[[iternr]]<-tempnr
+>    }
+>   }
+>  }
+>  }
+>  sfInit(parallel=TRUE, cpus=8)
+>  svar<-sfLapply(grupplist, jr.parsimest, paramvect=paramvect, paramsd=paramsd, ressd=ressd, doser=doser, n=n, CES=cef, outtable=outtable,searchnr=searchnr)
+>  sfStop()
+>
+>  besteffect<-svar[[1]]
+>  for (i in 2:length(svar)){
+>  if (svar[[i]][7]<besteffect[7]){
+>   besteffect<-svar[[i]]
+>     }
+>  }
+>  bestnr<-c(besteffect[29],besteffect[30],besteffect[31],besteffect[32])
+>  if(all(gruppstorlek==bestnr & nrdiff>1)){nrdiff<-nrdiff/2}
+>  gruppstorlek<-bestnr
+>  outtable[k,]<-besteffect
+>  write.table(outtable, file="utskrift.txt")
+> }
+> return(bestnr)
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+From my.r.help at gmail.com  Sat Aug 27 04:03:52 2011
+From: my.r.help at gmail.com (Michael Smith)
+Date: Sat, 27 Aug 2011 10:03:52 +0800
+Subject: [R-sig-hpc] Parallelizing function with subfunctions using
+	snowfall
+In-Reply-To: <3D33DE7F2E85EF41A6A8786FFBC358300C30019C@KIMSX02.user.ki.se>
+References: <3D33DE7F2E85EF41A6A8786FFBC358300C2FFF20@KIMSX02.user.ki.se>,
+	<CALh21iK8J=MET5Va5XANQN6Fqaw1yB1Y8Qr0RyC8tsQ26jQDuA@mail.gmail.com>
+	<3D33DE7F2E85EF41A6A8786FFBC358300C30019C@KIMSX02.user.ki.se>
+Message-ID: <4E585088.7050508@gmail.com>
+
+Joakim,
+
+So what's the answer that you found? Maybe other people who have a
+similar problem (now or in the future) would also profit from knowing it.
+
+Thanks,
+Michael
+
+
+On 08/26/2011 05:38 PM, Joakim Ringblom wrote:
+> Hi
+> 
+> I just found the answer myself, I can?t believe I missed it before. Thanks anyone who has read my post, sorry for taking your time.
+> 
+> Regards
+> 
+> Joakim Ringblom
+> PhD-student
+> Karolinska Institutet, Institutet f?r Milj?medicin
+> Nobels v?g, 13
+> Box 210 17177 Stockholm
+> Sweden
+> +46- (0)733965553
+
+
+From megh700004 at yahoo.com  Sat Aug 27 16:41:02 2011
+From: megh700004 at yahoo.com (Megh Dal)
+Date: Sat, 27 Aug 2011 07:41:02 -0700 (PDT)
+Subject: [R-sig-hpc] Parallel computation on vectorized function
+Message-ID: <1314456062.65743.YahooMailNeo@web161813.mail.bf1.yahoo.com>
+
+Dear all, I am looking for some way on how to parallelize some computation on a vectorized function. I have a custom made vectorized function and also have a very length vector (of length some 2 million entries.)
+
+There are equivalents for all apply family of functions however could not find any way how to apply some parallel computation on a single vectorized function. I have tried with making my vector to list (of same length) and then applying sfLapply() function. However this process is actually taking more time.
+
+I am using windows vista machine and snowfall package.
+
+Any help will be highly appreciated.
+
+Thanks,
+
+
+From brian at braverock.com  Sat Aug 27 16:44:47 2011
+From: brian at braverock.com (Brian G. Peterson)
+Date: Sat, 27 Aug 2011 09:44:47 -0500
+Subject: [R-sig-hpc] Parallel computation on vectorized function
+In-Reply-To: <1314456062.65743.YahooMailNeo@web161813.mail.bf1.yahoo.com>
+References: <1314456062.65743.YahooMailNeo@web161813.mail.bf1.yahoo.com>
+Message-ID: <1314456287.15278.97.camel@brian-rcg>
+
+On Sat, 2011-08-27 at 07:41 -0700, Megh Dal wrote:
+> Dear all, I am looking for some way on how to parallelize some computation on a vectorized function. I have a custom made vectorized function and also have a very length vector (of length some 2 million entries.)
+> 
+> There are equivalents for all apply family of functions however could not find any way how to apply some parallel computation on a single vectorized function. I have tried with making my vector to list (of same length) and then applying sfLapply() function. However this process is actually taking more time.
+> 
+> I am using windows vista machine and snowfall package.
+
+take a look at the iterators package, it can chunk up your vector.
+ I use it with foreach, but there's no reason you couldn't use it to
+chunk something up in snowfall.
+
+-- 
+Brian G. Peterson
+http://braverock.com/brian/
+Ph: 773-459-4973
+IM: bgpbraverock
+
+
+From megh700004 at yahoo.com  Sat Aug 27 17:00:40 2011
+From: megh700004 at yahoo.com (Megh Dal)
+Date: Sat, 27 Aug 2011 08:00:40 -0700 (PDT)
+Subject: [R-sig-hpc] Parallel computation on vectorized function
+In-Reply-To: <1314456287.15278.97.camel@brian-rcg>
+References: <1314456062.65743.YahooMailNeo@web161813.mail.bf1.yahoo.com>
+	<1314456287.15278.97.camel@brian-rcg>
+Message-ID: <1314457240.77191.YahooMailNeo@web161805.mail.bf1.yahoo.com>
+
+Thanks Brian for your reply. Would you mind to give me an example how you have achieved that with foreach package? I could then try with the snowfall package in windows.
+
+Thanks,
+
+
+----- Original Message -----
+From: Brian G. Peterson <brian at braverock.com>
+To: Megh Dal <megh700004 at yahoo.com>
+Cc: "r-sig-hpc at r-project.org" <r-sig-hpc at r-project.org>
+Sent: Saturday, August 27, 2011 8:14 PM
+Subject: Re: [R-sig-hpc] Parallel computation on vectorized function
+
+On Sat, 2011-08-27 at 07:41 -0700, Megh Dal wrote:
+> Dear all, I am looking for some way on how to parallelize some computation on a vectorized function. I have a custom made vectorized function and also have a very length vector (of length some 2 million entries.)
+> 
+> There are equivalents for all apply family of functions however could not find any way how to apply some parallel computation on a single vectorized function. I have tried with making my vector to list (of same length) and then applying sfLapply() function. However this process is actually taking more time.
+> 
+> I am using windows vista machine and snowfall package.
+
+take a look at the iterators package, it can chunk up your vector.
+I use it with foreach, but there's no reason you couldn't use it to
+chunk something up in snowfall.
+
+-- 
+Brian G. Peterson
+http://braverock.com/brian/
+Ph: 773-459-4973
+IM: bgpbraverock
+
+
+From zach.mayer at gmail.com  Sat Aug 27 17:13:08 2011
+From: zach.mayer at gmail.com (Zachary Mayer)
+Date: Sat, 27 Aug 2011 11:13:08 -0400
+Subject: [R-sig-hpc] Parallel computation on vectorized function
+In-Reply-To: <1314456062.65743.YahooMailNeo@web161813.mail.bf1.yahoo.com>
+References: <1314456062.65743.YahooMailNeo@web161813.mail.bf1.yahoo.com>
+Message-ID: <-6950673498946139559@unknownmsgid>
+
+See this question on stack overflow:
+http://stackoverflow.com/questions/5571774/what-is-the-easiest-way-to-parallelize-a-vectorized-function-in-r
+
+"Have a look at the pvec function in multicore"
+
+Sent from my iPhone
+
+On Aug 27, 2011, at 10:41 AM, Megh Dal <megh700004 at yahoo.com> wrote:
+
+> Dear all, I am looking for some way on how to parallelize some computation on a vectorized function. I have a custom made vectorized function and also have a very length vector (of length some 2 million entries.)
+>
+> There are equivalents for all apply family of functions however could not find any way how to apply some parallel computation on a single vectorized function. I have tried with making my vector to list (of same length) and then applying sfLapply() function. However this process is actually taking more time.
+>
+> I am using windows vista machine and snowfall package.
+>
+> Any help will be highly appreciated.
+>
+> Thanks,
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From gaizoule at gmail.com  Sun Aug 28 08:54:55 2011
+From: gaizoule at gmail.com (=?UTF-8?B?6K+l6LWw5LqG?=)
+Date: Sun, 28 Aug 2011 14:54:55 +0800
+Subject: [R-sig-hpc] doMC and foreach can not use all cores
+In-Reply-To: <CAApQt_FC3KtoNr86dVqPVeL=vSH8JPaRaN5fMUEE60RLz6kKxg@mail.gmail.com>
+References: <CAApQt_FC3KtoNr86dVqPVeL=vSH8JPaRaN5fMUEE60RLz6kKxg@mail.gmail.com>
+Message-ID: <CAApQt_Ee4uQzYYqpT0PBBoig4J7eR19cz_kVQZAfBm+_Kx50XA@mail.gmail.com>
+
+Hello evervyone!
+
+When I use doMC and foreach for 'parallel' comupting, I find that R
+just open two processes in one core. I have tried many times in
+different circumtances, but It never use another core even I
+registerDoMC( core = 4 ). Is there anyone meet the similar problem
+like me. Hope someone can help me configure why.
+
+In addtion, my system is Fedora15-x86-64bit, R-2.13.1, inter(R)
+Core(TM) Duo CPU*2 @2.66Ghz.
+
+Thanks in advance!
+
+
+From brian at braverock.com  Sun Aug 28 11:40:47 2011
+From: brian at braverock.com (Brian G. Peterson)
+Date: Sun, 28 Aug 2011 04:40:47 -0500
+Subject: [R-sig-hpc] doMC and foreach can not use all cores
+In-Reply-To: <CAApQt_Ee4uQzYYqpT0PBBoig4J7eR19cz_kVQZAfBm+_Kx50XA@mail.gmail.com>
+References: <CAApQt_FC3KtoNr86dVqPVeL=vSH8JPaRaN5fMUEE60RLz6kKxg@mail.gmail.com>
+	<CAApQt_Ee4uQzYYqpT0PBBoig4J7eR19cz_kVQZAfBm+_Kx50XA@mail.gmail.com>
+Message-ID: <1314524447.13054.26.camel@brian-desktop>
+
+On Sun, 2011-08-28 at 14:54 +0800, ??? wrote:
+> registerDoMC( core = 4 )
+
+your first problem is that the parameter is 'cores'
+
+registerDoMC(cores=4)
+or
+registerDoMC(4)
+
+
+-- 
+Brian G. Peterson
+http://braverock.com/brian/
+Ph: 773-459-4973
+IM: bgpbraverock
+
+
+From brian at braverock.com  Sun Aug 28 12:57:31 2011
+From: brian at braverock.com (Brian G. Peterson)
+Date: Sun, 28 Aug 2011 05:57:31 -0500
+Subject: [R-sig-hpc] doMC and foreach can not use all cores
+In-Reply-To: <CAApQt_ETDZWwQJ_+vEsmh838RkfoHxStKE70vMxfFXec7F5d5g@mail.gmail.com>
+References: <CAApQt_FC3KtoNr86dVqPVeL=vSH8JPaRaN5fMUEE60RLz6kKxg@mail.gmail.com>
+	<CAApQt_Ee4uQzYYqpT0PBBoig4J7eR19cz_kVQZAfBm+_Kx50XA@mail.gmail.com>
+	<1314524447.13054.26.camel@brian-desktop>
+	<CAApQt_ETDZWwQJ_+vEsmh838RkfoHxStKE70vMxfFXec7F5d5g@mail.gmail.com>
+Message-ID: <1314529051.15278.103.camel@brian-rcg>
+
+On Sun, 2011-08-28 at 18:47 +0800, ??? wrote:
+> Thank you for response firstly. But it is just a clerical error. In
+> fact I do run registerDoMC(cores=4) in my code, it does not work
+> still...
+> Furthermore, when I use mclapply(), R  use one core either. So i think
+> the multicore package has some problem.
+> 
+> 2011/8/28 Brian G. Peterson <brian at braverock.com>:
+> > On Sun, 2011-08-28 at 14:54 +0800, ??? wrote:
+> >> registerDoMC( core = 4 )
+> >
+> > your first problem is that the parameter is 'cores'
+> >
+> > registerDoMC(cores=4)
+> > or
+> > registerDoMC(4)
+
+<on-list>
+
+Please provide a reproducible example and the full contents of
+sessionInfo, per the posting guide.
+
+My machine utilizes all cores when using multicore and doMC, so you'll
+need to provide a minimal reproducible example so that people can try to
+help you saolve your problem.
+
+Regards,
+
+  - Brian
+
+-- 
+Brian G. Peterson
+http://braverock.com/brian/
+Ph: 773-459-4973
+IM: bgpbraverock
+
+
+From cboettig at gmail.com  Sun Aug 28 21:16:46 2011
+From: cboettig at gmail.com (Carl Boettiger)
+Date: Sun, 28 Aug 2011 12:16:46 -0700
+Subject: [R-sig-hpc] loading libraries in snowfall
+Message-ID: <CAN_1p9xQWzGh_d0g+kTpz4MbKtVm+Ms35-3S=NgNLX0oaB7Lkw@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110828/4eb94933/attachment.pl>
+
+From jm_hannon at yahoo.com  Mon Aug 29 03:37:48 2011
+From: jm_hannon at yahoo.com (Michael Hannon)
+Date: Sun, 28 Aug 2011 18:37:48 -0700 (PDT)
+Subject: [R-sig-hpc] loading libraries in snowfall
+In-Reply-To: <CAN_1p9xQWzGh_d0g+kTpz4MbKtVm+Ms35-3S=NgNLX0oaB7Lkw@mail.gmail.com>
+References: <CAN_1p9xQWzGh_d0g+kTpz4MbKtVm+Ms35-3S=NgNLX0oaB7Lkw@mail.gmail.com>
+Message-ID: <1314581868.94981.YahooMailNeo@web161916.mail.bf1.yahoo.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110828/ede098e2/attachment.pl>
+
+From cboettig at gmail.com  Mon Aug 29 04:02:37 2011
+From: cboettig at gmail.com (Carl Boettiger)
+Date: Sun, 28 Aug 2011 19:02:37 -0700
+Subject: [R-sig-hpc] loading libraries in snowfall
+In-Reply-To: <1314581868.94981.YahooMailNeo@web161916.mail.bf1.yahoo.com>
+References: <CAN_1p9xQWzGh_d0g+kTpz4MbKtVm+Ms35-3S=NgNLX0oaB7Lkw@mail.gmail.com>
+	<1314581868.94981.YahooMailNeo@web161916.mail.bf1.yahoo.com>
+Message-ID: <CAN_1p9zxMczbj118sE0J1NHB7KxFvy-H1sRi-Htyq2axbr0riw@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110828/9f8fc0af/attachment.pl>
+
+From joakim.ringblom at ki.se  Mon Aug 29 09:24:49 2011
+From: joakim.ringblom at ki.se (Joakim Ringblom)
+Date: Mon, 29 Aug 2011 07:24:49 +0000
+Subject: [R-sig-hpc] Parallelizing function with subfunctions using
+ snowfall
+In-Reply-To: <1314354206.3759.3.camel@brian-desktop>
+References: <3D33DE7F2E85EF41A6A8786FFBC358300C2FFF20@KIMSX02.user.ki.se>	 ,
+	<CALh21iK8J=MET5Va5XANQN6Fqaw1yB1Y8Qr0RyC8tsQ26jQDuA@mail.gmail.com>
+	<3D33DE7F2E85EF41A6A8786FFBC358300C30019C@KIMSX02.user.ki.se>,
+	<1314354206.3759.3.camel@brian-desktop>
+Message-ID: <3D33DE7F2E85EF41A6A8786FFBC358300C300529@KIMSX02.user.ki.se>
+
+Hi
+
+That?s definately a good point. I should have written it the first time.So here is the answer:
+
+To be able use a package while running snowball in parallel, the package has to be loaded with sfLibrary.
+
+/
+
+Joakim Ringblom
+PhD-student
+Karolinska Institutet, Institutet f?r Milj?medicin
+Nobels v?g, 13
+Box 210 17177 Stockholm
+Sweden
++46- (0)733965553
+
+________________________________________
+Fr?n: Brian G. Peterson [brian at braverock.com]
+Skickat: den 26 augusti 2011 12:23
+Till: Joakim Ringblom
+?mne: Re: [R-sig-hpc] Parallelizing function with subfunctions using snowfall
+
+On Fri, 2011-08-26 at 09:38 +0000, Joakim Ringblom wrote:
+> I just found the answer myself, I can?t believe I missed it before.
+> Thanks anyone who has read my post, sorry for taking your time.
+
+I'm glad you found a solution.
+
+Because your question has been asked in various ways before, and because
+many variations on the theme can cause the problem you encountered,
+please enlighten the list on what you did to solve the issue so that
+others can benefit from what you've learned.
+
+Regards,
+
+   - Brian
+
+--
+Brian G. Peterson
+http://braverock.com/brian/
+Ph: 773-459-4973
+IM: bgpbraverock
+

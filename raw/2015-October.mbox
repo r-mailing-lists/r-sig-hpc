@@ -1,0 +1,493 @@
+From HodgessE at uhd.edu  Sat Oct  3 17:41:38 2015
+From: HodgessE at uhd.edu (Hodgess, Erin)
+Date: Sat, 3 Oct 2015 15:41:38 +0000
+Subject: [R-sig-hpc] Running Rmpi with a Fortran program
+Message-ID: <FF9DB805FC41CC4E95825A50F6806302B48FC97F@challenger.uhd.campus>
+
+Hello!
+
+I'm experimenting with using MPI with Fortran rather than C.  However, mpiexec does not appear to be working.
+
+Here are my various input files (note:  these are VERY simple-minded until I get things running)
+Fortran:
+
+   subroutine hellosub(size)
+
+      include '/usr/local/bin/include/mpif.h'
+
+      integer rank,size,ierror,tag,status(MPI_STATUS_SIZE)
+
+
+      call MPI_INIT(ierror)
+
+      call MPI_COMM_SIZE(MPI_COMM_WORLD,size,ierror)
+
+      call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierror)
+
+      call MPI_FINALIZE(ierror)
+
+      end
+
+
+Compilation statement:
+
+mpif90 -shared -o hellosub.so hellosub.o
+
+
+(no errors)
+
+
+R code: (e4.in)
+
+source("rmpi.test.R)
+
+library(Rmpi)
+
+dyn.load("hellousub.so")
+
+rmpi.test(1)
+
+
+rmpi.test.R
+
+
+rmpi.test <-function(size) {
+
+dyn.load("hellosub.so")
+
+xplanet <- .Fortran("hellosub",size=as.integer(1))$size
+
+cat("There are ", xplanet," planets in our universe\n")
+
+}
+
+
+Final run:
+
+ mpiexec -np 4 R CMD BATCH e4.in e4.in
+
+
+===================================================================================
+
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+
+=   PID 606 RUNNING AT Es-MacBook-Air.local
+
+=   EXIT CODE: 1
+
+=   CLEANING UP REMAINING PROCESSES
+
+=   YOU CAN IGNORE THE BELOW CLEANUP MESSAGES
+
+===================================================================================
+
+
+This is run on a MacBook Air, with R Version 3.2.2.  The OS on the Mac is Yosemite, Version 10.10.5
+  The mpif90 compiler is version 5.1.0.
+
+Is it possible/plausible that R doesn't like the Fortran version of the MPI, please?
+
+Thanks for any help!
+
+Sincerely,
+Erin
+
+
+	[[alternative HTML version deleted]]
+
+
+From nakama at ki.rim.or.jp  Tue Oct 13 14:52:16 2015
+From: nakama at ki.rim.or.jp (Ei-ji Nakama)
+Date: Tue, 13 Oct 2015 21:52:16 +0900
+Subject: [R-sig-hpc] Running Rmpi with a Fortran program
+In-Reply-To: <FF9DB805FC41CC4E95825A50F6806302B48FC97F@challenger.uhd.campus>
+References: <FF9DB805FC41CC4E95825A50F6806302B48FC97F@challenger.uhd.campus>
+Message-ID: <CAJqeyYZGC65wpVqd6pBRKvO_PLzSX9_UBVXVP2vpFYBDjGyHXg@mail.gmail.com>
+
+hi,
+`library(Rmpi)' does MPI_Init inside.
+your program, it is a MPI_Init call again in fortran subrutine.
+since Rmpi has an array of the communicator of c inside, in the case
+of cooperation with external programs, you will need the exchange of
+communicator.
+please omit call MPI_Init and MPI_Finalize.
+
+c.f.
+$ cat hellosub1.f
+      subroutine hellosub(comm,rank,size)
+      include 'mpif.h'
+      integer comm,rank,size,ierror,tag,status(MPI_STATUS_SIZE)
+C     call MPI_INIT(ierror)
+      call MPI_COMM_SIZE(comm,size,ierror)
+      call MPI_COMM_RANK(comm,rank,ierror)
+C     call MPI_FINALIZE(ierror)
+      end
+
+$ mpif77 -fPIC -shared -o hellosub1.so  hellosub1.f
+$ cat rmpi.test1.R
+rmpitest <-function(comm) {
+    dyn.load("hellosub1.so")
+    xplanet <- .Fortran("hellosub",comm=as.integer(comm),rank=as.integer(0),size=as.integer(0))
+    cat("There are ", xplanet$rank, xplanet$size," planets in our universe\n")
+    dyn.unload("hellosub1.so")
+    xplanet$rank
+}
+library("Rmpi")
+rmpitest(mpi.comm.c2f(0)) # number 0 is MPI_COMM_WORLD in Rmpi
+
+$ mpiexec  -np 4 Rscript rmpi.test1.R
+
+If other languages, it would be even more should you use MPI_Comm_f2c...
+
+
+
+2015-10-04 0:41 GMT+09:00 Hodgess, Erin <HodgessE at uhd.edu>:
+> Hello!
+>
+> I'm experimenting with using MPI with Fortran rather than C.  However, mpiexec does not appear to be working.
+>
+> Here are my various input files (note:  these are VERY simple-minded until I get things running)
+> Fortran:
+>
+>    subroutine hellosub(size)
+>
+>       include '/usr/local/bin/include/mpif.h'
+>
+>       integer rank,size,ierror,tag,status(MPI_STATUS_SIZE)
+>
+>
+>       call MPI_INIT(ierror)
+>
+>       call MPI_COMM_SIZE(MPI_COMM_WORLD,size,ierror)
+>
+>       call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierror)
+>
+>       call MPI_FINALIZE(ierror)
+>
+>       end
+>
+>
+> Compilation statement:
+>
+> mpif90 -shared -o hellosub.so hellosub.o
+>
+>
+> (no errors)
+>
+>
+> R code: (e4.in)
+>
+> source("rmpi.test.R)
+>
+> library(Rmpi)
+>
+> dyn.load("hellousub.so")
+>
+> rmpi.test(1)
+>
+>
+> rmpi.test.R
+>
+>
+> rmpi.test <-function(size) {
+>
+> dyn.load("hellosub.so")
+>
+> xplanet <- .Fortran("hellosub",size=as.integer(1))$size
+>
+> cat("There are ", xplanet," planets in our universe\n")
+>
+> }
+>
+>
+> Final run:
+>
+>  mpiexec -np 4 R CMD BATCH e4.in e4.in
+>
+>
+> ===================================================================================
+>
+> =   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+>
+> =   PID 606 RUNNING AT Es-MacBook-Air.local
+>
+> =   EXIT CODE: 1
+>
+> =   CLEANING UP REMAINING PROCESSES
+>
+> =   YOU CAN IGNORE THE BELOW CLEANUP MESSAGES
+>
+> ===================================================================================
+>
+>
+> This is run on a MacBook Air, with R Version 3.2.2.  The OS on the Mac is Yosemite, Version 10.10.5
+>   The mpif90 compiler is version 5.1.0.
+>
+> Is it possible/plausible that R doesn't like the Fortran version of the MPI, please?
+>
+> Thanks for any help!
+>
+> Sincerely,
+> Erin
+>
+>
+>         [[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+
+-- 
+Best Regards,
+--
+Eiji NAKAMA <nakama (a) ki.rim.or.jp>
+"\u4e2d\u9593\u6804\u6cbb"  <nakama (a) ki.rim.or.jp>
+
+
+From HodgessE at uhd.edu  Tue Oct 13 15:12:40 2015
+From: HodgessE at uhd.edu (Hodgess, Erin)
+Date: Tue, 13 Oct 2015 13:12:40 +0000
+Subject: [R-sig-hpc] Running Rmpi with a Fortran program
+In-Reply-To: <CAJqeyYZGC65wpVqd6pBRKvO_PLzSX9_UBVXVP2vpFYBDjGyHXg@mail.gmail.com>
+References: <FF9DB805FC41CC4E95825A50F6806302B48FC97F@challenger.uhd.campus>,
+	<CAJqeyYZGC65wpVqd6pBRKvO_PLzSX9_UBVXVP2vpFYBDjGyHXg@mail.gmail.com>
+Message-ID: <FF9DB805FC41CC4E95825A50F6806302B4902DDF@challenger.uhd.campus>
+
+This is great!  Thanks for the good info!
+
+I wondered about the finalize, but the INIT never occurred to me.
+
+
+________________________________________
+From: rim.nakama at gmail.com [rim.nakama at gmail.com] on behalf of Ei-ji Nakama [nakama at ki.rim.or.jp]
+Sent: Tuesday, October 13, 2015 7:52 AM
+To: Hodgess, Erin
+Cc: r-sig-hpc at r-project.org
+Subject: Re: [R-sig-hpc] Running Rmpi with a Fortran program
+
+hi,
+`library(Rmpi)' does MPI_Init inside.
+your program, it is a MPI_Init call again in fortran subrutine.
+since Rmpi has an array of the communicator of c inside, in the case
+of cooperation with external programs, you will need the exchange of
+communicator.
+please omit call MPI_Init and MPI_Finalize.
+
+c.f.
+$ cat hellosub1.f
+      subroutine hellosub(comm,rank,size)
+      include 'mpif.h'
+      integer comm,rank,size,ierror,tag,status(MPI_STATUS_SIZE)
+C     call MPI_INIT(ierror)
+      call MPI_COMM_SIZE(comm,size,ierror)
+      call MPI_COMM_RANK(comm,rank,ierror)
+C     call MPI_FINALIZE(ierror)
+      end
+
+$ mpif77 -fPIC -shared -o hellosub1.so  hellosub1.f
+$ cat rmpi.test1.R
+rmpitest <-function(comm) {
+    dyn.load("hellosub1.so")
+    xplanet <- .Fortran("hellosub",comm=as.integer(comm),rank=as.integer(0),size=as.integer(0))
+    cat("There are ", xplanet$rank, xplanet$size," planets in our universe\n")
+    dyn.unload("hellosub1.so")
+    xplanet$rank
+}
+library("Rmpi")
+rmpitest(mpi.comm.c2f(0)) # number 0 is MPI_COMM_WORLD in Rmpi
+
+$ mpiexec  -np 4 Rscript rmpi.test1.R
+
+If other languages, it would be even more should you use MPI_Comm_f2c...
+
+
+
+2015-10-04 0:41 GMT+09:00 Hodgess, Erin <HodgessE at uhd.edu>:
+> Hello!
+>
+> I'm experimenting with using MPI with Fortran rather than C.  However, mpiexec does not appear to be working.
+>
+> Here are my various input files (note:  these are VERY simple-minded until I get things running)
+> Fortran:
+>
+>    subroutine hellosub(size)
+>
+>       include '/usr/local/bin/include/mpif.h'
+>
+>       integer rank,size,ierror,tag,status(MPI_STATUS_SIZE)
+>
+>
+>       call MPI_INIT(ierror)
+>
+>       call MPI_COMM_SIZE(MPI_COMM_WORLD,size,ierror)
+>
+>       call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierror)
+>
+>       call MPI_FINALIZE(ierror)
+>
+>       end
+>
+>
+> Compilation statement:
+>
+> mpif90 -shared -o hellosub.so hellosub.o
+>
+>
+> (no errors)
+>
+>
+> R code: (e4.in)
+>
+> source("rmpi.test.R)
+>
+> library(Rmpi)
+>
+> dyn.load("hellousub.so")
+>
+> rmpi.test(1)
+>
+>
+> rmpi.test.R
+>
+>
+> rmpi.test <-function(size) {
+>
+> dyn.load("hellosub.so")
+>
+> xplanet <- .Fortran("hellosub",size=as.integer(1))$size
+>
+> cat("There are ", xplanet," planets in our universe\n")
+>
+> }
+>
+>
+> Final run:
+>
+>  mpiexec -np 4 R CMD BATCH e4.in e4.in
+>
+>
+> ===================================================================================
+>
+> =   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+>
+> =   PID 606 RUNNING AT Es-MacBook-Air.local
+>
+> =   EXIT CODE: 1
+>
+> =   CLEANING UP REMAINING PROCESSES
+>
+> =   YOU CAN IGNORE THE BELOW CLEANUP MESSAGES
+>
+> ===================================================================================
+>
+>
+> This is run on a MacBook Air, with R Version 3.2.2.  The OS on the Mac is Yosemite, Version 10.10.5
+>   The mpif90 compiler is version 5.1.0.
+>
+> Is it possible/plausible that R doesn't like the Fortran version of the MPI, please?
+>
+> Thanks for any help!
+>
+> Sincerely,
+> Erin
+>
+>
+>         [[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+
+--
+Best Regards,
+--
+Eiji NAKAMA <nakama (a) ki.rim.or.jp>
+"\u4e2d\u9593\u6804\u6cbb"  <nakama (a) ki.rim.or.jp>
+
+
+From nakama at ki.rim.or.jp  Tue Oct 13 16:41:01 2015
+From: nakama at ki.rim.or.jp (Ei-ji Nakama)
+Date: Tue, 13 Oct 2015 23:41:01 +0900
+Subject: [R-sig-hpc] Running Rmpi with a Fortran program
+In-Reply-To: <FF9DB805FC41CC4E95825A50F6806302B4902DDF@challenger.uhd.campus>
+References: <FF9DB805FC41CC4E95825A50F6806302B48FC97F@challenger.uhd.campus>
+	<CAJqeyYZGC65wpVqd6pBRKvO_PLzSX9_UBVXVP2vpFYBDjGyHXg@mail.gmail.com>
+	<FF9DB805FC41CC4E95825A50F6806302B4902DDF@challenger.uhd.campus>
+Message-ID: <CAJqeyYZc-a6+t7QdXrF2jwJLqch-VgmyhFkd952gscRVX5WF5w@mail.gmail.com>
+
+hi,
+
+2015-10-13 22:12 GMT+09:00 Hodgess, Erin <HodgessE at uhd.edu>:
+> This is great!  Thanks for the good info!
+>
+> I wondered about the finalize, but the INIT never occurred to me.
+
+oops, mpi.finalize() is required at the end of the R.
+
+document http://www.hpl.hp.com/research/systems-research/R-workshop/Junji-talk2.pdf#26
+examples http://prs.ism.ac.jp/~nakama/Rhpc/examples/HowToUseRhpc_worker_noback/
+
+-- 
+Best Regards,
+--
+Eiji NAKAMA <nakama (a) ki.rim.or.jp>
+"\u4e2d\u9593\u6804\u6cbb"  <nakama (a) ki.rim.or.jp>
+
+
+From zw12356 at gmail.com  Sat Oct 17 10:52:45 2015
+From: zw12356 at gmail.com (=?UTF-8?B?6Zmz5oW25YWo?=)
+Date: Sat, 17 Oct 2015 16:52:45 +0800
+Subject: [R-sig-hpc] A question about merge
+Message-ID: <CAByykUA=8Rwb4MuaCLToXztAD0H8AHa4yVcEcTVxddDfUR00DQ@mail.gmail.com>
+
+Hello!
+
+I am solving a problem about merging more than 2 data.frames. I know
+that I can do this by
+
+` R
+
+Reduce(function(x,y) merge(x,y), listOfDataFrames)
+
+`
+
+But if my data.frames contains the variables shared the same name, it
+would rename it with varibleName.x, varibleName.y.... Example:
+
+
+
+   1. df1 = data.frame(x=1:5, y=rnorm(5))
+   2. df2 = data.frame(x=1:5, y=rnorm(5))
+   3. merge(df1, df2, by = "x")
+
+it return a data.frame containing x, y.x, y.y.
+
+But what I want is summing the variables shared the same name.
+
+ex:
+
+
+   1. library(plyr)
+   2. library(dplyr)
+   3.   wide_table = rbind.fill(list(df1,df2)) %>% tbl_dt(FALSE)
+   4.   sum_without_na = function(vec) ifelse(all(is.na(vec)),
+NA_integer_, sum(vec, na.rm = TRUE))
+   5.   out = wide_table %>% group_by(y) %>%
+summarise_each(funs(sum_without_na))
+
+
+Although it can be done with above scripts, I can't accept the speed
+when there are morecolumns in df1 and df2 or more data.frame.
+
+I want to know whether R base or packages have a faster function to do
+it and it can merge data.frames at once.
+
+	[[alternative HTML version deleted]]
+
+

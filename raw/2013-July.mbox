@@ -1,0 +1,322 @@
+From alistairperry123 at gmail.com  Mon Jul 15 05:13:03 2013
+From: alistairperry123 at gmail.com (Alistair Perry)
+Date: Mon, 15 Jul 2013 13:13:03 +1000
+Subject: [R-sig-hpc] Parallel multi-core processing for complex R functions
+Message-ID: <CAMo=faoodcYmbeiyDVvusFsPjryjP9kSYgE9dXuYptWZafo3YQ@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130715/756b85df/attachment.pl>
+
+From simon.urbanek at r-project.org  Mon Jul 15 15:32:46 2013
+From: simon.urbanek at r-project.org (Simon Urbanek)
+Date: Mon, 15 Jul 2013 09:32:46 -0400
+Subject: [R-sig-hpc] Parallel multi-core processing for complex R
+	functions
+In-Reply-To: <CAMo=faoodcYmbeiyDVvusFsPjryjP9kSYgE9dXuYptWZafo3YQ@mail.gmail.com>
+References: <CAMo=faoodcYmbeiyDVvusFsPjryjP9kSYgE9dXuYptWZafo3YQ@mail.gmail.com>
+Message-ID: <84DC733B-7B6E-476E-A160-16953D3908BD@r-project.org>
+
+
+On Jul 14, 2013, at 11:13 PM, Alistair Perry wrote:
+
+> As you know R doesn't explicitly allow parallel processing on multiple
+> cores.
+> 
+> I have two complex functions called "test" and "rcc". I did not write these
+> codes.
+> 
+> The basic premise of the function code "test" is to calculate the rich-club
+> members of a weighted matrix (a certain group of nodes [one node = one
+> matrix definition] are more connected to each other than other nodes- see
+> http://toreopsahl.com/tnet/weighted-networks/weighted-rich-club-effect/).
+> 
+> In short, the code is designed to calculate the strength of the ties
+> between prominent nodes. However, to test whether there is a significant
+> effect, the input matrix (argument "net" in the code "test") must be
+> compared to a randomized matrix (the links of the input matrix are
+> reshuffled) reshuffled 1000 times. The randomized matrix is created by the
+> function code "rcc". This code is embedded in the function code "test". You
+> can set how many times the input matrix is to be reshuffled using the
+> argument "NR" (i.e NR = 1000 - means input matrix will be reshuffled 1000
+> times)
+> 
+> The issue here is that as R does not explicitly allow multi-core parallel
+> processing, so the computation for one matrix (500x500) using the "test"
+> code can take over a week. I am using a quad-core processer with a linux
+> OS, but only one core is being used. I am aware that there is the base
+> package "parallel" and "mclapply" to multi-thread the function, but these
+> commands require an input argument ("X"), along with the function I wish to
+> process using all cores. However, the functions I am using require an input
+> (equivalent to X) within the argument variables, so it would mean setting
+> the input matrix twice as an input argument variable.
+> 
+
+That's not true, you can use the matrix directly from the parallel code, because everything is shared. If you wrote your code using apply instead of a loop, you would have seen that all you need to do is to replace lapply with mclapply: You have
+
+ rphi <- matrix(data = 0, nrow = nrow(ophi), ncol = NR)
+ for (i in 1:NR) {    
+    rnet <- rcc(net, option = reshuffle)
+    rphi[, i] <- phi(rnet)
+}
+
+which can be simplified to
+
+rphi <- sapply(seq.int(NR), function(i) phi(rcc(net, option=reshuffle)))
+
+and thus the parallel version is simply
+
+rphi <- simplify2array(mclapply(seq.int(NR), function(i) phi(rcc(net, option=reshuffle))))
+
+Cheers,
+Simon
+
+
+> Does anyone have an idea of how I could multi-thread the code.
+> Particularly, the section of the code where the matrix is reshuffled, so
+> the matrix could be reshuffled 250 times on one core (if there were 4
+> cores)? This would speed up the computation dramtically.
+> 
+> The codes are available to be viewed on
+> http://stackoverflow.com/questions/17646190/parallel-and-multicore-processing-for-complex-r-function
+> 
+> 	[[alternative HTML version deleted]]
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+> 
+
+
+From HodgessE at uhd.edu  Thu Jul 18 05:16:21 2013
+From: HodgessE at uhd.edu (Hodgess, Erin)
+Date: Thu, 18 Jul 2013 03:16:21 +0000
+Subject: [R-sig-hpc] Using R and CUDA
+Message-ID: <FF9DB805FC41CC4E95825A50F680630217A25D3D@columbia.uhd.campus>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130718/507ff37a/attachment.pl>
+
+From amen.alyaari at bordeaux.inra.fr  Thu Jul 18 13:54:48 2013
+From: amen.alyaari at bordeaux.inra.fr (Amen Alyaari)
+Date: Thu, 18 Jul 2013 13:54:48 +0200
+Subject: [R-sig-hpc] number of combinations
+Message-ID: <51E7D788.2030908@bordeaux.inra.fr>
+
+Hello All,
+
+I have three datasets and would like to know how much N was used in my 
+calculations.
+
+I read the data into a multi-dimensional array with dimensions (nx, ny, 
+ntsteps, ndatasets), e.g. with a smaller example dataset:
+
+                               # nx   ny   nsteps ndatasets
+             dat = runif(20 * 30 * 100 *  3)
+         dim(dat) = c(20, 30, 100, 3)
+ > str(dat)
+     num [1:20, 1:30, 1:100, 1:3] 0.1834 0.8537 0.0672 0.0734 0.8078 ...
+we take advantage of the cor functions and build this function to 
+compute how many N we have:
+
+     cor_withN <- function(...) {
+         res <- try(cor.test(...)$parameter+2, silent=TRUE)
+         ifelse(class(res)=="try-error", NA, res)}
+Now we take advantage of the fact that apply also works on 
+multi-dimensional arrays, not only matrices:
+We use apply to iterate over all the x,y,z triples.
+
+       result = apply(dat, c(1,2), function(x) cor_withN(x[,1], 
+x[,2],x[,3]))
+ > str(cor_result)
+      logi [1:20, 1:30] NA NA NA NA NA NA ..
+so something is wrong by getting NA NA NA NA
+if the last line went well! then:      str(cor_result)                   
+should be:
+
+      logi [1:20, 1:30] 100 100 100 100 100 ..(nsteps)
+Any idea on why I am getting NA or is there another way to do it?
+
+When I tested it with 2 datsets,it went well!
+
+       cor_result = apply(dat, c(1,2), function(x) cor_withN(x[,1], x[,2]))
+ > str(cor_result)
+      num [1:20, 1:30] 100 100 100 100 100 100 100 100 100 100
+so the problem is when I added x[,3]!! Thanks
+
+Thanks alot
+
+
+From HodgessE at uhd.edu  Fri Jul 19 23:30:42 2013
+From: HodgessE at uhd.edu (Hodgess, Erin)
+Date: Fri, 19 Jul 2013 21:30:42 +0000
+Subject: [R-sig-hpc] Rmpi and random number generation
+Message-ID: <FF9DB805FC41CC4E95825A50F680630217A34355@challenger.uhd.campus>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130719/2cfd5493/attachment.pl>
+
+From saptarshi.guha at gmail.com  Fri Jul 19 23:43:05 2013
+From: saptarshi.guha at gmail.com (Saptarshi Guha)
+Date: Fri, 19 Jul 2013 14:43:05 -0700
+Subject: [R-sig-hpc] Rmpi and random number generation
+In-Reply-To: <FF9DB805FC41CC4E95825A50F680630217A34355@challenger.uhd.campus>
+References: <FF9DB805FC41CC4E95825A50F680630217A34355@challenger.uhd.campus>
+Message-ID: <CAJDot1pfhN-_e-NVmJp5Z5MFRBqE+y5HGzPUsVSJOLYxDwwXig@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130719/7fc4ebb2/attachment.pl>
+
+From edd at debian.org  Fri Jul 19 23:58:09 2013
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Fri, 19 Jul 2013 16:58:09 -0500
+Subject: [R-sig-hpc] Rmpi and random number generation
+In-Reply-To: <FF9DB805FC41CC4E95825A50F680630217A34355@challenger.uhd.campus>
+References: <FF9DB805FC41CC4E95825A50F680630217A34355@challenger.uhd.campus>
+Message-ID: <20969.46705.79809.261617@max.nulle.part>
+
+
+On 19 July 2013 at 21:30, Hodgess, Erin wrote:
+| Here is an Rmpi question, please:  I am trying to do a little demo program in which I generate a few random numbers.
+[...]
+| All of the random numbers are the same across the various variables.  Has anyone run into this, please?
+
+1) See eg 'Section 6: Random-number generation' in the vignette of the
+   package "parallel" (part of base R) for an introduction.
+
+2) Even the most naive Google search for 'Rmpi parallel RNG' (and you surely
+   tried something like that first, yes?) leads to this fine poster by the
+   author of the Rmpi package:
+
+      http://www.stats.uwo.ca/faculty/yu/Rmpi/download/rsr/poster.pdf
+
+   which contains an example. 
+
+Dirk
+
+-- 
+Dirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com
+
+
+From HodgessE at uhd.edu  Sat Jul 20 00:51:54 2013
+From: HodgessE at uhd.edu (Hodgess, Erin)
+Date: Fri, 19 Jul 2013 22:51:54 +0000
+Subject: [R-sig-hpc] Rmpi and random number generation
+In-Reply-To: <20969.46705.79809.261617@max.nulle.part>
+References: <FF9DB805FC41CC4E95825A50F680630217A34355@challenger.uhd.campus>,
+	<20969.46705.79809.261617@max.nulle.part>
+Message-ID: <FF9DB805FC41CC4E95825A50F680630217A3438F@challenger.uhd.campus>
+
+I had tried the mpi.setup.rngstream but still obtained the same results.
+
+________________________________________
+From: Dirk Eddelbuettel [edd at debian.org]
+Sent: Friday, July 19, 2013 4:58 PM
+To: Hodgess, Erin
+Cc: r-sig-hpc at r-project.org
+Subject: Re: [R-sig-hpc] Rmpi and random number generation
+
+On 19 July 2013 at 21:30, Hodgess, Erin wrote:
+| Here is an Rmpi question, please:  I am trying to do a little demo program in which I generate a few random numbers.
+[...]
+| All of the random numbers are the same across the various variables.  Has anyone run into this, please?
+
+1) See eg 'Section 6: Random-number generation' in the vignette of the
+   package "parallel" (part of base R) for an introduction.
+
+2) Even the most naive Google search for 'Rmpi parallel RNG' (and you surely
+   tried something like that first, yes?) leads to this fine poster by the
+   author of the Rmpi package:
+
+      http://www.stats.uwo.ca/faculty/yu/Rmpi/download/rsr/poster.pdf
+
+   which contains an example.
+
+Dirk
+
+--
+Dirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com
+
+
+From HodgessE at uhd.edu  Sat Jul 20 01:41:29 2013
+From: HodgessE at uhd.edu (Hodgess, Erin)
+Date: Fri, 19 Jul 2013 23:41:29 +0000
+Subject: [R-sig-hpc] Rmpi and random number generation
+In-Reply-To: <20969.46705.79809.261617@max.nulle.part>
+References: <FF9DB805FC41CC4E95825A50F680630217A34355@challenger.uhd.campus>,
+	<20969.46705.79809.261617@max.nulle.part>
+Message-ID: <FF9DB805FC41CC4E95825A50F680630217A343D5@challenger.uhd.campus>
+
+Apologies to all...I had changed the function name!
+
+
+________________________________________
+From: Dirk Eddelbuettel [edd at debian.org]
+Sent: Friday, July 19, 2013 4:58 PM
+To: Hodgess, Erin
+Cc: r-sig-hpc at r-project.org
+Subject: Re: [R-sig-hpc] Rmpi and random number generation
+
+On 19 July 2013 at 21:30, Hodgess, Erin wrote:
+| Here is an Rmpi question, please:  I am trying to do a little demo program in which I generate a few random numbers.
+[...]
+| All of the random numbers are the same across the various variables.  Has anyone run into this, please?
+
+1) See eg 'Section 6: Random-number generation' in the vignette of the
+   package "parallel" (part of base R) for an introduction.
+
+2) Even the most naive Google search for 'Rmpi parallel RNG' (and you surely
+   tried something like that first, yes?) leads to this fine poster by the
+   author of the Rmpi package:
+
+      http://www.stats.uwo.ca/faculty/yu/Rmpi/download/rsr/poster.pdf
+
+   which contains an example.
+
+Dirk
+
+--
+Dirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com
+
+
+From HodgessE at uhd.edu  Sat Jul 20 16:55:15 2013
+From: HodgessE at uhd.edu (Hodgess, Erin)
+Date: Sat, 20 Jul 2013 14:55:15 +0000
+Subject: [R-sig-hpc] An Rmpi and CGI question, please
+Message-ID: <FF9DB805FC41CC4E95825A50F680630217A34623@challenger.uhd.campus>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130720/28da0816/attachment.pl>
+
+From miclutz at gmail.com  Sun Jul 21 19:26:07 2013
+From: miclutz at gmail.com (Michel Lutz)
+Date: Sun, 21 Jul 2013 17:26:07 +0000 (UTC)
+Subject: [R-sig-hpc] Consultez mon profil LinkedIn
+Message-ID: <121684176.7339344.1374427567334.JavaMail.app@ela4-app0129.prod>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130721/958608ad/attachment.pl>
+
+From ivo.welch at anderson.ucla.edu  Sat Jul 27 05:49:39 2013
+From: ivo.welch at anderson.ucla.edu (ivo welch)
+Date: Fri, 26 Jul 2013 20:49:39 -0700
+Subject: [R-sig-hpc] intel phi access?
+Message-ID: <CAPr7RtVw090FeDdOrTZkY6oXitnPiHKE1BXaQ6q5Q7auPraK=g@mail.gmail.com>
+
+does anyone have R up and running on an intel phi?  if so, I would
+love to find out how the R benchmark in
+
+http://r.ivo-welch.info/
+
+performs...
+
+/iaw
+
+

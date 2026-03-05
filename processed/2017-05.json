@@ -1,0 +1,82 @@
+{
+  "list": "r-sig-hpc",
+  "description": "",
+  "month": "2017-05",
+  "messages": [
+    {
+      "id": "msg-70a58f62aa4b",
+      "message_id": "<E4B8EA00-BAAB-4A81-A4CC-D5721AA18640@amnh.org>",
+      "from_name": "John Denton",
+      "from_email_hash": "833536c88083d8259d7d4d99c285f7c5ef014298b17d8d421c51a98a2ab85988",
+      "date": "2017-05-03T20:39:52Z",
+      "subject": "[R-sig-hpc] speed up a function containing resampling",
+      "subject_clean": "speed up a function containing resampling",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Hi, all.\n\nI?m trying to assemble a set of functions to do a resampling of a value that is calculated by a combination of subsampling and sums. Each iteration involves reading in a number of large files, sampling from the entries in the files, and doing calculations based on these subsamples. The way I have it set up right now is through a combination of lapply and for. The outer resampling is then done with mclapply.\n\nI have two problems. First, the code used to run, but now doesn?t. I get the error\n\nIn parallel:::mclapply(iters, do.call(tii.calc, config), mc.cores = ncores) :\n  all scheduled cores encountered errors in user code\n>\n\nAny ideas on how to fix this problem? I am running R 3.3.1 in the terminal on a personal OS X Yosemite machine.\n\n\nSecond, I?m hoping to speed up the function. It is currently very slow, and I need to do a number of outer resamplings in the 100s or 1000s.\n\nHere is the outer resampling code that calls the function itself (attached):\n\nsource(\"tree_collapser.R\")\nsource(\"~/taxon_influence/tii_calc.r\")\nlibrary(phangorn)\nlibrary(SnowballC)\nlibrary(ape)\nlibrary(stringr)\n\noutgroup <- \"Hemichordata\"\nburnin <- 0.5\nn.iters <- 2\nncores <- parallel:::detectCores()/4\n\nd <- read.nexus.data(as.character(\"tully.nex\"))\nnom <- sort(names(d)[-which(names(d) == outgroup)])\n\nmiltrees <- list.files(pattern=\"^minus[A-Z].*\\\\.t$\")\nfulltree <- read.nexus(\"tully.nex.t_alltaxa\")\n##iter.list <- rep(list(miltrees), n.iters)\niters <- 1:n.iters\n\n##tii.rep <- parallel:::mclapply(iters, tii.calc(iter.list, taxnames=nom,\n## full.trees=fulltree, outgroup=outgroup, burnin=burnin), mc.cores=ncores)\n\n\nconfig <- list(treelist=miltrees, taxnames=nom, full.trees=fulltree,\noutgroup=outgroup, burnin=burnin)\n\ntii.rep <- parallel:::mclapply(iters, do.call(tii.calc, config), mc.cores=ncores)\n\nThanks!\n\n~John\n\n\n-------------- next part --------------\nAn HTML attachment was scrubbed...\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20170503/ed71ec60/attachment.html>\n-------------- next part --------------\nA non-text attachment was scrubbed...\nName: tii_calc.r\nType: application/octet-stream\nSize: 1937 bytes\nDesc: tii_calc.r\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20170503/ed71ec60/attachment.obj>",
+      "body_snippet": "Hi, all.\n\nI?m trying to assemble a set of functions to do a resampling of a value that is calculated by a combination of subsampling and sums. Each iteration involves reading in a number of large file",
+      "thread_id": "thread-70a58f62aa4b",
+      "thread_depth": 0,
+      "month": "2017-05"
+    },
+    {
+      "id": "msg-33ac71c88d63",
+      "message_id": "<A4C0E405-D606-4CD3-A741-5A8F9F003584@gmail.com>",
+      "from_name": "Sven E Templer",
+      "from_email_hash": "39110eb3ad5c123cd52b66aa7e06d92d7bb4d3e6be600860da5cc505b870da83",
+      "date": "2017-05-04T09:47:14+02:00",
+      "subject": "[R-sig-hpc] speed up a function containing resampling",
+      "subject_clean": "speed up a function containing resampling",
+      "in_reply_to": "<E4B8EA00-BAAB-4A81-A4CC-D5721AA18640@amnh.org>",
+      "references": [
+        "<E4B8EA00-BAAB-4A81-A4CC-D5721AA18640@amnh.org>"
+      ],
+      "body_plain": "Dear John,\n\n\nthere are two things I recognized:\n\na) do not use do.call within mclapply: in this case, tii.calc is run once, and the result returned to mclapply, which is not a function; use the ... in mclapply instead to provide your config\nb) in tii.calc you will need an argument for the iteration integer, can also be ..., see below\n\nPut in a simple repruducible example:\n\nlibrary(parallel)\nconfig <- list(a=2, b=2)\nf <- function (a = 1, b = 1, ...) a + b\niter <- 1:3\nmclapply(iter, do.call(f, config), mc.cores = 3) # this breaks, because f is called and returns a value, which is not a function\nmclapply(iter, f, a = 2, b = 2, mc.cores = 3) # this breaks, if f() has no argument for each value in iter, otherwise runs; a=2 and b=2 get forwarded to f for each iter\n\nSo this needs to change:\na) mclapply(iters, tii.calc, treelist=miltrees, taxnames=nom, full.trees=fulltree, outgroup=outgroup, burnin=burnin, mc.cores=ncores)\nb) tii.calc <- function(treelist, taxnames, full.trees, outgroup=NULL, burnin=NULL, ...) {...}\n\n\nHope this helps,\n\nSven\n\n> On 3. May 2017, at 22:39, John Denton <jdenton at amnh.org> wrote:\n> \n> Hi, all.\n> \n> I?m trying to assemble a set of functions to do a resampling of a value that is calculated by a combination of subsampling and sums. Each iteration involves reading in a number of large files, sampling from the entries in the files, and doing calculations based on these subsamples. The way I have it set up right now is through a combination of lapply and for. The outer resampling is then done with mclapply.\n> \n> I have two problems. First, the code used to run, but now doesn?t. I get the error\n> \n> In parallel:::mclapply(iters, do.call(tii.calc, config), mc.cores = ncores) :\n>   all scheduled cores encountered errors in user code\n> > \n> \n> Any ideas on how to fix this problem? I am running R 3.3.1 in the terminal on a personal OS X Yosemite machine.\n> \n> \n> Second, I?m hoping to speed up the function. It is currently very slow, and I need to do a number of outer resamplings in the 100s or 1000s.\n> \n> Here is the outer resampling code that calls the function itself (attached):\n> \n> source(\"tree_collapser.R\")\n> source(\"~/taxon_influence/tii_calc.r\")\n> library(phangorn)\n> library(SnowballC)\n> library(ape)\n> library(stringr)\n> \n> outgroup <- \"Hemichordata\"\n> burnin <- 0.5\n> n.iters <- 2\n> ncores <- parallel:::detectCores()/4\n> \n> d <- read.nexus.data(as.character(\"tully.nex\"))\n> nom <- sort(names(d)[-which(names(d) == outgroup)])\n> \n> miltrees <- list.files(pattern=\"^minus[A-Z].*\\\\.t$\")\n> fulltree <- read.nexus(\"tully.nex.t_alltaxa\")\n> ##iter.list <- rep(list(miltrees), n.iters)\n> iters <- 1:n.iters\n> \n> ##tii.rep <- parallel:::mclapply(iters, tii.calc(iter.list, taxnames=nom, \n> ## full.trees=fulltree, outgroup=outgroup, burnin=burnin), mc.cores=ncores)\n> \n> \n> config <- list(treelist=miltrees, taxnames=nom, full.trees=fulltree, \n> outgroup=outgroup, burnin=burnin)\n> \n> tii.rep <- parallel:::mclapply(iters, do.call(tii.calc, config), mc.cores=ncores)\n> \n> Thanks!\n> \n> ~John\n> \n> \n> <tii_calc.r>_______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc",
+      "body_snippet": "Dear John,\n\n\nthere are two things I recognized:\n\na) do not use do.call within mclapply: in this case, tii.calc is run once, and the result returned to mclapply, which is not a function; use the ... in",
+      "thread_id": "thread-70a58f62aa4b",
+      "thread_depth": 1,
+      "month": "2017-05"
+    },
+    {
+      "id": "msg-7f54d1d07a19",
+      "message_id": "<CACQzi5F1TdENBB2eqgavd_hG-4sVfr1GspAmsqDXAhZH1wdwqA@mail.gmail.com>",
+      "from_name": "Hariom Singh",
+      "from_email_hash": "a5f758b1e1f057aaa841bef96253d91f760d63e35cd93f9b4e06a0592431a818",
+      "date": "2017-05-11T10:51:19+05:30",
+      "subject": "[R-sig-hpc] mpi.gather.Robj for raster data.",
+      "subject_clean": "mpi.gather.Robj for raster data.",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Hi list,\n\nThis is my PBS script to run the Rmpi code in multi-node environment.\n\n#!/bin/bash\n\n#PBS -N sbm\n#PBS -m abe\n#PBS -q medium\n#PBS -l nodes=1:ppn=12\n#PBS -V\n\ncd $PBS_O_WORKDIR\n\ncp /UHOME/hariodce/R/x86_64-unknown-linux-gnu-library/3.2/Rmpi/Rprofile\n./.Rprofile\n\ncat $PBS_NODEFILE > pbsnodes\n\nmpirun -machinefile $PBS_NODEFILE -np 12 R CMD BATCH fragmentation.r\n\n\n#########fragmentation.r\n\n\nlibrary(Rmpi)\nlibrary(raster)\nlibrary(rgdal)\nmap <- raster(\"/UHOME/hariodce/uk/bis.tif\")\nmat <-as.matrix(map)\nsmat <- lapply(.splitIndices(nrow(mat),11),function(i) mat[i,])\nmpi.scatter.Robj2slave(smat)\nmpi.bcast.cmd(library(raster))\nmpi.remote.exec(r <- raster(smat))\n\n*mpi.bcast.cmd(an <- mpi.gather.Robj(r))mpi.remote.exec(an)*\nmpi.close.Rslaves()\nmpi.quit()\n\nI am getting difficulty in gathering scattered raster data set. It is not\nexecuting at all. Kindly suggest any method to merge the scattered raster\ndata sets. I would highly appreciate for your time and concern.\n\nHariom\n\nPh.D. Research Scholar, IIT Roorkee, INDIA\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "Hi list,\n\nThis is my PBS script to run the Rmpi code in multi-node environment.\n\n#!/bin/bash\n\n#PBS -N sbm\n#PBS -m abe\n#PBS -q medium\n#PBS -l nodes=1:ppn=12\n#PBS -V\n\ncd $PBS_O_WORKDIR\n\ncp /UHOME/hariod",
+      "thread_id": "thread-7f54d1d07a19",
+      "thread_depth": 0,
+      "month": "2017-05"
+    }
+  ],
+  "threads": [
+    {
+      "id": "thread-70a58f62aa4b",
+      "subject": "speed up a function containing resampling",
+      "message_count": 2,
+      "participants": [
+        "John Denton",
+        "Sven E Templer"
+      ],
+      "started": "2017-05-03T20:39:52+00:00",
+      "last_reply": "2017-05-04T09:47:14+02:00",
+      "root_message_id": "msg-70a58f62aa4b"
+    },
+    {
+      "id": "thread-7f54d1d07a19",
+      "subject": "mpi.gather.Robj for raster data.",
+      "message_count": 1,
+      "participants": [
+        "Hariom Singh"
+      ],
+      "started": "2017-05-11T10:51:19+05:30",
+      "last_reply": "2017-05-11T10:51:19+05:30",
+      "root_message_id": "msg-7f54d1d07a19"
+    }
+  ]
+}

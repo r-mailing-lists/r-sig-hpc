@@ -1,0 +1,79 @@
+From HodgessE at uhd.edu  Sun Nov  8 04:16:20 2015
+From: HodgessE at uhd.edu (Hodgess, Erin)
+Date: Sun, 8 Nov 2015 03:16:20 +0000
+Subject: [R-sig-hpc] using MPI fortran without the library(Rmpi)
+Message-ID: <FF9DB805FC41CC4E95825A50F6806302B4920CAD@challenger.uhd.campus>
+
+Hello everyone:
+
+I'm experiment with some toy code.  I was looking to see if I can write a program in Fortran with MPI to work in conjunction with R without the Rmpi library.  Here is the Fortran code:
+
+      subroutine integcR(np,integral)
+      implicit none
+      include '/usr/local/include/mpif.h'
+      integer rank,size,ierror,tag,status(MPI_STATUS_SIZE),i,np
+      double precision :: integral,x, total_t
+      double precision :: numres,edif
+      double precision, PARAMETER :: x_lower_bound = 0.0,x_upper_bound = 1.0
+      integer, PARAMETER :: nSteps = 100000000
+      double precision, PARAMETER :: dx = (x_upper_bound - x_lower_bound)/nSteps
+      double precision :: analy
+      integer :: iMin,iMax
+      call MPI_INIT(ierror)
+      call MPI_COMM_SIZE(MPI_COMM_WORLD,size,ierror)
+      call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierror)
+      integral = 0.0
+      x = 0.0
+      total_t = 0.0
+      iMin = INT((rank * real(nSteps,kind=8))/real(size,kind=8))
+      iMax = INT(((rank+1) * real(nSteps,kind=8))/real(size,kind=8))
+       do i = iMin,(iMax-1)
+          x = x_lower_bound + dx*(real(i,kind=8)+0.5)
+          integral = integral + (x**np)*dx
+       end do
+
+              call MPI_REDUCE(integral,total_t,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,ierror)
+
+       numres = total_t
+
+      call MPI_FINALIZE(ierror)
+      end
+
+And the R function is:
+nb <- 4
+if(!is.loaded("integcR"))dyn.load("integcR.so")
+print("is")
+print(is.loaded("integcR"))
+gtot <- 0.0
+integral <- 0.0
+
+xplanet <- .Fortran("integcR",np=as.integer(nb),
+        integral=as.numeric(integral))$numres
+print("planet")
+print(xplanet)
+
+Finally, the Batch file is:
+#!/bin/bash
+mpif90 -g -O2 -fPIC  integcR.f90 -shared -o integcR.so
+
+mpirun -np 4 Rscript testR10.R  >out10.txt
+
+
+When I run it, the Fortran program shows that it is not loaded.
+
+Is there anything obvious that I'm doing wrong, please?  Or can this not be done, please?
+
+Thanks in advance,
+Sincerely,
+Erin
+
+
+
+
+
+
+
+
+	[[alternative HTML version deleted]]
+
+

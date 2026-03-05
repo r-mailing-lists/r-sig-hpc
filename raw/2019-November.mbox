@@ -1,0 +1,901 @@
+From bennet @end|ng |rom um|ch@edu  Sat Nov 16 17:59:44 2019
+From: bennet @end|ng |rom um|ch@edu (Bennet Fauber)
+Date: Sat, 16 Nov 2019 11:59:44 -0500
+Subject: [R-sig-hpc] stopCluster hangs instead of exits
+Message-ID: <CAB2ovot3teaXnrPyjqvQh6DfozCic0awGFELfgjcJG_BPbROKg@mail.gmail.com>
+
+We have a newish installation and are having some issues with
+stopCluster() hanging when the cluster object is created using
+
+    cl <- makeMPIcluster(5)
+
+from snow.
+
+The base R is 3.6.1.  The version of Rmpi is 0.6-9.  The version of
+OpenMPI against which Rmpi was installed is 3.1.4.
+
+The makeMPIcluster() seems to work, and processes are created.  They
+look like this, for example,
+
+bennet    26330  16163  0 11:07 pts/15   00:00:00 mpirun -np 1 Rmpi
+--no-restore --no-save
+
+bennet    26369  26330 99 11:07 pts/15   00:00:23
+/sw/arcts/centos7/stacks/gcc/8.2.0/R/3.6.1/lib64/R/bin/exec/R --slave
+--no-restore --file=/sw/arcts/centos7/stacks/gcc/8.2.0/Rmpi/0.6-9/R-3.6.1/snow/RMPInode.R
+--args SNOWLIB=/sw/arcts/centos7/stacks/gcc/8.2.0/Rmpi/0.6-9/R-3.6.1
+OUT=/dev/null
+
+bennet    26370  26330 99 11:07 pts/15   00:00:23
+/sw/arcts/centos7/stacks/gcc/8.2.0/R/3.6.1/lib64/R/bin/exec/R --slave
+--no-restore --file=/sw/arcts/centos7/stacks/gcc/8.2.0/Rmpi/0.6-9/R-3.6.1/snow/RMPInode.R
+--args SNOWLIB=/sw/arcts/centos7/stacks/gcc/8.2.0/Rmpi/0.6-9/R-3.6.1
+OUT=/dev/null
+
+bennet    26371  26330 99 11:07 pts/15   00:00:23
+/sw/arcts/centos7/stacks/gcc/8.2.0/R/3.6.1/lib64/R/bin/exec/R --slave
+--no-restore --file=/sw/arcts/centos7/stacks/gcc/8.2.0/Rmpi/0.6-9/R-3.6.1/snow/RMPInode.R
+--args SNOWLIB=/sw/arcts/centos7/stacks/gcc/8.2.0/Rmpi/0.6-9/R-3.6.1
+OUT=/dev/null
+
+bennet    26372  26330 99 11:07 pts/15   00:00:23
+/sw/arcts/centos7/stacks/gcc/8.2.0/R/3.6.1/lib64/R/bin/exec/R --slave
+--no-restore --file=/sw/arcts/centos7/stacks/gcc/8.2.0/Rmpi/0.6-9/R-3.6.1/snow/RMPInode.R
+--args SNOWLIB=/sw/arcts/centos7/stacks/gcc/8.2.0/Rmpi/0.6-9/R-3.6.1
+OUT=/dev/null
+
+They seem able to do work and communicate OK.  The only issue comes
+when stopCluster(cl) is called, at which point R hangs until it is
+interrupted by Ctrl-C, at which point it exits entirely.
+
+The test program simply gathers the host name from each slave.
+
+> library(Rmpi)
+> library(parallel)
+> library(snow)
+
+Attaching package: ?snow?
+
+The following objects are masked from ?package:parallel?:
+
+    clusterApply, clusterApplyLB, clusterCall, clusterEvalQ,
+    clusterExport, clusterMap, clusterSplit, makeCluster, parApply,
+    parCapply, parLapply, parRapply, parSapply, splitIndices,
+    stopCluster
+
+>
+> cl <- makeCluster(4)
+    4 slaves are spawned successfully. 0 failed.
+> clusterCall(cl, function() Sys.info()['nodename'])
+[[1]]
+                   nodename
+"gl-build.arc-ts.umich.edu"
+
+[[2]]
+                   nodename
+"gl-build.arc-ts.umich.edu"
+
+[[3]]
+                   nodename
+"gl-build.arc-ts.umich.edu"
+
+[[4]]
+                   nodename
+"gl-build.arc-ts.umich.edu"
+
+> stopCluster(cl)
+
+at which point intervention is required.
+
+Any thoughts on what might be wrong and how I should go about fixing it?
+
+Let me know if you need additional information, please.
+
+Thank you,    -- bennet
+
+
+From edd @end|ng |rom deb|@n@org  Sat Nov 16 18:11:41 2019
+From: edd @end|ng |rom deb|@n@org (Dirk Eddelbuettel)
+Date: Sat, 16 Nov 2019 11:11:41 -0600
+Subject: [R-sig-hpc] stopCluster hangs instead of exits
+In-Reply-To: <CAB2ovot3teaXnrPyjqvQh6DfozCic0awGFELfgjcJG_BPbROKg@mail.gmail.com>
+References: <CAB2ovot3teaXnrPyjqvQh6DfozCic0awGFELfgjcJG_BPbROKg@mail.gmail.com>
+Message-ID: <24016.11725.896206.196180@rob.eddelbuettel.com>
+
+
+On 16 November 2019 at 11:59, Bennet Fauber wrote:
+| Any thoughts on what might be wrong and how I should go about fixing it?
+
+I would think that is an OpenMPI issue.
+
+My inclanation would be to try to replicate it with a pure C/C++ "hello MPI
+world" and check whether it returns cleanly or not when launched from
+`orterun` (or alike) with similar options.
+
+Dirk
+
+-- 
+http://dirk.eddelbuettel.com | @eddelbuettel | edd at debian.org
+
+
+From bennet @end|ng |rom um|ch@edu  Sat Nov 16 18:18:16 2019
+From: bennet @end|ng |rom um|ch@edu (Bennet Fauber)
+Date: Sat, 16 Nov 2019 12:18:16 -0500
+Subject: [R-sig-hpc] stopCluster hangs instead of exits
+In-Reply-To: <24016.11725.896206.196180@rob.eddelbuettel.com>
+References: <CAB2ovot3teaXnrPyjqvQh6DfozCic0awGFELfgjcJG_BPbROKg@mail.gmail.com>
+ <24016.11725.896206.196180@rob.eddelbuettel.com>
+Message-ID: <CAB2ovotcK0NRvm_OLY0ohgdmXaywWszQ-AZ0_mJ1WN9wU2Vosw@mail.gmail.com>
+
+I have a small test program that uses only Rmpi functions and performs
+a similar task, and it runs cleanly and to completion.
+
+Rmpi-test.R
+--------------------------------------------------------
+# Load the R MPI package if it is not already loaded.
+if (!is.loaded("mpi_initialize")) {
+    library("Rmpi")
+}
+# Spawn N-1 workers
+mpi.spawn.Rslaves(nslaves=mpi.universe.size()-1)
+
+# The command we want to run on all the nodes/processors we have
+mpi.remote.exec(paste("I am ", mpi.comm.rank(), " of ",
+                       mpi.comm.size(), " on ",
+                      Sys.info()
+                       [c("nodename")]
+                     )
+               )
+
+# Stop the worker processes
+mpi.close.Rslaves()
+
+# Close down the MPI processes and quit R
+mpi.quit()
+--------------------------------------------------------
+
+The MPI installation itself is a cluster installation, and many other
+applications are using the MPI successfully, so I am pretty sure that
+MPI is working.
+
+The issue seems to be one of interaction between snow's stopCluster() and...?
+
+Output from the above commands
+
+> # Load the R MPI package if it is not already loaded.
+> if (!is.loaded("mpi_initialize")) {
++     library("Rmpi")
++ }
+> # Spawn N-1 workers
+> paste(" There are ", mpi.universe.size(), " ranks in this universe")
+[1] " There are  36  ranks in this universe"
+> mpi.spawn.Rslaves(nslaves=3)
+    3 slaves are spawned successfully. 0 failed.
+master (rank 0, comm 1) of size 4 is running on: gl-build
+slave1 (rank 1, comm 1) of size 4 is running on: gl-build
+slave2 (rank 2, comm 1) of size 4 is running on: gl-build
+slave3 (rank 3, comm 1) of size 4 is running on: gl-build
+>
+> # The command we want to run on all the nodes/processors we have
+> mpi.remote.exec(paste("I am ", mpi.comm.rank(), " of ",
++                        mpi.comm.size(), " on ",
++                        Sys.info()
++                        [c("nodename")]
++                      )
++                )
+$slave1
+[1] "I am  1  of  4  on  gl-build.arc-ts.umich.edu"
+
+$slave2
+[1] "I am  2  of  4  on  gl-build.arc-ts.umich.edu"
+
+$slave3
+[1] "I am  3  of  4  on  gl-build.arc-ts.umich.edu"
+
+>
+> # Stop the worker processes
+> mpi.close.Rslaves()
+[1] 1
+>
+> # Close down the MPI processes and quit R
+> mpi.quit()
+
+On Sat, Nov 16, 2019 at 12:11 PM Dirk Eddelbuettel <edd at debian.org> wrote:
+>
+>
+> On 16 November 2019 at 11:59, Bennet Fauber wrote:
+> | Any thoughts on what might be wrong and how I should go about fixing it?
+>
+> I would think that is an OpenMPI issue.
+>
+> My inclanation would be to try to replicate it with a pure C/C++ "hello MPI
+> world" and check whether it returns cleanly or not when launched from
+> `orterun` (or alike) with similar options.
+>
+> Dirk
+>
+> --
+> http://dirk.eddelbuettel.com | @eddelbuettel | edd at debian.org
+
+
+From @@|ngh @end|ng |rom @mnh@org  Sat Nov 16 18:24:48 2019
+From: @@|ngh @end|ng |rom @mnh@org (Sajesh Singh)
+Date: Sat, 16 Nov 2019 17:24:48 +0000
+Subject: [R-sig-hpc] stopCluster hangs instead of exits
+In-Reply-To: <CAB2ovot3teaXnrPyjqvQh6DfozCic0awGFELfgjcJG_BPbROKg@mail.gmail.com>
+References: <CAB2ovot3teaXnrPyjqvQh6DfozCic0awGFELfgjcJG_BPbROKg@mail.gmail.com>
+Message-ID: <BY5PR14MB41478F775CE17B3AA6C825C1AC730@BY5PR14MB4147.namprd14.prod.outlook.com>
+
+Bennet,
+  I have seen this issue before when using OpenMPI 2.x. After switching to OpenMPI 1.x I was able to run the StopCluster successfully.
+
+
+-Sajesh-
+
+-----Original Message-----
+From: R-sig-hpc <r-sig-hpc-bounces at r-project.org> On Behalf Of Bennet Fauber
+Sent: Saturday, November 16, 2019 12:00 PM
+To: r-sig-hpc at r-project.org
+Subject: [R-sig-hpc] stopCluster hangs instead of exits
+
+EXTERNAL SENDER
+
+
+We have a newish installation and are having some issues with
+stopCluster() hanging when the cluster object is created using
+
+    cl <- makeMPIcluster(5)
+
+from snow.
+
+The base R is 3.6.1.  The version of Rmpi is 0.6-9.  The version of OpenMPI against which Rmpi was installed is 3.1.4.
+
+The makeMPIcluster() seems to work, and processes are created.  They look like this, for example,
+
+bennet    26330  16163  0 11:07 pts/15   00:00:00 mpirun -np 1 Rmpi
+--no-restore --no-save
+
+bennet    26369  26330 99 11:07 pts/15   00:00:23
+/sw/arcts/centos7/stacks/gcc/8.2.0/R/3.6.1/lib64/R/bin/exec/R --slave --no-restore --file=/sw/arcts/centos7/stacks/gcc/8.2.0/Rmpi/0.6-9/R-3.6.1/snow/RMPInode.R
+--args SNOWLIB=/sw/arcts/centos7/stacks/gcc/8.2.0/Rmpi/0.6-9/R-3.6.1
+OUT=/dev/null
+
+bennet    26370  26330 99 11:07 pts/15   00:00:23
+/sw/arcts/centos7/stacks/gcc/8.2.0/R/3.6.1/lib64/R/bin/exec/R --slave --no-restore --file=/sw/arcts/centos7/stacks/gcc/8.2.0/Rmpi/0.6-9/R-3.6.1/snow/RMPInode.R
+--args SNOWLIB=/sw/arcts/centos7/stacks/gcc/8.2.0/Rmpi/0.6-9/R-3.6.1
+OUT=/dev/null
+
+bennet    26371  26330 99 11:07 pts/15   00:00:23
+/sw/arcts/centos7/stacks/gcc/8.2.0/R/3.6.1/lib64/R/bin/exec/R --slave --no-restore --file=/sw/arcts/centos7/stacks/gcc/8.2.0/Rmpi/0.6-9/R-3.6.1/snow/RMPInode.R
+--args SNOWLIB=/sw/arcts/centos7/stacks/gcc/8.2.0/Rmpi/0.6-9/R-3.6.1
+OUT=/dev/null
+
+bennet    26372  26330 99 11:07 pts/15   00:00:23
+/sw/arcts/centos7/stacks/gcc/8.2.0/R/3.6.1/lib64/R/bin/exec/R --slave --no-restore --file=/sw/arcts/centos7/stacks/gcc/8.2.0/Rmpi/0.6-9/R-3.6.1/snow/RMPInode.R
+--args SNOWLIB=/sw/arcts/centos7/stacks/gcc/8.2.0/Rmpi/0.6-9/R-3.6.1
+OUT=/dev/null
+
+They seem able to do work and communicate OK.  The only issue comes when stopCluster(cl) is called, at which point R hangs until it is interrupted by Ctrl-C, at which point it exits entirely.
+
+The test program simply gathers the host name from each slave.
+
+> library(Rmpi)
+> library(parallel)
+> library(snow)
+
+Attaching package: ?snow?
+
+The following objects are masked from ?package:parallel?:
+
+    clusterApply, clusterApplyLB, clusterCall, clusterEvalQ,
+    clusterExport, clusterMap, clusterSplit, makeCluster, parApply,
+    parCapply, parLapply, parRapply, parSapply, splitIndices,
+    stopCluster
+
+>
+> cl <- makeCluster(4)
+    4 slaves are spawned successfully. 0 failed.
+> clusterCall(cl, function() Sys.info()['nodename'])
+[[1]]
+                   nodename
+"gl-build.arc-ts.umich.edu"
+
+[[2]]
+                   nodename
+"gl-build.arc-ts.umich.edu"
+
+[[3]]
+                   nodename
+"gl-build.arc-ts.umich.edu"
+
+[[4]]
+                   nodename
+"gl-build.arc-ts.umich.edu"
+
+> stopCluster(cl)
+
+at which point intervention is required.
+
+Any thoughts on what might be wrong and how I should go about fixing it?
+
+Let me know if you need additional information, please.
+
+Thank you,    -- bennet
+
+_______________________________________________
+R-sig-hpc mailing list
+R-sig-hpc at r-project.org
+https://nam04.safelinks.protection.outlook.com/?url=https%3A%2F%2Fstat.ethz.ch%2Fmailman%2Flistinfo%2Fr-sig-hpc&amp;data=02%7C01%7Cssingh%40amnh.org%7C90b24d67c71c48d5ed5a08d76ab670a7%7Cbe0003e8c6b9496883aeb34586974b76%7C0%7C0%7C637095204149556017&amp;sdata=m16ol7ORyXN1beCdsjRlaWOGahPnhSQlt6t52UQFC1I%3D&amp;reserved=0
+
+From bennet @end|ng |rom um|ch@edu  Sun Nov 17 21:44:11 2019
+From: bennet @end|ng |rom um|ch@edu (Bennet Fauber)
+Date: Sun, 17 Nov 2019 15:44:11 -0500
+Subject: [R-sig-hpc] stopCluster hangs instead of exits
+In-Reply-To: <CAB2ovovWw1fSRZTX5X59mZ+2Ocj9RqLazdHkYG7t7z804QkVrQ@mail.gmail.com>
+References: <CAB2ovot3teaXnrPyjqvQh6DfozCic0awGFELfgjcJG_BPbROKg@mail.gmail.com>
+ <BY5PR14MB41478F775CE17B3AA6C825C1AC730@BY5PR14MB4147.namprd14.prod.outlook.com>
+ <CAB2ovovWw1fSRZTX5X59mZ+2Ocj9RqLazdHkYG7t7z804QkVrQ@mail.gmail.com>
+Message-ID: <CAB2ovotOfUXsUstaB3QvYKKaTn2v8O=OCpHVr1w3iso4ecoWhA@mail.gmail.com>
+
+Sajesh,
+
+I have to hang my head in some shame for not completely following the
+whole trail of documentation.  Turned out that the answer was on Luke
+Tierney's web site at
+
+    http://homepage.divms.uiowa.edu/~luke/R/cluster/cluster.html
+
+and I hadn't read the whole thing.  What is worse, it looks like it's
+been there since at least 2016.  Many apologies to Prof Tierney.
+
+We have been limping along using
+
+    $ mpirun -np 1 R CMD BATCH mpi.R
+
+and then inside the R script itself
+
+    > library(Rmpi)
+    > library(parallel)
+    > library(snow)
+    >
+    > cl <- makeMPIcluster(N)
+
+or similar, following on an example from long ago.
+
+There is script in the `snow` installation directory, `RMPISNOW`, that
+can be used, and it solves several problems at once.
+
+Our cluster is running Slurm, I have OpenMPI versions 3.1.4 and 4.0.2
+installed, along with R 3.6.1 and Rmpi-0.6-9, all compiled with GCC
+8.2.0 on CentOS 7.
+
+Adding the $R_LIBS_SITE/snow directory to the PATH provides `RMPISNOW`, and this
+
+    mpirun RMPISNOW CMD BATCH /sw/examples/R/snow/snow-nuke.R
+
+works beautifully with both versions of OpenMPI.
+
+In case it is helpful to someone else, the script is as follows.
+
+snow-nuke.R
+-----------
+# Example taken from the snow examples at
+# http://homepage.divms.uiowa.edu/~luke/R/cluster/cluster.html
+
+library(boot)
+#  In this example we show the use of boot in a prediction from
+#  regression based on the nuclear data.  This example is taken
+#  from Example 6.8 of Davison and Hinkley (1997).  Notice also
+#  that two extra arguments to statistic are passed through boot.
+data(nuclear)
+nuke <- nuclear[,c(1,2,5,7,8,10,11)]
+nuke.lm <- glm(log(cost)~date+log(cap)+ne+ ct+log(cum.n)+pt, data=nuke)
+nuke.diag <- glm.diag(nuke.lm)
+nuke.res <- nuke.diag$res*nuke.diag$sd
+nuke.res <- nuke.res-mean(nuke.res)
+
+#  We set up a new dataframe with the data, the standardized
+#  residuals and the fitted values for use in the bootstrap.
+nuke.data <- data.frame(nuke,resid=nuke.res,fit=fitted(nuke.lm))
+
+#  Now we want a prediction of plant number 32 but at date 73.00
+new.data <- data.frame(cost=1, date=73.00, cap=886, ne=0,
+                       ct=0, cum.n=11, pt=1)
+new.fit <- predict(nuke.lm, new.data)
+
+nuke.fun <- function(dat, inds, i.pred, fit.pred, x.pred) {
+     assign(".inds", inds, envir=.GlobalEnv)
+     lm.b <- glm(fit+resid[.inds] ~date+log(cap)+ne+ct+
+                 log(cum.n)+pt, data=dat)
+     pred.b <- predict(lm.b,x.pred)
+     remove(".inds", envir=.GlobalEnv)
+     c(coef(lm.b), pred.b-(fit.pred+dat$resid[i.pred]))
+}
+
+# Run this once on just the master process
+system.time(nuke.boot <-
+            boot(nuke.data, nuke.fun, R=999, m=1,
+                 fit.pred=new.fit, x.pred=new.data))
+
+# Run this once on all four workers
+#### makeCluster() includes a check to see if one has been created, and
+#### it attaches if one has
+cl <- makeCluster()
+
+clusterCall(cl, function () paste("I am on node ", Sys.info()[c("nodename")]))
+
+#### Send instructions to the workers to load the boot library
+clusterEvalQ(cl, library(boot))
+
+#### Run this again using the cluster evaluation mechanism
+system.time(cl.nuke.boot <-
+            clusterCall(cl,boot,nuke.data, nuke.fun, R=500, m=1,
+                        fit.pred=new.fit, x.pred=new.data))
+-----------
+
+
+On Sat, Nov 16, 2019 at 1:17 PM Bennet Fauber <bennet at umich.edu> wrote:
+>
+> Thanks, Sajesh,
+>
+> OpenMPI is very old.  So old that the OpenMPI developers will no
+> longer answer questions about it.  ;-(
+>
+> It also isn't well supported by the cluster schedulers, but especially
+> by Slurm, it seems.
+>
+> That is why we are trying to use a more up-to-date OpenMPI.
+>
+> It appears that this is known, as there is a comment at the bottom of
+> the snow source in R/mpi.R
+>
+>     #**** figure out how to get Rmpi::mpi.quit called (similar issue for pvm?)
+>     #**** fix things so stopCluster works in both versions.
+>
+> It seems that possibly the problem is in the implementation of
+>
+> stopCluster.spawnedMPIcluster <- function(cl) {
+>     comm <- 1
+>     NextMethod()
+>     Rmpi::mpi.comm.disconnect(comm)
+> }
+>
+> which issues a disconnect.  However, looking in the Rmpi code, it
+> seems that the mpi.close.Rslaves() command there uses
+>
+> mpi.close.Rslaves <- function(dellog=TRUE, comm=1){
+>     if (mpi.comm.size(comm) < 2){
+>     err <-paste("It seems no slaves running on comm", comm)
+>     stop(err)
+>     }
+>     #mpi.break=delay(do.call("break",  list(), envir=.GlobalEnv))
+>     mpi.bcast.cmd(cmd="kaerb", rank=0, comm=comm)
+>     if (.Platform$OS!="windows"){
+>         if (dellog && mpi.comm.size(0) < mpi.comm.size(comm)){
+>         tmp <- paste(Sys.getpid(),"+",comm,sep="")
+>         logfile <- paste("*.",tmp,".*.log", sep="")
+>         if (length(system(paste("ls", logfile),TRUE,ignore.stderr=TRUE) )>=1)
+>             system(paste("rm", logfile))
+>         }
+>     }
+> #     mpi.barrier(comm)
+>     if (comm >0){
+>         #if (is.loaded("mpi_comm_disconnect"))
+>             #mpi.comm.disconnect(comm)
+>         #else
+>             mpi.comm.free(comm)
+>     }
+> #   mpi.comm.set.errhandler(0)
+> }
+>
+> Since that seems to work when the slaves are created by something like
+>
+>     mpi.spawn.Rslaves(nslaves=mpi.universe.size()-1)
+>
+> figuring out how to connect the mpi.close.Rlsaves() code with the
+> snow::stopcluster() might work, but I am far from capable of doing so.
+>
+>
+>
+>
+>
+>
+>
+> On Sat, Nov 16, 2019 at 12:24 PM Sajesh Singh <ssingh at amnh.org> wrote:
+> >
+> > Bennet,
+> >   I have seen this issue before when using OpenMPI 2.x. After switching to OpenMPI 1.x I was able to run the StopCluster successfully.
+> >
+> >
+> > -Sajesh-
+> >
+> > -----Original Message-----
+> > From: R-sig-hpc <r-sig-hpc-bounces at r-project.org> On Behalf Of Bennet Fauber
+> > Sent: Saturday, November 16, 2019 12:00 PM
+> > To: r-sig-hpc at r-project.org
+> > Subject: [R-sig-hpc] stopCluster hangs instead of exits
+> >
+> > EXTERNAL SENDER
+> >
+> >
+> > We have a newish installation and are having some issues with
+> > stopCluster() hanging when the cluster object is created using
+> >
+> >     cl <- makeMPIcluster(5)
+> >
+> > from snow.
+> >
+> > The base R is 3.6.1.  The version of Rmpi is 0.6-9.  The version of OpenMPI against which Rmpi was installed is 3.1.4.
+> >
+> > The makeMPIcluster() seems to work, and processes are created.  They look like this, for example,
+> >
+> > bennet    26330  16163  0 11:07 pts/15   00:00:00 mpirun -np 1 Rmpi
+> > --no-restore --no-save
+> >
+> > bennet    26369  26330 99 11:07 pts/15   00:00:23
+> > /sw/arcts/centos7/stacks/gcc/8.2.0/R/3.6.1/lib64/R/bin/exec/R --slave --no-restore --file=/sw/arcts/centos7/stacks/gcc/8.2.0/Rmpi/0.6-9/R-3.6.1/snow/RMPInode.R
+> > --args SNOWLIB=/sw/arcts/centos7/stacks/gcc/8.2.0/Rmpi/0.6-9/R-3.6.1
+> > OUT=/dev/null
+> >
+> > bennet    26370  26330 99 11:07 pts/15   00:00:23
+> > /sw/arcts/centos7/stacks/gcc/8.2.0/R/3.6.1/lib64/R/bin/exec/R --slave --no-restore --file=/sw/arcts/centos7/stacks/gcc/8.2.0/Rmpi/0.6-9/R-3.6.1/snow/RMPInode.R
+> > --args SNOWLIB=/sw/arcts/centos7/stacks/gcc/8.2.0/Rmpi/0.6-9/R-3.6.1
+> > OUT=/dev/null
+> >
+> > bennet    26371  26330 99 11:07 pts/15   00:00:23
+> > /sw/arcts/centos7/stacks/gcc/8.2.0/R/3.6.1/lib64/R/bin/exec/R --slave --no-restore --file=/sw/arcts/centos7/stacks/gcc/8.2.0/Rmpi/0.6-9/R-3.6.1/snow/RMPInode.R
+> > --args SNOWLIB=/sw/arcts/centos7/stacks/gcc/8.2.0/Rmpi/0.6-9/R-3.6.1
+> > OUT=/dev/null
+> >
+> > bennet    26372  26330 99 11:07 pts/15   00:00:23
+> > /sw/arcts/centos7/stacks/gcc/8.2.0/R/3.6.1/lib64/R/bin/exec/R --slave --no-restore --file=/sw/arcts/centos7/stacks/gcc/8.2.0/Rmpi/0.6-9/R-3.6.1/snow/RMPInode.R
+> > --args SNOWLIB=/sw/arcts/centos7/stacks/gcc/8.2.0/Rmpi/0.6-9/R-3.6.1
+> > OUT=/dev/null
+> >
+> > They seem able to do work and communicate OK.  The only issue comes when stopCluster(cl) is called, at which point R hangs until it is interrupted by Ctrl-C, at which point it exits entirely.
+> >
+> > The test program simply gathers the host name from each slave.
+> >
+> > > library(Rmpi)
+> > > library(parallel)
+> > > library(snow)
+> >
+> > Attaching package: ?snow?
+> >
+> > The following objects are masked from ?package:parallel?:
+> >
+> >     clusterApply, clusterApplyLB, clusterCall, clusterEvalQ,
+> >     clusterExport, clusterMap, clusterSplit, makeCluster, parApply,
+> >     parCapply, parLapply, parRapply, parSapply, splitIndices,
+> >     stopCluster
+> >
+> > >
+> > > cl <- makeCluster(4)
+> >     4 slaves are spawned successfully. 0 failed.
+> > > clusterCall(cl, function() Sys.info()['nodename'])
+> > [[1]]
+> >                    nodename
+> > "gl-build.arc-ts.umich.edu"
+> >
+> > [[2]]
+> >                    nodename
+> > "gl-build.arc-ts.umich.edu"
+> >
+> > [[3]]
+> >                    nodename
+> > "gl-build.arc-ts.umich.edu"
+> >
+> > [[4]]
+> >                    nodename
+> > "gl-build.arc-ts.umich.edu"
+> >
+> > > stopCluster(cl)
+> >
+> > at which point intervention is required.
+> >
+> > Any thoughts on what might be wrong and how I should go about fixing it?
+> >
+> > Let me know if you need additional information, please.
+> >
+> > Thank you,    -- bennet
+> >
+> > _______________________________________________
+> > R-sig-hpc mailing list
+> > R-sig-hpc at r-project.org
+> > https://nam04.safelinks.protection.outlook.com/?url=https%3A%2F%2Fstat.ethz.ch%2Fmailman%2Flistinfo%2Fr-sig-hpc&amp;data=02%7C01%7Cssingh%40amnh.org%7C90b24d67c71c48d5ed5a08d76ab670a7%7Cbe0003e8c6b9496883aeb34586974b76%7C0%7C0%7C637095204149556017&amp;sdata=m16ol7ORyXN1beCdsjRlaWOGahPnhSQlt6t52UQFC1I%3D&amp;reserved=0
+
+
+From @@|ngh @end|ng |rom @mnh@org  Sun Nov 17 22:13:03 2019
+From: @@|ngh @end|ng |rom @mnh@org (Sajesh Singh)
+Date: Sun, 17 Nov 2019 21:13:03 +0000
+Subject: [R-sig-hpc] stopCluster hangs instead of exits
+In-Reply-To: <CAB2ovotOfUXsUstaB3QvYKKaTn2v8O=OCpHVr1w3iso4ecoWhA@mail.gmail.com>
+References: <CAB2ovot3teaXnrPyjqvQh6DfozCic0awGFELfgjcJG_BPbROKg@mail.gmail.com>
+ <BY5PR14MB41478F775CE17B3AA6C825C1AC730@BY5PR14MB4147.namprd14.prod.outlook.com>
+ <CAB2ovovWw1fSRZTX5X59mZ+2Ocj9RqLazdHkYG7t7z804QkVrQ@mail.gmail.com>,
+ <CAB2ovotOfUXsUstaB3QvYKKaTn2v8O=OCpHVr1w3iso4ecoWhA@mail.gmail.com>
+Message-ID: <BY5PR14MB41472E38867FB8F0BD809C2CAC720@BY5PR14MB4147.namprd14.prod.outlook.com>
+
+Happy to hear you were able to resolve.
+
+Sajesh
+________________________________
+From: Bennet Fauber <bennet at umich.edu>
+Sent: Sunday, November 17, 2019 3:44:11 PM
+To: Sajesh Singh <ssingh at amnh.org>
+Cc: r-sig-hpc at r-project.org <r-sig-hpc at r-project.org>
+Subject: Re: [R-sig-hpc] stopCluster hangs instead of exits
+
+EXTERNAL SENDER
+
+
+Sajesh,
+
+I have to hang my head in some shame for not completely following the
+whole trail of documentation.  Turned out that the answer was on Luke
+Tierney's web site at
+
+    https://nam04.safelinks.protection.outlook.com/?url=http:%2F%2Fhomepage.divms.uiowa.edu%2F~luke%2FR%2Fcluster%2Fcluster.html&amp;data=02%7C01%7Cssingh%40amnh.org%7Ceb269b7e2e344582439d08d76b9eedf7%7Cbe0003e8c6b9496883aeb34586974b76%7C0%7C0%7C637096202669096620&amp;sdata=cfYqs%2Fh5ppARy5trhLjTcgqWaiq31SqLZYLc94%2FTW9o%3D&amp;reserved=0
+
+and I hadn't read the whole thing.  What is worse, it looks like it's
+been there since at least 2016.  Many apologies to Prof Tierney.
+
+We have been limping along using
+
+    $ mpirun -np 1 R CMD BATCH mpi.R
+
+and then inside the R script itself
+
+    > library(Rmpi)
+    > library(parallel)
+    > library(snow)
+    >
+    > cl <- makeMPIcluster(N)
+
+or similar, following on an example from long ago.
+
+There is script in the `snow` installation directory, `RMPISNOW`, that
+can be used, and it solves several problems at once.
+
+Our cluster is running Slurm, I have OpenMPI versions 3.1.4 and 4.0.2
+installed, along with R 3.6.1 and Rmpi-0.6-9, all compiled with GCC
+8.2.0 on CentOS 7.
+
+Adding the $R_LIBS_SITE/snow directory to the PATH provides `RMPISNOW`, and this
+
+    mpirun RMPISNOW CMD BATCH /sw/examples/R/snow/snow-nuke.R
+
+works beautifully with both versions of OpenMPI.
+
+In case it is helpful to someone else, the script is as follows.
+
+snow-nuke.R
+-----------
+# Example taken from the snow examples at
+# https://nam04.safelinks.protection.outlook.com/?url=http:%2F%2Fhomepage.divms.uiowa.edu%2F~luke%2FR%2Fcluster%2Fcluster.html&amp;data=02%7C01%7Cssingh%40amnh.org%7Ceb269b7e2e344582439d08d76b9eedf7%7Cbe0003e8c6b9496883aeb34586974b76%7C0%7C0%7C637096202669096620&amp;sdata=cfYqs%2Fh5ppARy5trhLjTcgqWaiq31SqLZYLc94%2FTW9o%3D&amp;reserved=0
+
+library(boot)
+#  In this example we show the use of boot in a prediction from
+#  regression based on the nuclear data.  This example is taken
+#  from Example 6.8 of Davison and Hinkley (1997).  Notice also
+#  that two extra arguments to statistic are passed through boot.
+data(nuclear)
+nuke <- nuclear[,c(1,2,5,7,8,10,11)]
+nuke.lm <- glm(log(cost)~date+log(cap)+ne+ ct+log(cum.n)+pt, data=nuke)
+nuke.diag <- glm.diag(nuke.lm)
+nuke.res <- nuke.diag$res*nuke.diag$sd
+nuke.res <- nuke.res-mean(nuke.res)
+
+#  We set up a new dataframe with the data, the standardized
+#  residuals and the fitted values for use in the bootstrap.
+nuke.data <- data.frame(nuke,resid=nuke.res,fit=fitted(nuke.lm))
+
+#  Now we want a prediction of plant number 32 but at date 73.00
+new.data <- data.frame(cost=1, date=73.00, cap=886, ne=0,
+                       ct=0, cum.n=11, pt=1)
+new.fit <- predict(nuke.lm, new.data)
+
+nuke.fun <- function(dat, inds, i.pred, fit.pred, x.pred) {
+     assign(".inds", inds, envir=.GlobalEnv)
+     lm.b <- glm(fit+resid[.inds] ~date+log(cap)+ne+ct+
+                 log(cum.n)+pt, data=dat)
+     pred.b <- predict(lm.b,x.pred)
+     remove(".inds", envir=.GlobalEnv)
+     c(coef(lm.b), pred.b-(fit.pred+dat$resid[i.pred]))
+}
+
+# Run this once on just the master process
+system.time(nuke.boot <-
+            boot(nuke.data, nuke.fun, R=999, m=1,
+                 fit.pred=new.fit, x.pred=new.data))
+
+# Run this once on all four workers
+#### makeCluster() includes a check to see if one has been created, and
+#### it attaches if one has
+cl <- makeCluster()
+
+clusterCall(cl, function () paste("I am on node ", Sys.info()[c("nodename")]))
+
+#### Send instructions to the workers to load the boot library
+clusterEvalQ(cl, library(boot))
+
+#### Run this again using the cluster evaluation mechanism
+system.time(cl.nuke.boot <-
+            clusterCall(cl,boot,nuke.data, nuke.fun, R=500, m=1,
+                        fit.pred=new.fit, x.pred=new.data))
+-----------
+
+
+On Sat, Nov 16, 2019 at 1:17 PM Bennet Fauber <bennet at umich.edu> wrote:
+>
+> Thanks, Sajesh,
+>
+> OpenMPI is very old.  So old that the OpenMPI developers will no
+> longer answer questions about it.  ;-(
+>
+> It also isn't well supported by the cluster schedulers, but especially
+> by Slurm, it seems.
+>
+> That is why we are trying to use a more up-to-date OpenMPI.
+>
+> It appears that this is known, as there is a comment at the bottom of
+> the snow source in R/mpi.R
+>
+>     #**** figure out how to get Rmpi::mpi.quit called (similar issue for pvm?)
+>     #**** fix things so stopCluster works in both versions.
+>
+> It seems that possibly the problem is in the implementation of
+>
+> stopCluster.spawnedMPIcluster <- function(cl) {
+>     comm <- 1
+>     NextMethod()
+>     Rmpi::mpi.comm.disconnect(comm)
+> }
+>
+> which issues a disconnect.  However, looking in the Rmpi code, it
+> seems that the mpi.close.Rslaves() command there uses
+>
+> mpi.close.Rslaves <- function(dellog=TRUE, comm=1){
+>     if (mpi.comm.size(comm) < 2){
+>     err <-paste("It seems no slaves running on comm", comm)
+>     stop(err)
+>     }
+>     #mpi.break=delay(do.call("break",  list(), envir=.GlobalEnv))
+>     mpi.bcast.cmd(cmd="kaerb", rank=0, comm=comm)
+>     if (.Platform$OS!="windows"){
+>         if (dellog && mpi.comm.size(0) < mpi.comm.size(comm)){
+>         tmp <- paste(Sys.getpid(),"+",comm,sep="")
+>         logfile <- paste("*.",tmp,".*.log", sep="")
+>         if (length(system(paste("ls", logfile),TRUE,ignore.stderr=TRUE) )>=1)
+>             system(paste("rm", logfile))
+>         }
+>     }
+> #     mpi.barrier(comm)
+>     if (comm >0){
+>         #if (is.loaded("mpi_comm_disconnect"))
+>             #mpi.comm.disconnect(comm)
+>         #else
+>             mpi.comm.free(comm)
+>     }
+> #   mpi.comm.set.errhandler(0)
+> }
+>
+> Since that seems to work when the slaves are created by something like
+>
+>     mpi.spawn.Rslaves(nslaves=mpi.universe.size()-1)
+>
+> figuring out how to connect the mpi.close.Rlsaves() code with the
+> snow::stopcluster() might work, but I am far from capable of doing so.
+>
+>
+>
+>
+>
+>
+>
+> On Sat, Nov 16, 2019 at 12:24 PM Sajesh Singh <ssingh at amnh.org> wrote:
+> >
+> > Bennet,
+> >   I have seen this issue before when using OpenMPI 2.x. After switching to OpenMPI 1.x I was able to run the StopCluster successfully.
+> >
+> >
+> > -Sajesh-
+> >
+> > -----Original Message-----
+> > From: R-sig-hpc <r-sig-hpc-bounces at r-project.org> On Behalf Of Bennet Fauber
+> > Sent: Saturday, November 16, 2019 12:00 PM
+> > To: r-sig-hpc at r-project.org
+> > Subject: [R-sig-hpc] stopCluster hangs instead of exits
+> >
+> > EXTERNAL SENDER
+> >
+> >
+> > We have a newish installation and are having some issues with
+> > stopCluster() hanging when the cluster object is created using
+> >
+> >     cl <- makeMPIcluster(5)
+> >
+> > from snow.
+> >
+> > The base R is 3.6.1.  The version of Rmpi is 0.6-9.  The version of OpenMPI against which Rmpi was installed is 3.1.4.
+> >
+> > The makeMPIcluster() seems to work, and processes are created.  They look like this, for example,
+> >
+> > bennet    26330  16163  0 11:07 pts/15   00:00:00 mpirun -np 1 Rmpi
+> > --no-restore --no-save
+> >
+> > bennet    26369  26330 99 11:07 pts/15   00:00:23
+> > /sw/arcts/centos7/stacks/gcc/8.2.0/R/3.6.1/lib64/R/bin/exec/R --slave --no-restore --file=/sw/arcts/centos7/stacks/gcc/8.2.0/Rmpi/0.6-9/R-3.6.1/snow/RMPInode.R
+> > --args SNOWLIB=/sw/arcts/centos7/stacks/gcc/8.2.0/Rmpi/0.6-9/R-3.6.1
+> > OUT=/dev/null
+> >
+> > bennet    26370  26330 99 11:07 pts/15   00:00:23
+> > /sw/arcts/centos7/stacks/gcc/8.2.0/R/3.6.1/lib64/R/bin/exec/R --slave --no-restore --file=/sw/arcts/centos7/stacks/gcc/8.2.0/Rmpi/0.6-9/R-3.6.1/snow/RMPInode.R
+> > --args SNOWLIB=/sw/arcts/centos7/stacks/gcc/8.2.0/Rmpi/0.6-9/R-3.6.1
+> > OUT=/dev/null
+> >
+> > bennet    26371  26330 99 11:07 pts/15   00:00:23
+> > /sw/arcts/centos7/stacks/gcc/8.2.0/R/3.6.1/lib64/R/bin/exec/R --slave --no-restore --file=/sw/arcts/centos7/stacks/gcc/8.2.0/Rmpi/0.6-9/R-3.6.1/snow/RMPInode.R
+> > --args SNOWLIB=/sw/arcts/centos7/stacks/gcc/8.2.0/Rmpi/0.6-9/R-3.6.1
+> > OUT=/dev/null
+> >
+> > bennet    26372  26330 99 11:07 pts/15   00:00:23
+> > /sw/arcts/centos7/stacks/gcc/8.2.0/R/3.6.1/lib64/R/bin/exec/R --slave --no-restore --file=/sw/arcts/centos7/stacks/gcc/8.2.0/Rmpi/0.6-9/R-3.6.1/snow/RMPInode.R
+> > --args SNOWLIB=/sw/arcts/centos7/stacks/gcc/8.2.0/Rmpi/0.6-9/R-3.6.1
+> > OUT=/dev/null
+> >
+> > They seem able to do work and communicate OK.  The only issue comes when stopCluster(cl) is called, at which point R hangs until it is interrupted by Ctrl-C, at which point it exits entirely.
+> >
+> > The test program simply gathers the host name from each slave.
+> >
+> > > library(Rmpi)
+> > > library(parallel)
+> > > library(snow)
+> >
+> > Attaching package: ?snow?
+> >
+> > The following objects are masked from ?package:parallel?:
+> >
+> >     clusterApply, clusterApplyLB, clusterCall, clusterEvalQ,
+> >     clusterExport, clusterMap, clusterSplit, makeCluster, parApply,
+> >     parCapply, parLapply, parRapply, parSapply, splitIndices,
+> >     stopCluster
+> >
+> > >
+> > > cl <- makeCluster(4)
+> >     4 slaves are spawned successfully. 0 failed.
+> > > clusterCall(cl, function() Sys.info()['nodename'])
+> > [[1]]
+> >                    nodename
+> > "gl-build.arc-ts.umich.edu"
+> >
+> > [[2]]
+> >                    nodename
+> > "gl-build.arc-ts.umich.edu"
+> >
+> > [[3]]
+> >                    nodename
+> > "gl-build.arc-ts.umich.edu"
+> >
+> > [[4]]
+> >                    nodename
+> > "gl-build.arc-ts.umich.edu"
+> >
+> > > stopCluster(cl)
+> >
+> > at which point intervention is required.
+> >
+> > Any thoughts on what might be wrong and how I should go about fixing it?
+> >
+> > Let me know if you need additional information, please.
+> >
+> > Thank you,    -- bennet
+> >
+> > _______________________________________________
+> > R-sig-hpc mailing list
+> > R-sig-hpc at r-project.org
+> > https://nam04.safelinks.protection.outlook.com/?url=https%3A%2F%2Fstat.ethz.ch%2Fmailman%2Flistinfo%2Fr-sig-hpc&amp;data=02%7C01%7Cssingh%40amnh.org%7Ceb269b7e2e344582439d08d76b9eedf7%7Cbe0003e8c6b9496883aeb34586974b76%7C0%7C0%7C637096202669096620&amp;sdata=vVnRkd%2BQ5bld%2B0f2g7xikISD859ycvH7e0OUrUJtc9g%3D&amp;reserved=0
+
+	[[alternative HTML version deleted]]
+
+

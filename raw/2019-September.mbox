@@ -1,0 +1,589 @@
+From MEC @end|ng |rom @tower@@org  Mon Sep 16 20:33:21 2019
+From: MEC @end|ng |rom @tower@@org (Cook, Malcolm)
+Date: Mon, 16 Sep 2019 18:33:21 +0000
+Subject: [R-sig-hpc] mclapply processes return an error for every nth job,
+ where n is the number of cores, using flowCore and ggcyto
+Message-ID: <BYAPR20MB2648BF9E0E6A44D0C47F3816BE8C0@BYAPR20MB2648.namprd20.prod.outlook.com>
+
+I am experiencing a strange issue in my use of mclapply.
+
+mclapply is returning an error for every nth job, where n is the number of cores
+
+As part of debugging, I'm reporting the indices of jobs which return an error. They are the same from run to run, until I change the value for mc.cores. I don't yet see what governs the value of the first error index, but subsequent errors occur every addition mc.cores slots.
+
+Example: running 383 jobs across 70 cores, I report
+*         FailCount: 5
+*         FailIndex: 61 131 201 271 341
+
+And notice that the diff(FailIndex) is consistently 70
+
+Example: running the same 383 jobs (in the same order) across 80 cores, I report
+*         FailCount: 5
+*         FailIndex: 51 131 211 291 371
+
+The 5 specific errors are all the same and are occurring within the creation of a plot using ggcyto::ggcyto. The error only occurs when a plot is attempted with an empty dataset (ggcyto has been fixed to be graceful with empty data, but I'm not running the latest). The dataset is read from disk within the forked process using flowCore::read.FCS. But, there is no reason that the dataset should be empty. It is as if somehow running under mclapply was effecting the io of read.FCS.
+
+So far I tried,
+*         Running job using lapply instead of mclapply. Result: all jobs complete; FailCount: 0.
+*         Using simplified version of parallelization, directly using mccollect/mcparallel. Result: same pattern of error.
+*         Changing mc.cores option (the number of cores used). Result: the jobs which produce the error change as described, every mc.cores-th job fails.
+*         As suggested<https://community.rstudio.com/t/bug-ggsave-does-not-work-when-called-in-mclapply-in-rstudio-ide-same-code-works-perfect-at-cli/7991/2>, calling `suppressGraphics` (from R.devices) at top level of each forked process. Result: same pattern.
+*         Removing dependency on data.table (rbindlist). Result: same pattern.
+*         calling mclapply with mc.preschedule=FALSE. Result: only one job fails, whose index is the second one reported when mc.preschedule=TRUE for the same mc.core value.
+
+I thought to additionally try:
+*         pass an affinity.list to mclapply to ensure that forked jobs would not run on same processor as caller of mclapply (given a "hunch" that the error producing process may be running on the "head" node). Result: same as mc.preschedule=FALSE along. Not sure my implementation is correct:
+
+        mclapply(input
+
+                 ,processFiles
+
+                 ,mc.preschedule=FALSE
+
+                 ,affinity.list=rep(list(setdiff(1:detectCores()
+
+                                               ,as.numeric(read.table("/proc/self/stat")$V39)))
+
+                                  ,length(input)))
+
+I have found the following reports of similar issues with no resolution
+*         mclapply encounters errors depending on core id?<https://stackoverflow.com/questions/52745779/mclapply-encounters-errors-depending-on-core-id>
+*         mclapply fails with data.table<https://stackoverflow.com/questions/54959207/mclapply-fails-with-data-table>
+*         Bug: ggsave() does not work when called in mclapply() in RStudio IDE (same code works perfect at CLI)<https://community.rstudio.com/t/bug-ggsave-does-not-work-when-called-in-mclapply-in-rstudio-ide-same-code-works-perfect-at-cli/7991>
+
+I appreciate any insight or guidance in how to better approach sleuthing the root cause or fixing this matter, or other reports of similar problems.
+
+Thanks,
+
+malcolm_cook at stowers.org
+
+R version 3.5.2 (2018-12-20)
+
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+Running under: CentOS Linux 7 (Core)
+
+
+
+Matrix products: default
+
+BLAS: /n/apps/CentOS7/install/r-3.5.2/lib64/R/lib/libRblas.so
+
+LAPACK: /n/apps/CentOS7/install/r-3.5.2/lib64/R/lib/libRlapack.so
+
+
+
+locale:
+
+[1] C
+
+
+
+attached base packages:
+
+[1] parallel  stats     graphics  grDevices utils     datasets  methods
+
+[8] base
+
+
+
+other attached packages:
+
+ [1] R.devices_2.16.0          gtools_3.8.1
+
+ [3] ggcyto_1.10.2             flowWorkspace_3.30.2
+
+ [5] ncdfFlow_2.28.1           BH_1.69.0-1
+
+ [7] RcppArmadillo_0.9.400.3.0 flowCore_1.48.1
+
+ [9] ggplot2_3.1.1             ash_1.0-15
+
+
+
+loaded via a namespace (and not attached):
+
+ [1] tidyselect_0.2.5    purrr_0.3.2         lattice_0.20-38
+
+ [4] pcaPP_1.9-73        colorspace_1.4-1    stats4_3.5.2
+
+ [7] base64enc_0.1-3     XML_3.98-1.19       rlang_0.3.4
+
+[10] R.oo_1.22.0         hexbin_1.27.3       pillar_1.4.0
+
+[13] R.utils_2.8.0       glue_1.3.1          withr_2.1.2
+
+[16] Rgraphviz_2.26.0    BiocGenerics_0.28.0 RColorBrewer_1.1-2
+
+[19] matrixStats_0.54.0  plyr_1.8.4          robustbase_0.93-5
+
+[22] stringr_1.4.0       zlibbioc_1.28.0     munsell_0.5.0
+
+[25] gtable_0.3.0        R.methodsS3_1.7.1   mvtnorm_1.0-10
+
+[28] latticeExtra_0.6-28 Biobase_2.42.0      Cairo_1.5-10
+
+[31] DEoptimR_1.0-8      Rcpp_1.0.1          KernSmooth_2.23-15
+
+[34] corpcor_1.6.9       scales_1.0.0        graph_1.60.0
+
+[37] IDPmisc_1.1.19      gridExtra_2.3       stringi_1.4.3
+
+[40] dplyr_0.8.1         grid_3.5.2          tools_3.5.2
+
+[43] magrittr_1.5        lazyeval_0.2.2      tibble_2.1.1
+
+[46] cluster_2.0.9       crayon_1.3.4        rrcov_1.4-7
+
+[49] pkgconfig_2.0.2     MASS_7.3-51.4       flowViz_1.46.1
+
+[52] data.table_1.12.2   assertthat_0.2.1    R6_2.4.0
+
+[55] compiler_3.5.2
+
+
+	[[alternative HTML version deleted]]
+
+
+From @|mon@urb@nek @end|ng |rom R-project@org  Mon Sep 16 21:10:07 2019
+From: @|mon@urb@nek @end|ng |rom R-project@org (Simon Urbanek)
+Date: Mon, 16 Sep 2019 15:10:07 -0400
+Subject: [R-sig-hpc] 
+ mclapply processes return an error for every nth job,
+ where n is the number of cores, using flowCore and ggcyto
+In-Reply-To: <BYAPR20MB2648BF9E0E6A44D0C47F3816BE8C0@BYAPR20MB2648.namprd20.prod.outlook.com>
+References: <BYAPR20MB2648BF9E0E6A44D0C47F3816BE8C0@BYAPR20MB2648.namprd20.prod.outlook.com>
+Message-ID: <E8AEA1A4-3BCF-4F2A-90B6-DE71FEB9D609@R-project.org>
+
+Malcolm,
+
+the way pre-scheduled mclapply() works is that an error in any of the values processed by a core returns the error for all values on that core:
+
+> sapply(parallel::mclapply(1:16, function(x) if (x==4) stop("bail") else x), class)
+ [1] "integer"   "try-error" "integer"   "try-error" "integer"   "try-error"
+ [7] "integer"   "try-error" "integer"   "try-error" "integer"   "try-error"
+[13] "integer"   "try-error" "integer"   "try-error"
+Warning message:
+In parallel::mclapply(1:16, function(x) if (x == 4) stop("bail") else x) :
+  scheduled cores 2 encountered errors in user code, all values of the jobs will be affected
+
+so what you observed is merely the design of mclapply. What you really want is to find out where exactly the failure happens - best way is to simply wrap your code with tryCatch():
+
+> unlist(parallel::mclapply(1:16, function(x) tryCatch({ if (x == 4) stop("bail") else x; NULL }, error=function(e) x)))
+[1] 4
+
+Now you can put anything useful into the error function as well, so e.g. it can return the state of your data etc. Also try running gc() before mclapply() to make sure there are no unused connections.
+
+Cheers,
+Simon
+
+
+
+> On Sep 16, 2019, at 2:33 PM, Cook, Malcolm <MEC at stowers.org> wrote:
+> 
+> I am experiencing a strange issue in my use of mclapply.
+> 
+> mclapply is returning an error for every nth job, where n is the number of cores
+> 
+> As part of debugging, I'm reporting the indices of jobs which return an error. They are the same from run to run, until I change the value for mc.cores. I don't yet see what governs the value of the first error index, but subsequent errors occur every addition mc.cores slots.
+> 
+> Example: running 383 jobs across 70 cores, I report
+> *         FailCount: 5
+> *         FailIndex: 61 131 201 271 341
+> 
+> And notice that the diff(FailIndex) is consistently 70
+> 
+> Example: running the same 383 jobs (in the same order) across 80 cores, I report
+> *         FailCount: 5
+> *         FailIndex: 51 131 211 291 371
+> 
+> The 5 specific errors are all the same and are occurring within the creation of a plot using ggcyto::ggcyto. The error only occurs when a plot is attempted with an empty dataset (ggcyto has been fixed to be graceful with empty data, but I'm not running the latest). The dataset is read from disk within the forked process using flowCore::read.FCS. But, there is no reason that the dataset should be empty. It is as if somehow running under mclapply was effecting the io of read.FCS.
+> 
+> So far I tried,
+> *         Running job using lapply instead of mclapply. Result: all jobs complete; FailCount: 0.
+> *         Using simplified version of parallelization, directly using mccollect/mcparallel. Result: same pattern of error.
+> *         Changing mc.cores option (the number of cores used). Result: the jobs which produce the error change as described, every mc.cores-th job fails.
+> *         As suggested<https://community.rstudio.com/t/bug-ggsave-does-not-work-when-called-in-mclapply-in-rstudio-ide-same-code-works-perfect-at-cli/7991/2>, calling `suppressGraphics` (from R.devices) at top level of each forked process. Result: same pattern.
+> *         Removing dependency on data.table (rbindlist). Result: same pattern.
+> *         calling mclapply with mc.preschedule=FALSE. Result: only one job fails, whose index is the second one reported when mc.preschedule=TRUE for the same mc.core value.
+> 
+> I thought to additionally try:
+> *         pass an affinity.list to mclapply to ensure that forked jobs would not run on same processor as caller of mclapply (given a "hunch" that the error producing process may be running on the "head" node). Result: same as mc.preschedule=FALSE along. Not sure my implementation is correct:
+> 
+>        mclapply(input
+> 
+>                 ,processFiles
+> 
+>                 ,mc.preschedule=FALSE
+> 
+>                 ,affinity.list=rep(list(setdiff(1:detectCores()
+> 
+>                                               ,as.numeric(read.table("/proc/self/stat")$V39)))
+> 
+>                                  ,length(input)))
+> 
+> I have found the following reports of similar issues with no resolution
+> *         mclapply encounters errors depending on core id?<https://stackoverflow.com/questions/52745779/mclapply-encounters-errors-depending-on-core-id>
+> *         mclapply fails with data.table<https://stackoverflow.com/questions/54959207/mclapply-fails-with-data-table>
+> *         Bug: ggsave() does not work when called in mclapply() in RStudio IDE (same code works perfect at CLI)<https://community.rstudio.com/t/bug-ggsave-does-not-work-when-called-in-mclapply-in-rstudio-ide-same-code-works-perfect-at-cli/7991>
+> 
+> I appreciate any insight or guidance in how to better approach sleuthing the root cause or fixing this matter, or other reports of similar problems.
+> 
+> Thanks,
+> 
+> malcolm_cook at stowers.org
+> 
+> R version 3.5.2 (2018-12-20)
+> 
+> Platform: x86_64-pc-linux-gnu (64-bit)
+> 
+> Running under: CentOS Linux 7 (Core)
+> 
+> 
+> 
+> Matrix products: default
+> 
+> BLAS: /n/apps/CentOS7/install/r-3.5.2/lib64/R/lib/libRblas.so
+> 
+> LAPACK: /n/apps/CentOS7/install/r-3.5.2/lib64/R/lib/libRlapack.so
+> 
+> 
+> 
+> locale:
+> 
+> [1] C
+> 
+> 
+> 
+> attached base packages:
+> 
+> [1] parallel  stats     graphics  grDevices utils     datasets  methods
+> 
+> [8] base
+> 
+> 
+> 
+> other attached packages:
+> 
+> [1] R.devices_2.16.0          gtools_3.8.1
+> 
+> [3] ggcyto_1.10.2             flowWorkspace_3.30.2
+> 
+> [5] ncdfFlow_2.28.1           BH_1.69.0-1
+> 
+> [7] RcppArmadillo_0.9.400.3.0 flowCore_1.48.1
+> 
+> [9] ggplot2_3.1.1             ash_1.0-15
+> 
+> 
+> 
+> loaded via a namespace (and not attached):
+> 
+> [1] tidyselect_0.2.5    purrr_0.3.2         lattice_0.20-38
+> 
+> [4] pcaPP_1.9-73        colorspace_1.4-1    stats4_3.5.2
+> 
+> [7] base64enc_0.1-3     XML_3.98-1.19       rlang_0.3.4
+> 
+> [10] R.oo_1.22.0         hexbin_1.27.3       pillar_1.4.0
+> 
+> [13] R.utils_2.8.0       glue_1.3.1          withr_2.1.2
+> 
+> [16] Rgraphviz_2.26.0    BiocGenerics_0.28.0 RColorBrewer_1.1-2
+> 
+> [19] matrixStats_0.54.0  plyr_1.8.4          robustbase_0.93-5
+> 
+> [22] stringr_1.4.0       zlibbioc_1.28.0     munsell_0.5.0
+> 
+> [25] gtable_0.3.0        R.methodsS3_1.7.1   mvtnorm_1.0-10
+> 
+> [28] latticeExtra_0.6-28 Biobase_2.42.0      Cairo_1.5-10
+> 
+> [31] DEoptimR_1.0-8      Rcpp_1.0.1          KernSmooth_2.23-15
+> 
+> [34] corpcor_1.6.9       scales_1.0.0        graph_1.60.0
+> 
+> [37] IDPmisc_1.1.19      gridExtra_2.3       stringi_1.4.3
+> 
+> [40] dplyr_0.8.1         grid_3.5.2          tools_3.5.2
+> 
+> [43] magrittr_1.5        lazyeval_0.2.2      tibble_2.1.1
+> 
+> [46] cluster_2.0.9       crayon_1.3.4        rrcov_1.4-7
+> 
+> [49] pkgconfig_2.0.2     MASS_7.3-51.4       flowViz_1.46.1
+> 
+> [52] data.table_1.12.2   assertthat_0.2.1    R6_2.4.0
+> 
+> [55] compiler_3.5.2
+> 
+> 
+> 	[[alternative HTML version deleted]]
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+
+
+From MEC @end|ng |rom @tower@@org  Mon Sep 16 23:28:04 2019
+From: MEC @end|ng |rom @tower@@org (Cook, Malcolm)
+Date: Mon, 16 Sep 2019 21:28:04 +0000
+Subject: [R-sig-hpc] 
+ mclapply processes return an error for every nth job,
+ where n is the number of cores, using flowCore and ggcyto
+In-Reply-To: <E8AEA1A4-3BCF-4F2A-90B6-DE71FEB9D609@R-project.org>
+References: <BYAPR20MB2648BF9E0E6A44D0C47F3816BE8C0@BYAPR20MB2648.namprd20.prod.outlook.com>
+ <E8AEA1A4-3BCF-4F2A-90B6-DE71FEB9D609@R-project.org>
+Message-ID: <BYAPR20MB2648384F29A0F09972FCD3ABBE8C0@BYAPR20MB2648.namprd20.prod.outlook.com>
+
+Simon,
+
+Thanks for the reminder about mclapply, which allows me to zero-in on the single job which indeed had zero events (after filtering), thus triggering the error in the plot routine when passed no values to plot.
+
+Thanks very much.  Problem solved.
+
+FWIW & For your consideration/criticism: 
+
+I wound up writing a wrapper-generator for any function, FUN, to passed to mclapply(mc.preschedule=TRUE,...) which subverts the behavior of returning errors for all values on a given core to only returning errors for those raising them, as follows:
+
+    mcf<-function(f) {function(...) {tryCatch({f(...)} , error=function(e) e)}}
+
+To be called like this:
+
+  results<-parallel:mclapply(X,mcf(FUN))
+
+the indices of which results raised errors can be found as:
+
+  errorIndex<-which(unlist(lapply(results,inherits,'error')))
+
+allowing downstream processing as appropriate...
+
+Thanks again,
+
+~Malcolm
+
+
+> -----Original Message-----
+> From: Simon Urbanek <simon.urbanek at R-project.org>
+> Sent: Monday, September 16, 2019 2:10 PM
+> To: Cook, Malcolm <MEC at stowers.org>
+> Cc: r-sig-hpc at r-project.org
+> Subject: Re: [R-sig-hpc] mclapply processes return an error for every nth job,
+> where n is the number of cores, using flowCore and ggcyto
+> 
+> **CAUTION: Non-Stowers email**
+> 
+> 
+> Malcolm,
+> 
+> the way pre-scheduled mclapply() works is that an error in any of the values
+> processed by a core returns the error for all values on that core:
+> 
+> > sapply(parallel::mclapply(1:16, function(x) if (x==4) stop("bail") else x),
+> class)
+>  [1] "integer"   "try-error" "integer"   "try-error" "integer"   "try-error"
+>  [7] "integer"   "try-error" "integer"   "try-error" "integer"   "try-error"
+> [13] "integer"   "try-error" "integer"   "try-error"
+> Warning message:
+> In parallel::mclapply(1:16, function(x) if (x == 4) stop("bail") else x) :
+>   scheduled cores 2 encountered errors in user code, all values of the jobs
+> will be affected
+> 
+> so what you observed is merely the design of mclapply. What you really want
+> is to find out where exactly the failure happens - best way is to simply wrap
+> your code with tryCatch():
+> 
+> > unlist(parallel::mclapply(1:16, function(x) tryCatch({ if (x == 4) stop("bail")
+> else x; NULL }, error=function(e) x)))
+> [1] 4
+> 
+> Now you can put anything useful into the error function as well, so e.g. it can
+> return the state of your data etc. Also try running gc() before mclapply() to
+> make sure there are no unused connections.
+> 
+> Cheers,
+> Simon
+> 
+> 
+> 
+> > On Sep 16, 2019, at 2:33 PM, Cook, Malcolm <MEC at stowers.org> wrote:
+> >
+> > I am experiencing a strange issue in my use of mclapply.
+> >
+> > mclapply is returning an error for every nth job, where n is the number of
+> cores
+> >
+> > As part of debugging, I'm reporting the indices of jobs which return an
+> error. They are the same from run to run, until I change the value for
+> mc.cores. I don't yet see what governs the value of the first error index, but
+> subsequent errors occur every addition mc.cores slots.
+> >
+> > Example: running 383 jobs across 70 cores, I report
+> > *         FailCount: 5
+> > *         FailIndex: 61 131 201 271 341
+> >
+> > And notice that the diff(FailIndex) is consistently 70
+> >
+> > Example: running the same 383 jobs (in the same order) across 80 cores, I
+> report
+> > *         FailCount: 5
+> > *         FailIndex: 51 131 211 291 371
+> >
+> > The 5 specific errors are all the same and are occurring within the creation
+> of a plot using ggcyto::ggcyto. The error only occurs when a plot is attempted
+> with an empty dataset (ggcyto has been fixed to be graceful with empty data,
+> but I'm not running the latest). The dataset is read from disk within the forked
+> process using flowCore::read.FCS. But, there is no reason that the dataset
+> should be empty. It is as if somehow running under mclapply was effecting the
+> io of read.FCS.
+> >
+> > So far I tried,
+> > *         Running job using lapply instead of mclapply. Result: all jobs
+> complete; FailCount: 0.
+> > *         Using simplified version of parallelization, directly using
+> mccollect/mcparallel. Result: same pattern of error.
+> > *         Changing mc.cores option (the number of cores used). Result: the
+> jobs which produce the error change as described, every mc.cores-th job
+> fails.
+> > *         As suggested<https://community.rstudio.com/t/bug-ggsave-does-not-
+> work-when-called-in-mclapply-in-rstudio-ide-same-code-works-perfect-at-
+> cli/7991/2>, calling `suppressGraphics` (from R.devices) at top level of each
+> forked process. Result: same pattern.
+> > *         Removing dependency on data.table (rbindlist). Result: same pattern.
+> > *         calling mclapply with mc.preschedule=FALSE. Result: only one job
+> fails, whose index is the second one reported when mc.preschedule=TRUE for
+> the same mc.core value.
+> >
+> > I thought to additionally try:
+> > *         pass an affinity.list to mclapply to ensure that forked jobs would not
+> run on same processor as caller of mclapply (given a "hunch" that the error
+> producing process may be running on the "head" node). Result: same as
+> mc.preschedule=FALSE along. Not sure my implementation is correct:
+> >
+> >        mclapply(input
+> >
+> >                 ,processFiles
+> >
+> >                 ,mc.preschedule=FALSE
+> >
+> >                 ,affinity.list=rep(list(setdiff(1:detectCores()
+> >
+> >                                               ,as.numeric(read.table("/proc/self/stat")$V39)))
+> >
+> >                                  ,length(input)))
+> >
+> > I have found the following reports of similar issues with no resolution
+> > *         mclapply encounters errors depending on core
+> id?<https://stackoverflow.com/questions/52745779/mclapply-encounters-
+> errors-depending-on-core-id>
+> > *         mclapply fails with
+> data.table<https://stackoverflow.com/questions/54959207/mclapply-fails-
+> with-data-table>
+> > *         Bug: ggsave() does not work when called in mclapply() in RStudio IDE
+> (same code works perfect at CLI)<https://community.rstudio.com/t/bug-
+> ggsave-does-not-work-when-called-in-mclapply-in-rstudio-ide-same-code-
+> works-perfect-at-cli/7991>
+> >
+> > I appreciate any insight or guidance in how to better approach sleuthing the
+> root cause or fixing this matter, or other reports of similar problems.
+> >
+> > Thanks,
+> >
+> > malcolm_cook at stowers.org
+> >
+> > R version 3.5.2 (2018-12-20)
+> >
+> > Platform: x86_64-pc-linux-gnu (64-bit)
+> >
+> > Running under: CentOS Linux 7 (Core)
+> >
+> >
+> >
+> > Matrix products: default
+> >
+> > BLAS: /n/apps/CentOS7/install/r-3.5.2/lib64/R/lib/libRblas.so
+> >
+> > LAPACK: /n/apps/CentOS7/install/r-3.5.2/lib64/R/lib/libRlapack.so
+> >
+> >
+> >
+> > locale:
+> >
+> > [1] C
+> >
+> >
+> >
+> > attached base packages:
+> >
+> > [1] parallel  stats     graphics  grDevices utils     datasets  methods
+> >
+> > [8] base
+> >
+> >
+> >
+> > other attached packages:
+> >
+> > [1] R.devices_2.16.0          gtools_3.8.1
+> >
+> > [3] ggcyto_1.10.2             flowWorkspace_3.30.2
+> >
+> > [5] ncdfFlow_2.28.1           BH_1.69.0-1
+> >
+> > [7] RcppArmadillo_0.9.400.3.0 flowCore_1.48.1
+> >
+> > [9] ggplot2_3.1.1             ash_1.0-15
+> >
+> >
+> >
+> > loaded via a namespace (and not attached):
+> >
+> > [1] tidyselect_0.2.5    purrr_0.3.2         lattice_0.20-38
+> >
+> > [4] pcaPP_1.9-73        colorspace_1.4-1    stats4_3.5.2
+> >
+> > [7] base64enc_0.1-3     XML_3.98-1.19       rlang_0.3.4
+> >
+> > [10] R.oo_1.22.0         hexbin_1.27.3       pillar_1.4.0
+> >
+> > [13] R.utils_2.8.0       glue_1.3.1          withr_2.1.2
+> >
+> > [16] Rgraphviz_2.26.0    BiocGenerics_0.28.0 RColorBrewer_1.1-2
+> >
+> > [19] matrixStats_0.54.0  plyr_1.8.4          robustbase_0.93-5
+> >
+> > [22] stringr_1.4.0       zlibbioc_1.28.0     munsell_0.5.0
+> >
+> > [25] gtable_0.3.0        R.methodsS3_1.7.1   mvtnorm_1.0-10
+> >
+> > [28] latticeExtra_0.6-28 Biobase_2.42.0      Cairo_1.5-10
+> >
+> > [31] DEoptimR_1.0-8      Rcpp_1.0.1          KernSmooth_2.23-15
+> >
+> > [34] corpcor_1.6.9       scales_1.0.0        graph_1.60.0
+> >
+> > [37] IDPmisc_1.1.19      gridExtra_2.3       stringi_1.4.3
+> >
+> > [40] dplyr_0.8.1         grid_3.5.2          tools_3.5.2
+> >
+> > [43] magrittr_1.5        lazyeval_0.2.2      tibble_2.1.1
+> >
+> > [46] cluster_2.0.9       crayon_1.3.4        rrcov_1.4-7
+> >
+> > [49] pkgconfig_2.0.2     MASS_7.3-51.4       flowViz_1.46.1
+> >
+> > [52] data.table_1.12.2   assertthat_0.2.1    R6_2.4.0
+> >
+> > [55] compiler_3.5.2
+> >
+> >
+> >       [[alternative HTML version deleted]]
+> >
+> > _______________________________________________
+> > R-sig-hpc mailing list
+> > R-sig-hpc at r-project.org
+> > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> >
+
+

@@ -1,0 +1,3625 @@
+From malcolm.croucher at gmail.com  Sat May  2 20:03:47 2009
+From: malcolm.croucher at gmail.com (malcolm Crouch)
+Date: Sat, 2 May 2009 20:03:47 +0200
+Subject: [R-sig-hpc] distributed R on EC2, designing the software stack
+In-Reply-To: <1e7471d50904291236s69ca16a4k22e72e7696cc8268@mail.gmail.com>
+References: <9b4cc5750904291206k20d8ff36ge58e20ef242e6151@mail.gmail.com>
+	<8ec76080904291224x63db082bnd9f2aa585fa37eeb@mail.gmail.com>
+	<1e7471d50904291236s69ca16a4k22e72e7696cc8268@mail.gmail.com>
+Message-ID: <386fa5610905021103u4edfc511y85fdaf21f3708644@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090502/cc1952d9/attachment.pl>
+
+From saptarshi.guha at gmail.com  Sat May  2 21:00:44 2009
+From: saptarshi.guha at gmail.com (Saptarshi Guha)
+Date: Sat, 2 May 2009 15:00:44 -0400
+Subject: [R-sig-hpc] distributed R on EC2, designing the software stack
+In-Reply-To: <386fa5610905021103u4edfc511y85fdaf21f3708644@mail.gmail.com>
+References: <9b4cc5750904291206k20d8ff36ge58e20ef242e6151@mail.gmail.com>
+	<8ec76080904291224x63db082bnd9f2aa585fa37eeb@mail.gmail.com>
+	<1e7471d50904291236s69ca16a4k22e72e7696cc8268@mail.gmail.com>
+	<386fa5610905021103u4edfc511y85fdaf21f3708644@mail.gmail.com>
+Message-ID: <1e7471d50905021200p406fa449jfc63fe6eefb06ad2@mail.gmail.com>
+
+Hello,
+I've been testing R across clusters and will execute some more in
+depth tests over the weekend.
+However, it depends on what Instance Types you use (types and cost:
+http://aws.amazon.com/ec2/instance-types/)
+
+I used a cluster of 15 "standard large instance", for less than  1 hr,
+which cost me $6. Intra EC2 bandwidth is free (in the same region),
+and downloading a GB from outside of the EC2 is ~$0.1 per GB. So, yes,
+depending on the budget (i'm a grad student and it is turning out to
+be expensive) it can easily run into hundreds of dollars on a monthly
+basis if used regularly.
+
+Keep in mind that if you have a web service running on an instance and
+check the website (e.g cluster status monitoring) from outside the EC2
+an expense is incurred. Also as soon as the instance is up and running
+you're being charged. Do not forget to terminate them!
+
+I'll be tabulating my performance and expenditure in the coming week.
+
+Hope it helps
+Saptarshi Guha
+
+
+
+On Sat, May 2, 2009 at 2:03 PM, malcolm Crouch
+<malcolm.croucher at gmail.com> wrote:
+>
+> Hi ,
+>
+>
+> i have looked at the pricing for Amazon , however am wondering from a
+> practical point of view what roughly your monthly costs are ?
+>
+> I am interested in using this service as I dont have access to a cluster but
+> need to do a feasilibilty study ... therefore some ideas on costing would be
+> useful.
+>
+> Regards
+>
+> Malcolm
+> On Wed, Apr 29, 2009 at 9:36 PM, Saptarshi Guha <saptarshi.guha at gmail.com>
+> wrote:
+>>
+>> Hello,
+>> Yes, I was playing with EC2 and Rhipe last night. Just got permission
+>> to increase my instances to 100!
+>> The details (what I know)
+>> RHIPE is based on Hadoop and R. Cloudera has a very easy to use AMI
+>> for small and large (32/64bit) instances. It is easy enough to install
+>> the cloudera AMI.
+>> However It does not come with R.
+>>
+>> Last night, I modified their scripts to yum install R (using yum we
+>> get R-2.6) on each machine - as such this results in ~21MB downloads
+>> on the machines[1], which is not expensive but is not the best way do
+>> things.
+>>
+>> Once booted, each machine installs R, Rserve and one machine (the
+>> master) installs RHIPE.
+>> I did it with 1 master and 1 tasktracker and RHIPE worked. I intend to
+>> check with 30+ instances to see how things scale.
+>>
+>> I have emailed cloudera asking them to bundle R with their Hadoop AMI
+>> - so that users incur a minimal expense.
+>>
+>> I will be placing EC2 instructions to use RHIPE shortly this week.
+>> Given the reasonable cost of EC2, it would be a great way for users to
+>> test out distributed computing with R. Maybe as part of the R
+>> community we could host a linux AMI? Again, cost is the issue
+>> here(rather not pay for users downloading things)
+>>
+>> Regards
+>> Saptarshi Guha
+>> [1] Not quite sure how the AMI's work - if 10 AMIs belong to one
+>> group, does EC2 boot up one and replicate the booted instance? If so,
+>> then there is only one download, if not each machine downloads.
+>>
+>>
+>> On Wed, Apr 29, 2009 at 3:24 PM, Whit Armstrong
+>> <armstrong.whit at gmail.com> wrote:
+>> > you should contact Robert Grossman who just gave a presentation on
+>> > this topic at R/Finance in Chicago.
+>> >
+>> > link: http://rinfinance.quantmod.com/speakers/
+>> >
+>> > -Whit
+>> >
+>> >
+>> > On Wed, Apr 29, 2009 at 3:06 PM, Stephen J. Barr
+>> > <stephenjbarr at gmail.com> wrote:
+>> >> Greetings,
+>> >>
+>> >> I am trying to get into distributed computing with R, but do not have
+>> >> access to a cluster. Therefore, I am trying to get distributed R
+>> >> running on Amazon's EC2. ( http://aws.amazon.com/ec2/ )
+>> >>
+>> >> For those of you who don't know, EC2 allows you to instantiate large
+>> >> numbers of computers, bundled with whatever OS and software
+>> >> configuration you want. From my survey of things, there are a lot of
+>> >> different options available for distributed computing. For my needs, I
+>> >> would just like to run simple Monte Carlo simulations, and other
+>> >> things that don't require a ton of inter-node communication.
+>> >>
+>> >> What I would like to do is put together a public AMI and a howto
+>> >> guide, such that it would be very easy for anyone to instantiate an
+>> >> N-node cluster and start with parallel computing. I would like to have
+>> >> a discussion/brainstorm over what the exact software stack should be.
+>> >>
+>> >> My initial thoughts were:
+>> >>
+>> >> 1) R 2.9.0 + OpenMPI + RMpi + Snowfall/sfCluster
+>> >> ? - will Amazon's network work with OpenMPI. Perhaps it would be
+>> >> better to use PVM or something that is more tolerant to non-optimal
+>> >> network
+>> >>
+>> >> 2) ?R 2.9.0 + "socket based communication" + Snowfall/sfCluster
+>> >> ?- is this scalable
+>> >>
+>> >> 3) ?R 2.9.0 + twisted + NetWorkSpaces
+>> >> ? - not sure of Amazon's network supports broadcast mode, which is
+>> >> required by twisted
+>> >>
+>> >> 4) Biocep-R
+>> >> ? - this looks like it has the functionality to do what I want, but a
+>> >> lot of other stuff as well.
+>> >>
+>> >> 5) RHIPE
+>> >> ? - Hadoop is well supported by EC2. Perhaps this is the way to go.
+>> >> Seems like a very new package :)
+>> >>
+>> >> What are people's thoughts on what would be a good software stack with
+>> >> the constraint that it should be simple and run on EC2?
+>> >>
+>> >> Thanks,
+>> >> -stephen
+>> >> ==========================================
+>> >> Stephen J. Barr
+>> >> University of Washington
+>> >> WEB: www.econsteve.com
+>> >>
+>> >> _______________________________________________
+>> >> R-sig-hpc mailing list
+>> >> R-sig-hpc at r-project.org
+>> >> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>> >>
+>> >
+>> > _______________________________________________
+>> > R-sig-hpc mailing list
+>> > R-sig-hpc at r-project.org
+>> > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>> >
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+>
+>
+> --
+> Malcolm A.B Croucher
+>
+
+
+From edd at debian.org  Sat May  2 21:25:28 2009
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Sat, 2 May 2009 14:25:28 -0500
+Subject: [R-sig-hpc] distributed R on EC2, designing the software stack
+In-Reply-To: <1e7471d50905021200p406fa449jfc63fe6eefb06ad2@mail.gmail.com>
+References: <9b4cc5750904291206k20d8ff36ge58e20ef242e6151@mail.gmail.com>
+	<8ec76080904291224x63db082bnd9f2aa585fa37eeb@mail.gmail.com>
+	<1e7471d50904291236s69ca16a4k22e72e7696cc8268@mail.gmail.com>
+	<386fa5610905021103u4edfc511y85fdaf21f3708644@mail.gmail.com>
+	<1e7471d50905021200p406fa449jfc63fe6eefb06ad2@mail.gmail.com>
+Message-ID: <18940.40488.51749.467145@ron.nulle.part>
+
+
+The Eucalyptus project from UCSB provides 'plug and play' Amazon-compatible
+cloud services for your local lan. As of last week's Ubuntu release '9.04',
+it is even included there.  I am now sure excatly how featureful it is right
+now -- apparently more is coming with the 9.10 release in September.
+
+So google 'Eucalyptus Ubuntu' for a few blog posts and web pages on this. If
+cost is a concern, or if you want to keep it local for security or privacy
+reason, the Eucalyptus may be an alternative.
+
+Dirk
+
+-- 
+Three out of two people have difficulties with fractions.
+
+
+From nathan.watson-haigh at csiro.au  Tue May  5 06:00:33 2009
+From: nathan.watson-haigh at csiro.au (Nathan S. Watson-Haigh)
+Date: Tue, 5 May 2009 14:00:33 +1000
+Subject: [R-sig-hpc] Broadcast large matrix to slaves
+Message-ID: <49FFB9E1.5020909@csiro.au>
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+I'd like to broadcast a large matrix symmetrical matrix (17190 x 17190) to all
+slaves. However I get the following error:
+Error: serialization is too large to store in a raw vector
+
+Is there any way I could send such a large matrix to the slaves? Since it's
+symmetrical I could send just one triangle along with the diagonal, but I'd like
+to know why a large matrix can't be sent and if it can be circumvented!
+
+Cheers,
+Nath
+
+- --
+- --------------------------------------------------------
+Dr. Nathan S. Watson-Haigh
+OCE Post Doctoral Fellow
+CSIRO Livestock Industries
+Queensland Bioscience Precinct
+St Lucia, QLD 4067
+Australia
+
+Tel: +61 (0)7 3214 2922
+Fax: +61 (0)7 3214 2900
+Web: http://www.csiro.au/people/Nathan.Watson-Haigh.html
+- --------------------------------------------------------
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.9 (MingW32)
+Comment: Using GnuPG with Mozilla - http://enigmail.mozdev.org
+
+iEYEARECAAYFAkn/ueAACgkQ9gTv6QYzVL6ZcgCcC65KI9C0ZI6y2AFiNjx4Inr9
+1GMAoNRzjLv9F8dFAqlhaxz5XpgTyefg
+=yse5
+-----END PGP SIGNATURE-----
+
+
+From jgarcia at ija.csic.es  Tue May  5 16:03:14 2009
+From: jgarcia at ija.csic.es (jgarcia at ija.csic.es)
+Date: Tue, 5 May 2009 16:03:14 +0200 (CEST)
+Subject: [R-sig-hpc] Broadcast large matrix to slaves. A similar problem
+	with snow
+In-Reply-To: <49FFB9E1.5020909@csiro.au>
+References: <49FFB9E1.5020909@csiro.au>
+Message-ID: <51756.86.0.49.130.1241532194.squirrel@paleo.ija.csic.es>
+
+Hello all,
+I'm also having problems with library snow 0.3-3 an R
+
+I'm using
+
+makeSOCKcluster(...)
+
+and the cluster is a TORQUE PBS. In the past (last year) I used to pass
+complete lists of parameters to conduct Monte Carlo runs in slave nodes,
+up to for 8000 simulations. Now if I use > 1000 the system has an SIGKILL.
+The administrators are helping but they do not know R nor snow(). Thus we
+are are not sure if the problem is with Torque or with R-snow().
+
+Do you know of any related problem, and if this may be ocurring with snow?
+
+Thanks,
+
+Best regards,
+Javier Garc?a-Pintado
+---------
+
+
+
+> -----BEGIN PGP SIGNED MESSAGE-----
+> Hash: SHA1
+>
+> I'd like to broadcast a large matrix symmetrical matrix (17190 x 17190) to
+> all
+> slaves. However I get the following error:
+> Error: serialization is too large to store in a raw vector
+>
+> Is there any way I could send such a large matrix to the slaves? Since
+> it's
+> symmetrical I could send just one triangle along with the diagonal, but
+> I'd like
+> to know why a large matrix can't be sent and if it can be circumvented!
+>
+> Cheers,
+> Nath
+>
+> - --
+> - --------------------------------------------------------
+> Dr. Nathan S. Watson-Haigh
+> OCE Post Doctoral Fellow
+> CSIRO Livestock Industries
+> Queensland Bioscience Precinct
+> St Lucia, QLD 4067
+> Australia
+>
+> Tel: +61 (0)7 3214 2922
+> Fax: +61 (0)7 3214 2900
+> Web: http://www.csiro.au/people/Nathan.Watson-Haigh.html
+> - --------------------------------------------------------
+>
+> -----BEGIN PGP SIGNATURE-----
+> Version: GnuPG v1.4.9 (MingW32)
+> Comment: Using GnuPG with Mozilla - http://enigmail.mozdev.org
+>
+> iEYEARECAAYFAkn/ueAACgkQ9gTv6QYzVL6ZcgCcC65KI9C0ZI6y2AFiNjx4Inr9
+> 1GMAoNRzjLv9F8dFAqlhaxz5XpgTyefg
+> =yse5
+> -----END PGP SIGNATURE-----
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From nathan.watson-haigh at csiro.au  Wed May  6 00:41:22 2009
+From: nathan.watson-haigh at csiro.au (Nathan S. Watson-Haigh)
+Date: Wed, 6 May 2009 08:41:22 +1000
+Subject: [R-sig-hpc] Broadcast large matrix to slaves
+In-Reply-To: <18944.11983.488235.808699@ron.nulle.part>
+References: <49FFB9E1.5020909@csiro.au>
+	<18944.11983.488235.808699@ron.nulle.part>
+Message-ID: <4A00C092.3020004@csiro.au>
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+Dirk Eddelbuettel wrote:
+> On 5 May 2009 at 14:00, Nathan S. Watson-Haigh wrote:
+> | -----BEGIN PGP SIGNED MESSAGE-----
+> | Hash: SHA1
+> | 
+> | I'd like to broadcast a large matrix symmetrical matrix (17190 x 17190) to all
+> | slaves. However I get the following error:
+> | Error: serialization is too large to store in a raw vector
+> | 
+> | Is there any way I could send such a large matrix to the slaves? Since it's
+> | symmetrical I could send just one triangle along with the diagonal, but I'd like
+> | to know why a large matrix can't be sent and if it can be circumvented!
+> 
+> 
+> edd at ron:~> r -p -e '17190*17190'
+> [1] 295496100
+> edd at ron:~> r -p -e '17190*17190/1024/1024'
+> [1] 281.8
+> edd at ron:~>
+
+Actually, the memory requirement for the matrix is:
+> 17190^2*8/(1024^3)
+[1] 2.201618
+
+That's 2.2Gb! I had hoped I'd be able to do this:
+> values <- m[upper.tri(m, diag=TRUE)]
+> length(values)
+[1] 147756645
+> mpi.bcast.Robj2slave(values)
+
+And then in the slave do this:
+> make.symmetric <- function(values){
++ # Values specify row-wise lower triangle or column-wise upper triangle
++ # Note:
++ #   if length of values isn't triangular, specifically the nth triangular
++ #   number, it will fill completely the largest matrix it can and throw the
++ #   warning:
++ #   "number of items to replace is not a multiple of replacement length"
++ .nth <- floor((sqrt(8*length(values) + 1) - 1) / 2)
++ .matrix <- matrix(0, .nth, .nth)
++ .matrix[upper.tri(.matrix, diag=TRUE)] <- values
++ .matrix <- .matrix + t(.matrix) - diag(diag(.matrix))
++ # Could use instead of line above:
++ #   .select <- lower.tri(.matrix)
++ #   .matrix[.select] <- t(.matrix)[.select]
++ .matrix
++ }
+> m <- make.symmetric(values)
+
+This way, I'm passing just over half the amount of data to the slaves, but I
+still get the error:
+Error: serialization is too large to store in a raw vector
+
+According to serialize docs:
+"A raw vector is limited to 2^31 - 1 bytes, but R objects can exceed this and
+their serializations will normally be larger than the objects."
+
+The size (bytes) of my upper triangle vector is:
+> (length(values)*8)
+[1] 2363968800
+
+Which is bigger than the limit suggested by serialize:
+> 2^31 - 1
+[1] 2147483647
+
+Therefore I will rethink my approach, possibly loading the data from file in
+each slave.
+
+Cheers,
+Nath
+
+
+
+> 
+> 280mb is indeed a lot. A general rule of thumb is to minimise communication
+> and maximise computation on the nodes.  Maybe in this case you need to save
+> the matrix and ship the file to the slaves, and reload it there. Would that
+> work?
+> 
+> Dirk
+> 
+
+
+- --
+- --------------------------------------------------------
+Dr. Nathan S. Watson-Haigh
+OCE Post Doctoral Fellow
+CSIRO Livestock Industries
+Queensland Bioscience Precinct
+St Lucia, QLD 4067
+Australia
+
+Tel: +61 (0)7 3214 2922
+Fax: +61 (0)7 3214 2900
+Web: http://www.csiro.au/people/Nathan.Watson-Haigh.html
+- --------------------------------------------------------
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.9 (MingW32)
+Comment: Using GnuPG with Mozilla - http://enigmail.mozdev.org
+
+iEYEARECAAYFAkoAwJIACgkQ9gTv6QYzVL4xdQCcC355sNRHBp1Gwaz8JqEGB3Jp
+xIsAoJS3cD4xgj1OHitTm/jvTd1gWw8A
+=wF/Z
+-----END PGP SIGNATURE-----
+
+
+From aaboueissa at usm.maine.edu  Wed May  6 23:31:31 2009
+From: aaboueissa at usm.maine.edu (AbouEl-Makarim Aboueissa)
+Date: Wed, 06 May 2009 17:31:31 -0400
+Subject: [R-sig-hpc] Help wanted with R
+Message-ID: <4A01C972.01BB.00A6.1@usm.maine.edu>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090506/3b8c1176/attachment.pl>
+
+From Mizanur.Khondoker at ed.ac.uk  Thu May  7 13:06:21 2009
+From: Mizanur.Khondoker at ed.ac.uk (Mizanur Khondoker)
+Date: Thu, 7 May 2009 12:06:21 +0100
+Subject: [R-sig-hpc] R-sig-hpc Digest, Vol 8, Issue 5
+In-Reply-To: <mailman.31.1241690408.21268.r-sig-hpc@r-project.org>
+References: <mailman.31.1241690408.21268.r-sig-hpc@r-project.org>
+Message-ID: <a3b32af80905070406x629762a6v31181e4c53de091@mail.gmail.com>
+
+> From: "AbouEl-Makarim Aboueissa" <aaboueissa at usm.maine.edu>
+> Subject: [R-sig-hpc] Help wanted with R
+
+>
+> Dear All:
+> How I can get the following plots (these just examples, I still have more) in R. Please see plots at:
+>
+> http://www.usm.maine.edu/~aaboueissa/Rhelps/plots_1.jpg
+
+Try using the polygon function
+?polygon   - for help.
+
+This however is not the right list for your question.  Post your
+question to r-hep for more help.
+
+ ---
+Mizanur Khondoker
+Division of Pathway Medicine (DPM)
+The University of Edinburgh Medical School
+The Chancellor's Building
+49 Little France Crescent
+Edinburgh EH16 4SB
+United Kingdom
+
+Tel:  +44 (0) 131 242 6287
+Fax: +44 (0) 131 242 6244
+http://homepages.ed.ac.uk/mkhondok
+
+
+From Mizanur.Khondoker at ed.ac.uk  Thu May  7 13:13:12 2009
+From: Mizanur.Khondoker at ed.ac.uk (Mizanur Khondoker)
+Date: Thu, 7 May 2009 12:13:12 +0100
+Subject: [R-sig-hpc] R-sig-hpc Digest, Vol 8, Issue 5
+In-Reply-To: <a3b32af80905070406x629762a6v31181e4c53de091@mail.gmail.com>
+References: <mailman.31.1241690408.21268.r-sig-hpc@r-project.org>
+	<a3b32af80905070406x629762a6v31181e4c53de091@mail.gmail.com>
+Message-ID: <a3b32af80905070413r228125bbibb79dc88768c1071@mail.gmail.com>
+
+Sorry, I meant r-help
+
+> From: "AbouEl-Makarim Aboueissa" <aaboueissa at usm.maine.edu>
+> Subject: [R-sig-hpc] Help wanted with R
+
+>
+> Dear All:
+> How I can get the following plots (these just examples, I still have more) in R. Please see plots at:
+>
+> http://www.usm.maine.edu/~aaboueissa/Rhelps/plots_1.jpg
+
+Try using the polygon function
+?polygon   - for help.
+
+This however is not the right list for your question.  Post your
+question to r-hep for more help.
+
+ ---
+Mizanur Khondoker
+Division of Pathway Medicine (DPM)
+The University of Edinburgh Medical School
+The Chancellor's Building
+49 Little France Crescent
+Edinburgh EH16 4SB
+United Kingdom
+
+
+From HodgessE at uhd.edu  Thu May  7 13:20:31 2009
+From: HodgessE at uhd.edu (Hodgess, Erin)
+Date: Thu, 7 May 2009 06:20:31 -0500
+Subject: [R-sig-hpc] nvidia GPGPU with R?
+Message-ID: <70A5AC06FDB5E54482D19E1C04CDFCF307C36D19@BALI.uhd.campus>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090507/16a2ab6d/attachment.pl>
+
+From rab at consolidated.net  Mon May 11 15:45:10 2009
+From: rab at consolidated.net (Rick B.)
+Date: Mon, 11 May 2009 09:45:10 -0400
+Subject: [R-sig-hpc] Problems Installing Rmpi
+Message-ID: <1242049510.22131.25.camel@rab45-1.paries.pitt.edu>
+
+I'm running CentOS 5.3 on a dual quad core opteron 64-bit system. I've
+installed openmpi and it appears to be working:
+
+[root at rab45-1 rick]# ompi_info --all | more
+DAT Registry: sysconfdir, bad filename - /etc/ofed/dat.conf, retry
+default at /etc/dat.conf
+DAT Registry: default, bad filename - /etc/dat.conf, aborting
+                Open MPI: 1.2.7
+   Open MPI SVN revision: r19401
+                Open RTE: 1.2.7
+   Open RTE SVN revision: r19401
+                    OPAL: 1.2.7
+.
+.
+.
+
+                  Prefix: /usr/lib64/openmpi/1.2.7-gcc
+                  Bindir: /usr/lib64/openmpi/1.2.7-gcc/bin
+                  Libdir: /usr/lib64/openmpi/1.2.7-gcc/lib
+                  Incdir: /usr/lib64/openmpi/1.2.7-gcc/include
+               Pkglibdir: /usr/lib64/openmpi/1.2.7-gcc/lib/openmpi
+              Sysconfdir: /usr/lib64/openmpi/1.2.7-gcc/etc
+ Configured architecture: x86_64-unknown-linux-gnu
+           Configured by: mockbuild
+           Configured on: Wed Jan 21 05:20:20 EST 2009
+          Configure host: builder10.centos.org
+                Built by: mockbuild
+                Built on: Wed Jan 21 05:29:13 EST 2009
+              Built host: builder10.centos.org
+              C bindings: yes
+            C++ bindings: yes
+      Fortran77 bindings: yes (all)
+      Fortran90 bindings: yes
+ Fortran90 bindings size: small
+              C compiler: gcc
+     C compiler absolute: /usr/bin/gcc
+             C char size: 1
+             C bool size: 1
+            C short size: 2
+              C int size: 4
+             C long size: 8
+            C float size: 4
+           C double size: 8
+          C pointer size: 8
+            C char align: 1
+            C bool align: 1
+             C int align: 4
+           C float align: 4
+          C double align: 8
+            C++ compiler: g++
+   C++ compiler absolute: /usr/bin/g++
+      Fortran77 compiler: gfortran
+  Fortran77 compiler abs: /usr/bin/gfortran
+      Fortran90 compiler: gfortran
+
+and lots more output.
+
+When I try to install Rmpi for R version 2.8.1:
+
+[root at rab45-1 rick]# R CMD INSTALL Rmpi_0.5-7.tar.gz
+--configure-args=--with-mpi=/usr/lib64/openmpi/1.2.7-gcc/
+* Installing to library '/usr/lib64/R/library'
+* Installing *source* package 'Rmpi' ...
+checking for gcc... gcc
+checking for C compiler default output file name... a.out
+checking whether the C compiler works... yes
+checking whether we are cross compiling... no
+checking for suffix of executables... 
+checking for suffix of object files... o
+checking whether we are using the GNU C compiler... yes
+checking whether gcc accepts -g... yes
+checking for gcc option to accept ISO C89... none needed
+Try to find mpi.h ...
+Found in /usr/lib64/openmpi/1.2.7-gcc//include
+Try to find libmpi.so or libmpich.a
+Found libmpi in /usr/lib64/openmpi/1.2.7-gcc//lib
+checking for openpty in -lutil... yes
+checking for main in -lpthread... yes
+configure: creating ./config.status
+config.status: creating src/Makevars
+** libs
+gcc -I/usr/lib64/R/include -I/usr/lib64/openmpi/1.2.7-gcc/include/mpi.h
+-I/usr/local/include    -fpic  -O3 -g -std=gnu99 -c conversion.c -o
+conversion.o
+cc1: error: /usr/lib64/openmpi/1.2.7-gcc/include/mpi.h: not a directory
+make: *** [conversion.o] Error 1
+chmod: cannot access `/usr/lib64/R/library/Rmpi/libs/*': No such file or
+directory
+ERROR: compilation failed for package 'Rmpi'
+** Removing '/usr/lib64/R/library/Rmpi'
+
+
+I don't understand the error message. Why does Rmpi install script send
+a file name if it really wants just the directory name?
+
+If I shorten or lengthen the mpi path or don't use configure-args at
+all, Rmpi always fails when it cannot find mpi.h.
+
+Any suggestions on fixing this will be greatly appreciated.
+
+Rick B.
+
+
+From hyu at stats.uwo.ca  Mon May 11 16:00:17 2009
+From: hyu at stats.uwo.ca (Hao Yu)
+Date: Mon, 11 May 2009 10:00:17 -0400 (EDT)
+Subject: [R-sig-hpc] Problems Installing Rmpi
+In-Reply-To: <1242049510.22131.25.camel@rab45-1.paries.pitt.edu>
+References: <1242049510.22131.25.camel@rab45-1.paries.pitt.edu>
+Message-ID: <25491982ffc5cb555e84be3a821ada8e.squirrel@www.stats.uwo.ca>
+
+I am not so sure why Rmpi script doesn't supply include dir. Can you try
+R CMD INSTALL Rmpi_0.5-7.tar.gz
+--configure-args=--with-mpi=/usr/lib64/openmpi/1.2.7-gcc
+
+Hao
+
+Rick B. wrote:
+> I'm running CentOS 5.3 on a dual quad core opteron 64-bit system. I've
+> installed openmpi and it appears to be working:
+>
+> [root at rab45-1 rick]# ompi_info --all | more
+> DAT Registry: sysconfdir, bad filename - /etc/ofed/dat.conf, retry
+> default at /etc/dat.conf
+> DAT Registry: default, bad filename - /etc/dat.conf, aborting
+>                 Open MPI: 1.2.7
+>    Open MPI SVN revision: r19401
+>                 Open RTE: 1.2.7
+>    Open RTE SVN revision: r19401
+>                     OPAL: 1.2.7
+> .
+> .
+> .
+>
+>                   Prefix: /usr/lib64/openmpi/1.2.7-gcc
+>                   Bindir: /usr/lib64/openmpi/1.2.7-gcc/bin
+>                   Libdir: /usr/lib64/openmpi/1.2.7-gcc/lib
+>                   Incdir: /usr/lib64/openmpi/1.2.7-gcc/include
+>                Pkglibdir: /usr/lib64/openmpi/1.2.7-gcc/lib/openmpi
+>               Sysconfdir: /usr/lib64/openmpi/1.2.7-gcc/etc
+>  Configured architecture: x86_64-unknown-linux-gnu
+>            Configured by: mockbuild
+>            Configured on: Wed Jan 21 05:20:20 EST 2009
+>           Configure host: builder10.centos.org
+>                 Built by: mockbuild
+>                 Built on: Wed Jan 21 05:29:13 EST 2009
+>               Built host: builder10.centos.org
+>               C bindings: yes
+>             C++ bindings: yes
+>       Fortran77 bindings: yes (all)
+>       Fortran90 bindings: yes
+>  Fortran90 bindings size: small
+>               C compiler: gcc
+>      C compiler absolute: /usr/bin/gcc
+>              C char size: 1
+>              C bool size: 1
+>             C short size: 2
+>               C int size: 4
+>              C long size: 8
+>             C float size: 4
+>            C double size: 8
+>           C pointer size: 8
+>             C char align: 1
+>             C bool align: 1
+>              C int align: 4
+>            C float align: 4
+>           C double align: 8
+>             C++ compiler: g++
+>    C++ compiler absolute: /usr/bin/g++
+>       Fortran77 compiler: gfortran
+>   Fortran77 compiler abs: /usr/bin/gfortran
+>       Fortran90 compiler: gfortran
+>
+> and lots more output.
+>
+> When I try to install Rmpi for R version 2.8.1:
+>
+> [root at rab45-1 rick]# R CMD INSTALL Rmpi_0.5-7.tar.gz
+> --configure-args=--with-mpi=/usr/lib64/openmpi/1.2.7-gcc/
+> * Installing to library '/usr/lib64/R/library'
+> * Installing *source* package 'Rmpi' ...
+> checking for gcc... gcc
+> checking for C compiler default output file name... a.out
+> checking whether the C compiler works... yes
+> checking whether we are cross compiling... no
+> checking for suffix of executables...
+> checking for suffix of object files... o
+> checking whether we are using the GNU C compiler... yes
+> checking whether gcc accepts -g... yes
+> checking for gcc option to accept ISO C89... none needed
+> Try to find mpi.h ...
+> Found in /usr/lib64/openmpi/1.2.7-gcc//include
+> Try to find libmpi.so or libmpich.a
+> Found libmpi in /usr/lib64/openmpi/1.2.7-gcc//lib
+> checking for openpty in -lutil... yes
+> checking for main in -lpthread... yes
+> configure: creating ./config.status
+> config.status: creating src/Makevars
+> ** libs
+> gcc -I/usr/lib64/R/include -I/usr/lib64/openmpi/1.2.7-gcc/include/mpi.h
+> -I/usr/local/include    -fpic  -O3 -g -std=gnu99 -c conversion.c -o
+> conversion.o
+> cc1: error: /usr/lib64/openmpi/1.2.7-gcc/include/mpi.h: not a directory
+> make: *** [conversion.o] Error 1
+> chmod: cannot access `/usr/lib64/R/library/Rmpi/libs/*': No such file or
+> directory
+> ERROR: compilation failed for package 'Rmpi'
+> ** Removing '/usr/lib64/R/library/Rmpi'
+>
+>
+> I don't understand the error message. Why does Rmpi install script send
+> a file name if it really wants just the directory name?
+>
+> If I shorten or lengthen the mpi path or don't use configure-args at
+> all, Rmpi always fails when it cannot find mpi.h.
+>
+> Any suggestions on fixing this will be greatly appreciated.
+>
+> Rick B.
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+-- 
+Department of Statistics & Actuarial Sciences
+Fax Phone#:(519)-661-3813
+The University of Western Ontario
+Office Phone#:(519)-661-3622
+London, Ontario N6A 5B7
+http://www.stats.uwo.ca/faculty/yu
+
+
+From rab at consolidated.net  Mon May 11 19:35:45 2009
+From: rab at consolidated.net (R. A. Bilonick)
+Date: Mon, 11 May 2009 13:35:45 -0400
+Subject: [R-sig-hpc] Problems Installing Rmpi
+In-Reply-To: <25491982ffc5cb555e84be3a821ada8e.squirrel@www.stats.uwo.ca>
+References: <1242049510.22131.25.camel@rab45-1.paries.pitt.edu>
+	<25491982ffc5cb555e84be3a821ada8e.squirrel@www.stats.uwo.ca>
+Message-ID: <1242063345.17363.4.camel@localhost.localdomain>
+
+
+On Mon, 2009-05-11 at 10:00 -0400, Hao Yu wrote:
+> I am not so sure why Rmpi script doesn't supply include dir. Can you try
+> R CMD INSTALL Rmpi_0.5-7.tar.gz
+> --configure-args=--with-mpi=/usr/lib64/openmpi/1.2.7-gcc
+> 
+> Hao
+> 
+> Rick B. wrote:
+
+> > [root at rab45-1 rick]# R CMD INSTALL Rmpi_0.5-7.tar.gz
+> > --configure-args=--with-mpi=/usr/lib64/openmpi/1.2.7-gcc/
+
+Thanks, but what you seem to suggest only differs by a "/" at the end. I
+still get the same error which looks like an error in the Rmpi install
+script.
+
+Rick B.
+
+
+From rab at consolidated.net  Mon May 11 19:42:09 2009
+From: rab at consolidated.net (R. A. Bilonick)
+Date: Mon, 11 May 2009 13:42:09 -0400
+Subject: [R-sig-hpc] Problems Installing Rmpi
+In-Reply-To: <264855a00905110709v1d8ad994y14cb14474e4d8d29@mail.gmail.com>
+References: <1242049510.22131.25.camel@rab45-1.paries.pitt.edu>
+	<264855a00905110709v1d8ad994y14cb14474e4d8d29@mail.gmail.com>
+Message-ID: <1242063729.17363.8.camel@localhost.localdomain>
+
+
+On Mon, 2009-05-11 at 10:09 -0400, Sean Davis wrote:
+> Did you try:
+> 
+> # assumes that mpicc is in the PATH
+> CC=mpicc R CMD INSTALL Rmpi_0.5-7.tar.gz
+> 
+> This has worked for me on openSUSE in the past.
+> 
+> Sean
+
+
+Thanks. mpicc is in the path, but this fails -  it cannot find mpi.h. If
+I include "--configure-args=--with-mpi=/usr/lib64/openmpi/1.2.7-gcc" it
+fails the same way as before.
+
+Why is the Rmpi script asking for a directory but passing a file name?
+
+Rick B.
+
+
+From edd at debian.org  Mon May 11 19:56:48 2009
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Mon, 11 May 2009 12:56:48 -0500
+Subject: [R-sig-hpc] Problems Installing Rmpi
+In-Reply-To: <1242063729.17363.8.camel@localhost.localdomain>
+References: <1242049510.22131.25.camel@rab45-1.paries.pitt.edu>
+	<264855a00905110709v1d8ad994y14cb14474e4d8d29@mail.gmail.com>
+	<1242063729.17363.8.camel@localhost.localdomain>
+Message-ID: <18952.26336.39303.39033@ron.nulle.part>
+
+
+On 11 May 2009 at 13:42, R. A. Bilonick wrote:
+| On Mon, 2009-05-11 at 10:09 -0400, Sean Davis wrote:
+| > Did you try:
+| > 
+| > # assumes that mpicc is in the PATH
+| > CC=mpicc R CMD INSTALL Rmpi_0.5-7.tar.gz
+| > 
+| > This has worked for me on openSUSE in the past.
+| > 
+| > Sean
+| 
+| 
+| Thanks. mpicc is in the path, but this fails -  it cannot find mpi.h. If
+| I include "--configure-args=--with-mpi=/usr/lib64/openmpi/1.2.7-gcc" it
+| fails the same way as before.
+| 
+| Why is the Rmpi script asking for a directory but passing a file name?
+
+You may have to debug / extend / adapt the configure script for your
+situations.  Others have done the same before (i.e. as I recall there was
+just thread here just last week).
+
+In a first instance, see how configure.ac just loops over possible locations.
+Try to copy one of those instances and adapt it to your settings.
+
+Note however that these tests assume a certain directory structure below the
+supplied openmpi directory. If your's doesn't fit, you either need to change
+configure.ac (and then run autoconf) or change your directory layout.
+
+Hth, Dirk
+
+-- 
+Three out of two people have difficulties with fractions.
+
+
+From rab at consolidated.net  Mon May 11 22:45:09 2009
+From: rab at consolidated.net (Rick B.)
+Date: Mon, 11 May 2009 16:45:09 -0400
+Subject: [R-sig-hpc] Problems Installing Rmpi
+In-Reply-To: <25491982ffc5cb555e84be3a821ada8e.squirrel@www.stats.uwo.ca>
+References: <1242049510.22131.25.camel@rab45-1.paries.pitt.edu>
+	<25491982ffc5cb555e84be3a821ada8e.squirrel@www.stats.uwo.ca>
+Message-ID: <1242074709.22131.28.camel@rab45-1.paries.pitt.edu>
+
+
+On Mon, 2009-05-11 at 10:00 -0400, Hao Yu wrote:
+> I am not so sure why Rmpi script doesn't supply include dir. Can you try
+> R CMD INSTALL Rmpi_0.5-7.tar.gz
+> --configure-args=--with-mpi=/usr/lib64/openmpi/1.2.7-gcc
+> 
+> Hao
+> 
+
+
+Would it be better to use mpich instead of openmpi? I could not get lam
+to run under CentOS 5.3.
+
+Thanks.
+
+Rick
+
+
+From vfulco1 at gmail.com  Tue May 12 12:25:52 2009
+From: vfulco1 at gmail.com (Vince Fulco)
+Date: Tue, 12 May 2009 06:25:52 -0400
+Subject: [R-sig-hpc]  Problems Installing Rmpi
+Message-ID: <34f2770f0905120325k5675566ci6f63372290c6126e@mail.gmail.com>
+
+The same problem exists for mpich2.  In the interest of time, I stuck
+with the sockets config in SNOW.
+
+-- 
+Vince Fulco, CFA, CAIA
+612.424.5477 (universal)
+vfulco1 at gmail.com
+
+
+From hyu at stats.uwo.ca  Tue May 12 15:51:42 2009
+From: hyu at stats.uwo.ca (Hao Yu)
+Date: Tue, 12 May 2009 09:51:42 -0400 (EDT)
+Subject: [R-sig-hpc] Problems Installing Rmpi
+In-Reply-To: <1242074709.22131.28.camel@rab45-1.paries.pitt.edu>
+References: <1242049510.22131.25.camel@rab45-1.paries.pitt.edu>
+	<25491982ffc5cb555e84be3a821ada8e.squirrel@www.stats.uwo.ca>
+	<1242074709.22131.28.camel@rab45-1.paries.pitt.edu>
+Message-ID: <f742e4f8303203c9f887cb53e3ab71d0.squirrel@www.stats.uwo.ca>
+
+Can you change configure.ac with
+###################################
+AC_INIT(DESCRIPTION)
+
+AC_PROG_CC
+
+AC_ARG_WITH(mpi,
+[   --with-mpi=/opt/lib32/usr/lib          Location of MPI library.],
+[   if test "${withval}" != no; then
+        MPI_ROOT=${withval}
+        MPI_INCLUDE="-I${MPI_ROOT}/include"
+        LDFLAGS="$LDFLAGS -L${withval}/lib"
+        CFLAGS="$CFLAGS -I${withval}/include"
+    fi  ]
+)
+MPITYPE="OPENMPI"
+MPI_DEPS="-DMPI2"
+AC_CHECK_LIB(util, openpty, [ MPI_LIBS="$MPI_LIBS -lutil" ])
+AC_CHECK_LIB(pthread, main, [ MPI_LIBS="$MPI_LIBS -lpthread" ])
+
+PKG_LIBS="${MPI_LIBS} -fPIC"
+PKG_CPPFLAGS="${MPI_INCLUDE} ${MPI_DEPS} -D${MPITYPE} -fPIC"
+
+AC_SUBST(PKG_LIBS)
+AC_SUBST(PKG_CPPFLAGS)
+AC_SUBST(DEFS)
+
+AC_OUTPUT(src/Makevars)
+###################################
+Then, run "autoconf" to generate a new "configure" file. Use build to
+build a new tgz file and install again.
+
+If you look the original configure.ac, there is no place where mpi.h is
+appended to ${MPI_INCLUDE}. I don't know why the OS does such a way.
+
+Hao
+
+Rick B. wrote:
+>
+> On Mon, 2009-05-11 at 10:00 -0400, Hao Yu wrote:
+>> I am not so sure why Rmpi script doesn't supply include dir. Can you try
+>> R CMD INSTALL Rmpi_0.5-7.tar.gz
+>> --configure-args=--with-mpi=/usr/lib64/openmpi/1.2.7-gcc
+>>
+>> Hao
+>>
+>
+>
+> Would it be better to use mpich instead of openmpi? I could not get lam
+> to run under CentOS 5.3.
+>
+> Thanks.
+>
+> Rick
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+-- 
+Department of Statistics & Actuarial Sciences
+Fax Phone#:(519)-661-3813
+The University of Western Ontario
+Office Phone#:(519)-661-3622
+London, Ontario N6A 5B7
+http://www.stats.uwo.ca/faculty/yu
+
+
+From rab at consolidated.net  Tue May 12 17:12:13 2009
+From: rab at consolidated.net (Richard A. Bilonick)
+Date: Tue, 12 May 2009 11:12:13 -0400
+Subject: [R-sig-hpc] Rmpi, lam, & Fedora 10
+Message-ID: <1242141133.27424.9.camel@dom.pitt.edu>
+
+I'm still working on getting Rmpi working on CentOS 5.3. At the same
+time, I thought I would try to install it on a dual opteron system with
+Fedora 10.
+
+I was able to install & boot lam and check to make sure it is working. I
+then installed Rmpi (telling it where to find things) and it compiled
+without any errors or warnings. So I'm making progress.
+
+However, when I start R (64-bit version 2.9.0) and load Rmpi I get:
+
+> library(Rmpi)
+Error in dyn.load(file, DLLpath = DLLpath, ...) : 
+  unable to load shared library
+'/usr/lib64/R/library/Rmpi/libs/Rmpi.so':
+  libmpi.so.0: cannot open shared object file: No such file or directory
+Error in library(Rmpi) : .First.lib failed for 'Rmpi'
+Error in dyn.unload(file.path(libpath, "libs", paste("Rmpi", .Platform
+$dynlib.ext,  : 
+  dynamic/shared library '/usr/lib64/R/library/Rmpi/libs/Rmpi.so' was
+not loaded
+
+
+I'm not sure what the difference is between Rmpi.so and Rmpi.so.0.
+
+[goldy at dom libs]$ ll /usr/lib64/R/library/Rmpi/libs/Rmpi.so
+-rwxr-xr-x 1 root root 109431 2009-05-12
+09:48 /usr/lib64/R/library/Rmpi/libs/Rmpi.so
+
+Any ideas on what went wrong and how to fix it?
+
+I've included the output from installing Rmpi below.
+
+Thanks.
+
+Rick B.
+
+
+
+[root at dom Download]# R CMD INSTALL Rmpi_0.5-7.tar.gz
+--configure-args=--with-mpi=/usr/lib64/lam
+* Installing to library \u2018/usr/lib64/R/library\u2019
+* Installing *source* package \u2018Rmpi\u2019 ...
+checking for gcc... gcc
+checking for C compiler default output file name... a.out
+checking whether the C compiler works... yes
+checking whether we are cross compiling... no
+checking for suffix of executables... 
+checking for suffix of object files... o
+checking whether we are using the GNU C compiler... yes
+checking whether gcc accepts -g... yes
+checking for gcc option to accept ISO C89... none needed
+Try to find mpi.h ...
+Found in /usr/lib64/lam/include
+Try to find libmpi.so or libmpich.a
+Found libmpi in /usr/lib64/lam/lib
+Try to find liblam.so ...
+Found liblam in /usr/lib64/lam/lib
+checking for openpty in -lutil... yes
+checking for main in -lpthread... yes
+configure: creating ./config.status
+config.status: creating src/Makevars
+** libs
+gcc -m64 -std=gnu99 -I/usr/include/R -DPACKAGE_NAME=\"\"
+-DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+-DPACKAGE_BUGREPORT=\"\" -I/usr/lib64/lam/include -DMPI2 -DLAM -fPIC
+-I/usr/local/include    -fpic  -O2 -g -pipe -Wall
+-Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector
+--param=ssp-buffer-size=4 -m64 -mtune=generic -c RegQuery.c -o
+RegQuery.o
+gcc -m64 -std=gnu99 -I/usr/include/R -DPACKAGE_NAME=\"\"
+-DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+-DPACKAGE_BUGREPORT=\"\" -I/usr/lib64/lam/include -DMPI2 -DLAM -fPIC
+-I/usr/local/include    -fpic  -O2 -g -pipe -Wall
+-Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector
+--param=ssp-buffer-size=4 -m64 -mtune=generic -c Rmpi.c -o Rmpi.o
+gcc -m64 -std=gnu99 -I/usr/include/R -DPACKAGE_NAME=\"\"
+-DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+-DPACKAGE_BUGREPORT=\"\" -I/usr/lib64/lam/include -DMPI2 -DLAM -fPIC
+-I/usr/local/include    -fpic  -O2 -g -pipe -Wall
+-Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector
+--param=ssp-buffer-size=4 -m64 -mtune=generic -c conversion.c -o
+conversion.o
+gcc -m64 -std=gnu99 -I/usr/include/R -DPACKAGE_NAME=\"\"
+-DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+-DPACKAGE_BUGREPORT=\"\" -I/usr/lib64/lam/include -DMPI2 -DLAM -fPIC
+-I/usr/local/include    -fpic  -O2 -g -pipe -Wall
+-Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector
+--param=ssp-buffer-size=4 -m64 -mtune=generic -c internal.c -o
+internal.o
+gcc -m64 -std=gnu99 -shared -L/usr/local/lib64 -o Rmpi.so RegQuery.o
+Rmpi.o conversion.o internal.o -L/usr/lib64/lam/lib -lmpi -llam -lutil
+-lpthread -fPIC -L/usr/lib64/R/lib -lR
+** R
+** demo
+** inst
+** preparing package for lazy loading
+** help
+*** installing help indices
+ >>> Building/Updating help pages for package 'Rmpi'
+     Formats: text html latex example 
+  hosts                             text    html    latex
+  internal                          text    html    latex
+  mpi.abort                         text    html    latex
+  mpi.apply                         text    html    latex   example
+  mpi.barrier                       text    html    latex
+  mpi.bcast                         text    html    latex
+  mpi.bcast.Robj                    text    html    latex
+  mpi.bcast.cmd                     text    html    latex
+  mpi.cart.coords                   text    html    latex   example
+  mpi.cart.create                   text    html    latex   example
+  mpi.cart.get                      text    html    latex   example
+  mpi.cart.rank                     text    html    latex   example
+  mpi.cart.shift                    text    html    latex   example
+  mpi.cartdim.get                   text    html    latex   example
+  mpi.comm                          text    html    latex   example
+  mpi.comm.disconnect               text    html    latex
+  mpi.comm.free                     text    html    latex
+  mpi.comm.inter                    text    html    latex
+  mpi.comm.set.errhandler           text    html    latex
+  mpi.comm.spawn                    text    html    latex
+  mpi.const                         text    html    latex
+  mpi.dims.create                   text    html    latex   example
+  mpi.exit                          text    html    latex
+  mpi.finalize                      text    html    latex
+  mpi.gather                        text    html    latex   example
+  mpi.gather.Robj                   text    html    latex   example
+  mpi.get.count                     text    html    latex
+  mpi.get.processor.name            text    html    latex
+  mpi.get.sourcetag                 text    html    latex
+  mpi.iapply                        text    html    latex
+  mpi.info                          text    html    latex
+  mpi.init.sprng                    text    html    latex
+  mpi.intercomm.merge               text    html    latex
+  mpi.parSim                        text    html    latex
+  mpi.parapply                      text    html    latex   example
+  mpi.probe                         text    html    latex
+  mpi.realloc                       text    html    latex
+  mpi.reduce                        text    html    latex
+  mpi.remote.exec                   text    html    latex   example
+  mpi.scatter                       text    html    latex   example
+  mpi.scatter.Robj                  text    html    latex   example
+  mpi.send                          text    html    latex   example
+  mpi.send.Robj                     text    html    latex
+  mpi.sendrecv                      text    html    latex   example
+  mpi.setup.rng                     text    html    latex
+  mpi.spawn.Rslaves                 text    html    latex   example
+  mpi.universe.size                 text    html    latex
+  mpi.wait                          text    html    latex
+** building package indices ...
+* DONE (Rmpi)
+[root at dom Download]#
+
+
+From hyu at stats.uwo.ca  Tue May 12 18:19:01 2009
+From: hyu at stats.uwo.ca (Hao Yu)
+Date: Tue, 12 May 2009 12:19:01 -0400 (EDT)
+Subject: [R-sig-hpc] Rmpi, lam, & Fedora 10
+In-Reply-To: <1242141133.27424.9.camel@dom.pitt.edu>
+References: <1242141133.27424.9.camel@dom.pitt.edu>
+Message-ID: <03f60e7ed1341afe76ed202dc4c32602.squirrel@www.stats.uwo.ca>
+
+When you install lam, make sure to enable shared lib. The default one is
+static lib.  Rmpi used to be OK with static mpi lib. Not any more.
+
+Hao
+
+Richard A. Bilonick wrote:
+> I'm still working on getting Rmpi working on CentOS 5.3. At the same
+> time, I thought I would try to install it on a dual opteron system with
+> Fedora 10.
+>
+> I was able to install & boot lam and check to make sure it is working. I
+> then installed Rmpi (telling it where to find things) and it compiled
+> without any errors or warnings. So I'm making progress.
+>
+> However, when I start R (64-bit version 2.9.0) and load Rmpi I get:
+>
+>> library(Rmpi)
+> Error in dyn.load(file, DLLpath = DLLpath, ...) :
+>   unable to load shared library
+> '/usr/lib64/R/library/Rmpi/libs/Rmpi.so':
+>   libmpi.so.0: cannot open shared object file: No such file or directory
+> Error in library(Rmpi) : .First.lib failed for 'Rmpi'
+> Error in dyn.unload(file.path(libpath, "libs", paste("Rmpi", .Platform
+> $dynlib.ext,  :
+>   dynamic/shared library '/usr/lib64/R/library/Rmpi/libs/Rmpi.so' was
+> not loaded
+>
+>
+> I'm not sure what the difference is between Rmpi.so and Rmpi.so.0.
+>
+> [goldy at dom libs]$ ll /usr/lib64/R/library/Rmpi/libs/Rmpi.so
+> -rwxr-xr-x 1 root root 109431 2009-05-12
+> 09:48 /usr/lib64/R/library/Rmpi/libs/Rmpi.so
+>
+> Any ideas on what went wrong and how to fix it?
+>
+> I've included the output from installing Rmpi below.
+>
+> Thanks.
+>
+> Rick B.
+>
+>
+>
+> [root at dom Download]# R CMD INSTALL Rmpi_0.5-7.tar.gz
+> --configure-args=--with-mpi=/usr/lib64/lam
+> * Installing to library \u2018/usr/lib64/R/library\u2019
+> * Installing *source* package \u2018Rmpi\u2019 ...
+> checking for gcc... gcc
+> checking for C compiler default output file name... a.out
+> checking whether the C compiler works... yes
+> checking whether we are cross compiling... no
+> checking for suffix of executables...
+> checking for suffix of object files... o
+> checking whether we are using the GNU C compiler... yes
+> checking whether gcc accepts -g... yes
+> checking for gcc option to accept ISO C89... none needed
+> Try to find mpi.h ...
+> Found in /usr/lib64/lam/include
+> Try to find libmpi.so or libmpich.a
+> Found libmpi in /usr/lib64/lam/lib
+> Try to find liblam.so ...
+> Found liblam in /usr/lib64/lam/lib
+> checking for openpty in -lutil... yes
+> checking for main in -lpthread... yes
+> configure: creating ./config.status
+> config.status: creating src/Makevars
+> ** libs
+> gcc -m64 -std=gnu99 -I/usr/include/R -DPACKAGE_NAME=\"\"
+> -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+> -DPACKAGE_BUGREPORT=\"\" -I/usr/lib64/lam/include -DMPI2 -DLAM -fPIC
+> -I/usr/local/include    -fpic  -O2 -g -pipe -Wall
+> -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector
+> --param=ssp-buffer-size=4 -m64 -mtune=generic -c RegQuery.c -o
+> RegQuery.o
+> gcc -m64 -std=gnu99 -I/usr/include/R -DPACKAGE_NAME=\"\"
+> -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+> -DPACKAGE_BUGREPORT=\"\" -I/usr/lib64/lam/include -DMPI2 -DLAM -fPIC
+> -I/usr/local/include    -fpic  -O2 -g -pipe -Wall
+> -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector
+> --param=ssp-buffer-size=4 -m64 -mtune=generic -c Rmpi.c -o Rmpi.o
+> gcc -m64 -std=gnu99 -I/usr/include/R -DPACKAGE_NAME=\"\"
+> -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+> -DPACKAGE_BUGREPORT=\"\" -I/usr/lib64/lam/include -DMPI2 -DLAM -fPIC
+> -I/usr/local/include    -fpic  -O2 -g -pipe -Wall
+> -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector
+> --param=ssp-buffer-size=4 -m64 -mtune=generic -c conversion.c -o
+> conversion.o
+> gcc -m64 -std=gnu99 -I/usr/include/R -DPACKAGE_NAME=\"\"
+> -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+> -DPACKAGE_BUGREPORT=\"\" -I/usr/lib64/lam/include -DMPI2 -DLAM -fPIC
+> -I/usr/local/include    -fpic  -O2 -g -pipe -Wall
+> -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector
+> --param=ssp-buffer-size=4 -m64 -mtune=generic -c internal.c -o
+> internal.o
+> gcc -m64 -std=gnu99 -shared -L/usr/local/lib64 -o Rmpi.so RegQuery.o
+> Rmpi.o conversion.o internal.o -L/usr/lib64/lam/lib -lmpi -llam -lutil
+> -lpthread -fPIC -L/usr/lib64/R/lib -lR
+> ** R
+> ** demo
+> ** inst
+> ** preparing package for lazy loading
+> ** help
+> *** installing help indices
+>  >>> Building/Updating help pages for package 'Rmpi'
+>      Formats: text html latex example
+>   hosts                             text    html    latex
+>   internal                          text    html    latex
+>   mpi.abort                         text    html    latex
+>   mpi.apply                         text    html    latex   example
+>   mpi.barrier                       text    html    latex
+>   mpi.bcast                         text    html    latex
+>   mpi.bcast.Robj                    text    html    latex
+>   mpi.bcast.cmd                     text    html    latex
+>   mpi.cart.coords                   text    html    latex   example
+>   mpi.cart.create                   text    html    latex   example
+>   mpi.cart.get                      text    html    latex   example
+>   mpi.cart.rank                     text    html    latex   example
+>   mpi.cart.shift                    text    html    latex   example
+>   mpi.cartdim.get                   text    html    latex   example
+>   mpi.comm                          text    html    latex   example
+>   mpi.comm.disconnect               text    html    latex
+>   mpi.comm.free                     text    html    latex
+>   mpi.comm.inter                    text    html    latex
+>   mpi.comm.set.errhandler           text    html    latex
+>   mpi.comm.spawn                    text    html    latex
+>   mpi.const                         text    html    latex
+>   mpi.dims.create                   text    html    latex   example
+>   mpi.exit                          text    html    latex
+>   mpi.finalize                      text    html    latex
+>   mpi.gather                        text    html    latex   example
+>   mpi.gather.Robj                   text    html    latex   example
+>   mpi.get.count                     text    html    latex
+>   mpi.get.processor.name            text    html    latex
+>   mpi.get.sourcetag                 text    html    latex
+>   mpi.iapply                        text    html    latex
+>   mpi.info                          text    html    latex
+>   mpi.init.sprng                    text    html    latex
+>   mpi.intercomm.merge               text    html    latex
+>   mpi.parSim                        text    html    latex
+>   mpi.parapply                      text    html    latex   example
+>   mpi.probe                         text    html    latex
+>   mpi.realloc                       text    html    latex
+>   mpi.reduce                        text    html    latex
+>   mpi.remote.exec                   text    html    latex   example
+>   mpi.scatter                       text    html    latex   example
+>   mpi.scatter.Robj                  text    html    latex   example
+>   mpi.send                          text    html    latex   example
+>   mpi.send.Robj                     text    html    latex
+>   mpi.sendrecv                      text    html    latex   example
+>   mpi.setup.rng                     text    html    latex
+>   mpi.spawn.Rslaves                 text    html    latex   example
+>   mpi.universe.size                 text    html    latex
+>   mpi.wait                          text    html    latex
+> ** building package indices ...
+> * DONE (Rmpi)
+> [root at dom Download]#
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+-- 
+Department of Statistics & Actuarial Sciences
+Fax Phone#:(519)-661-3813
+The University of Western Ontario
+Office Phone#:(519)-661-3622
+London, Ontario N6A 5B7
+http://www.stats.uwo.ca/faculty/yu
+
+
+From rab at consolidated.net  Tue May 12 19:44:13 2009
+From: rab at consolidated.net (Rick B.)
+Date: Tue, 12 May 2009 13:44:13 -0400
+Subject: [R-sig-hpc] Problems Installing Rmpi
+In-Reply-To: <f742e4f8303203c9f887cb53e3ab71d0.squirrel@www.stats.uwo.ca>
+References: <1242049510.22131.25.camel@rab45-1.paries.pitt.edu>
+	<25491982ffc5cb555e84be3a821ada8e.squirrel@www.stats.uwo.ca>
+	<1242074709.22131.28.camel@rab45-1.paries.pitt.edu>
+	<f742e4f8303203c9f887cb53e3ab71d0.squirrel@www.stats.uwo.ca>
+Message-ID: <1242150253.22131.36.camel@rab45-1.paries.pitt.edu>
+
+
+On Tue, 2009-05-12 at 09:51 -0400, Hao Yu wrote:
+> Can you change configure.ac with
+> ###################################
+> AC_INIT(DESCRIPTION)
+> 
+> AC_PROG_CC
+> 
+> AC_ARG_WITH(mpi,
+> [   --with-mpi=/opt/lib32/usr/lib          Location of MPI library.],
+> [   if test "${withval}" != no; then
+>         MPI_ROOT=${withval}
+>         MPI_INCLUDE="-I${MPI_ROOT}/include"
+>         LDFLAGS="$LDFLAGS -L${withval}/lib"
+>         CFLAGS="$CFLAGS -I${withval}/include"
+>     fi  ]
+> )
+> MPITYPE="OPENMPI"
+> MPI_DEPS="-DMPI2"
+> AC_CHECK_LIB(util, openpty, [ MPI_LIBS="$MPI_LIBS -lutil" ])
+> AC_CHECK_LIB(pthread, main, [ MPI_LIBS="$MPI_LIBS -lpthread" ])
+> 
+> PKG_LIBS="${MPI_LIBS} -fPIC"
+> PKG_CPPFLAGS="${MPI_INCLUDE} ${MPI_DEPS} -D${MPITYPE} -fPIC"
+> 
+> AC_SUBST(PKG_LIBS)
+> AC_SUBST(PKG_CPPFLAGS)
+> AC_SUBST(DEFS)
+> 
+> AC_OUTPUT(src/Makevars)
+> ###################################
+> Then, run "autoconf" to generate a new "configure" file. Use build to
+> build a new tgz file and install again.
+> 
+> If you look the original configure.ac, there is no place where mpi.h is
+> appended to ${MPI_INCLUDE}. I don't know why the OS does such a way.
+> 
+> Hao
+> 
+
+I've tried to follow your instructions, but the best I can do is:
+
+[root at rab45-1 rick]# R CMD INSTALL Rmpi
+--configure-args=--with-mpi=/usr/lib64/openmpi/1.2.7-gcc
+* Installing to library '/usr/lib64/R/library'
+* Installing *source* package 'Rmpi' ...
+checking for gcc... gcc
+checking for C compiler default output file name... a.out
+checking whether the C compiler works... yes
+checking whether we are cross compiling... no
+checking for suffix of executables... 
+checking for suffix of object files... o
+checking whether we are using the GNU C compiler... yes
+checking whether gcc accepts -g... yes
+checking for gcc option to accept ANSI C... none needed
+Try to find mpi.h ...
+Found in /usr/lib64/openmpi/1.2.7-gcc/include
+Try to find libmpi.so or libmpich.a
+Found libmpi in /usr/lib64/openmpi/1.2.7-gcc/lib
+checking for openpty in -lutil... yes
+checking for main in -lpthread... yes
+configure: creating ./config.status
+config.status: creating src/Makevars
+** libs
+gcc -I/usr/lib64/R/include -I/usr/lib64/openmpi/1.2.7-gcc/include/mpi.h
+-I/usr/local/include    -fpic  -O3 -g -std=gnu99 -c conversion.c -o
+conversion.o
+cc1: error: /usr/lib64/openmpi/1.2.7-gcc/include/mpi.h: not a directory
+make: *** [conversion.o] Error 1
+chmod: cannot access `/usr/lib64/R/library/Rmpi/libs/*': No such file or
+directory
+ERROR: compilation failed for package 'Rmpi'
+** Removing '/usr/lib64/R/library/Rmpi'
+
+
+mpi.h is always appended to -I/usr/lib64/openmpi/1.2.7-gcc/include when
+compiling with gcc. If I go into src and run:
+
+gcc -I/usr/lib64/R/include -I/usr/lib64/openmpi/1.2.7-gcc/include/mpi.h
+-I/usr/local/include    -fpic  -O3 -g -std=gnu99 -c conversion.c -o
+conversion.o
+
+It compiles without errors or warnings. I cannot find where mpi.h is
+being appended and the compile command is being generated.
+
+Is there some 64-bit Linux that I can install so that Rmpi will install
+and run out of the box? All I need is the ability to run R and Rmpi.
+
+Thanks.
+
+Rick B.
+
+
+From rab at consolidated.net  Wed May 13 00:59:32 2009
+From: rab at consolidated.net (R. A. Bilonick)
+Date: Tue, 12 May 2009 18:59:32 -0400
+Subject: [R-sig-hpc] Rmpi, lam, & Fedora 10
+In-Reply-To: <03f60e7ed1341afe76ed202dc4c32602.squirrel@www.stats.uwo.ca>
+References: <1242141133.27424.9.camel@dom.pitt.edu>
+	<03f60e7ed1341afe76ed202dc4c32602.squirrel@www.stats.uwo.ca>
+Message-ID: <1242169172.3550.25.camel@localhost.localdomain>
+
+
+On Tue, 2009-05-12 at 12:19 -0400, Hao Yu wrote:
+> When you install lam, make sure to enable shared lib. The default one is
+> static lib.  Rmpi used to be OK with static mpi lib. Not any more.
+> 
+> Hao
+
+
+I downloaded lam 7.1.4 source and tried to configure for shared lib.
+Unfortunately the configure gives a warning that the C++ compiler (gcc)
+does not support the bool data type which LAM requires and it cannot
+continue.
+
+Rick B.
+
+
+From edd at debian.org  Wed May 13 01:45:44 2009
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Tue, 12 May 2009 18:45:44 -0500
+Subject: [R-sig-hpc] Problems Installing Rmpi
+In-Reply-To: <1242150253.22131.36.camel@rab45-1.paries.pitt.edu>
+References: <1242049510.22131.25.camel@rab45-1.paries.pitt.edu>
+	<25491982ffc5cb555e84be3a821ada8e.squirrel@www.stats.uwo.ca>
+	<1242074709.22131.28.camel@rab45-1.paries.pitt.edu>
+	<f742e4f8303203c9f887cb53e3ab71d0.squirrel@www.stats.uwo.ca>
+	<1242150253.22131.36.camel@rab45-1.paries.pitt.edu>
+Message-ID: <18954.2600.718059.826257@ron.nulle.part>
+
+
+On 12 May 2009 at 13:44, Rick B. wrote:
+| Is there some 64-bit Linux that I can install so that Rmpi will install
+| and run out of the box? All I need is the ability to run R and Rmpi.
+
+Debian.  Ubuntu.
+
+Part of the reason I continue to maintain R, Rmpi (r-cran-rmpi in Debian) and
+a few dozen other things in Debian is precisely so that they work out of the
+box for me. I also co-maintained Open MPI in Debian for a while for the same
+reason.
+
+And I use all of these on Ubuntu amd64 machines at work.  There I sometimes
+build local versions of the Open MPI and Rmpi packages just because I want to
+try newer releases.  With that caveat, I think Open MPI should also just work
+on Ubuntu 8.10 and the just released 9.04. (And R I just take from the CRAN
+repos and Vincent and Michael have rebuilds of my packages out within a day
+or two.)
+
+I would stay away from LAM as it is end-of-lived and the LAM team itself
+recommends going to Open MPI.  I have never used MPICH2 -- partly because
+that version is not in Debian.
+
+If you can find a spare machine (or an instance of vmare or virtualbox
+somewhere) I can recommend the server-flavour install of Ubuntu too.  Pretty
+light and a quick install.
+
+Hope this helps,  Dirk
+
+-- 
+Three out of two people have difficulties with fractions.
+
+
+From rab at consolidated.net  Wed May 13 15:35:09 2009
+From: rab at consolidated.net (R. A. Bilonick)
+Date: Wed, 13 May 2009 09:35:09 -0400
+Subject: [R-sig-hpc] Problems Installing Rmpi
+In-Reply-To: <18954.2600.718059.826257@ron.nulle.part>
+References: <1242049510.22131.25.camel@rab45-1.paries.pitt.edu>
+	<25491982ffc5cb555e84be3a821ada8e.squirrel@www.stats.uwo.ca>
+	<1242074709.22131.28.camel@rab45-1.paries.pitt.edu>
+	<f742e4f8303203c9f887cb53e3ab71d0.squirrel@www.stats.uwo.ca>
+	<1242150253.22131.36.camel@rab45-1.paries.pitt.edu>
+	<18954.2600.718059.826257@ron.nulle.part>
+Message-ID: <1242221709.3549.9.camel@localhost.localdomain>
+
+On Tue, 2009-05-12 at 18:45 -0500, Dirk Eddelbuettel wrote:
+> On 12 May 2009 at 13:44, Rick B. wrote:
+> | Is there some 64-bit Linux that I can install so that Rmpi will install
+> | and run out of the box? All I need is the ability to run R and Rmpi.
+> 
+> Debian.  Ubuntu.
+> 
+> Part of the reason I continue to maintain R, Rmpi (r-cran-rmpi in Debian) and
+> a few dozen other things in Debian is precisely so that they work out of the
+> box for me. I also co-maintained Open MPI in Debian for a while for the same
+> reason.
+> 
+> And I use all of these on Ubuntu amd64 machines at work.  There I sometimes
+> build local versions of the Open MPI and Rmpi packages just because I want to
+> try newer releases.  With that caveat, I think Open MPI should also just work
+> on Ubuntu 8.10 and the just released 9.04. (And R I just take from the CRAN
+> repos and Vincent and Michael have rebuilds of my packages out within a day
+> or two.)
+> 
+> I would stay away from LAM as it is end-of-lived and the LAM team itself
+> recommends going to Open MPI.  I have never used MPICH2 -- partly because
+> that version is not in Debian.
+> 
+> If you can find a spare machine (or an instance of vmare or virtualbox
+> somewhere) I can recommend the server-flavour install of Ubuntu too.  Pretty
+> light and a quick install.
+> 
+> Hope this helps,  Dirk
+> 
+
+I'm using Ubuntu 9.04 on an HP 2133 mini notebook. So I would consider
+using Ubuntu for openmpi, R, and Rmpi - assuming 9.04 will install on a
+RAID system.
+
+I did try to compile lam from source but when configuring for shared
+libs, I get a warning that the compiler (g++) does not support the bool
+data type. So I'm stumped at the moment. So I have more incentive to use
+Ubuntu.
+
+Rick B.
+
+
+From edd at debian.org  Wed May 13 16:42:20 2009
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Wed, 13 May 2009 09:42:20 -0500
+Subject: [R-sig-hpc] Problems Installing Rmpi
+In-Reply-To: <1242221709.3549.9.camel@localhost.localdomain>
+References: <1242049510.22131.25.camel@rab45-1.paries.pitt.edu>
+	<25491982ffc5cb555e84be3a821ada8e.squirrel@www.stats.uwo.ca>
+	<1242074709.22131.28.camel@rab45-1.paries.pitt.edu>
+	<f742e4f8303203c9f887cb53e3ab71d0.squirrel@www.stats.uwo.ca>
+	<1242150253.22131.36.camel@rab45-1.paries.pitt.edu>
+	<18954.2600.718059.826257@ron.nulle.part>
+	<1242221709.3549.9.camel@localhost.localdomain>
+Message-ID: <18954.56396.313800.828603@ron.nulle.part>
+
+
+On 13 May 2009 at 09:35, R. A. Bilonick wrote:
+| On Tue, 2009-05-12 at 18:45 -0500, Dirk Eddelbuettel wrote:
+| > On 12 May 2009 at 13:44, Rick B. wrote:
+| > | Is there some 64-bit Linux that I can install so that Rmpi will install
+| > | and run out of the box? All I need is the ability to run R and Rmpi.
+| > 
+| > Debian.  Ubuntu.
+[...]
+| I'm using Ubuntu 9.04 on an HP 2133 mini notebook. So I would consider
+| using Ubuntu for openmpi, R, and Rmpi - assuming 9.04 will install on a
+| RAID system.
+
+It should. A linux kernel is a linux kernel is a linux kernel. These systems
+are pretty prominent in top500 etc.  
+
+We have standard 1u and blades systems from several vendors and I run on
+Ubuntu on different combinations. This includes a box with a multiple raid
+controllers and several tb of fast drives where I replaced an RHEL system
+with Ubuntu 8.10.  My other 1u systems also have raid controllers.
+
+Ubuntu 'server flavour' is great because you end up with a truly mnimal
+number of processes, yet can still install apps linked to any of the GUI
+frameworks if need be.'
+
+| I did try to compile lam from source but when configuring for shared
+| libs, I get a warning that the compiler (g++) does not support the bool
+| data type. So I'm stumped at the moment. So I have more incentive to use
+| Ubuntu.
+
+FIWI about two years ago I could no longer get LAM to work beyond the 7.1.2
+packages when 7.1.4 became current. I have forgotten what the deal was, but I
+was forced to 'freeze' the 7.1.2 packages.  That is when I started to help
+with the cleanup of Open MPI in Debian (ie the push from basically broken
+1.1.* packages to working 1.2.* packages and now the 1.3.* series that Manuel
+is looking after).
+
+But as was stated here repeatedly: LAM is no longer being developed, while
+Open MPI is very active.  Open MPI has its issues ("100% CPU when polling")
+but a number of us have been happy with it.  You also get tools like
+slurm-llnl on top of it.
+
+That being said, those like you and Vince who experience issues with Hao's
+configure script should ideally try to sit down and adapt it to their system.
+I did so to for the Debian layouts, and Hao has always been responsive and
+integrated those.  I would help you off-line with the autoconf magic if you
+want.
+
+Really, our goal should be to make Rmpi "just work" on most standard Linux
+installations, rather than making Rmpi force a particular installation.  That
+last step is an alternative (and I'd argue that you end up happier with
+Debian/Ubuntu anyway) but there is no reason to force people to use.  Those
+happy and familiar with RH. FC, ... may as well continue using these (clearly
+inferior :-) system -- with Rmpi.  But Hao or I can't write the autoconf
+files for you, let alone when your system becoames non-standard for one
+reason or another.
+
+Dirk
+
+-- 
+Three out of two people have difficulties with fractions.
+
+
+From B_Rowe at ml.com  Wed May 13 16:53:24 2009
+From: B_Rowe at ml.com (Rowe, Brian Lee Yung (Portfolio Analytics))
+Date: Wed, 13 May 2009 10:53:24 -0400
+Subject: [R-sig-hpc] Problems Installing Rmpi
+Message-ID: <3BAD818D9407B043817CC6D89ABA14EC032B8544@MLNYC20MB051.amrs.win.ml.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090513/e2555f5a/attachment.pl>
+
+From rab at consolidated.net  Wed May 13 20:59:01 2009
+From: rab at consolidated.net (Rick B.)
+Date: Wed, 13 May 2009 14:59:01 -0400
+Subject: [R-sig-hpc] Problems Installing Rmpi
+In-Reply-To: <3BAD818D9407B043817CC6D89ABA14EC032B8544@MLNYC20MB051.amrs.win.ml.com>
+References: <3BAD818D9407B043817CC6D89ABA14EC032B8544@MLNYC20MB051.amrs.win.ml.com>
+Message-ID: <1242241141.22131.53.camel@rab45-1.paries.pitt.edu>
+
+
+On Wed, 2009-05-13 at 10:53 -0400, Rowe, Brian Lee Yung (Portfolio
+Analytics) wrote:
+> Hi Rick,
+> 
+> I just got Rmpi installed on a 16 CPU RHEL 4 box with OpenMPI. It took
+> quite a bit of fiddling of environment variables, but I did manage to
+> get it to work using mpicc (which incidentally does make life a bit
+> easier than trying to use gcc directly).
+> 
+> For the error below, what I had to do was explicitly add my MPI
+> include library to C_INCLUDE_PATH. The other thing I had to do was set
+> MPI_ROOT explicitly to the location of my OpenMPI installation. I only
+> figured this out by looking at Rmpi's configure.ac and looking at the
+> configure output at the 'Try to find mpi.h ...' stage, no echo was
+> output meaning that it was falling back to the default. I think this
+> has to do with the behavior/interoperability of mpicc and Rmpi.
+> 
+> In short, if you set your C_INCLUDE_PATH and MPI_ROOT (and
+> LD_LIBRARY_PATH if you haven't done that), you should be able to get
+> it to compile.
+> 
+> HTH, 
+> Brian
+> 
+> 
+> On Mon, 2009-05-11 at 10:09 -0400, Sean Davis wrote:
+> > Did you try:
+> >
+> > # assumes that mpicc is in the PATH
+> > CC=mpicc R CMD INSTALL Rmpi_0.5-7.tar.gz
+> >
+> > This has worked for me on openSUSE in the past.
+> >
+> > Sean
+> 
+> 
+> Thanks. mpicc is in the path, but this fails -  it cannot find mpi.h.
+> If
+> I include "--configure-args=--with-mpi=/usr/lib64/openmpi/1.2.7-gcc"
+> it
+> fails the same way as before.
+> 
+> Why is the Rmpi script asking for a directory but passing a file name?
+> 
+> Rick B.
+
+
+It had no problem finding mpi.h. The problem now is that the configure
+generates an incorrect compile command:
+
+config.status: creating src/Makevars
+** libs
+gcc -I/usr/lib64/R/include -I/usr/lib64/openmpi/1.2.7-gcc/include/mpi.h
+-I/usr/local/include    -fpic  -O3 -g -std=gnu99 -c conversion.c -o
+conversion.o
+cc1: error: /usr/lib64/openmpi/1.2.7-gcc/include/mpi.h: not a directory
+make: *** [conversion.o] Error 1
+chmod: cannot access `/usr/lib64/R/library/Rmpi/libs/*': No such file or
+directory
+ERROR: compilation failed for package 'Rmpi'
+** Removing '/usr/lib64/R/library/Rmpi'
+
+mpi.h is appendend to the -I/usr/lib64/openmpi/1.2.7-gcc/include and the
+compile fails because it just wants the folder, not the file.
+
+Rick B.
+
+
+From hyu at stats.uwo.ca  Wed May 13 21:19:14 2009
+From: hyu at stats.uwo.ca (Hao Yu)
+Date: Wed, 13 May 2009 15:19:14 -0400 (EDT)
+Subject: [R-sig-hpc] Problems Installing Rmpi
+In-Reply-To: <1242241141.22131.53.camel@rab45-1.paries.pitt.edu>
+References: <3BAD818D9407B043817CC6D89ABA14EC032B8544@MLNYC20MB051.amrs.win.ml.com>
+	<1242241141.22131.53.camel@rab45-1.paries.pitt.edu>
+Message-ID: <eda4a854d06a5b65246fb7380b05ace8.squirrel@www.stats.uwo.ca>
+
+Rick, please use
+###################################
+AC_INIT(DESCRIPTION)
+
+AC_PROG_CC
+
+AC_ARG_WITH(mpi,
+[   --with-mpi=/opt/lib32/usr/lib          Location of MPI library.],
+[   if test "${withval}" != no; then
+        MPI_ROOT=${withval}
+        MPI_INCLUDE="-I${MPI_ROOT}/include"
+        LDFLAGS="$LDFLAGS -L${withval}/lib"
+        CFLAGS="$CFLAGS -I${withval}/include"
+    fi  ]
+)
+MPITYPE="OPENMPI"
+MPI_DEPS="-DMPI2"
+AC_CHECK_LIB(util, openpty, [ MPI_LIBS="$MPI_LIBS -lutil" ])
+AC_CHECK_LIB(pthread, main, [ MPI_LIBS="$MPI_LIBS -lpthread" ])
+
+PKG_LIBS="${MPI_LIBS} -fPIC"
+PKG_CPPFLAGS="${MPI_INCLUDE} ${MPI_DEPS} -D${MPITYPE} -fPIC"
+
+AC_SUBST(PKG_LIBS)
+AC_SUBST(PKG_CPPFLAGS)
+AC_SUBST(DEFS)
+
+AC_OUTPUT(src/Makevars)
+###################################
+to replace the original configure.ac completely. It is completely bypass
+checking mpi.h and mpi.so. In this way, OS will not append mpi.h to
+${MPI_INCLUDE} (hopefully).
+
+Hao
+
+
+Rick B. wrote:
+>
+> On Wed, 2009-05-13 at 10:53 -0400, Rowe, Brian Lee Yung (Portfolio
+> Analytics) wrote:
+>> Hi Rick,
+>>
+>> I just got Rmpi installed on a 16 CPU RHEL 4 box with OpenMPI. It took
+>> quite a bit of fiddling of environment variables, but I did manage to
+>> get it to work using mpicc (which incidentally does make life a bit
+>> easier than trying to use gcc directly).
+>>
+>> For the error below, what I had to do was explicitly add my MPI
+>> include library to C_INCLUDE_PATH. The other thing I had to do was set
+>> MPI_ROOT explicitly to the location of my OpenMPI installation. I only
+>> figured this out by looking at Rmpi's configure.ac and looking at the
+>> configure output at the 'Try to find mpi.h ...' stage, no echo was
+>> output meaning that it was falling back to the default. I think this
+>> has to do with the behavior/interoperability of mpicc and Rmpi.
+>>
+>> In short, if you set your C_INCLUDE_PATH and MPI_ROOT (and
+>> LD_LIBRARY_PATH if you haven't done that), you should be able to get
+>> it to compile.
+>>
+>> HTH,
+>> Brian
+>>
+>>
+>> On Mon, 2009-05-11 at 10:09 -0400, Sean Davis wrote:
+>> > Did you try:
+>> >
+>> > # assumes that mpicc is in the PATH
+>> > CC=mpicc R CMD INSTALL Rmpi_0.5-7.tar.gz
+>> >
+>> > This has worked for me on openSUSE in the past.
+>> >
+>> > Sean
+>>
+>>
+>> Thanks. mpicc is in the path, but this fails -  it cannot find mpi.h.
+>> If
+>> I include "--configure-args=--with-mpi=/usr/lib64/openmpi/1.2.7-gcc"
+>> it
+>> fails the same way as before.
+>>
+>> Why is the Rmpi script asking for a directory but passing a file name?
+>>
+>> Rick B.
+>
+>
+> It had no problem finding mpi.h. The problem now is that the configure
+> generates an incorrect compile command:
+>
+> config.status: creating src/Makevars
+> ** libs
+> gcc -I/usr/lib64/R/include -I/usr/lib64/openmpi/1.2.7-gcc/include/mpi.h
+> -I/usr/local/include    -fpic  -O3 -g -std=gnu99 -c conversion.c -o
+> conversion.o
+> cc1: error: /usr/lib64/openmpi/1.2.7-gcc/include/mpi.h: not a directory
+> make: *** [conversion.o] Error 1
+> chmod: cannot access `/usr/lib64/R/library/Rmpi/libs/*': No such file or
+> directory
+> ERROR: compilation failed for package 'Rmpi'
+> ** Removing '/usr/lib64/R/library/Rmpi'
+>
+> mpi.h is appendend to the -I/usr/lib64/openmpi/1.2.7-gcc/include and the
+> compile fails because it just wants the folder, not the file.
+>
+> Rick B.
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+-- 
+Department of Statistics & Actuarial Sciences
+Fax Phone#:(519)-661-3813
+The University of Western Ontario
+Office Phone#:(519)-661-3622
+London, Ontario N6A 5B7
+http://www.stats.uwo.ca/faculty/yu
+
+
+From rab at consolidated.net  Wed May 13 21:36:53 2009
+From: rab at consolidated.net (R. A. Bilonick)
+Date: Wed, 13 May 2009 15:36:53 -0400
+Subject: [R-sig-hpc] Problems Installing Rmpi
+In-Reply-To: <eda4a854d06a5b65246fb7380b05ace8.squirrel@www.stats.uwo.ca>
+References: <3BAD818D9407B043817CC6D89ABA14EC032B8544@MLNYC20MB051.amrs.win.ml.com>
+	<1242241141.22131.53.camel@rab45-1.paries.pitt.edu>
+	<eda4a854d06a5b65246fb7380b05ace8.squirrel@www.stats.uwo.ca>
+Message-ID: <1242243413.3549.32.camel@localhost.localdomain>
+
+
+On Wed, 2009-05-13 at 15:19 -0400, Hao Yu wrote:
+> Rick, please use
+> ###################################
+> AC_INIT(DESCRIPTION)
+> 
+> AC_PROG_CC
+> 
+> AC_ARG_WITH(mpi,
+> [   --with-mpi=/opt/lib32/usr/lib          Location of MPI library.],
+> [   if test "${withval}" != no; then
+>         MPI_ROOT=${withval}
+>         MPI_INCLUDE="-I${MPI_ROOT}/include"
+>         LDFLAGS="$LDFLAGS -L${withval}/lib"
+>         CFLAGS="$CFLAGS -I${withval}/include"
+>     fi  ]
+> )
+> MPITYPE="OPENMPI"
+> MPI_DEPS="-DMPI2"
+> AC_CHECK_LIB(util, openpty, [ MPI_LIBS="$MPI_LIBS -lutil" ])
+> AC_CHECK_LIB(pthread, main, [ MPI_LIBS="$MPI_LIBS -lpthread" ])
+> 
+> PKG_LIBS="${MPI_LIBS} -fPIC"
+> PKG_CPPFLAGS="${MPI_INCLUDE} ${MPI_DEPS} -D${MPITYPE} -fPIC"
+> 
+> AC_SUBST(PKG_LIBS)
+> AC_SUBST(PKG_CPPFLAGS)
+> AC_SUBST(DEFS)
+> 
+> AC_OUTPUT(src/Makevars)
+> ###################################
+> to replace the original configure.ac completely. It is completely bypass
+> checking mpi.h and mpi.so. In this way, OS will not append mpi.h to
+> ${MPI_INCLUDE} (hopefully).
+> 
+> Hao
+
+Thanks. Then I do an autoconf? Anything else I need to do construct the
+configure file before trying to install Rmpi?
+
+Rick B.
+
+
+From saptarshi.guha at gmail.com  Wed May 13 23:09:20 2009
+From: saptarshi.guha at gmail.com (Saptarshi Guha)
+Date: Wed, 13 May 2009 17:09:20 -0400
+Subject: [R-sig-hpc] distributed R on EC2, designing the software stack
+In-Reply-To: <1C7B7B9A7479234582BB043380014B9A2874789032@EXCHANGE-VS1.eharmony.com>
+References: <9b4cc5750904291206k20d8ff36ge58e20ef242e6151@mail.gmail.com>
+	<8ec76080904291224x63db082bnd9f2aa585fa37eeb@mail.gmail.com>
+	<1e7471d50904291236s69ca16a4k22e72e7696cc8268@mail.gmail.com>
+	<386fa5610905021103u4edfc511y85fdaf21f3708644@mail.gmail.com>
+	<1e7471d50905021200p406fa449jfc63fe6eefb06ad2@mail.gmail.com>
+	<1C7B7B9A7479234582BB043380014B9A2874789032@EXCHANGE-VS1.eharmony.com>
+Message-ID: <1e7471d50905131409p7e06c8fcta647e9a85896ba6a@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090513/928cffb7/attachment.pl>
+
+From stephenjbarr at gmail.com  Wed May 13 23:14:05 2009
+From: stephenjbarr at gmail.com (Stephen J. Barr)
+Date: Wed, 13 May 2009 14:14:05 -0700
+Subject: [R-sig-hpc] distributed R on EC2, designing the software stack
+In-Reply-To: <1e7471d50905131409p7e06c8fcta647e9a85896ba6a@mail.gmail.com>
+References: <9b4cc5750904291206k20d8ff36ge58e20ef242e6151@mail.gmail.com>
+	<8ec76080904291224x63db082bnd9f2aa585fa37eeb@mail.gmail.com>
+	<1e7471d50904291236s69ca16a4k22e72e7696cc8268@mail.gmail.com>
+	<386fa5610905021103u4edfc511y85fdaf21f3708644@mail.gmail.com>
+	<1e7471d50905021200p406fa449jfc63fe6eefb06ad2@mail.gmail.com>
+	<1C7B7B9A7479234582BB043380014B9A2874789032@EXCHANGE-VS1.eharmony.com>
+	<1e7471d50905131409p7e06c8fcta647e9a85896ba6a@mail.gmail.com>
+Message-ID: <9b4cc5750905131414r56847e00xae0247383953ef2f@mail.gmail.com>
+
+Thanks for doing that. I am looking forward to giving it a try.
+==========================================
+Stephen J. Barr
+University of Washington
+WEB: www.econsteve.com
+==========================================
+
+
+
+On Wed, May 13, 2009 at 2:09 PM, Saptarshi Guha
+<saptarshi.guha at gmail.com> wrote:
+> Hello,
+> I'll be releasing easy examples (and install scripts) for RHIPE on EC2 later
+> this week. I have tested it out on EC2 and it works smoothly, however I
+> haven't experimented with S3 datasets.
+>
+> I'll send the link to the examples end of week.
+>
+> Currently, I'm refactoring the code and it should be working in ?a day (i
+> hope!).
+>
+>
+> Saptarshi
+>
+>
+> On Wed, May 13, 2009 at 4:40 PM, Avram Aelony <AvramAelony at eharmony.com>wrote:
+>
+>> Hello,
+>>
+>> Is there documentation on how to use RHIPE with Amazon's EC2 using data
+>> from S3 ?
+>>
+>> Thank-you,
+>> Avram
+>>
+>>
+>>
+>>
+>> -----Original Message-----
+>> From: r-sig-hpc-bounces at r-project.org [mailto:
+>> r-sig-hpc-bounces at r-project.org] On Behalf Of Saptarshi Guha
+>> Sent: Saturday, May 02, 2009 12:01 PM
+>> To: malcolm Crouch
+>> Cc: R-sig-hpc at r-project.org
+>> Subject: Re: [R-sig-hpc] distributed R on EC2, designing the software stack
+>>
+>> Hello,
+>> I've been testing R across clusters and will execute some more in
+>> depth tests over the weekend.
+>> However, it depends on what Instance Types you use (types and cost:
+>> http://aws.amazon.com/ec2/instance-types/)
+>>
+>> I used a cluster of 15 "standard large instance", for less than ?1 hr,
+>> which cost me $6. Intra EC2 bandwidth is free (in the same region),
+>> and downloading a GB from outside of the EC2 is ~$0.1 per GB. So, yes,
+>> depending on the budget (i'm a grad student and it is turning out to
+>> be expensive) it can easily run into hundreds of dollars on a monthly
+>> basis if used regularly.
+>>
+>> Keep in mind that if you have a web service running on an instance and
+>> check the website (e.g cluster status monitoring) from outside the EC2
+>> an expense is incurred. Also as soon as the instance is up and running
+>> you're being charged. Do not forget to terminate them!
+>>
+>> I'll be tabulating my performance and expenditure in the coming week.
+>>
+>> Hope it helps
+>> Saptarshi Guha
+>>
+>>
+>>
+>> On Sat, May 2, 2009 at 2:03 PM, malcolm Crouch
+>> <malcolm.croucher at gmail.com> wrote:
+>> >
+>> > Hi ,
+>> >
+>> >
+>> > i have looked at the pricing for Amazon , however am wondering from a
+>> > practical point of view what roughly your monthly costs are ?
+>> >
+>> > I am interested in using this service as I dont have access to a cluster
+>> but
+>> > need to do a feasilibilty study ... therefore some ideas on costing would
+>> be
+>> > useful.
+>> >
+>> > Regards
+>> >
+>> > Malcolm
+>> > On Wed, Apr 29, 2009 at 9:36 PM, Saptarshi Guha <
+>> saptarshi.guha at gmail.com>
+>> > wrote:
+>> >>
+>> >> Hello,
+>> >> Yes, I was playing with EC2 and Rhipe last night. Just got permission
+>> >> to increase my instances to 100!
+>> >> The details (what I know)
+>> >> RHIPE is based on Hadoop and R. Cloudera has a very easy to use AMI
+>> >> for small and large (32/64bit) instances. It is easy enough to install
+>> >> the cloudera AMI.
+>> >> However It does not come with R.
+>> >>
+>> >> Last night, I modified their scripts to yum install R (using yum we
+>> >> get R-2.6) on each machine - as such this results in ~21MB downloads
+>> >> on the machines[1], which is not expensive but is not the best way do
+>> >> things.
+>> >>
+>> >> Once booted, each machine installs R, Rserve and one machine (the
+>> >> master) installs RHIPE.
+>> >> I did it with 1 master and 1 tasktracker and RHIPE worked. I intend to
+>> >> check with 30+ instances to see how things scale.
+>> >>
+>> >> I have emailed cloudera asking them to bundle R with their Hadoop AMI
+>> >> - so that users incur a minimal expense.
+>> >>
+>> >> I will be placing EC2 instructions to use RHIPE shortly this week.
+>> >> Given the reasonable cost of EC2, it would be a great way for users to
+>> >> test out distributed computing with R. Maybe as part of the R
+>> >> community we could host a linux AMI? Again, cost is the issue
+>> >> here(rather not pay for users downloading things)
+>> >>
+>> >> Regards
+>> >> Saptarshi Guha
+>> >> [1] Not quite sure how the AMI's work - if 10 AMIs belong to one
+>> >> group, does EC2 boot up one and replicate the booted instance? If so,
+>> >> then there is only one download, if not each machine downloads.
+>> >>
+>> >>
+>> >> On Wed, Apr 29, 2009 at 3:24 PM, Whit Armstrong
+>> >> <armstrong.whit at gmail.com> wrote:
+>> >> > you should contact Robert Grossman who just gave a presentation on
+>> >> > this topic at R/Finance in Chicago.
+>> >> >
+>> >> > link: http://rinfinance.quantmod.com/speakers/
+>> >> >
+>> >> > -Whit
+>> >> >
+>> >> >
+>> >> > On Wed, Apr 29, 2009 at 3:06 PM, Stephen J. Barr
+>> >> > <stephenjbarr at gmail.com> wrote:
+>> >> >> Greetings,
+>> >> >>
+>> >> >> I am trying to get into distributed computing with R, but do not have
+>> >> >> access to a cluster. Therefore, I am trying to get distributed R
+>> >> >> running on Amazon's EC2. ( http://aws.amazon.com/ec2/ )
+>> >> >>
+>> >> >> For those of you who don't know, EC2 allows you to instantiate large
+>> >> >> numbers of computers, bundled with whatever OS and software
+>> >> >> configuration you want. From my survey of things, there are a lot of
+>> >> >> different options available for distributed computing. For my needs,
+>> I
+>> >> >> would just like to run simple Monte Carlo simulations, and other
+>> >> >> things that don't require a ton of inter-node communication.
+>> >> >>
+>> >> >> What I would like to do is put together a public AMI and a howto
+>> >> >> guide, such that it would be very easy for anyone to instantiate an
+>> >> >> N-node cluster and start with parallel computing. I would like to
+>> have
+>> >> >> a discussion/brainstorm over what the exact software stack should be.
+>> >> >>
+>> >> >> My initial thoughts were:
+>> >> >>
+>> >> >> 1) R 2.9.0 + OpenMPI + RMpi + Snowfall/sfCluster
+>> >> >> ? - will Amazon's network work with OpenMPI. Perhaps it would be
+>> >> >> better to use PVM or something that is more tolerant to non-optimal
+>> >> >> network
+>> >> >>
+>> >> >> 2) ?R 2.9.0 + "socket based communication" + Snowfall/sfCluster
+>> >> >> ?- is this scalable
+>> >> >>
+>> >> >> 3) ?R 2.9.0 + twisted + NetWorkSpaces
+>> >> >> ? - not sure of Amazon's network supports broadcast mode, which is
+>> >> >> required by twisted
+>> >> >>
+>> >> >> 4) Biocep-R
+>> >> >> ? - this looks like it has the functionality to do what I want, but a
+>> >> >> lot of other stuff as well.
+>> >> >>
+>> >> >> 5) RHIPE
+>> >> >> ? - Hadoop is well supported by EC2. Perhaps this is the way to go.
+>> >> >> Seems like a very new package :)
+>> >> >>
+>> >> >> What are people's thoughts on what would be a good software stack
+>> with
+>> >> >> the constraint that it should be simple and run on EC2?
+>> >> >>
+>> >> >> Thanks,
+>> >> >> -stephen
+>> >> >> ==========================================
+>> >> >> Stephen J. Barr
+>> >> >> University of Washington
+>> >> >> WEB: www.econsteve.com
+>> >> >>
+>> >> >> _______________________________________________
+>> >> >> R-sig-hpc mailing list
+>> >> >> R-sig-hpc at r-project.org
+>> >> >> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>> >> >>
+>> >> >
+>> >> > _______________________________________________
+>> >> > R-sig-hpc mailing list
+>> >> > R-sig-hpc at r-project.org
+>> >> > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>> >> >
+>> >>
+>> >> _______________________________________________
+>> >> R-sig-hpc mailing list
+>> >> R-sig-hpc at r-project.org
+>> >> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>> >
+>> >
+>> >
+>> > --
+>> > Malcolm A.B Croucher
+>> >
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>
+> ? ? ? ?[[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From ross at biostat.ucsf.edu  Thu May 14 06:52:06 2009
+From: ross at biostat.ucsf.edu (Ross Boylan)
+Date: Wed, 13 May 2009 21:52:06 -0700
+Subject: [R-sig-hpc] openmpi/rmpi/snow: current puzzles,
+	possible improvements
+Message-ID: <1242276726.4004.76.camel@corn.betterworld.us>
+
+After reading through the thread around
+https://stat.ethz.ch/pipermail/r-sig-hpc/2009-February/000105.html, as
+well as looking at some other things, for ideas about running snow on
+top of Rmpi on Debian Lenny, I decided to try a shell script:
+----------------------------------------------------------------
+R_PROFILE=/usr/lib/R/site-library/snow/RMPISNOWprofile; export R_PROFILE
+mpirun -np 6 -hostfile hosts R CMD BATCH snowjob.R snowjob.out
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+with this kind of snowjob.R:
+-------------------------------------------------------------------
+# This will only execute on the head node
+cl <- getMPIcluster()
+print(mpi.comm.rank(0))
+
+quickinfo <- function() {
+  list(rank=mpi.comm.rank(0), machine=Sys.info()) #system("hostname"))
+}
+print(clusterCall(cl, quickinfo))
+stopCluster(cl)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+and hosts file
+-------------------
+n7 slots=3
+n5 slots=0  # changing this to 2 didn't help
+n4 slots=4
+^^^^^^^^^^^^^^^^^^^
+
+I'm on n7.
+
+Two problems.
+
+First, the job shown never terminates. snowjob.out shows the standard R
+banner, a standard harmless complaint, and then nothing (technically it
+shows 
+[n7:14829] OOB: Connection to HNP lost
+but I assume that is after I ^c my shell script).
+
+I suspect the problem is that it's having trouble reaching the other
+nodes.
+
+Second, if I have n7 slots=7 the job completes.  It shows everything on
+n7.  However, if I use machine=system("hostname") I get back null
+strings.  system("hostname") works fine interactively.
+
+Perhaps this is some kind of quoting effect when system("hostname") is
+exported via clusterCall?  Or system() doesn't work under rmpi?
+
+I'm also not sure why I am not running into a 3rd problem: it looks as
+if each process should be writing to the same file snowjob.out (via NFS
+mounts).  That doesn't seem to be happening.  Perhaps because the slave
+R's never make it out of the RMPISNOWProfile code?
+
+If anyone has any thoughts or suggestions, I'd love to hear them.
+
+Ross
+
+P.S. The original problem is that, apparently, makeCluster(n,
+type="MPI") will not spawn jobs on other nodes--maybe even not more than
+one job spawned at all.  So I'm attempting to bring up snow within an
+mpi session.
+
+I did notice the docs on MPI_COMM_SPAWN
+http://www.mpi-forum.org/docs/mpi21-report-bw/node202.htm#Node202
+indicate there is an info argument which could contain system-dependent
+information.  Presumably this could include a hostname; the standard
+explicitly leaves this to the implementation.  I couldn't find anything
+on the openmpi implementation.  I suppose the source would at least
+indicate what works now.
+
+So, IF openmpi supports it, and if the interface is exposed through Rmpi
+(which does have mpi.info functions, which might be able to make the
+right arguments), there would be a possibility of handling this strictly
+within R.
+
+
+From rab at consolidated.net  Thu May 14 20:24:01 2009
+From: rab at consolidated.net (Rick B.)
+Date: Thu, 14 May 2009 14:24:01 -0400
+Subject: [R-sig-hpc] Problems Installing Rmpi
+In-Reply-To: <3BAD818D9407B043817CC6D89ABA14EC032B8544@MLNYC20MB051.amrs.win.ml.com>
+References: <3BAD818D9407B043817CC6D89ABA14EC032B8544@MLNYC20MB051.amrs.win.ml.com>
+Message-ID: <1242325441.22131.67.camel@rab45-1.paries.pitt.edu>
+
+Hao said:
+
+Rick, please use
+        ###################################
+        AC_INIT(DESCRIPTION)
+        
+        AC_PROG_CC
+        
+        AC_ARG_WITH(mpi,
+        [   --with-mpi=/opt/lib32/usr/lib          Location of MPI
+        library.],
+        [   if test "${withval}" != no; then
+                MPI_ROOT=${withval}
+                MPI_INCLUDE="-I${MPI_ROOT}/include"
+                LDFLAGS="$LDFLAGS -L${withval}/lib"
+                CFLAGS="$CFLAGS -I${withval}/include"
+            fi  ]
+        )
+        MPITYPE="OPENMPI"
+        MPI_DEPS="-DMPI2"
+        AC_CHECK_LIB(util, openpty, [ MPI_LIBS="$MPI_LIBS -lutil" ])
+        AC_CHECK_LIB(pthread, main, [ MPI_LIBS="$MPI_LIBS -lpthread" ])
+        
+        PKG_LIBS="${MPI_LIBS} -fPIC"
+        PKG_CPPFLAGS="${MPI_INCLUDE} ${MPI_DEPS} -D${MPITYPE} -fPIC"
+        
+        AC_SUBST(PKG_LIBS)
+        AC_SUBST(PKG_CPPFLAGS)
+        AC_SUBST(DEFS)
+        
+        AC_OUTPUT(src/Makevars)
+        ###################################
+        to replace the original configure.ac completely. It is
+        completely bypass
+        checking mpi.h and mpi.so. In this way, OS will not append mpi.h
+        to
+        ${MPI_INCLUDE} (hopefully).
+        
+        Hao
+*******************************
+
+Thanks Hao. I replaced the original configure.ac with your code, created
+a new configure using autoconf, but I get the same result:
+
+
+[root at rab45-1 rick]# CC="mpicc" R CMD INSTALL Rmpi
+--configure-args=--with-mpi=/usr/lib64/openmpi
+* Installing to library '/usr/lib64/R/library'
+* Installing *source* package 'Rmpi' ...
+checking for gcc... mpicc
+checking for C compiler default output file name... a.out
+checking whether the C compiler works... yes
+checking whether we are cross compiling... no
+checking for suffix of executables... 
+checking for suffix of object files... o
+checking whether we are using the GNU C compiler... yes
+checking whether mpicc accepts -g... yes
+checking for mpicc option to accept ANSI C... none needed
+checking for openpty in -lutil... yes
+checking for main in -lpthread... yes
+configure: creating ./config.status
+config.status: creating src/Makevars
+** libs
+gcc -I/usr/lib64/R/include -I/usr/lib64/openmpi/1.2.7-gcc/include/mpi.h
+-I/usr/local/include    -fpic  -O3 -g -std=gnu99 -c conversion.c -o
+conversion.o
+cc1: error: /usr/lib64/openmpi/1.2.7-gcc/include/mpi.h: not a directory
+make: *** [conversion.o] Error 1
+chmod: cannot access `/usr/lib64/R/library/Rmpi/libs/*': No such file or
+directory
+ERROR: compilation failed for package 'Rmpi'
+** Removing '/usr/lib64/R/library/Rmpi'
+
+
+
+Just to clarify, I'm using CentOS 5.3 and openmpi. To be safe, I've used
+softlinks to place bin, etc, include and so forth
+under /usr/lib64/openmpi:
+
+[root at rab45-1 Rmpi]# cd /usr/lib64/openmpi
+[root at rab45-1 openmpi]# ll
+total 32
+drwxr-xr-x 8 root root 4096 Apr 28 09:47 1.2.7-gcc
+lrwxrwxrwx 1 root root   32 May 13 10:55 bin
+-> /usr/lib64/openmpi/1.2.7-gcc/bin
+lrwxrwxrwx 1 root root   32 May 13 10:55 etc
+-> /usr/lib64/openmpi/1.2.7-gcc/etc
+lrwxrwxrwx 1 root root   36 May 13 10:55 include
+-> /usr/lib64/openmpi/1.2.7-gcc/include
+lrwxrwxrwx 1 root root   32 May 13 10:51 lib
+-> /usr/lib64/openmpi/1.2.7-gcc/lib
+lrwxrwxrwx 1 root root   32 May 13 10:56 man
+-> /usr/lib64/openmpi/1.2.7-gcc/man
+lrwxrwxrwx 1 root root   34 May 13 10:56 share
+-> /usr/lib64/openmpi/1.2.7-gcc/share
+
+
+It might be easier if I just installed Ubuntu 9.04 (as Dirk indicated
+openmpi and Rmpi are likely to run "out of the box").
+
+Rick B.
+
+
+From hyu at stats.uwo.ca  Thu May 14 20:44:48 2009
+From: hyu at stats.uwo.ca (Hao Yu)
+Date: Thu, 14 May 2009 14:44:48 -0400 (EDT)
+Subject: [R-sig-hpc] Problems Installing Rmpi
+In-Reply-To: <1242325441.22131.67.camel@rab45-1.paries.pitt.edu>
+References: <3BAD818D9407B043817CC6D89ABA14EC032B8544@MLNYC20MB051.amrs.win.ml.com>
+	<1242325441.22131.67.camel@rab45-1.paries.pitt.edu>
+Message-ID: <ee5363f981717a582ef6ec4b741a8006.squirrel@www.stats.uwo.ca>
+
+Rick,
+
+I noticed you were using mpicc. If mpicc is from
+/usr/lib64/openmpi/1.2.7-gcc, then it knows where to find mpi.h and other
+header files. Maybe mpicc is not setting properly and it appends mpi.h to
+include.  You might try CC to gcc instead of mpicc. If it fails, then as
+Dirk suggested, Ubuntu is the way to go.
+
+Hao
+
+Rick B. wrote:
+> Hao said:
+>
+> Rick, please use
+>         ###################################
+>         AC_INIT(DESCRIPTION)
+>
+>         AC_PROG_CC
+>
+>         AC_ARG_WITH(mpi,
+>         [   --with-mpi=/opt/lib32/usr/lib          Location of MPI
+>         library.],
+>         [   if test "${withval}" != no; then
+>                 MPI_ROOT=${withval}
+>                 MPI_INCLUDE="-I${MPI_ROOT}/include"
+>                 LDFLAGS="$LDFLAGS -L${withval}/lib"
+>                 CFLAGS="$CFLAGS -I${withval}/include"
+>             fi  ]
+>         )
+>         MPITYPE="OPENMPI"
+>         MPI_DEPS="-DMPI2"
+>         AC_CHECK_LIB(util, openpty, [ MPI_LIBS="$MPI_LIBS -lutil" ])
+>         AC_CHECK_LIB(pthread, main, [ MPI_LIBS="$MPI_LIBS -lpthread" ])
+>
+>         PKG_LIBS="${MPI_LIBS} -fPIC"
+>         PKG_CPPFLAGS="${MPI_INCLUDE} ${MPI_DEPS} -D${MPITYPE} -fPIC"
+>
+>         AC_SUBST(PKG_LIBS)
+>         AC_SUBST(PKG_CPPFLAGS)
+>         AC_SUBST(DEFS)
+>
+>         AC_OUTPUT(src/Makevars)
+>         ###################################
+>         to replace the original configure.ac completely. It is
+>         completely bypass
+>         checking mpi.h and mpi.so. In this way, OS will not append mpi.h
+>         to
+>         ${MPI_INCLUDE} (hopefully).
+>
+>         Hao
+> *******************************
+>
+> Thanks Hao. I replaced the original configure.ac with your code, created
+> a new configure using autoconf, but I get the same result:
+>
+>
+> [root at rab45-1 rick]# CC="mpicc" R CMD INSTALL Rmpi
+> --configure-args=--with-mpi=/usr/lib64/openmpi
+> * Installing to library '/usr/lib64/R/library'
+> * Installing *source* package 'Rmpi' ...
+> checking for gcc... mpicc
+> checking for C compiler default output file name... a.out
+> checking whether the C compiler works... yes
+> checking whether we are cross compiling... no
+> checking for suffix of executables...
+> checking for suffix of object files... o
+> checking whether we are using the GNU C compiler... yes
+> checking whether mpicc accepts -g... yes
+> checking for mpicc option to accept ANSI C... none needed
+> checking for openpty in -lutil... yes
+> checking for main in -lpthread... yes
+> configure: creating ./config.status
+> config.status: creating src/Makevars
+> ** libs
+> gcc -I/usr/lib64/R/include -I/usr/lib64/openmpi/1.2.7-gcc/include/mpi.h
+> -I/usr/local/include    -fpic  -O3 -g -std=gnu99 -c conversion.c -o
+> conversion.o
+> cc1: error: /usr/lib64/openmpi/1.2.7-gcc/include/mpi.h: not a directory
+> make: *** [conversion.o] Error 1
+> chmod: cannot access `/usr/lib64/R/library/Rmpi/libs/*': No such file or
+> directory
+> ERROR: compilation failed for package 'Rmpi'
+> ** Removing '/usr/lib64/R/library/Rmpi'
+>
+>
+>
+> Just to clarify, I'm using CentOS 5.3 and openmpi. To be safe, I've used
+> softlinks to place bin, etc, include and so forth
+> under /usr/lib64/openmpi:
+>
+> [root at rab45-1 Rmpi]# cd /usr/lib64/openmpi
+> [root at rab45-1 openmpi]# ll
+> total 32
+> drwxr-xr-x 8 root root 4096 Apr 28 09:47 1.2.7-gcc
+> lrwxrwxrwx 1 root root   32 May 13 10:55 bin
+> -> /usr/lib64/openmpi/1.2.7-gcc/bin
+> lrwxrwxrwx 1 root root   32 May 13 10:55 etc
+> -> /usr/lib64/openmpi/1.2.7-gcc/etc
+> lrwxrwxrwx 1 root root   36 May 13 10:55 include
+> -> /usr/lib64/openmpi/1.2.7-gcc/include
+> lrwxrwxrwx 1 root root   32 May 13 10:51 lib
+> -> /usr/lib64/openmpi/1.2.7-gcc/lib
+> lrwxrwxrwx 1 root root   32 May 13 10:56 man
+> -> /usr/lib64/openmpi/1.2.7-gcc/man
+> lrwxrwxrwx 1 root root   34 May 13 10:56 share
+> -> /usr/lib64/openmpi/1.2.7-gcc/share
+>
+>
+> It might be easier if I just installed Ubuntu 9.04 (as Dirk indicated
+> openmpi and Rmpi are likely to run "out of the box").
+>
+> Rick B.
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+-- 
+Department of Statistics & Actuarial Sciences
+Fax Phone#:(519)-661-3813
+The University of Western Ontario
+Office Phone#:(519)-661-3622
+London, Ontario N6A 5B7
+http://www.stats.uwo.ca/faculty/yu
+
+
+From B_Rowe at ml.com  Thu May 14 21:54:35 2009
+From: B_Rowe at ml.com (Rowe, Brian Lee Yung (Portfolio Analytics))
+Date: Thu, 14 May 2009 15:54:35 -0400
+Subject: [R-sig-hpc] Problems Installing Rmpi
+In-Reply-To: <ee5363f981717a582ef6ec4b741a8006.squirrel@www.stats.uwo.ca>
+Message-ID: <3BAD818D9407B043817CC6D89ABA14EC032B856A@MLNYC20MB051.amrs.win.ml.com>
+
+As much as I like Debian, I never found installing a new OS as the
+'easier' solution for a software problem, though if you're on a VM (or
+Windows) the argument is different. Of course it also depends on your
+level of experience with Linux and its related compilation process.
+
+Rather than speculating, you can see explicitly what mpicc is using with
+the -showme variants:
+
+mpicc -showme
+mpicc -showme:compile
+mpicc -showme:link
+
+man mpicc gives you the details. Noting the values of the above commands
+and analyzing your configure.ac script should give you enough clues to
+narrow down the root cause and fix it appropriately.
+
+HTH,
+Brian
+
+
+-----Original Message-----
+From: r-sig-hpc-bounces at r-project.org
+[mailto:r-sig-hpc-bounces at r-project.org] On Behalf Of Hao Yu
+Sent: Thursday, May 14, 2009 2:45 PM
+To: Rick B.
+Cc: r-sig-hpc at r-project.org
+Subject: Re: [R-sig-hpc] Problems Installing Rmpi
+
+
+Rick,
+
+I noticed you were using mpicc. If mpicc is from
+/usr/lib64/openmpi/1.2.7-gcc, then it knows where to find mpi.h and
+other
+header files. Maybe mpicc is not setting properly and it appends mpi.h
+to
+include.  You might try CC to gcc instead of mpicc. If it fails, then as
+Dirk suggested, Ubuntu is the way to go.
+
+Hao
+
+Rick B. wrote:
+> Hao said:
+>
+> Rick, please use
+>         ###################################
+>         AC_INIT(DESCRIPTION)
+>
+>         AC_PROG_CC
+>
+>         AC_ARG_WITH(mpi,
+>         [   --with-mpi=/opt/lib32/usr/lib          Location of MPI
+>         library.],
+>         [   if test "${withval}" != no; then
+>                 MPI_ROOT=${withval}
+>                 MPI_INCLUDE="-I${MPI_ROOT}/include"
+>                 LDFLAGS="$LDFLAGS -L${withval}/lib"
+>                 CFLAGS="$CFLAGS -I${withval}/include"
+>             fi  ]
+>         )
+>         MPITYPE="OPENMPI"
+>         MPI_DEPS="-DMPI2"
+>         AC_CHECK_LIB(util, openpty, [ MPI_LIBS="$MPI_LIBS -lutil" ])
+>         AC_CHECK_LIB(pthread, main, [ MPI_LIBS="$MPI_LIBS -lpthread"
+])
+>
+>         PKG_LIBS="${MPI_LIBS} -fPIC"
+>         PKG_CPPFLAGS="${MPI_INCLUDE} ${MPI_DEPS} -D${MPITYPE} -fPIC"
+>
+>         AC_SUBST(PKG_LIBS)
+>         AC_SUBST(PKG_CPPFLAGS)
+>         AC_SUBST(DEFS)
+>
+>         AC_OUTPUT(src/Makevars)
+>         ###################################
+>         to replace the original configure.ac completely. It is
+>         completely bypass
+>         checking mpi.h and mpi.so. In this way, OS will not append
+mpi.h
+>         to
+>         ${MPI_INCLUDE} (hopefully).
+>
+>         Hao
+> *******************************
+>
+> Thanks Hao. I replaced the original configure.ac with your code,
+created
+> a new configure using autoconf, but I get the same result:
+>
+>
+> [root at rab45-1 rick]# CC="mpicc" R CMD INSTALL Rmpi
+> --configure-args=--with-mpi=/usr/lib64/openmpi
+> * Installing to library '/usr/lib64/R/library'
+> * Installing *source* package 'Rmpi' ...
+> checking for gcc... mpicc
+> checking for C compiler default output file name... a.out
+> checking whether the C compiler works... yes
+> checking whether we are cross compiling... no
+> checking for suffix of executables...
+> checking for suffix of object files... o
+> checking whether we are using the GNU C compiler... yes
+> checking whether mpicc accepts -g... yes
+> checking for mpicc option to accept ANSI C... none needed
+> checking for openpty in -lutil... yes
+> checking for main in -lpthread... yes
+> configure: creating ./config.status
+> config.status: creating src/Makevars
+> ** libs
+> gcc -I/usr/lib64/R/include
+-I/usr/lib64/openmpi/1.2.7-gcc/include/mpi.h
+> -I/usr/local/include    -fpic  -O3 -g -std=gnu99 -c conversion.c -o
+> conversion.o
+> cc1: error: /usr/lib64/openmpi/1.2.7-gcc/include/mpi.h: not a
+directory
+> make: *** [conversion.o] Error 1
+> chmod: cannot access `/usr/lib64/R/library/Rmpi/libs/*': No such file
+or
+> directory
+> ERROR: compilation failed for package 'Rmpi'
+> ** Removing '/usr/lib64/R/library/Rmpi'
+>
+>
+>
+> Just to clarify, I'm using CentOS 5.3 and openmpi. To be safe, I've
+used
+> softlinks to place bin, etc, include and so forth
+> under /usr/lib64/openmpi:
+>
+> [root at rab45-1 Rmpi]# cd /usr/lib64/openmpi
+> [root at rab45-1 openmpi]# ll
+> total 32
+> drwxr-xr-x 8 root root 4096 Apr 28 09:47 1.2.7-gcc
+> lrwxrwxrwx 1 root root   32 May 13 10:55 bin
+> -> /usr/lib64/openmpi/1.2.7-gcc/bin
+> lrwxrwxrwx 1 root root   32 May 13 10:55 etc
+> -> /usr/lib64/openmpi/1.2.7-gcc/etc
+> lrwxrwxrwx 1 root root   36 May 13 10:55 include
+> -> /usr/lib64/openmpi/1.2.7-gcc/include
+> lrwxrwxrwx 1 root root   32 May 13 10:51 lib
+> -> /usr/lib64/openmpi/1.2.7-gcc/lib
+> lrwxrwxrwx 1 root root   32 May 13 10:56 man
+> -> /usr/lib64/openmpi/1.2.7-gcc/man
+> lrwxrwxrwx 1 root root   34 May 13 10:56 share
+> -> /usr/lib64/openmpi/1.2.7-gcc/share
+>
+>
+> It might be easier if I just installed Ubuntu 9.04 (as Dirk indicated
+> openmpi and Rmpi are likely to run "out of the box").
+>
+> Rick B.
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+-- 
+Department of Statistics & Actuarial Sciences
+Fax Phone#:(519)-661-3813
+The University of Western Ontario
+Office Phone#:(519)-661-3622
+London, Ontario N6A 5B7
+http://www.stats.uwo.ca/faculty/yu
+
+_______________________________________________
+R-sig-hpc mailing list
+R-sig-hpc at r-project.org
+https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+--------------------------------------------------------------------------
+This message w/attachments (message) may be privileged, confidential or proprietary, and if you are not an intended recipient, please notify the sender, do not use or share it and delete it. Unless specifically indicated, this message is not an offer to sell or a solicitation of any investment products or other financial product or service, an official confirmation of any transaction, or an official statement of Merrill Lynch. Subject to applicable law, Merrill Lynch may monitor, review and retain e-communications (EC) traveling through its networks/systems. The laws of the country of each sender/recipient may impact the handling of EC, and EC may be archived, supervised and produced in countries other than the country in which you are located. This message cannot be guaranteed to be secure or error-free. References to "Merrill Lynch" are references to any company in the Merrill Lynch & Co., Inc. group of companies, which are wholly-owned by Bank of America Corporation. Securities and Insurance Products: * Are Not FDIC Insured * Are Not Bank Guaranteed * May Lose Value * Are Not a Bank Deposit * Are Not a Condition to Any Banking Service or Activity * Are Not Insured by Any Federal Government Agency. Attachments that are part of this E-communication may have additional important disclosures and disclaimers, which you should read. This message is subject to terms available at the following link: http://www.ml.com/e-communications_terms/. By messaging with Merrill Lynch you consent to the foregoing.
+--------------------------------------------------------------------------
+
+
+From rab at consolidated.net  Thu May 14 22:22:08 2009
+From: rab at consolidated.net (R. A. Bilonick)
+Date: Thu, 14 May 2009 16:22:08 -0400
+Subject: [R-sig-hpc] Problems Installing Rmpi
+In-Reply-To: <3BAD818D9407B043817CC6D89ABA14EC032B856A@MLNYC20MB051.amrs.win.ml.com>
+References: <3BAD818D9407B043817CC6D89ABA14EC032B856A@MLNYC20MB051.amrs.win.ml.com>
+Message-ID: <1242332529.3875.41.camel@localhost.localdomain>
+
+
+On Thu, 2009-05-14 at 15:54 -0400, Rowe, Brian Lee Yung (Portfolio
+Analytics) wrote:
+> As much as I like Debian, I never found installing a new OS as the
+> 'easier' solution for a software problem, though if you're on a VM (or
+> Windows) the argument is different. Of course it also depends on your
+> level of experience with Linux and its related compilation process.
+> 
+> Rather than speculating, you can see explicitly what mpicc is using with
+> the -showme variants:
+> 
+> mpicc -showme
+> mpicc -showme:compile
+> mpicc -showme:link
+> 
+> man mpicc gives you the details. Noting the values of the above commands
+> and analyzing your configure.ac script should give you enough clues to
+> narrow down the root cause and fix it appropriately.
+> 
+> HTH,
+> Brian
+> 
+
+I don't think it is related at all to mpicc. I have tried this too many
+ways to enumerate but so long as mpi.h was located during the install, I
+always ended up with "mpi.h" being appended to the path in the compile
+statement. My biggest Linux weakness is that I'm not that familiar with
+shell scripting.
+
+I appreciate everyone's help on this. I enjoy the challenge of getting
+it working and learning the details, but my Linux skills are limited
+(even after 10 years or so). I only chose CentOS because I could not get
+Fedora 10 to install with a RAID system (this bug was way beyond my
+skills) and CentOS is similar to Fedora (although somewhat behind given
+it is a clone of RHEL). Although in many ways I prefer Fedora, I've come
+to depend on Ubuntu when it's just too difficult to get Fedora working.
+I ran the Ubuntu 9.04 64-bit cd in live mode, and everything worked
+nicely. I'm worried about it working with the RAID when I install it to
+the hard drive. I did notice that packages for both openmpi and Rmpi are
+in the repositories. So we will see how it goes. The main point of this
+computer is to run R in parallel, so whatever makes this easy or just
+possible I'm willing to try.
+
+Rick B.
+
+
+From rab at consolidated.net  Fri May 15 20:26:19 2009
+From: rab at consolidated.net (Rick Bilonick)
+Date: Fri, 15 May 2009 14:26:19 -0400
+Subject: [R-sig-hpc] Problems Installing Rmpi - What Worked - What Didn't
+	Work
+Message-ID: <1242411979.9063.29.camel@rab-1>
+
+Short answer: If it doesn't matter which Linux distro you use, install
+Ubuntu 9.04 64-bit and install R and openmpi from the repositories. Then
+install Rmpi 0.5-7 from CRAN using "install.packages("Rmpi")".
+
+Thanks to everyone, especially Dirk, Hao, and Brian who offered a lot of
+good suggestions and in depth technical advice on getting a working
+version of Rmpi.
+
+What didn't work: I originally tried to use openmpi and  Rmpi on CentOS
+5.3 on a 64-bit Opteron dual quad core processor machine. I was able to
+get openmpi working but I could never get Rmpi to compile - even when
+using the "R CMD INSTALL" with configuration options. The configure file
+generated a compiler command with "mpi.h" appended to the path of an -I
+option but only the path was wanted. (I tried my best to rework
+configure.ac but to no avail.) I also tried to get lam and Rmpi working
+on a Fedora 10 64-bit dual Opteron processor computer. lam installed and
+ran OK, but again I could not get Rmpi to compile. It could find lam,
+but had the same problem with "mpi.h" being appended to the path. I
+could not deduce where this was happening nor fix it.
+
+What did work - eventually: I installed Ubuntu 9.04 (64-bit desktop) to
+the dual quad core Opteron machine. After upgrading everything, I
+installed R and openmpi from the repositories using synaptic. I then did
+a "sudo R" and simply used "install.packages("Rmpi")". This brought in
+the latest version of Rmpi (0.5-7) and compiled it. I was able to load
+Rmpi using "library" and run some Rmpi examples. (Actually, I first
+installed R-cran-rmpi 0.5-6 from the repositories but this - as I
+quickly found out - has a known bug (discovered and fixed by Dirk) and
+causes a segmentation fault when you try to load Rmpi. Rmpi from CRAN
+has Rmpi version 0.5-7 which avoids this problem.) Given that the main
+use of this computer is to run R in parallel, installing Ubuntu onto a
+working CentOS machine wasn't too big of an issue (assuming it
+eventually worked!).
+
+I spent a good week (or more) getting this to work. I learned a lot but
+it was time well spent. I have a lot more to learn about using Rmpi. It
+would be great, however, if Rmpi installed easily on Fedora and CentOS.
+
+Rick B.
+
+
+From ross at biostat.ucsf.edu  Sat May 16 01:07:52 2009
+From: ross at biostat.ucsf.edu (Ross Boylan)
+Date: Fri, 15 May 2009 16:07:52 -0700
+Subject: [R-sig-hpc] openmpi/rmpi/snow: current puzzles,
+	possible improvements	[diagnosis]
+In-Reply-To: <1242276726.4004.76.camel@corn.betterworld.us>
+References: <1242276726.4004.76.camel@corn.betterworld.us>
+Message-ID: <1242428872.2852.21.camel@iron.psg.net>
+
+I think there were several things wrong.
+1) I wasn't exporting R_PROFILE to the remote nodes.
+2) R CMD BATCH's output file was the same file for all processes, given
+NFS.
+3) The remote nodes did not have Rmpi installed!
+
+3) is obviously crucial; I'm not sure how significant the other problems
+are.  I diagnosed it by changing the output file to /tmp/foo and running
+only one job on each node.
+
+Is there a good way to get unique file names per process on the command
+line?  The only way I can think of is to determine the output file
+inside the batch script invoked by mpirun and using an env variable, if
+one is available (i.e., OpenMPI 1.3 or 1.2 in some scenarios)
+
+My new invocation looks like this:
+R_PROFILE=/usr/lib/R/site-library/snow/RMPISNOWprofile; export R_PROFILE
+mpirun -np 2 -host n5,n7 -x R_PROFILE /usr/bin/R CMD BATCH silly.R
+
+I think the R CMD BATCH will send output to stdout and mpi will redirect
+to the invoking terminal.  Since I can't actually run because of 3),
+this is speculative.
+
+Ross
+
+On Wed, 2009-05-13 at 21:52 -0700, Ross Boylan wrote:
+> After reading through the thread around
+> https://stat.ethz.ch/pipermail/r-sig-hpc/2009-February/000105.html, as
+> well as looking at some other things, for ideas about running snow on
+> top of Rmpi on Debian Lenny, I decided to try a shell script:
+> ----------------------------------------------------------------
+> R_PROFILE=/usr/lib/R/site-library/snow/RMPISNOWprofile; export R_PROFILE
+> mpirun -np 6 -hostfile hosts R CMD BATCH snowjob.R snowjob.out
+> ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> with this kind of snowjob.R:
+> -------------------------------------------------------------------
+> # This will only execute on the head node
+> cl <- getMPIcluster()
+> print(mpi.comm.rank(0))
+> 
+> quickinfo <- function() {
+>   list(rank=mpi.comm.rank(0), machine=Sys.info()) #system("hostname"))
+> }
+> print(clusterCall(cl, quickinfo))
+> stopCluster(cl)
+> ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 
+> and hosts file
+> -------------------
+> n7 slots=3
+> n5 slots=0  # changing this to 2 didn't help
+> n4 slots=4
+> ^^^^^^^^^^^^^^^^^^^
+> 
+> I'm on n7.
+> 
+> Two problems.
+> 
+> First, the job shown never terminates. snowjob.out shows the standard R
+> banner, a standard harmless complaint, and then nothing (technically it
+> shows 
+> [n7:14829] OOB: Connection to HNP lost
+> but I assume that is after I ^c my shell script).
+> 
+> I suspect the problem is that it's having trouble reaching the other
+> nodes.
+> 
+> Second, if I have n7 slots=7 the job completes.  It shows everything on
+> n7.  However, if I use machine=system("hostname") I get back null
+> strings.  system("hostname") works fine interactively.
+> 
+> Perhaps this is some kind of quoting effect when system("hostname") is
+> exported via clusterCall?  Or system() doesn't work under rmpi?
+> 
+> I'm also not sure why I am not running into a 3rd problem: it looks as
+> if each process should be writing to the same file snowjob.out (via NFS
+> mounts).  That doesn't seem to be happening.  Perhaps because the slave
+> R's never make it out of the RMPISNOWProfile code?
+> 
+> If anyone has any thoughts or suggestions, I'd love to hear them.
+> 
+> Ross
+> 
+> P.S. The original problem is that, apparently, makeCluster(n,
+> type="MPI") will not spawn jobs on other nodes--maybe even not more than
+> one job spawned at all.  So I'm attempting to bring up snow within an
+> mpi session.
+> 
+> I did notice the docs on MPI_COMM_SPAWN
+> http://www.mpi-forum.org/docs/mpi21-report-bw/node202.htm#Node202
+> indicate there is an info argument which could contain system-dependent
+> information.  Presumably this could include a hostname; the standard
+> explicitly leaves this to the implementation.  I couldn't find anything
+> on the openmpi implementation.  I suppose the source would at least
+> indicate what works now.
+> 
+> So, IF openmpi supports it, and if the interface is exposed through Rmpi
+> (which does have mpi.info functions, which might be able to make the
+> right arguments), there would be a possibility of handling this strictly
+> within R.
+> 
+
+-- 
+Ross Boylan                                      wk:  (415) 514-8146
+185 Berry St #5700                               ross at biostat.ucsf.edu
+Dept of Epidemiology and Biostatistics           fax: (415) 514-8150
+University of California, San Francisco
+San Francisco, CA 94107-1739                     hm:  (415) 550-1062
+
+
+From ross at biostat.ucsf.edu  Sat May 16 01:14:01 2009
+From: ross at biostat.ucsf.edu (Ross Boylan)
+Date: Fri, 15 May 2009 16:14:01 -0700
+Subject: [R-sig-hpc] parallel random number generators
+Message-ID: <1242429241.2852.23.camel@iron.psg.net>
+
+I notice snow defaults to using rlecuyer rather than rsprng.  Should I
+take this as a sign that the former is "better" in some sense?
+
+Thanks.
+Ross
+-- 
+Ross Boylan                                      wk:  (415) 514-8146
+185 Berry St #5700                               ross at biostat.ucsf.edu
+Dept of Epidemiology and Biostatistics           fax: (415) 514-8150
+University of California, San Francisco
+San Francisco, CA 94107-1739                     hm:  (415) 550-1062
+
+
+From mtmorgan at fhcrc.org  Sat May 16 17:25:02 2009
+From: mtmorgan at fhcrc.org (Martin Morgan)
+Date: Sat, 16 May 2009 08:25:02 -0700
+Subject: [R-sig-hpc] error response under interactive Rmpi
+Message-ID: <6phmy9djcj5.fsf@gopher4.fhcrc.org>
+
+This is a follow-up to this thread
+
+  https://stat.ethz.ch/pipermail/r-sig-hpc/2009-April/000174.html
+
+Starting R and entering an error, one gets something like:
+
+% orterun R --vanilla
+> sdfsdf()
+sdfsdf()
+Error: could not find function "sdfsdf"
+Execution halted
+%
+
+The 'Execution halted' bails one out to the shell. What happens is
+that at startup R checks (with isatty(0), src/unix/system.c:391) to
+see whether it's attached to a terminal, and if not sets
+Rf_Interactive to FALSE. I guess orterun has only redirected I/O
+without attaching a tty, hence R thinks of itself in non-interactive
+mode.
+
+Ross suggesting adding an error hook (options(error=function(){})
+would do it) which stops error processing before R exits.
+
+A second solution is to add --interactive to R
+
+% orterun R --vanilla --interactive
+
+This adds some flexibility back, e.g., to the interactive manager /
+worker paradigm (although no readline support), e.g.,
+
+% salloc -N4 orterun -n 1 R --vanilla --interactive
+> library(Rmpi)
+> mpi.universe.size()
+[1] 4
+> mpi.spawn.Rslaves(nsl=4)
+4 slaves are spawned successfully. 0 failed.
+master (rank 0, comm 1) of size 5 is running on: hyraxB74
+slave1 (rank 1, comm 1) of size 5 is running on: hyraxB74
+slave2 (rank 2, comm 1) of size 5 is running on: hyraxB75
+slave3 (rank 3, comm 1) of size 5 is running on: hyraxB76
+slave4 (rank 4, comm 1) of size 5 is running on: hyraxB77
+         
+Maybe though there is a better way, to connect the manager node to a
+real tty?
+
+Martin
+-- 
+Martin Morgan
+Computational Biology / Fred Hutchinson Cancer Research Center
+1100 Fairview Ave. N.
+PO Box 19024 Seattle, WA 98109
+
+Location: Arnold Building M1 B861
+Phone: (206) 667-2793
+
+
+From blindglobe at gmail.com  Mon May 18 18:02:24 2009
+From: blindglobe at gmail.com (A.J. Rossini)
+Date: Mon, 18 May 2009 18:02:24 +0200
+Subject: [R-sig-hpc] parallel random number generators
+In-Reply-To: <1242429241.2852.23.camel@iron.psg.net>
+References: <1242429241.2852.23.camel@iron.psg.net>
+Message-ID: <1abe3fa90905180902m743967cck86792a9a4a6563a5@mail.gmail.com>
+
+On Sat, May 16, 2009 at 1:14 AM, Ross Boylan <ross at biostat.ucsf.edu> wrote:
+> I notice snow defaults to using rlecuyer rather than rsprng. ?Should I
+> take this as a sign that the former is "better" in some sense?
+
+Yes.  SPRNG's theoretical properties seem to be poorer from a
+theoretic sense than the STREAMS algorthim, at least from my readings,
+but there is also the problem that SPRNG is abandonmentware.
+
+best,
+-tony
+
+blindglobe at gmail.com
+Muttenz, Switzerland.
+"Commit early,commit often, and commit in a repository from which we
+can easily roll-back your mistakes" (AJR, 4Jan05).
+
+Drink Coffee:  Do stupid things faster with more energy!
+
+
+From edd at debian.org  Mon May 18 18:22:49 2009
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Mon, 18 May 2009 11:22:49 -0500
+Subject: [R-sig-hpc] parallel random number generators
+In-Reply-To: <1abe3fa90905180902m743967cck86792a9a4a6563a5@mail.gmail.com>
+References: <1242429241.2852.23.camel@iron.psg.net>
+	<1abe3fa90905180902m743967cck86792a9a4a6563a5@mail.gmail.com>
+Message-ID: <18961.35673.359607.598401@ron.nulle.part>
+
+
+On 18 May 2009 at 18:02, A.J. Rossini wrote:
+| On Sat, May 16, 2009 at 1:14 AM, Ross Boylan <ross at biostat.ucsf.edu> wrote:
+| > I notice snow defaults to using rlecuyer rather than rsprng.  Should I
+| > take this as a sign that the former is "better" in some sense?
+| 
+| Yes.  SPRNG's theoretical properties seem to be poorer from a
+| theoretic sense than the STREAMS algorthim, at least from my readings,
+| but there is also the problem that SPRNG is abandonmentware.
+
+There is a sprng4 release but I never got it built. It also changed the API,
+so not sure how hard it would be to update rsprng.
+
+Dirk
+
+-- 
+Three out of two people have difficulties with fractions.
+
+
+From ross at biostat.ucsf.edu  Mon May 18 19:46:17 2009
+From: ross at biostat.ucsf.edu (Ross Boylan)
+Date: Mon, 18 May 2009 10:46:17 -0700
+Subject: [R-sig-hpc] openmpi/rmpi/snow: current puzzles,
+	possible improvements	[partial solution]
+In-Reply-To: <1242428872.2852.21.camel@iron.psg.net>
+References: <1242276726.4004.76.camel@corn.betterworld.us>
+	<1242428872.2852.21.camel@iron.psg.net>
+Message-ID: <1242668777.14097.29.camel@corn.betterworld.us>
+
+Now that r/mpi is on the remote nodes, I got things mostly running.
+On Fri, 2009-05-15 at 16:07 -0700, Ross Boylan wrote:
+> I think there were several things wrong.
+> 1) I wasn't exporting R_PROFILE to the remote nodes.
+That matters.  Oddly, without it the slaves show
+[n5:12779] mca: base: component_find: unable to open osc pt2pt: file not found (ignored)
+[1] "Started Slave"
+[n5:12779] OOB: Connection to HNP lost
+The first line is standard and the last line came when I head ^c on the head.
+
+The "started slave" message does not appear when R_PROFILE is exported.
+This suggests that R has some ability to tell when it's started under
+MPI.  Maybe it loads something from Rmpi (as opposed to Rsnow), but I
+don't see the "Started Slave" message in the Rmpi profile either.
+
+At any rate, the different nodes can't talk to each other, probably
+because the slaves aren't even running the snow slave loop.
+
+> 2) R CMD BATCH's output file was the same file for all processes, given
+> NFS.
+This required a double indirection to get around, since paramters on the
+mpirun command line were either evaluated on the head node or not at
+all.
+
+
+So:
+R_PROFILE=/usr/lib/R/site-library/snow/RMPISNOWprofile; export R_PROFILE
+mpirun -np 5 -host n7,n5  ./innersilly
+
+--------------- innersilly --------------------------
+#! /bin/sh
+/usr/bin/R CMD BATCH silly.R silly-$(hostname)-$$.out
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Simply sending the output to a local drive doesn't work if there is more
+than one process on a machine.  It would be preferable to use the rank
+in place of $$, but that's not reliably available in OpenMPI 1.2.  This
+was with R 2.7.1 on Debian Lenny.
+
+There was one remaining issue with output redirection, which I'll put in
+a separate thread.
+
+Ross
+
+> 3) The remote nodes did not have Rmpi installed!
+> 
+> 3) is obviously crucial; I'm not sure how significant the other problems
+> are.  I diagnosed it by changing the output file to /tmp/foo and running
+> only one job on each node.
+> 
+> Is there a good way to get unique file names per process on the command
+> line?  The only way I can think of is to determine the output file
+> inside the batch script invoked by mpirun and using an env variable, if
+> one is available (i.e., OpenMPI 1.3 or 1.2 in some scenarios)
+> 
+> My new invocation looks like this:
+> R_PROFILE=/usr/lib/R/site-library/snow/RMPISNOWprofile; export R_PROFILE
+> mpirun -np 2 -host n5,n7 -x R_PROFILE /usr/bin/R CMD BATCH silly.R
+> 
+> I think the R CMD BATCH will send output to stdout and mpi will redirect
+> to the invoking terminal.  Since I can't actually run because of 3),
+> this is speculative.
+> 
+> Ross
+> 
+> On Wed, 2009-05-13 at 21:52 -0700, Ross Boylan wrote:
+> > After reading through the thread around
+> > https://stat.ethz.ch/pipermail/r-sig-hpc/2009-February/000105.html, as
+> > well as looking at some other things, for ideas about running snow on
+> > top of Rmpi on Debian Lenny, I decided to try a shell script:
+> > ----------------------------------------------------------------
+> > R_PROFILE=/usr/lib/R/site-library/snow/RMPISNOWprofile; export R_PROFILE
+> > mpirun -np 6 -hostfile hosts R CMD BATCH snowjob.R snowjob.out
+> > ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> > with this kind of snowjob.R:
+> > -------------------------------------------------------------------
+> > # This will only execute on the head node
+> > cl <- getMPIcluster()
+> > print(mpi.comm.rank(0))
+> > 
+> > quickinfo <- function() {
+> >   list(rank=mpi.comm.rank(0), machine=Sys.info()) #system("hostname"))
+> > }
+> > print(clusterCall(cl, quickinfo))
+> > stopCluster(cl)
+> > ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> > 
+> > and hosts file
+> > -------------------
+> > n7 slots=3
+> > n5 slots=0  # changing this to 2 didn't help
+> > n4 slots=4
+> > ^^^^^^^^^^^^^^^^^^^
+> > 
+> > I'm on n7.
+> > 
+> > Two problems.
+> > 
+> > First, the job shown never terminates. snowjob.out shows the standard R
+> > banner, a standard harmless complaint, and then nothing (technically it
+> > shows 
+> > [n7:14829] OOB: Connection to HNP lost
+> > but I assume that is after I ^c my shell script).
+> > 
+> > I suspect the problem is that it's having trouble reaching the other
+> > nodes.
+> > 
+> > Second, if I have n7 slots=7 the job completes.  It shows everything on
+> > n7.  However, if I use machine=system("hostname") I get back null
+> > strings.  system("hostname") works fine interactively.
+> > 
+> > Perhaps this is some kind of quoting effect when system("hostname") is
+> > exported via clusterCall?  Or system() doesn't work under rmpi?
+> > 
+> > I'm also not sure why I am not running into a 3rd problem: it looks as
+> > if each process should be writing to the same file snowjob.out (via NFS
+> > mounts).  That doesn't seem to be happening.  Perhaps because the slave
+> > R's never make it out of the RMPISNOWProfile code?
+> > 
+> > If anyone has any thoughts or suggestions, I'd love to hear them.
+> > 
+> > Ross
+> > 
+> > P.S. The original problem is that, apparently, makeCluster(n,
+> > type="MPI") will not spawn jobs on other nodes--maybe even not more than
+> > one job spawned at all.  So I'm attempting to bring up snow within an
+> > mpi session.
+> > 
+> > I did notice the docs on MPI_COMM_SPAWN
+> > http://www.mpi-forum.org/docs/mpi21-report-bw/node202.htm#Node202
+> > indicate there is an info argument which could contain system-dependent
+> > information.  Presumably this could include a hostname; the standard
+> > explicitly leaves this to the implementation.  I couldn't find anything
+> > on the openmpi implementation.  I suppose the source would at least
+> > indicate what works now.
+> > 
+> > So, IF openmpi supports it, and if the interface is exposed through Rmpi
+> > (which does have mpi.info functions, which might be able to make the
+> > right arguments), there would be a possibility of handling this strictly
+> > within R.
+> > 
+>
+
+
+From ross at biostat.ucsf.edu  Mon May 18 19:58:21 2009
+From: ross at biostat.ucsf.edu (Ross Boylan)
+Date: Mon, 18 May 2009 10:58:21 -0700
+Subject: [R-sig-hpc] Oddities with system() and output redirection
+Message-ID: <1242669501.14097.39.camel@corn.betterworld.us>
+
+system("hostname") returns a success (0) or error code and prints the
+result of the command.
+system("hostname", intern=TRUE) returns the string output of the
+command.
+
+I thought that the basic behavior was a product of the way I was running
+R under OpenMPI, but it's just the documented behavior of system().  I
+had overlooked this when running interactively because the  output
+appears directly on the terminal.  So system("hostname) appears to work,
+but r <- system("hostname") prints the hostname and sets r to 0.
+
+
+From nathan.watson-haigh at csiro.au  Tue May 19 04:17:16 2009
+From: nathan.watson-haigh at csiro.au (Nathan S. Watson-Haigh)
+Date: Tue, 19 May 2009 12:17:16 +1000
+Subject: [R-sig-hpc] papply help
+Message-ID: <4A1216AC.6070900@csiro.au>
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+I have some code that simply takes a matrix and raises all the values to a given
+power:
+
+<code>
+m <- matrix(0.8, 10, 10)
+beta <- 6
+m <- m^beta
+</code>
+
+I'd like to parallelise this so that each slave executes the calculation on each
+of the rows from the matrix. Would this yield any speedup given than my matrix
+could be a 10,000 - 15,000 square?
+
+The papply library/function seems like just the trick, but I can't seem to get
+it to work....maybe the docs are confusing me as I'm not sure what the different
+arguments are actually doing!
+
+Any pointers welcomed :o)
+Nathan
+
+- --
+- --------------------------------------------------------
+Dr. Nathan S. Watson-Haigh
+OCE Post Doctoral Fellow
+CSIRO Livestock Industries
+Queensland Bioscience Precinct
+St Lucia, QLD 4067
+Australia
+
+Tel: +61 (0)7 3214 2922
+Fax: +61 (0)7 3214 2900
+Web: http://www.csiro.au/people/Nathan.Watson-Haigh.html
+- --------------------------------------------------------
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.9 (MingW32)
+Comment: Using GnuPG with Mozilla - http://enigmail.mozdev.org
+
+iEYEARECAAYFAkoSFqwACgkQ9gTv6QYzVL5icACfdHqTFcNDuJU0s9OoRYxC1EMr
+oS4AoMiaYWPnoZpjgui1J4FNEFtEwgFt
+=WCEH
+-----END PGP SIGNATURE-----
+
+
+From edd at debian.org  Tue May 19 13:49:11 2009
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Tue, 19 May 2009 06:49:11 -0500
+Subject: [R-sig-hpc] some notes on using R in Amazon's EC2
+In-Reply-To: <273c9b0b0905182008i1f2fda6dvde82b913158cc219@mail.gmail.com>
+References: <273c9b0b0905182008i1f2fda6dvde82b913158cc219@mail.gmail.com>
+Message-ID: <18962.40119.84630.327138@ron.nulle.part>
+
+
+[ Bob posted this to r-sig-finance, it's relevant here too so I am taking 
+  the liberty of reposting it here (with an small editorial change to the 
+  'official'  R / Finance URL.     -- Dirk, wearing his listmaster hat  ]
+
+
+This is a follow up to a lecture I gave at the recent R/Finance 2009
+Conference in Chicago
+http://www.rinfinance.com/.
+
+I have prepared some informal notes for those familar with R but not
+with Amazon's EC2 service about using R with EC2.  Please see:
+
+http://blog.rgrossman.com/2009/05/17/running-r-on-amazons-ec2/
+
+There is also a publically available Amazon AMI with R and several
+time series packages installed.
+The manifest is "opendatagroup/r-timeseries.manifest.xml" and the AMI
+instance ?ami-ea846283?.  The notes contain more details.
+
+I'll be revising the notes, so I'm interested in any feedback.
+
+--Bob
+
+Robert Grossman
+
+Open Data Group &
+University of Illinois at Chicago
+blog.rgrossman.com
+
+
+-- 
+Three out of two people have difficulties with fractions.
+
+
+From B_Rowe at ml.com  Tue May 19 16:17:52 2009
+From: B_Rowe at ml.com (Rowe, Brian Lee Yung (Portfolio Analytics))
+Date: Tue, 19 May 2009 10:17:52 -0400
+Subject: [R-sig-hpc] papply help
+In-Reply-To: <4A1216AC.6070900@csiro.au>
+Message-ID: <3BAD818D9407B043817CC6D89ABA14EC032B8593@MLNYC20MB051.amrs.win.ml.com>
+
+Nathan,
+
+You might want to disclose some detail regarding your environment (e.g.
+do you have a working Rmpi installation?) and some (broken) code
+samples. This might get the discussion going a bit faster.
+
+Regarding the performance question, you'll find as in most distributed
+systems, that performance is highly dependent on your API, including
+message size and volume. If you blindly try to parallelize, it will
+probably be slower, although a well-designed system will give the
+opposite result. Hence, there is no straight answer, but rather the
+interminable "it depends".
+
+Cheers,
+Brian
+ 
+
+-----Original Message-----
+From: r-sig-hpc-bounces at r-project.org
+[mailto:r-sig-hpc-bounces at r-project.org] On Behalf Of Nathan S.
+Watson-Haigh
+Sent: Monday, May 18, 2009 10:17 PM
+To: R-sig-hpc at r-project.org
+Subject: [R-sig-hpc] papply help
+
+
+* PGP Signed by an unknown key: 05/18/2009 at 10:17:16 PM
+
+I have some code that simply takes a matrix and raises all the values to
+a given
+power:
+
+<code>
+m <- matrix(0.8, 10, 10)
+beta <- 6
+m <- m^beta
+</code>
+
+I'd like to parallelise this so that each slave executes the calculation
+on each
+of the rows from the matrix. Would this yield any speedup given than my
+matrix
+could be a 10,000 - 15,000 square?
+
+The papply library/function seems like just the trick, but I can't seem
+to get
+it to work....maybe the docs are confusing me as I'm not sure what the
+different
+arguments are actually doing!
+
+Any pointers welcomed :o)
+Nathan
+
+--
+--------------------------------------------------------
+Dr. Nathan S. Watson-Haigh
+OCE Post Doctoral Fellow
+CSIRO Livestock Industries
+Queensland Bioscience Precinct
+St Lucia, QLD 4067
+Australia
+
+Tel: +61 (0)7 3214 2922
+Fax: +61 (0)7 3214 2900
+Web: http://www.csiro.au/people/Nathan.Watson-Haigh.html
+--------------------------------------------------------
+
+* Unknown Key
+* 0x063354BE (L)
+
+
+_______________________________________________
+R-sig-hpc mailing list
+R-sig-hpc at r-project.org
+https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+--------------------------------------------------------------------------
+This message w/attachments (message) may be privileged, confidential or proprietary, and if you are not an intended recipient, please notify the sender, do not use or share it and delete it. Unless specifically indicated, this message is not an offer to sell or a solicitation of any investment products or other financial product or service, an official confirmation of any transaction, or an official statement of Merrill Lynch. Subject to applicable law, Merrill Lynch may monitor, review and retain e-communications (EC) traveling through its networks/systems. The laws of the country of each sender/recipient may impact the handling of EC, and EC may be archived, supervised and produced in countries other than the country in which you are located. This message cannot be guaranteed to be secure or error-free. References to "Merrill Lynch" are references to any company in the Merrill Lynch & Co., Inc. group of companies, which are wholly-owned by Bank of America Corporation. Securities and Insurance Products: * Are Not FDIC Insured * Are Not Bank Guaranteed * May Lose Value * Are Not a Bank Deposit * Are Not a Condition to Any Banking Service or Activity * Are Not Insured by Any Federal Government Agency. Attachments that are part of this E-communication may have additional important disclosures and disclaimers, which you should read. This message is subject to terms available at the following link: http://www.ml.com/e-communications_terms/. By messaging with Merrill Lynch you consent to the foregoing.
+--------------------------------------------------------------------------
+
+
+From ross at biostat.ucsf.edu  Tue May 19 22:59:59 2009
+From: ross at biostat.ucsf.edu (Ross Boylan)
+Date: Tue, 19 May 2009 13:59:59 -0700
+Subject: [R-sig-hpc] public place to gather info?
+Message-ID: <1242766799.21646.12.camel@iron.psg.net>
+
+Is there a public wiki, or something similar, where we could collect
+tips on HPC?
+
+We have a wiki for our cluster, and I've started putting stuff I find
+(often with help from this list!) out there .  Some of it is specific to
+our particular setup (Debian Lenny), but I imagine much of it isn't.
+There's one page for OpenMPI (obviously a broader audience than R users)
+and another on (parallel) R.
+
+The wiki is only accessible to our local members, which seems a bit
+unsociable.
+
+Any alternatives?  There is a bit of a category problem, since the
+topics relate to Debian, HPC, R, and MPI.
+
+If I have time, I'll send patches up to the Debian packages, and those
+might migrate upstream someday.  The advantage of the wiki is that is
+available rapidly, and easier to get many people's knowledge and
+corrections.
+
+P.S. My latest discovery is that set.seed is a no-op after you've
+initialized rsprng's generator.
+-- 
+Ross Boylan                                      wk:  (415) 514-8146
+185 Berry St #5700                               ross at biostat.ucsf.edu
+Dept of Epidemiology and Biostatistics           fax: (415) 514-8150
+University of California, San Francisco
+San Francisco, CA 94107-1739                     hm:  (415) 550-1062
+
+
+From edd at debian.org  Wed May 20 03:55:05 2009
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Tue, 19 May 2009 20:55:05 -0500
+Subject: [R-sig-hpc] public place to gather info?
+In-Reply-To: <1242766799.21646.12.camel@iron.psg.net>
+References: <1242766799.21646.12.camel@iron.psg.net>
+Message-ID: <18963.25337.866246.133219@ron.nulle.part>
+
+
+Ross,
+
+On 19 May 2009 at 13:59, Ross Boylan wrote:
+| Is there a public wiki, or something similar, where we could collect
+| tips on HPC?
+| 
+| We have a wiki for our cluster, and I've started putting stuff I find
+| (often with help from this list!) out there .  Some of it is specific to
+| our particular setup (Debian Lenny), but I imagine much of it isn't.
+| There's one page for OpenMPI (obviously a broader audience than R users)
+| and another on (parallel) R.
+| 
+| The wiki is only accessible to our local members, which seems a bit
+| unsociable.
+
+Why don't you start at http://wiki.r-project.org ?  It's after all a wiki for
+the R community.
+
+| Any alternatives?  There is a bit of a category problem, since the
+| topics relate to Debian, HPC, R, and MPI.
+
+I see no problem at all. The HPC/R/MPI aspects should be cross-distro, and
+even the Debian/Ubuntu aspects may have some bearing on other distros if and
+when they use the same library patches.
+ 
+| If I have time, I'll send patches up to the Debian packages, and those
+| might migrate upstream someday.  The advantage of the wiki is that is
+
+a) Make sure you test and apply them to _current sources_ and lenny.
+
+b) If you want them to go upstream, feel free to send them upstream. I try
+   not to accumulate Debian-specific patches in R, Rmpi 
+
+| available rapidly, and easier to get many people's knowledge and
+| corrections.
+| 
+| P.S. My latest discovery is that set.seed is a no-op after you've
+| initialized rsprng's generator.
+
+Yes, wasn't that the point of (r)sprng ?
+
+Dirk
+
+-- 
+Three out of two people have difficulties with fractions.
+
+
+From ross at biostat.ucsf.edu  Wed May 20 04:56:30 2009
+From: ross at biostat.ucsf.edu (Ross Boylan)
+Date: Tue, 19 May 2009 19:56:30 -0700
+Subject: [R-sig-hpc] rsprng
+In-Reply-To: <18963.25337.866246.133219@ron.nulle.part>
+References: <1242766799.21646.12.camel@iron.psg.net>
+	<18963.25337.866246.133219@ron.nulle.part>
+Message-ID: <1242788190.7583.13.camel@corn.betterworld.us>
+
+The R project wiki sounds like a great place.  Thanks for the
+suggestion.
+
+On Tue, 2009-05-19 at 20:55 -0500, Dirk Eddelbuettel wrote:
+> | P.S. My latest discovery is that set.seed is a no-op after you've
+> | initialized rsprng's generator.
+> 
+> Yes, wasn't that the point of (r)sprng ?
+It did happen to be the behavior I was looking for.  But R framework for
+user random number generators provides hooks by which they can intercept
+calls to set.seed (among other things).
+
+Also, before I looked at the code I thought rsprng might be operating
+completely outside of the usual R RNG framework, so that only explicit
+calls to the rsprng interface would get sprng random numbers.  It is
+certainly more convenient for the replacement to be fairly pervasive.
+
+It seems a bit of a problem to me that the current approach is a mix of
+the two cases.  On the one hand, rsprng could be a drop-in replacement
+for R's random numbers, in which case set.seed would work, as would the
+standard commands for getting and setting state of the stream.
+Admittedly, the semantics of set.seed in a parallel RNG are murky; maybe
+it should just throw an error.
+
+On the other hand, it could be completely independent, accessible only
+by its own specialized calls while the standard R RNG's proceeded
+obliviously.
+
+My attempt to use set.seed was based on a guess that this second model
+(rsprng completely separate) was what was going on.
+
+
+From ross at biostat.ucsf.edu  Wed May 20 18:22:26 2009
+From: ross at biostat.ucsf.edu (Ross Boylan)
+Date: Wed, 20 May 2009 09:22:26 -0700
+Subject: [R-sig-hpc] rsprng
+In-Reply-To: <1242788190.7583.13.camel@corn.betterworld.us>
+References: <1242766799.21646.12.camel@iron.psg.net>
+	<18963.25337.866246.133219@ron.nulle.part>
+	<1242788190.7583.13.camel@corn.betterworld.us>
+Message-ID: <1242836546.7583.57.camel@corn.betterworld.us>
+
+I overlooked a 3rd issue: my R code is calling C code, which is calling
+the system random number functions.
+
+So I also need to figure out how that interacts with the stuff that R
+and SPRNG are doing.
+
+I could also change the C code to work with sprng.  There are two
+difficulties: first, I think I need an explicit way to pass the state
+between R and C; second, (ideally) the C module needs to work both in
+the presence and the absence of mpi and sprng.
+
+Using sprng to generate a seed for the C code to set seems like the
+easiest course.  However, that's only safe if the C system random number
+generator and R's sprng live in different worlds.
+
+At the moment my simulation code accepts a C and sets it in R, the basis
+for my original experiments.  Maybe set.seed, though a no-op for R with
+rsprng installed, still affects the system RNG, and so the random
+numbers my C code gets.
+
+Ross
+
+
+From saptarshi.guha at gmail.com  Thu May 21 17:48:43 2009
+From: saptarshi.guha at gmail.com (Saptarshi Guha)
+Date: Thu, 21 May 2009 11:48:43 -0400
+Subject: [R-sig-hpc] RHIPE - v0.38
+Message-ID: <1e7471d50905210848m1c8863dbl867f02441a152d6@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090521/59c0ee25/attachment.pl>
+
+From jacobvanetten at yahoo.com  Fri May 29 05:22:02 2009
+From: jacobvanetten at yahoo.com (Jacob van Etten)
+Date: Thu, 28 May 2009 20:22:02 -0700 (PDT)
+Subject: [R-sig-hpc] rgdal cannot be loaded on nodes
+Message-ID: <630413.72921.qm@web32908.mail.mud.yahoo.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090528/3147aba1/attachment.pl>
+
+From michela.cameletti at gmail.com  Fri May 29 08:51:54 2009
+From: michela.cameletti at gmail.com (Michela Cameletti)
+Date: Fri, 29 May 2009 08:51:54 +0200
+Subject: [R-sig-hpc] RScaLAPACK with OpenMPI
+Message-ID: <CA811D4D-7AFD-4AA7-A92A-A8D03C3947D3@gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090529/c444992a/attachment.pl>
+

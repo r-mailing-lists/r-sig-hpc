@@ -1,0 +1,884 @@
+From m@r|u@@ho|ert @end|ng |rom uw@ter|oo@c@  Wed Aug 28 09:32:10 2019
+From: m@r|u@@ho|ert @end|ng |rom uw@ter|oo@c@ (Marius Hofert)
+Date: Wed, 28 Aug 2019 08:32:10 +0100
+Subject: [R-sig-hpc] mclapply() hangs when keras-based neural networks are
+ involved
+Message-ID: <CAM3-Kja8XdAroUwfYuuxpLYzaHDO5qOzgpgMxyYBPENg-2+rEA@mail.gmail.com>
+
+Hi,
+
+Below is an example where mclapply() 'hangs' after starting the work
+on two cores.
+This happens on macOS and Ubuntu (sessionInfo() below). I also see no activity
+on 'htop'. lapply() works, though. What is the cause of this behavior?
+
+Cheers,
+M
+
+library(tensorflow)
+library(keras)
+library(parallel)
+## TensorFlow also needs to be installed, which can be done via
+install_tensorflow() from R
+
+## 1) Setup
+in.lay <- layer_input(shape = 2)
+hid.lay <- layer_dense(in.lay,  units = 300, activation = "relu")
+out.lay <- layer_dense(hid.lay, units = 2,   activation = "sigmoid")
+NN <- keras_model(in.lay, out.lay)
+loss_fn <- function(x, y = out.lay) loss_mean_squared_error(x, y)
+NN %>% compile(optimizer = "adam", loss = loss_fn)
+
+## 2) Training
+NN %>% fit(x = matrix(runif(10000 * 2), ncol = 2), # prior data
+           y = matrix(rnorm(10000 * 2), ncol = 2), # training data
+           batch_size = 5000, epochs = 1)
+
+## 3) Generate samples by evaluating the NN on a prior sample
+aux <- function(b) {
+    cat(paste("Working on case",b,"\n"))
+    Sys.sleep(2)
+    predict(NN, x = matrix(runif(100 * 2), ncol = 2)) # mclapply()
+hangs here (on macOS and Ubuntu)
+}
+
+## 4) Call that hangs after the two processes are started
+res.serial   <-   lapply(1:5, function(b) aux(b)) # works
+res.parallel <- mclapply(1:5, function(b) aux(b), mc.cores = 2) #
+hangs once both cores are used
+
+## Output:
+## For lapply():
+Working on case 1
+Working on case 2
+Working on case 3
+Working on case 4
+Working on case 5
+## For mclapply():
+Working on case 1
+Working on case 2
+
+## sessionInfo() on macOS:
+R version 3.6.1 (2019-07-05)
+Platform: x86_64-apple-darwin18.7.0 (64-bit)
+Running under: macOS Mojave 10.14.6
+
+Matrix products: default
+BLAS:   /usr/local/R/R-3.6.1_build/lib/libRblas.dylib
+LAPACK: /usr/local/R/R-3.6.1_build/lib/libRlapack.dylib
+
+locale:
+[1] en_CA.UTF-8/en_CA.UTF-8/en_CA.UTF-8/C/en_CA.UTF-8/en_CA.UTF-8
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base
+
+loaded via a namespace (and not attached):
+[1] compiler_3.6.1 tools_3.6.1
+
+## sessionInfo() on Ubuntu:
+R version 3.6.0 (2019-04-26)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Ubuntu 18.04.3 LTS
+
+Matrix products: default
+BLAS:   /u/mhofert/soft/R/R-3.6.0_build/lib/libRblas.so
+LAPACK: /u/mhofert/soft/R/R-3.6.0_build/lib/libRlapack.so
+
+locale:
+ [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C
+ [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8
+ [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8
+ [7] LC_PAPER=en_US.UTF-8       LC_NAME=C
+ [9] LC_ADDRESS=C               LC_TELEPHONE=C
+[11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base
+
+loaded via a namespace (and not attached):
+[1] compiler_3.6.0
+
+
+From @|mon@urb@nek @end|ng |rom R-project@org  Fri Aug 30 10:39:38 2019
+From: @|mon@urb@nek @end|ng |rom R-project@org (Simon Urbanek)
+Date: Fri, 30 Aug 2019 04:39:38 -0400
+Subject: [R-sig-hpc] 
+ mclapply() hangs when keras-based neural networks are involved
+In-Reply-To: <CAM3-Kja8XdAroUwfYuuxpLYzaHDO5qOzgpgMxyYBPENg-2+rEA@mail.gmail.com>
+References: <CAM3-Kja8XdAroUwfYuuxpLYzaHDO5qOzgpgMxyYBPENg-2+rEA@mail.gmail.com>
+Message-ID: <BE99C863-9AFC-46CF-8149-DF0C043FF00A@R-project.org>
+
+Marius,
+
+Tensorflow doesn?t support any parallel computing including forking. It is assumed that all parallelization is done by TF itself and it takes over all resources in a way such that they cannot be shared across processes. Hence you cannot combine TF and parallel (and hence by induction Keras).
+
+Cheers,
+Simon
+
+
+> On Aug 28, 2019, at 3:32 AM, Marius Hofert <marius.hofert at uwaterloo.ca> wrote:
+> 
+> Hi,
+> 
+> Below is an example where mclapply() 'hangs' after starting the work
+> on two cores.
+> This happens on macOS and Ubuntu (sessionInfo() below). I also see no activity
+> on 'htop'. lapply() works, though. What is the cause of this behavior?
+> 
+> Cheers,
+> M
+> 
+> library(tensorflow)
+> library(keras)
+> library(parallel)
+> ## TensorFlow also needs to be installed, which can be done via
+> install_tensorflow() from R
+> 
+> ## 1) Setup
+> in.lay <- layer_input(shape = 2)
+> hid.lay <- layer_dense(in.lay,  units = 300, activation = "relu")
+> out.lay <- layer_dense(hid.lay, units = 2,   activation = "sigmoid")
+> NN <- keras_model(in.lay, out.lay)
+> loss_fn <- function(x, y = out.lay) loss_mean_squared_error(x, y)
+> NN %>% compile(optimizer = "adam", loss = loss_fn)
+> 
+> ## 2) Training
+> NN %>% fit(x = matrix(runif(10000 * 2), ncol = 2), # prior data
+>           y = matrix(rnorm(10000 * 2), ncol = 2), # training data
+>           batch_size = 5000, epochs = 1)
+> 
+> ## 3) Generate samples by evaluating the NN on a prior sample
+> aux <- function(b) {
+>    cat(paste("Working on case",b,"\n"))
+>    Sys.sleep(2)
+>    predict(NN, x = matrix(runif(100 * 2), ncol = 2)) # mclapply()
+> hangs here (on macOS and Ubuntu)
+> }
+> 
+> ## 4) Call that hangs after the two processes are started
+> res.serial   <-   lapply(1:5, function(b) aux(b)) # works
+> res.parallel <- mclapply(1:5, function(b) aux(b), mc.cores = 2) #
+> hangs once both cores are used
+> 
+> ## Output:
+> ## For lapply():
+> Working on case 1
+> Working on case 2
+> Working on case 3
+> Working on case 4
+> Working on case 5
+> ## For mclapply():
+> Working on case 1
+> Working on case 2
+> 
+> ## sessionInfo() on macOS:
+> R version 3.6.1 (2019-07-05)
+> Platform: x86_64-apple-darwin18.7.0 (64-bit)
+> Running under: macOS Mojave 10.14.6
+> 
+> Matrix products: default
+> BLAS:   /usr/local/R/R-3.6.1_build/lib/libRblas.dylib
+> LAPACK: /usr/local/R/R-3.6.1_build/lib/libRlapack.dylib
+> 
+> locale:
+> [1] en_CA.UTF-8/en_CA.UTF-8/en_CA.UTF-8/C/en_CA.UTF-8/en_CA.UTF-8
+> 
+> attached base packages:
+> [1] stats     graphics  grDevices utils     datasets  methods   base
+> 
+> loaded via a namespace (and not attached):
+> [1] compiler_3.6.1 tools_3.6.1
+> 
+> ## sessionInfo() on Ubuntu:
+> R version 3.6.0 (2019-04-26)
+> Platform: x86_64-pc-linux-gnu (64-bit)
+> Running under: Ubuntu 18.04.3 LTS
+> 
+> Matrix products: default
+> BLAS:   /u/mhofert/soft/R/R-3.6.0_build/lib/libRblas.so
+> LAPACK: /u/mhofert/soft/R/R-3.6.0_build/lib/libRlapack.so
+> 
+> locale:
+> [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C
+> [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8
+> [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8
+> [7] LC_PAPER=en_US.UTF-8       LC_NAME=C
+> [9] LC_ADDRESS=C               LC_TELEPHONE=C
+> [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C
+> 
+> attached base packages:
+> [1] stats     graphics  grDevices utils     datasets  methods   base
+> 
+> loaded via a namespace (and not attached):
+> [1] compiler_3.6.0
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+
+
+From m@r|u@@ho|ert @end|ng |rom uw@ter|oo@c@  Fri Aug 30 11:19:52 2019
+From: m@r|u@@ho|ert @end|ng |rom uw@ter|oo@c@ (Marius Hofert)
+Date: Fri, 30 Aug 2019 10:19:52 +0100
+Subject: [R-sig-hpc] 
+ mclapply() hangs when keras-based neural networks are involved
+In-Reply-To: <dbb365cbb40d4f5ca81912bb0563a3a1@connhm02.connect.uwaterloo.ca>
+References: <CAM3-Kja8XdAroUwfYuuxpLYzaHDO5qOzgpgMxyYBPENg-2+rEA@mail.gmail.com>
+ <dbb365cbb40d4f5ca81912bb0563a3a1@connhm02.connect.uwaterloo.ca>
+Message-ID: <CAM3-KjZJm2RNsYnuq4dUW34w1EDHMq-vqrg9EXS2MxhdchxsjQ@mail.gmail.com>
+
+Hi Simon,
+
+thanks a lot for helping.
+
+That's a huge let-down... For training neural networks, this seems
+understandable, but once trained, just to evaluate neural networks,
+all applications are then restricted to serial computations... *sigh*.
+
+Cheers,
+M
+
+
+
+
+On Fri, Aug 30, 2019 at 9:39 AM Simon Urbanek
+<simon.urbanek at r-project.org> wrote:
+>
+> Marius,
+>
+> Tensorflow doesn?t support any parallel computing including forking. It is assumed that all parallelization is done by TF itself and it takes over all resources in a way such that they cannot be shared across processes. Hence you cannot combine TF and parallel (and hence by induction Keras).
+>
+> Cheers,
+> Simon
+>
+>
+> > On Aug 28, 2019, at 3:32 AM, Marius Hofert <marius.hofert at uwaterloo.ca> wrote:
+> >
+> > Hi,
+> >
+> > Below is an example where mclapply() 'hangs' after starting the work
+> > on two cores.
+> > This happens on macOS and Ubuntu (sessionInfo() below). I also see no activity
+> > on 'htop'. lapply() works, though. What is the cause of this behavior?
+> >
+> > Cheers,
+> > M
+> >
+> > library(tensorflow)
+> > library(keras)
+> > library(parallel)
+> > ## TensorFlow also needs to be installed, which can be done via
+> > install_tensorflow() from R
+> >
+> > ## 1) Setup
+> > in.lay <- layer_input(shape = 2)
+> > hid.lay <- layer_dense(in.lay,  units = 300, activation = "relu")
+> > out.lay <- layer_dense(hid.lay, units = 2,   activation = "sigmoid")
+> > NN <- keras_model(in.lay, out.lay)
+> > loss_fn <- function(x, y = out.lay) loss_mean_squared_error(x, y)
+> > NN %>% compile(optimizer = "adam", loss = loss_fn)
+> >
+> > ## 2) Training
+> > NN %>% fit(x = matrix(runif(10000 * 2), ncol = 2), # prior data
+> >           y = matrix(rnorm(10000 * 2), ncol = 2), # training data
+> >           batch_size = 5000, epochs = 1)
+> >
+> > ## 3) Generate samples by evaluating the NN on a prior sample
+> > aux <- function(b) {
+> >    cat(paste("Working on case",b,"\n"))
+> >    Sys.sleep(2)
+> >    predict(NN, x = matrix(runif(100 * 2), ncol = 2)) # mclapply()
+> > hangs here (on macOS and Ubuntu)
+> > }
+> >
+> > ## 4) Call that hangs after the two processes are started
+> > res.serial   <-   lapply(1:5, function(b) aux(b)) # works
+> > res.parallel <- mclapply(1:5, function(b) aux(b), mc.cores = 2) #
+> > hangs once both cores are used
+> >
+> > ## Output:
+> > ## For lapply():
+> > Working on case 1
+> > Working on case 2
+> > Working on case 3
+> > Working on case 4
+> > Working on case 5
+> > ## For mclapply():
+> > Working on case 1
+> > Working on case 2
+> >
+> > ## sessionInfo() on macOS:
+> > R version 3.6.1 (2019-07-05)
+> > Platform: x86_64-apple-darwin18.7.0 (64-bit)
+> > Running under: macOS Mojave 10.14.6
+> >
+> > Matrix products: default
+> > BLAS:   /usr/local/R/R-3.6.1_build/lib/libRblas.dylib
+> > LAPACK: /usr/local/R/R-3.6.1_build/lib/libRlapack.dylib
+> >
+> > locale:
+> > [1] en_CA.UTF-8/en_CA.UTF-8/en_CA.UTF-8/C/en_CA.UTF-8/en_CA.UTF-8
+> >
+> > attached base packages:
+> > [1] stats     graphics  grDevices utils     datasets  methods   base
+> >
+> > loaded via a namespace (and not attached):
+> > [1] compiler_3.6.1 tools_3.6.1
+> >
+> > ## sessionInfo() on Ubuntu:
+> > R version 3.6.0 (2019-04-26)
+> > Platform: x86_64-pc-linux-gnu (64-bit)
+> > Running under: Ubuntu 18.04.3 LTS
+> >
+> > Matrix products: default
+> > BLAS:   /u/mhofert/soft/R/R-3.6.0_build/lib/libRblas.so
+> > LAPACK: /u/mhofert/soft/R/R-3.6.0_build/lib/libRlapack.so
+> >
+> > locale:
+> > [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C
+> > [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8
+> > [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8
+> > [7] LC_PAPER=en_US.UTF-8       LC_NAME=C
+> > [9] LC_ADDRESS=C               LC_TELEPHONE=C
+> > [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C
+> >
+> > attached base packages:
+> > [1] stats     graphics  grDevices utils     datasets  methods   base
+> >
+> > loaded via a namespace (and not attached):
+> > [1] compiler_3.6.0
+> >
+> > _______________________________________________
+> > R-sig-hpc mailing list
+> > R-sig-hpc at r-project.org
+> > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> >
+>
+
+
+From @|mon@urb@nek @end|ng |rom r-project@org  Fri Aug 30 16:13:00 2019
+From: @|mon@urb@nek @end|ng |rom r-project@org (Simon Urbanek)
+Date: Fri, 30 Aug 2019 10:13:00 -0400
+Subject: [R-sig-hpc] 
+ mclapply() hangs when keras-based neural networks are involved
+In-Reply-To: <CAM3-KjZJm2RNsYnuq4dUW34w1EDHMq-vqrg9EXS2MxhdchxsjQ@mail.gmail.com>
+References: <CAM3-Kja8XdAroUwfYuuxpLYzaHDO5qOzgpgMxyYBPENg-2+rEA@mail.gmail.com>
+ <dbb365cbb40d4f5ca81912bb0563a3a1@connhm02.connect.uwaterloo.ca>
+ <CAM3-KjZJm2RNsYnuq4dUW34w1EDHMq-vqrg9EXS2MxhdchxsjQ@mail.gmail.com>
+Message-ID: <C5F607F2-1F3D-4383-8765-5DC444C3FC7A@r-project.org>
+
+Yep, I fully agree, I ran into the same problem, but even a trained model still uses TF to run the scoring so all TF limitations still apply. From some searching I saw the TF community is aware of the problem, but there is no solution.
+
+Obviously, you can just start n processes, limit resources to each and use them for scoring. But, again, note that TF tries to use all resources so unless you use multiple models.
+
+In principle you could save all the weights and use plain C code to score the model using those weights which would be safe, but likely a lot of duplicate work depending on the model. 
+
+Cheers,
+Simon 
+
+
+> On Aug 30, 2019, at 05:19, Marius Hofert <marius.hofert at uwaterloo.ca> wrote:
+> 
+> Hi Simon,
+> 
+> thanks a lot for helping.
+> 
+> That's a huge let-down... For training neural networks, this seems
+> understandable, but once trained, just to evaluate neural networks,
+> all applications are then restricted to serial computations... *sigh*.
+> 
+> Cheers,
+> M
+> 
+> 
+> 
+> 
+> On Fri, Aug 30, 2019 at 9:39 AM Simon Urbanek
+> <simon.urbanek at r-project.org> wrote:
+>> 
+>> Marius,
+>> 
+>> Tensorflow doesn?t support any parallel computing including forking. It is assumed that all parallelization is done by TF itself and it takes over all resources in a way such that they cannot be shared across processes. Hence you cannot combine TF and parallel (and hence by induction Keras).
+>> 
+>> Cheers,
+>> Simon
+>> 
+>> 
+>>> On Aug 28, 2019, at 3:32 AM, Marius Hofert <marius.hofert at uwaterloo.ca> wrote:
+>>> 
+>>> Hi,
+>>> 
+>>> Below is an example where mclapply() 'hangs' after starting the work
+>>> on two cores.
+>>> This happens on macOS and Ubuntu (sessionInfo() below). I also see no activity
+>>> on 'htop'. lapply() works, though. What is the cause of this behavior?
+>>> 
+>>> Cheers,
+>>> M
+>>> 
+>>> library(tensorflow)
+>>> library(keras)
+>>> library(parallel)
+>>> ## TensorFlow also needs to be installed, which can be done via
+>>> install_tensorflow() from R
+>>> 
+>>> ## 1) Setup
+>>> in.lay <- layer_input(shape = 2)
+>>> hid.lay <- layer_dense(in.lay,  units = 300, activation = "relu")
+>>> out.lay <- layer_dense(hid.lay, units = 2,   activation = "sigmoid")
+>>> NN <- keras_model(in.lay, out.lay)
+>>> loss_fn <- function(x, y = out.lay) loss_mean_squared_error(x, y)
+>>> NN %>% compile(optimizer = "adam", loss = loss_fn)
+>>> 
+>>> ## 2) Training
+>>> NN %>% fit(x = matrix(runif(10000 * 2), ncol = 2), # prior data
+>>>          y = matrix(rnorm(10000 * 2), ncol = 2), # training data
+>>>          batch_size = 5000, epochs = 1)
+>>> 
+>>> ## 3) Generate samples by evaluating the NN on a prior sample
+>>> aux <- function(b) {
+>>>   cat(paste("Working on case",b,"\n"))
+>>>   Sys.sleep(2)
+>>>   predict(NN, x = matrix(runif(100 * 2), ncol = 2)) # mclapply()
+>>> hangs here (on macOS and Ubuntu)
+>>> }
+>>> 
+>>> ## 4) Call that hangs after the two processes are started
+>>> res.serial   <-   lapply(1:5, function(b) aux(b)) # works
+>>> res.parallel <- mclapply(1:5, function(b) aux(b), mc.cores = 2) #
+>>> hangs once both cores are used
+>>> 
+>>> ## Output:
+>>> ## For lapply():
+>>> Working on case 1
+>>> Working on case 2
+>>> Working on case 3
+>>> Working on case 4
+>>> Working on case 5
+>>> ## For mclapply():
+>>> Working on case 1
+>>> Working on case 2
+>>> 
+>>> ## sessionInfo() on macOS:
+>>> R version 3.6.1 (2019-07-05)
+>>> Platform: x86_64-apple-darwin18.7.0 (64-bit)
+>>> Running under: macOS Mojave 10.14.6
+>>> 
+>>> Matrix products: default
+>>> BLAS:   /usr/local/R/R-3.6.1_build/lib/libRblas.dylib
+>>> LAPACK: /usr/local/R/R-3.6.1_build/lib/libRlapack.dylib
+>>> 
+>>> locale:
+>>> [1] en_CA.UTF-8/en_CA.UTF-8/en_CA.UTF-8/C/en_CA.UTF-8/en_CA.UTF-8
+>>> 
+>>> attached base packages:
+>>> [1] stats     graphics  grDevices utils     datasets  methods   base
+>>> 
+>>> loaded via a namespace (and not attached):
+>>> [1] compiler_3.6.1 tools_3.6.1
+>>> 
+>>> ## sessionInfo() on Ubuntu:
+>>> R version 3.6.0 (2019-04-26)
+>>> Platform: x86_64-pc-linux-gnu (64-bit)
+>>> Running under: Ubuntu 18.04.3 LTS
+>>> 
+>>> Matrix products: default
+>>> BLAS:   /u/mhofert/soft/R/R-3.6.0_build/lib/libRblas.so
+>>> LAPACK: /u/mhofert/soft/R/R-3.6.0_build/lib/libRlapack.so
+>>> 
+>>> locale:
+>>> [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C
+>>> [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8
+>>> [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8
+>>> [7] LC_PAPER=en_US.UTF-8       LC_NAME=C
+>>> [9] LC_ADDRESS=C               LC_TELEPHONE=C
+>>> [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C
+>>> 
+>>> attached base packages:
+>>> [1] stats     graphics  grDevices utils     datasets  methods   base
+>>> 
+>>> loaded via a namespace (and not attached):
+>>> [1] compiler_3.6.0
+>>> 
+>>> _______________________________________________
+>>> R-sig-hpc mailing list
+>>> R-sig-hpc at r-project.org
+>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>> 
+>> 
+> 
+
+
+From @|mon@urb@nek @end|ng |rom R-project@org  Fri Aug 30 17:21:44 2019
+From: @|mon@urb@nek @end|ng |rom R-project@org (Simon Urbanek)
+Date: Fri, 30 Aug 2019 11:21:44 -0400
+Subject: [R-sig-hpc] 
+ mclapply() hangs when keras-based neural networks are involved
+In-Reply-To: <CAGaA+6Q2LDP5xErYBSWakfnP+mYkwZ9V84Ym8z5WQZYXwV-P+g@mail.gmail.com>
+References: <CAM3-Kja8XdAroUwfYuuxpLYzaHDO5qOzgpgMxyYBPENg-2+rEA@mail.gmail.com>
+ <dbb365cbb40d4f5ca81912bb0563a3a1@connhm02.connect.uwaterloo.ca>
+ <CAM3-KjZJm2RNsYnuq4dUW34w1EDHMq-vqrg9EXS2MxhdchxsjQ@mail.gmail.com>
+ <C5F607F2-1F3D-4383-8765-5DC444C3FC7A@r-project.org>
+ <CAGaA+6Q2LDP5xErYBSWakfnP+mYkwZ9V84Ym8z5WQZYXwV-P+g@mail.gmail.com>
+Message-ID: <268A44AA-9B3F-40D5-B40A-ED3EE812A8AF@R-project.org>
+
+Nafis,
+
+if I understand your comment correctly, we're talking about the opposite - how to run in parallel to TF's parallelization. TF doesn't allow any forking so you simply can't parallelize anything beyond what parallelization TF does on its own. As I was saying, you can start parallel processes, but then you have to load the model into each separately, nothing is shared and you have to restrict the resources.
+
+Cheers,
+Simon
+
+
+> On Aug 30, 2019, at 10:15 AM, Nafis Sadat <sadatnfs at gmail.com> wrote:
+> 
+> How about setting the processes from TF Config proto calls? I remember doing that when running TF models in Python to limit my cores.
+> 
+> On Fri, Aug 30, 2019 at 7:14 AM Simon Urbanek <simon.urbanek at r-project.org> wrote:
+> Yep, I fully agree, I ran into the same problem, but even a trained model still uses TF to run the scoring so all TF limitations still apply. From some searching I saw the TF community is aware of the problem, but there is no solution.
+> 
+> Obviously, you can just start n processes, limit resources to each and use them for scoring. But, again, note that TF tries to use all resources so unless you use multiple models.
+> 
+> In principle you could save all the weights and use plain C code to score the model using those weights which would be safe, but likely a lot of duplicate work depending on the model. 
+> 
+> Cheers,
+> Simon 
+> 
+> 
+> > On Aug 30, 2019, at 05:19, Marius Hofert <marius.hofert at uwaterloo.ca> wrote:
+> > 
+> > Hi Simon,
+> > 
+> > thanks a lot for helping.
+> > 
+> > That's a huge let-down... For training neural networks, this seems
+> > understandable, but once trained, just to evaluate neural networks,
+> > all applications are then restricted to serial computations... *sigh*.
+> > 
+> > Cheers,
+> > M
+> > 
+> > 
+> > 
+> > 
+> > On Fri, Aug 30, 2019 at 9:39 AM Simon Urbanek
+> > <simon.urbanek at r-project.org> wrote:
+> >> 
+> >> Marius,
+> >> 
+> >> Tensorflow doesn?t support any parallel computing including forking. It is assumed that all parallelization is done by TF itself and it takes over all resources in a way such that they cannot be shared across processes. Hence you cannot combine TF and parallel (and hence by induction Keras).
+> >> 
+> >> Cheers,
+> >> Simon
+> >> 
+> >> 
+> >>> On Aug 28, 2019, at 3:32 AM, Marius Hofert <marius.hofert at uwaterloo.ca> wrote:
+> >>> 
+> >>> Hi,
+> >>> 
+> >>> Below is an example where mclapply() 'hangs' after starting the work
+> >>> on two cores.
+> >>> This happens on macOS and Ubuntu (sessionInfo() below). I also see no activity
+> >>> on 'htop'. lapply() works, though. What is the cause of this behavior?
+> >>> 
+> >>> Cheers,
+> >>> M
+> >>> 
+> >>> library(tensorflow)
+> >>> library(keras)
+> >>> library(parallel)
+> >>> ## TensorFlow also needs to be installed, which can be done via
+> >>> install_tensorflow() from R
+> >>> 
+> >>> ## 1) Setup
+> >>> in.lay <- layer_input(shape = 2)
+> >>> hid.lay <- layer_dense(in.lay,  units = 300, activation = "relu")
+> >>> out.lay <- layer_dense(hid.lay, units = 2,   activation = "sigmoid")
+> >>> NN <- keras_model(in.lay, out.lay)
+> >>> loss_fn <- function(x, y = out.lay) loss_mean_squared_error(x, y)
+> >>> NN %>% compile(optimizer = "adam", loss = loss_fn)
+> >>> 
+> >>> ## 2) Training
+> >>> NN %>% fit(x = matrix(runif(10000 * 2), ncol = 2), # prior data
+> >>>          y = matrix(rnorm(10000 * 2), ncol = 2), # training data
+> >>>          batch_size = 5000, epochs = 1)
+> >>> 
+> >>> ## 3) Generate samples by evaluating the NN on a prior sample
+> >>> aux <- function(b) {
+> >>>   cat(paste("Working on case",b,"\n"))
+> >>>   Sys.sleep(2)
+> >>>   predict(NN, x = matrix(runif(100 * 2), ncol = 2)) # mclapply()
+> >>> hangs here (on macOS and Ubuntu)
+> >>> }
+> >>> 
+> >>> ## 4) Call that hangs after the two processes are started
+> >>> res.serial   <-   lapply(1:5, function(b) aux(b)) # works
+> >>> res.parallel <- mclapply(1:5, function(b) aux(b), mc.cores = 2) #
+> >>> hangs once both cores are used
+> >>> 
+> >>> ## Output:
+> >>> ## For lapply():
+> >>> Working on case 1
+> >>> Working on case 2
+> >>> Working on case 3
+> >>> Working on case 4
+> >>> Working on case 5
+> >>> ## For mclapply():
+> >>> Working on case 1
+> >>> Working on case 2
+> >>> 
+> >>> ## sessionInfo() on macOS:
+> >>> R version 3.6.1 (2019-07-05)
+> >>> Platform: x86_64-apple-darwin18.7.0 (64-bit)
+> >>> Running under: macOS Mojave 10.14.6
+> >>> 
+> >>> Matrix products: default
+> >>> BLAS:   /usr/local/R/R-3.6.1_build/lib/libRblas.dylib
+> >>> LAPACK: /usr/local/R/R-3.6.1_build/lib/libRlapack.dylib
+> >>> 
+> >>> locale:
+> >>> [1] en_CA.UTF-8/en_CA.UTF-8/en_CA.UTF-8/C/en_CA.UTF-8/en_CA.UTF-8
+> >>> 
+> >>> attached base packages:
+> >>> [1] stats     graphics  grDevices utils     datasets  methods   base
+> >>> 
+> >>> loaded via a namespace (and not attached):
+> >>> [1] compiler_3.6.1 tools_3.6.1
+> >>> 
+> >>> ## sessionInfo() on Ubuntu:
+> >>> R version 3.6.0 (2019-04-26)
+> >>> Platform: x86_64-pc-linux-gnu (64-bit)
+> >>> Running under: Ubuntu 18.04.3 LTS
+> >>> 
+> >>> Matrix products: default
+> >>> BLAS:   /u/mhofert/soft/R/R-3.6.0_build/lib/libRblas.so
+> >>> LAPACK: /u/mhofert/soft/R/R-3.6.0_build/lib/libRlapack.so
+> >>> 
+> >>> locale:
+> >>> [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C
+> >>> [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8
+> >>> [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8
+> >>> [7] LC_PAPER=en_US.UTF-8       LC_NAME=C
+> >>> [9] LC_ADDRESS=C               LC_TELEPHONE=C
+> >>> [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C
+> >>> 
+> >>> attached base packages:
+> >>> [1] stats     graphics  grDevices utils     datasets  methods   base
+> >>> 
+> >>> loaded via a namespace (and not attached):
+> >>> [1] compiler_3.6.0
+> >>> 
+> >>> _______________________________________________
+> >>> R-sig-hpc mailing list
+> >>> R-sig-hpc at r-project.org
+> >>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> >>> 
+> >> 
+> > 
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From m@r|u@@ho|ert @end|ng |rom uw@ter|oo@c@  Fri Aug 30 22:41:37 2019
+From: m@r|u@@ho|ert @end|ng |rom uw@ter|oo@c@ (Marius Hofert)
+Date: Fri, 30 Aug 2019 21:41:37 +0100
+Subject: [R-sig-hpc] 
+ mclapply() hangs when keras-based neural networks are involved
+In-Reply-To: <a9ccec82d01c45349e8fd3c71ab1dcab@connhm02.connect.uwaterloo.ca>
+References: <CAM3-Kja8XdAroUwfYuuxpLYzaHDO5qOzgpgMxyYBPENg-2+rEA@mail.gmail.com>
+ <dbb365cbb40d4f5ca81912bb0563a3a1@connhm02.connect.uwaterloo.ca>
+ <CAM3-KjZJm2RNsYnuq4dUW34w1EDHMq-vqrg9EXS2MxhdchxsjQ@mail.gmail.com>
+ <C5F607F2-1F3D-4383-8765-5DC444C3FC7A@r-project.org>
+ <CAGaA+6Q2LDP5xErYBSWakfnP+mYkwZ9V84Ym8z5WQZYXwV-P+g@mail.gmail.com>
+ <a9ccec82d01c45349e8fd3c71ab1dcab@connhm02.connect.uwaterloo.ca>
+Message-ID: <CAM3-KjbVxYD=eVfxXgeOiw0bKefSgrW3kEBfBOVc8BOAezUg_Q@mail.gmail.com>
+
+Hi Simon,
+
+thanks a lot for your answer. I also thought about writing some
+functions to turn a trained NN into one that can be evaluated in R
+more natively (I found several design decisions of 'keras' very
+non-R-like).
+
+Concerning your comment "you have to load the model into each
+separately, nothing is shared and you have to restrict the resources",
+I understand the former, but what do you mean by "restrict the
+resources"? So the mclapply(1:5, function(b) aux(b), mc.cores = 2)
+call in my minimal working example would need to be written such that
+every aux() call loads the trained NN. But how could I restrict the
+resources then? (Is there anything I need to pass to TF?).
+
+Thanks & cheers,
+M
+
+
+On Fri, Aug 30, 2019 at 4:21 PM Simon Urbanek
+<simon.urbanek at r-project.org> wrote:
+>
+> Nafis,
+>
+> if I understand your comment correctly, we're talking about the opposite - how to run in parallel to TF's parallelization. TF doesn't allow any forking so you simply can't parallelize anything beyond what parallelization TF does on its own. As I was saying, you can start parallel processes, but then you have to load the model into each separately, nothing is shared and you have to restrict the resources.
+>
+> Cheers,
+> Simon
+>
+>
+> > On Aug 30, 2019, at 10:15 AM, Nafis Sadat <sadatnfs at gmail.com> wrote:
+> >
+> > How about setting the processes from TF Config proto calls? I remember doing that when running TF models in Python to limit my cores.
+> >
+> > On Fri, Aug 30, 2019 at 7:14 AM Simon Urbanek <simon.urbanek at r-project.org> wrote:
+> > Yep, I fully agree, I ran into the same problem, but even a trained model still uses TF to run the scoring so all TF limitations still apply. From some searching I saw the TF community is aware of the problem, but there is no solution.
+> >
+> > Obviously, you can just start n processes, limit resources to each and use them for scoring. But, again, note that TF tries to use all resources so unless you use multiple models.
+> >
+> > In principle you could save all the weights and use plain C code to score the model using those weights which would be safe, but likely a lot of duplicate work depending on the model.
+> >
+> > Cheers,
+> > Simon
+> >
+> >
+> > > On Aug 30, 2019, at 05:19, Marius Hofert <marius.hofert at uwaterloo.ca> wrote:
+> > >
+> > > Hi Simon,
+> > >
+> > > thanks a lot for helping.
+> > >
+> > > That's a huge let-down... For training neural networks, this seems
+> > > understandable, but once trained, just to evaluate neural networks,
+> > > all applications are then restricted to serial computations... *sigh*.
+> > >
+> > > Cheers,
+> > > M
+> > >
+> > >
+> > >
+> > >
+> > > On Fri, Aug 30, 2019 at 9:39 AM Simon Urbanek
+> > > <simon.urbanek at r-project.org> wrote:
+> > >>
+> > >> Marius,
+> > >>
+> > >> Tensorflow doesn?t support any parallel computing including forking. It is assumed that all parallelization is done by TF itself and it takes over all resources in a way such that they cannot be shared across processes. Hence you cannot combine TF and parallel (and hence by induction Keras).
+> > >>
+> > >> Cheers,
+> > >> Simon
+> > >>
+> > >>
+> > >>> On Aug 28, 2019, at 3:32 AM, Marius Hofert <marius.hofert at uwaterloo.ca> wrote:
+> > >>>
+> > >>> Hi,
+> > >>>
+> > >>> Below is an example where mclapply() 'hangs' after starting the work
+> > >>> on two cores.
+> > >>> This happens on macOS and Ubuntu (sessionInfo() below). I also see no activity
+> > >>> on 'htop'. lapply() works, though. What is the cause of this behavior?
+> > >>>
+> > >>> Cheers,
+> > >>> M
+> > >>>
+> > >>> library(tensorflow)
+> > >>> library(keras)
+> > >>> library(parallel)
+> > >>> ## TensorFlow also needs to be installed, which can be done via
+> > >>> install_tensorflow() from R
+> > >>>
+> > >>> ## 1) Setup
+> > >>> in.lay <- layer_input(shape = 2)
+> > >>> hid.lay <- layer_dense(in.lay,  units = 300, activation = "relu")
+> > >>> out.lay <- layer_dense(hid.lay, units = 2,   activation = "sigmoid")
+> > >>> NN <- keras_model(in.lay, out.lay)
+> > >>> loss_fn <- function(x, y = out.lay) loss_mean_squared_error(x, y)
+> > >>> NN %>% compile(optimizer = "adam", loss = loss_fn)
+> > >>>
+> > >>> ## 2) Training
+> > >>> NN %>% fit(x = matrix(runif(10000 * 2), ncol = 2), # prior data
+> > >>>          y = matrix(rnorm(10000 * 2), ncol = 2), # training data
+> > >>>          batch_size = 5000, epochs = 1)
+> > >>>
+> > >>> ## 3) Generate samples by evaluating the NN on a prior sample
+> > >>> aux <- function(b) {
+> > >>>   cat(paste("Working on case",b,"\n"))
+> > >>>   Sys.sleep(2)
+> > >>>   predict(NN, x = matrix(runif(100 * 2), ncol = 2)) # mclapply()
+> > >>> hangs here (on macOS and Ubuntu)
+> > >>> }
+> > >>>
+> > >>> ## 4) Call that hangs after the two processes are started
+> > >>> res.serial   <-   lapply(1:5, function(b) aux(b)) # works
+> > >>> res.parallel <- mclapply(1:5, function(b) aux(b), mc.cores = 2) #
+> > >>> hangs once both cores are used
+> > >>>
+> > >>> ## Output:
+> > >>> ## For lapply():
+> > >>> Working on case 1
+> > >>> Working on case 2
+> > >>> Working on case 3
+> > >>> Working on case 4
+> > >>> Working on case 5
+> > >>> ## For mclapply():
+> > >>> Working on case 1
+> > >>> Working on case 2
+> > >>>
+> > >>> ## sessionInfo() on macOS:
+> > >>> R version 3.6.1 (2019-07-05)
+> > >>> Platform: x86_64-apple-darwin18.7.0 (64-bit)
+> > >>> Running under: macOS Mojave 10.14.6
+> > >>>
+> > >>> Matrix products: default
+> > >>> BLAS:   /usr/local/R/R-3.6.1_build/lib/libRblas.dylib
+> > >>> LAPACK: /usr/local/R/R-3.6.1_build/lib/libRlapack.dylib
+> > >>>
+> > >>> locale:
+> > >>> [1] en_CA.UTF-8/en_CA.UTF-8/en_CA.UTF-8/C/en_CA.UTF-8/en_CA.UTF-8
+> > >>>
+> > >>> attached base packages:
+> > >>> [1] stats     graphics  grDevices utils     datasets  methods   base
+> > >>>
+> > >>> loaded via a namespace (and not attached):
+> > >>> [1] compiler_3.6.1 tools_3.6.1
+> > >>>
+> > >>> ## sessionInfo() on Ubuntu:
+> > >>> R version 3.6.0 (2019-04-26)
+> > >>> Platform: x86_64-pc-linux-gnu (64-bit)
+> > >>> Running under: Ubuntu 18.04.3 LTS
+> > >>>
+> > >>> Matrix products: default
+> > >>> BLAS:   /u/mhofert/soft/R/R-3.6.0_build/lib/libRblas.so
+> > >>> LAPACK: /u/mhofert/soft/R/R-3.6.0_build/lib/libRlapack.so
+> > >>>
+> > >>> locale:
+> > >>> [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C
+> > >>> [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8
+> > >>> [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8
+> > >>> [7] LC_PAPER=en_US.UTF-8       LC_NAME=C
+> > >>> [9] LC_ADDRESS=C               LC_TELEPHONE=C
+> > >>> [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C
+> > >>>
+> > >>> attached base packages:
+> > >>> [1] stats     graphics  grDevices utils     datasets  methods   base
+> > >>>
+> > >>> loaded via a namespace (and not attached):
+> > >>> [1] compiler_3.6.0
+> > >>>
+> > >>> _______________________________________________
+> > >>> R-sig-hpc mailing list
+> > >>> R-sig-hpc at r-project.org
+> > >>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> > >>>
+> > >>
+> > >
+> >
+> > _______________________________________________
+> > R-sig-hpc mailing list
+> > R-sig-hpc at r-project.org
+> > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+

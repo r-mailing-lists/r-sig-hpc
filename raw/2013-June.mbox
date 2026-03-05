@@ -1,0 +1,981 @@
+From horacetso at gmail.com  Sat Jun  1 00:59:47 2013
+From: horacetso at gmail.com (hh wt)
+Date: Fri, 31 May 2013 15:59:47 -0700
+Subject: [R-sig-hpc] unserialize error
+Message-ID: <CAF7zsAF-n=r-Sc3=4WKGcr_E5HXo3jv8pJJ2LDYPF-BYRrKteA@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130531/9a41a20b/attachment.pl>
+
+From richcalaway at revolutionanalytics.com  Mon Jun  3 18:34:23 2013
+From: richcalaway at revolutionanalytics.com (Rich Calaway)
+Date: Mon, 3 Jun 2013 09:34:23 -0700
+Subject: [R-sig-hpc] Performance fix for doSNOW and doParallel
+Message-ID: <CA+_ZbMZz65jjsJNmZ_hP6MAgg2-9qqs8eTaT46Jp40PRgK__zQ@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130603/2cfdd46f/attachment.pl>
+
+From ross at biostat.ucsf.edu  Sat Jun  8 03:17:39 2013
+From: ross at biostat.ucsf.edu (Ross Boylan)
+Date: Fri, 07 Jun 2013 18:17:39 -0700
+Subject: [R-sig-hpc] Using parallel package on Windows
+Message-ID: <51B28633.3020900@biostat.ucsf.edu>
+
+makePSOCKcluster from the parallel package is supposed to set up a 
+cluster, even on Windows.  Can anyone tell me exactly how to make that 
+work when multiple networked machines are involved?
+
+It would be possible, though not ideal, to start R on the remote machine 
+manually if there is a way to hook it up to a cluster with my local machine.
+
+The main problem I see is getting R to launch on the remote machine and 
+execute an appropriate script.  I assume the script has been written, 
+but I don't know where it is.  Maybe parallel invokes Rscript 
+appropriately without additional intervention?  Maybe R could run as a 
+Windows service?  The documentation says the package uses ssh by 
+default, but there is no such command at the Windows command prompt (the 
+docs allude to putty on windows).  I do have cygwin installed, but have 
+never been need to attempt an ssh server on windows.
+
+The documentation 
+(file:///C:/Users/rdboylan/Documents/R/R-2.15.3/library/parallel/doc/parallel.pdf) 
+with parallel alludes to using system("Rscript") to kick things off, but 
+that seems more a hint than a description of what to do.
+
+My searches have found similar questions asked multiple times, but no 
+specific answers.  I've seen several assertions that makePSOCKcluster 
+will work on Windows, many discussions assuming all jobs will be on one 
+machine, advice to use various other packages (much of that from before 
+the existence of parallel), and the suggestion to use Amazon's cluster 
+instead.
+
+I've used rmpi on linux clusters a fair amount, but Windows and the 
+current parallel package are relatively unfamiliar to me.  I am also 
+looking to minimize the need to perform sysadmin level actions; for 
+starters I'd like to avoid installing MPI if that's possible, or even 
+installing cygwin on the remote system.
+
+Thanks.
+Ross Boylan
+
+
+From ivo.welch at anderson.ucla.edu  Mon Jun 10 07:44:01 2013
+From: ivo.welch at anderson.ucla.edu (ivo welch)
+Date: Sun, 9 Jun 2013 22:44:01 -0700
+Subject: [R-sig-hpc] Intel Phi Coprocessor?
+Message-ID: <CAPr7RtVoQjN_ywC_=2RSpgvT5sNNxMihfZ4nShR4WQpwzc-h4Q@mail.gmail.com>
+
+does R run on the intel phi coprocessor?  the intel literature makes
+it seem as if it can be treated just like a 50-core 200-thread
+just-like-i686 processor running linux, albeit with only 8GB of very
+fast shared RAM.  some posts have suggested it can be 2-3 times as
+fast as two high-end Intel Xeon 8-core machines.  how do simple
+library(parallel) R tasks scale on it?
+
+regards,
+
+/iaw
+
+----
+Ivo Welch (ivo.welch at gmail.com)
+
+
+From simon.urbanek at r-project.org  Mon Jun 10 14:15:57 2013
+From: simon.urbanek at r-project.org (Simon Urbanek)
+Date: Mon, 10 Jun 2013 08:15:57 -0400
+Subject: [R-sig-hpc] Intel Phi Coprocessor?
+In-Reply-To: <CAPr7RtVoQjN_ywC_=2RSpgvT5sNNxMihfZ4nShR4WQpwzc-h4Q@mail.gmail.com>
+References: <CAPr7RtVoQjN_ywC_=2RSpgvT5sNNxMihfZ4nShR4WQpwzc-h4Q@mail.gmail.com>
+Message-ID: <F789167D-0D56-4EC8-BBB8-27385A26ECDB@r-project.org>
+
+On Jun 10, 2013, at 1:44 AM, ivo welch wrote:
+
+> does R run on the intel phi coprocessor?  the intel literature makes it seem as if it can be treated just like a 50-core 200-thread just-like-i686 processor running linux, albeit with only 8GB of very fast shared RAM.  some posts have suggested it can be 2-3 times as fast as two high-end Intel Xeon 8-core machines.  how do simple library(parallel) R tasks scale on it?
+> 
+
+Given that R is not thread-safe and almost everything (apart from parallel BLAS) is single-threaded, it's exactly the opposite of what you need for R. Explicit parallelization in R has overhead and cannot use threads, so you're better off with higher clock speed than large number of cores (unless you use those explicitly for particular tasks but writing your own low-level code). I was not able to test phi, but generally, in our experience scaling to many cores does not work very well, in particular when you have so little RAM (the only way parallel can scale is by running multiple processes which limits the amount of memory sharing that can be done). So, the way I see it you'd have to treat phi like GPU: you'll be able to leverage the speeds that are claimed by very specific code and algorithms written for it (or, e.g. by running BLAS on it if that's what you do often), but it will be much slower than Xenons for regular use of R. Your mileage may vary - this is just my personal experience evaluating high-core machines (250+) and R (the lesson was it's better to get multiple low-core, high-clockspeed, high-RAM machines instead - the opposite of phi), not particularly with phi.
+
+Cheers,
+Simon
+
+
+> regards,
+> 
+> /iaw
+> 
+> ----
+> Ivo Welch (ivo.welch at gmail.com)
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+> 
+
+
+From ivo.welch at gmail.com  Mon Jun 10 16:00:03 2013
+From: ivo.welch at gmail.com (ivo welch)
+Date: Mon, 10 Jun 2013 07:00:03 -0700
+Subject: [R-sig-hpc] Intel Phi Coprocessor?
+In-Reply-To: <F789167D-0D56-4EC8-BBB8-27385A26ECDB@r-project.org>
+References: <CAPr7RtVoQjN_ywC_=2RSpgvT5sNNxMihfZ4nShR4WQpwzc-h4Q@mail.gmail.com>
+	<F789167D-0D56-4EC8-BBB8-27385A26ECDB@r-project.org>
+Message-ID: <CAPr7RtXrQzZ+ja5rONyVknhn0yHhRESkgas-w7mXj=kAd7HAYQ@mail.gmail.com>
+
+thanks, simon.  for me, it is all about running the same code faster,
+i.e., without much optimization.  so no phi for me.  An Intel i7 costs
+about $100 more (of a b-o-m cost of $1,000) than an i5.   I presume this
+is still worth it, because library parallel does use threads.  correct?
+
+[this is asking too much, but here is a related quick question.  does
+stock R take advantage of SSE?  SSEx?  AVX?  AVX2?  are these all
+single-float based which stock R does not support anyway?]
+
+/iaw
+
+----
+Ivo Welch (ivo.welch at gmail.com)
+http://www.ivo-welch.info/
+J. Fred Weston Professor of Finance
+Anderson School at UCLA, C519
+Director, UCLA Anderson Fink Center for Finance and Investments
+Free Finance Textbook, http://book.ivo-welch.info/
+Editor, Critical Finance Review, http://www.critical-finance-review.org/
+
+
+
+On Mon, Jun 10, 2013 at 5:15 AM, Simon Urbanek
+<simon.urbanek at r-project.org> wrote:
+> On Jun 10, 2013, at 1:44 AM, ivo welch wrote:
+>
+>> does R run on the intel phi coprocessor?  the intel literature makes it seem as if it can be treated just like a 50-core 200-thread just-like-i686 processor running linux, albeit with only 8GB of very fast shared RAM.  some posts have suggested it can be 2-3 times as fast as two high-end Intel Xeon 8-core machines.  how do simple library(parallel) R tasks scale on it?
+>>
+>
+> Given that R is not thread-safe and almost everything (apart from parallel BLAS) is single-threaded, it's exactly the opposite of what you need for R. Explicit parallelization in R has overhead and cannot use threads, so you're better off with higher clock speed than large number of cores (unless you use those explicitly for particular tasks but writing your own low-level code). I was not able to test phi, but generally, in our experience scaling to many cores does not work very well, in particular when you have so little RAM (the only way parallel can scale is by running multiple processes which limits the amount of memory sharing that can be done). So, the way I see it you'd have to treat phi like GPU: you'll be able to leverage the speeds that are claimed by very specific code and algorithms written for it (or, e.g. by running BLAS on it if that's what you do often), but it will be much slower than Xenons for regular use of R. Your mileage may vary - this is just my personal experience evaluating high-core machines (250+) and R (the lesson was it's better to get multiple low-core, high-clockspeed, high-RAM machines instead - the opposite of phi), not particularly with phi.
+>
+> Cheers,
+> Simon
+>
+>
+>> regards,
+>>
+>> /iaw
+>>
+>> ----
+>> Ivo Welch (ivo.welch at gmail.com)
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>>
+>
+
+
+From simon.urbanek at r-project.org  Mon Jun 10 16:35:49 2013
+From: simon.urbanek at r-project.org (Simon Urbanek)
+Date: Mon, 10 Jun 2013 10:35:49 -0400
+Subject: [R-sig-hpc] Intel Phi Coprocessor?
+In-Reply-To: <CAPr7RtXrQzZ+ja5rONyVknhn0yHhRESkgas-w7mXj=kAd7HAYQ@mail.gmail.com>
+References: <CAPr7RtVoQjN_ywC_=2RSpgvT5sNNxMihfZ4nShR4WQpwzc-h4Q@mail.gmail.com>
+	<F789167D-0D56-4EC8-BBB8-27385A26ECDB@r-project.org>
+	<CAPr7RtXrQzZ+ja5rONyVknhn0yHhRESkgas-w7mXj=kAd7HAYQ@mail.gmail.com>
+Message-ID: <417FC785-8D7A-4F1A-8E7A-25C51616EC5B@r-project.org>
+
+
+On Jun 10, 2013, at 10:00 AM, ivo welch wrote:
+
+> thanks, simon.  for me, it is all about running the same code faster,
+> i.e., without much optimization.  so no phi for me.  An Intel i7 costs
+> about $100 more (of a b-o-m cost of $1,000) than an i5.   I presume this
+> is still worth it, because library parallel does use threads.  correct?
+> 
+
+No, parallel does not use threads. multicore forks off a process from the current session, all the other methods create a new process, send the data to it etc.
+
+However, with so few cores that i5/i7 have I would certainly go for more. If you want real speed, you have to pay much more ;)
+
+
+> [this is asking too much, but here is a related quick question.  does stock R take advantage of SSE?  SSEx?  AVX?  AVX2?  are these all single-float based which stock R does not support anyway?]
+> 
+
+That depends on how you compile R. R itself doesn't, but the compiler will use sse or avx if instructed so and system libraries do.
+
+At least with gcc I found this to be a mixed bag, sse is certainly faster, but although avx can in theory speed double-precision arithmetics, it can also slow it down quite a bit, so for now I have only found MKL to use AVX to be consistently faster, but not the gcc or llvm compilers. This may change as the compilers get better ... hopefully ...
+
+Cheers,
+Simon
+
+
+
+> /iaw
+> 
+> ----
+> Ivo Welch (ivo.welch at gmail.com)
+> http://www.ivo-welch.info/
+> J. Fred Weston Professor of Finance
+> Anderson School at UCLA, C519
+> Director, UCLA Anderson Fink Center for Finance and Investments
+> Free Finance Textbook, http://book.ivo-welch.info/
+> Editor, Critical Finance Review, http://www.critical-finance-review.org/
+> 
+> 
+> 
+> On Mon, Jun 10, 2013 at 5:15 AM, Simon Urbanek
+> <simon.urbanek at r-project.org> wrote:
+>> On Jun 10, 2013, at 1:44 AM, ivo welch wrote:
+>> 
+>>> does R run on the intel phi coprocessor?  the intel literature makes it seem as if it can be treated just like a 50-core 200-thread just-like-i686 processor running linux, albeit with only 8GB of very fast shared RAM.  some posts have suggested it can be 2-3 times as fast as two high-end Intel Xeon 8-core machines.  how do simple library(parallel) R tasks scale on it?
+>>> 
+>> 
+>> Given that R is not thread-safe and almost everything (apart from parallel BLAS) is single-threaded, it's exactly the opposite of what you need for R. Explicit parallelization in R has overhead and cannot use threads, so you're better off with higher clock speed than large number of cores (unless you use those explicitly for particular tasks but writing your own low-level code). I was not able to test phi, but generally, in our experience scaling to many cores does not work very well, in particular when you have so little RAM (the only way parallel can scale is by running multiple processes which limits the amount of memory sharing that can be done). So, the way I see it you'd have to treat phi like GPU: you'll be able to leverage the speeds that are claimed by very specific code and algorithms written for it (or, e.g. by running BLAS on it if that's what you do often), but it will be much slower than Xenons for regular use of R. Your mileage may vary - this is just my personal experience evaluating high-core machines (250+) and R (the lesson was it's better to get multiple low-core, high-clockspeed, high-RAM machines instead - the opposite of phi), not particularly with phi.
+>> 
+>> Cheers,
+>> Simon
+>> 
+>> 
+>>> regards,
+>>> 
+>>> /iaw
+>>> 
+>>> ----
+>>> Ivo Welch (ivo.welch at gmail.com)
+>>> 
+>>> _______________________________________________
+>>> R-sig-hpc mailing list
+>>> R-sig-hpc at r-project.org
+>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>> 
+>>> 
+>> 
+> 
+> 
+
+
+From ivo.welch at gmail.com  Mon Jun 10 17:43:27 2013
+From: ivo.welch at gmail.com (ivo welch)
+Date: Mon, 10 Jun 2013 08:43:27 -0700
+Subject: [R-sig-hpc] Intel Phi Coprocessor?
+In-Reply-To: <417FC785-8D7A-4F1A-8E7A-25C51616EC5B@r-project.org>
+References: <CAPr7RtVoQjN_ywC_=2RSpgvT5sNNxMihfZ4nShR4WQpwzc-h4Q@mail.gmail.com>
+	<F789167D-0D56-4EC8-BBB8-27385A26ECDB@r-project.org>
+	<CAPr7RtXrQzZ+ja5rONyVknhn0yHhRESkgas-w7mXj=kAd7HAYQ@mail.gmail.com>
+	<417FC785-8D7A-4F1A-8E7A-25C51616EC5B@r-project.org>
+Message-ID: <CAPr7RtWyA-RDw2RLkh-1gdmNXhAruW4iH9JLDEiBEj2JQc8Z0Q@mail.gmail.com>
+
+thx, simon.
+
+>
+> No, parallel does not use threads. multicore forks off a process from the current session, all the other methods create a new process, send the data to it etc.
+>
+
+there is a paragraph in the library(parallel) package description (apr
+18, 2013) that says
+
+On Windows the default is to report the number of logical CPUs. On
+modern hardware (e.g.
+Intel Core i7 ) the latter may not be unreasonable as hyper-threading
+does give a significant
+extra throughput.
+
+I took this to mean that threads are useful.
+
+
+> However, with so few cores that i5/i7 have I would certainly go for more. If you want real speed, you have to pay much more ;)
+>
+
+depressingly more.  the 6-core or 8-core xeon are now 2-gen old (still
+based on Sandy Bridge).  haswell only exists in 4-core, though.  and
+ivy bridge-E is delayed to later.  maybe amd kaveri will be a quantum
+leap...again next year.  alas, I am getting so old, I just hope to
+still be alive by then.  if my computer is twice as fast, maybe I can
+write twice as many papers until next year...[= weird sense of humor]
+I am now wondering what the smallest form-factor i7-haswell board and
+formfactor is to patch together a few of them.  I wish there was a
+good 5--motherboard chassis, but they don't exist.  I guess I will
+need 5 SFFs.
+
+
+> At least with gcc I found this to be a mixed bag, sse is certainly faster, but although avx can in theory speed double-precision arithmetics, it can also slow it down quite a bit, so for now I have only found MKL to use AVX to be consistently faster, but not the gcc or llvm compilers. This may change as the compilers get better ... hopefully ...
+>
+
+I tried gcc with more compile optimization flags and sse2.  dirk e
+predicted correctly that it would make little difference above the
+stock binary R distribution.  :-(..
+
+I don't understand enough about the internals of intel processors,
+compilers, and R, but it is surprising to me that with all the focus
+on vector processing, all the various MMX instruction derivatives
+still seem to make little difference in R in 2013.  what exactly is
+the default here?  are we still using the old intel 80387
+instructions, "just" better optimized for a vector language like R?
+
+> Cheers,
+> Simon
+>
+>
+>
+>> /iaw
+>>
+>> ----
+>> Ivo Welch (ivo.welch at gmail.com)
+>> http://www.ivo-welch.info/
+>> J. Fred Weston Professor of Finance
+>> Anderson School at UCLA, C519
+>> Director, UCLA Anderson Fink Center for Finance and Investments
+>> Free Finance Textbook, http://book.ivo-welch.info/
+>> Editor, Critical Finance Review, http://www.critical-finance-review.org/
+>>
+>>
+>>
+>> On Mon, Jun 10, 2013 at 5:15 AM, Simon Urbanek
+>> <simon.urbanek at r-project.org> wrote:
+>>> On Jun 10, 2013, at 1:44 AM, ivo welch wrote:
+>>>
+>>>> does R run on the intel phi coprocessor?  the intel literature makes it seem as if it can be treated just like a 50-core 200-thread just-like-i686 processor running linux, albeit with only 8GB of very fast shared RAM.  some posts have suggested it can be 2-3 times as fast as two high-end Intel Xeon 8-core machines.  how do simple library(parallel) R tasks scale on it?
+>>>>
+>>>
+>>> Given that R is not thread-safe and almost everything (apart from parallel BLAS) is single-threaded, it's exactly the opposite of what you need for R. Explicit parallelization in R has overhead and cannot use threads, so you're better off with higher clock speed than large number of cores (unless you use those explicitly for particular tasks but writing your own low-level code). I was not able to test phi, but generally, in our experience scaling to many cores does not work very well, in particular when you have so little RAM (the only way parallel can scale is by running multiple processes which limits the amount of memory sharing that can be done). So, the way I see it you'd have to treat phi like GPU: you'll be able to leverage the speeds that are claimed by very specific code and algorithms written for it (or, e.g. by running BLAS on it if that's what you do often), but it will be much slower than Xenons for regular use of R. Your mileage may vary - this is just my personal experience evaluating high-core machines (250+) and R (the lesson was it's better to get multiple low-core, high-clockspeed, high-RAM machines instead - the opposite of phi), not particularly with phi.
+>>>
+>>> Cheers,
+>>> Simon
+>>>
+>>>
+>>>> regards,
+>>>>
+>>>> /iaw
+>>>>
+>>>> ----
+>>>> Ivo Welch (ivo.welch at gmail.com)
+>>>>
+>>>> _______________________________________________
+>>>> R-sig-hpc mailing list
+>>>> R-sig-hpc at r-project.org
+>>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>>
+>>>>
+>>>
+>>
+>>
+>
+
+
+From edd at debian.org  Mon Jun 10 18:17:39 2013
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Mon, 10 Jun 2013 11:17:39 -0500
+Subject: [R-sig-hpc] Intel Phi Coprocessor?
+In-Reply-To: <CAPr7RtWyA-RDw2RLkh-1gdmNXhAruW4iH9JLDEiBEj2JQc8Z0Q@mail.gmail.com>
+References: <CAPr7RtVoQjN_ywC_=2RSpgvT5sNNxMihfZ4nShR4WQpwzc-h4Q@mail.gmail.com>
+	<F789167D-0D56-4EC8-BBB8-27385A26ECDB@r-project.org>
+	<CAPr7RtXrQzZ+ja5rONyVknhn0yHhRESkgas-w7mXj=kAd7HAYQ@mail.gmail.com>
+	<417FC785-8D7A-4F1A-8E7A-25C51616EC5B@r-project.org>
+	<CAPr7RtWyA-RDw2RLkh-1gdmNXhAruW4iH9JLDEiBEj2JQc8Z0Q@mail.gmail.com>
+Message-ID: <20917.64547.587192.806612@max.nulle.part>
+
+
+Ivo,
+
+You are making a lot of assertions here.  As an empirically-minded
+investigator, should you not simply be _profiling_ a lot more?
+
+For what it is worth, Armadillo [a C++ library for linear algebra I like a
+lot and connect to R via RcppArmadillo] just added SSE2 operations if and
+only if -O3 is used and g++ is at least 4.7.1.  I have not had a chance to
+time this to see if any differences materialize.
+
+The rest of the discussion seems somewhat irrelevant.  R is a hybrid system
+which uses an interpreter as well as compiled code.  You think you should
+make sure you code is actually constrained by the compiled portions before
+going down all these roads.  
+
+Dirk
+
+-- 
+Dirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com
+
+
+From simon.urbanek at r-project.org  Mon Jun 10 19:15:07 2013
+From: simon.urbanek at r-project.org (Simon Urbanek)
+Date: Mon, 10 Jun 2013 13:15:07 -0400
+Subject: [R-sig-hpc] Intel Phi Coprocessor?
+In-Reply-To: <CAPr7RtWyA-RDw2RLkh-1gdmNXhAruW4iH9JLDEiBEj2JQc8Z0Q@mail.gmail.com>
+References: <CAPr7RtVoQjN_ywC_=2RSpgvT5sNNxMihfZ4nShR4WQpwzc-h4Q@mail.gmail.com>
+	<F789167D-0D56-4EC8-BBB8-27385A26ECDB@r-project.org>
+	<CAPr7RtXrQzZ+ja5rONyVknhn0yHhRESkgas-w7mXj=kAd7HAYQ@mail.gmail.com>
+	<417FC785-8D7A-4F1A-8E7A-25C51616EC5B@r-project.org>
+	<CAPr7RtWyA-RDw2RLkh-1gdmNXhAruW4iH9JLDEiBEj2JQc8Z0Q@mail.gmail.com>
+Message-ID: <2F20777B-27B5-466E-93DF-285E50FAB469@r-project.org>
+
+On Jun 10, 2013, at 11:43 AM, ivo welch wrote:
+
+> thx, simon.
+> 
+>> 
+>> No, parallel does not use threads. multicore forks off a process from the current session, all the other methods create a new process, send the data to it etc.
+>> 
+> 
+> there is a paragraph in the library(parallel) package description (apr
+> 18, 2013) that says
+> 
+> On Windows the default is to report the number of logical CPUs. On
+> modern hardware (e.g.
+> Intel Core i7 ) the latter may not be unreasonable as hyper-threading
+> does give a significant
+> extra throughput.
+> 
+> I took this to mean that threads are useful.
+> 
+
+The HT feature of CPUs has really nothing to do with threads - it's a bit of a misnomer. It just says that you can run more tasks than you have cores - those can be processes, it is not limited to threads. The CPU pretends to have more cores than it does. Think of it as priming the pipeline into the one computing core with two tasks at once so when one of the tasks needs to wait for something, the other can jump ahead with practically no overhead. So, yes, that is a good feature, assuming that you have enough parallel jobs to keep it busy ;).
+
+
+>> However, with so few cores that i5/i7 have I would certainly go for more. If you want real speed, you have to pay much more ;)
+>> 
+> 
+> depressingly more.  the 6-core or 8-core xeon are now 2-gen old (still based on Sandy Bridge).  haswell only exists in 4-core, though.  and ivy bridge-E is delayed to later.  maybe amd kaveri will be a quantum leap...again next year.  alas, I am getting so old, I just hope to still be alive by then.  if my computer is twice as fast, maybe I can write twice as many papers until next year...[= weird sense of humor] I am now wondering what the smallest form-factor i7-haswell board and formfactor is to patch together a few of them.  I wish there was a good 5--motherboard chassis, but they don't exist.  I guess I will need 5 SFFs.
+> 
+
+The issue is rather that the trend is towards massively parallel processors at low clock speeds. This is great if you can code up your very specific embarrassingly parallel task, but doesn't buy you much if you can't. But that's why most of today's focus is to find out how you can ;).
+
+
+>> At least with gcc I found this to be a mixed bag, sse is certainly faster, but although avx can in theory speed double-precision arithmetics, it can also slow it down quite a bit, so for now I have only found MKL to use AVX to be consistently faster, but not the gcc or llvm compilers. This may change as the compilers get better ... hopefully ...
+>> 
+> 
+> I tried gcc with more compile optimization flags and sse2.  dirk e
+> predicted correctly that it would make little difference above the
+> stock binary R distribution.  :-(..
+> 
+
+Unsurprisingly - see below.
+
+
+> I don't understand enough about the internals of intel processors,
+> compilers, and R, but it is surprising to me that with all the focus
+> on vector processing, all the various MMX instruction derivatives
+> still seem to make little difference in R in 2013.  what exactly is
+> the default here?  are we still using the old intel 80387
+> instructions, "just" better optimized for a vector language like R?
+> 
+
+What you are possibly missing is that the default *is* to use all that already in stock R. I assume you're talking about 64-bit AMD/Intel architecture, so the architecture is newer than SIMD instructions, so they can always be assumed. Hence "stock R" (whatever that means) is already optimized (that's why some results differ between 32-bit and 64-bit because the latter typically uses SIMD to do FP math instead of the FPU). But also remember that SIMD are very primitive operations, they won't help with complex computing (unless you hand-code an algorithm for it - which some libraries do). That's why there are hand-tweaked versions of BLAS, but R simply leverages that if you let it.
+
+Cheers,
+Simon
+
+
+>> Cheers,
+>> Simon
+>> 
+>> 
+>> 
+>>> /iaw
+>>> 
+>>> ----
+>>> Ivo Welch (ivo.welch at gmail.com)
+>>> http://www.ivo-welch.info/
+>>> J. Fred Weston Professor of Finance
+>>> Anderson School at UCLA, C519
+>>> Director, UCLA Anderson Fink Center for Finance and Investments
+>>> Free Finance Textbook, http://book.ivo-welch.info/
+>>> Editor, Critical Finance Review, http://www.critical-finance-review.org/
+>>> 
+>>> 
+>>> 
+>>> On Mon, Jun 10, 2013 at 5:15 AM, Simon Urbanek
+>>> <simon.urbanek at r-project.org> wrote:
+>>>> On Jun 10, 2013, at 1:44 AM, ivo welch wrote:
+>>>> 
+>>>>> does R run on the intel phi coprocessor?  the intel literature makes it seem as if it can be treated just like a 50-core 200-thread just-like-i686 processor running linux, albeit with only 8GB of very fast shared RAM.  some posts have suggested it can be 2-3 times as fast as two high-end Intel Xeon 8-core machines.  how do simple library(parallel) R tasks scale on it?
+>>>>> 
+>>>> 
+>>>> Given that R is not thread-safe and almost everything (apart from parallel BLAS) is single-threaded, it's exactly the opposite of what you need for R. Explicit parallelization in R has overhead and cannot use threads, so you're better off with higher clock speed than large number of cores (unless you use those explicitly for particular tasks but writing your own low-level code). I was not able to test phi, but generally, in our experience scaling to many cores does not work very well, in particular when you have so little RAM (the only way parallel can scale is by running multiple processes which limits the amount of memory sharing that can be done). So, the way I see it you'd have to treat phi like GPU: you'll be able to leverage the speeds that are claimed by very specific code and algorithms written for it (or, e.g. by running BLAS on it if that's what you do often), but it will be much slower than Xenons for regular use of R. Your mileage may vary - this is just my personal experience evaluating high-core machines (250+) and R (the lesson was it's better to get multiple low-core, high-clockspeed, high-RAM machines instead - the opposite of phi), not particularly with phi.
+>>>> 
+>>>> Cheers,
+>>>> Simon
+>>>> 
+>>>> 
+>>>>> regards,
+>>>>> 
+>>>>> /iaw
+>>>>> 
+>>>>> ----
+>>>>> Ivo Welch (ivo.welch at gmail.com)
+>>>>> 
+>>>>> _______________________________________________
+>>>>> R-sig-hpc mailing list
+>>>>> R-sig-hpc at r-project.org
+>>>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>>> 
+>>>>> 
+>>>> 
+>>> 
+>>> 
+>> 
+> 
+> 
+
+
+From matloff at cs.ucdavis.edu  Mon Jun 10 20:23:39 2013
+From: matloff at cs.ucdavis.edu (Norm Matloff)
+Date: Mon, 10 Jun 2013 11:23:39 -0700
+Subject: [R-sig-hpc] Intel Phi Coprocessor?
+In-Reply-To: <2F20777B-27B5-466E-93DF-285E50FAB469@r-project.org>
+References: <CAPr7RtVoQjN_ywC_=2RSpgvT5sNNxMihfZ4nShR4WQpwzc-h4Q@mail.gmail.com>
+	<F789167D-0D56-4EC8-BBB8-27385A26ECDB@r-project.org>
+	<CAPr7RtXrQzZ+ja5rONyVknhn0yHhRESkgas-w7mXj=kAd7HAYQ@mail.gmail.com>
+	<417FC785-8D7A-4F1A-8E7A-25C51616EC5B@r-project.org>
+	<CAPr7RtWyA-RDw2RLkh-1gdmNXhAruW4iH9JLDEiBEj2JQc8Z0Q@mail.gmail.com>
+	<2F20777B-27B5-466E-93DF-285E50FAB469@r-project.org>
+Message-ID: <20130610182339.GC4201@laura>
+
+I have not yet used the device, but my understanding is that it would
+take some fiddling to even make it run R's parallel/multicore (multiple
+forked processes).  They mean it when they call it a coprocessor, so it
+is somewhat like a GPU.  There are issues with the host processor memory
+versus the coprocessor memory, etc.  
+
+On the other hand, it is set up to use OpenMP, which makes C/C++/Fortran
+programming fairly easy.  Thus selected operations in R could be
+extended to a version involving this hardware.
+
+I mentioned this device in my 2012 useR! talk, in the context of the
+Thrust library, which features multiple backends, including CUDA and
+OpenMP.  I argued that interfacing R to Thrust allows one to "hedge
+one's bets" in guessing whether Intel or NVIDIA will ultimately prevail
+in this market segment.
+
+Norm
+
+
+From ivo.welch at gmail.com  Mon Jun 10 20:53:21 2013
+From: ivo.welch at gmail.com (ivo welch)
+Date: Mon, 10 Jun 2013 11:53:21 -0700
+Subject: [R-sig-hpc] Intel Phi Coprocessor? -> i5/i7 instruction set in
+	R binary?
+Message-ID: <CAPr7RtWWD1jaOemOFQR9wuNn1J2VOs4tFz-aUDmqWwqd_fKrWg@mail.gmail.com>
+
+thx again, simon.  by stock R, I mean the compiled binaries in
+http://cran.r-project.org/bin/linux/ .  dirk e compiled it as
+
+
+/etc/R/Makeconf:# configure  '--prefix=/usr' '--with-cairo'
+'--with-jpeglib' '--with-readline' '--with-tcltk'
+'--with-system-bzlib' '--with-system-pcre' '--with-system-zlib'
+'--mandir=/usr/share/man' '--infodir=/usr/share/info'
+'--datadir=/usr/share/R/share' '--includedir=/usr/share/R/include'
+'--with-blas' '--with-lapack' '--enable-R-profiling'
+'--enable-R-shlib' '--enable-memory-profiling'
+'--without-recommended-packages' '--build' 'x86_64-linux-gnu'
+'build_alias=x86_64-linux-gnu' 'R_PRINTCMD=/usr/bin/lpr'
+'R_PAPERSIZE=letter' 'R_BROWSER=xdg-open' 'LIBnn=lib' 'CC=gcc
+-std=gnu99' 'CFLAGS=-O2 -pipe -g' 'LDFLAGS=' 'CPPFLAGS='
+'F77=gfortran' 'FFLAGS=-O2 -pipe -g' 'CXX=g++' 'CXXFLAGS=-O2 -pipe -g'
+'FC=gfortran' 'FCFLAGS=-O2 -pipe -g'
+/etc/R/Makeconf:CC = gcc -std=gnu99
+
+
+I tried the alternative.  I recompiled R with various corei7 and
+corei7-avx flags, but it made no difference really.  by no difference,
+I mean some examples I tried out that primarily relied on crossprod,
+solve and, some mean calculations, repeated often with random numbers
+to take some measurable time.  (I did not recompile blas.)  dirk's
+version performed almost exactly as well.  this could indeed just be
+the compiler, but I am stuck with what I have.
+
+
+SIMD come in a bewildering set:  MMX, SSE, SSE2, SSE3, SSSE3, SSE4.1,
+SSE4.2, AVX, AES and PCLMUL   I would be curious which of the extra
+intel instructions the R binary gcc-compiled uses (unix "file" does
+not; it only tells me ELF x86-64), and which processor capabilities
+really make a difference.  (I believe AMD is said to have become
+terrible for double performance.)  understanding the basics would help
+me look at the usual benchmark reports and understand what I should be
+looking at.  there are R benchmarks, but no one has written a website
+to collect and display the results, or this would have been my first
+stop. :-(   SiSoft Sands 2013 has some float/double native x8
+benchmarks, cinebench may do, too.  I know---YMMMV, but I am not
+hoping for great detail.  just basics.  (lots of what I do is very
+simple and very plain, just tons of it.  regressions, means, standard
+deviations, random numbers, simulations.  nothing fancy.  so
+slow-but-many cores processors would be ok for me---but only if pages
+remain shared in memory until dirty, simply because my data sets are
+large.)
+
+apologies for having taken so much bandwidths.  and thx for the
+answers.  and please don't feel obliged to spend even more time on me,
+though I am probably not the only one curious in the answers to these,
+and this does go to the mailing list that can later be googled.
+
+/iaw
+
+----
+Ivo Welch (ivo.welch at gmail.com)
+
+
+From rsparapa at mcw.edu  Tue Jun 11 15:33:11 2013
+From: rsparapa at mcw.edu (Rodney Sparapani)
+Date: Tue, 11 Jun 2013 08:33:11 -0500
+Subject: [R-sig-hpc] Intel Phi Coprocessor? -> i5/i7 instruction set in
+	R binary?
+In-Reply-To: <CAPr7RtWWD1jaOemOFQR9wuNn1J2VOs4tFz-aUDmqWwqd_fKrWg@mail.gmail.com>
+References: <CAPr7RtWWD1jaOemOFQR9wuNn1J2VOs4tFz-aUDmqWwqd_fKrWg@mail.gmail.com>
+Message-ID: <51B72717.8090403@mcw.edu>
+
+On 06/10/2013 01:53 PM, ivo welch wrote:
+> thx again, simon.  by stock R, I mean the compiled binaries in
+> http://cran.r-project.org/bin/linux/  .  dirk e compiled it as
+>
+>
+> /etc/R/Makeconf:# configure  '--prefix=/usr' '--with-cairo'
+> '--with-jpeglib' '--with-readline' '--with-tcltk'
+> '--with-system-bzlib' '--with-system-pcre' '--with-system-zlib'
+> '--mandir=/usr/share/man' '--infodir=/usr/share/info'
+> '--datadir=/usr/share/R/share' '--includedir=/usr/share/R/include'
+> '--with-blas' '--with-lapack' '--enable-R-profiling'
+> '--enable-R-shlib' '--enable-memory-profiling'
+> '--without-recommended-packages' '--build' 'x86_64-linux-gnu'
+> 'build_alias=x86_64-linux-gnu' 'R_PRINTCMD=/usr/bin/lpr'
+> 'R_PAPERSIZE=letter' 'R_BROWSER=xdg-open' 'LIBnn=lib' 'CC=gcc
+> -std=gnu99' 'CFLAGS=-O2 -pipe -g' 'LDFLAGS=' 'CPPFLAGS='
+> 'F77=gfortran' 'FFLAGS=-O2 -pipe -g' 'CXX=g++' 'CXXFLAGS=-O2 -pipe -g'
+> 'FC=gfortran' 'FCFLAGS=-O2 -pipe -g'
+> /etc/R/Makeconf:CC = gcc -std=gnu99
+
+Dirk helpfully told me that the switch to compile for your
+particular processor (and it's SIMD dialect) is -march=native,
+i.e. "-g -O2 -march=native".  For my testing (with my examples) on
+AMD64 with Linux this produces about a 2X speedup with interpreted R.
+But, if you go beyond that to hand coding your functions with C/C++ via
+Rcpp, RcppEigen, etc. the speedups can be dramatic:
+35-70X speedup from R code is routine in my experience.
+
+Rodney
+
+
+From stephen.b.weston at gmail.com  Fri Jun 14 17:52:31 2013
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Fri, 14 Jun 2013 11:52:31 -0400
+Subject: [R-sig-hpc] Package doMPI version 0.2 released on CRAN
+Message-ID: <CALh21iLYFb_yadwGUBwqaj8wTWUofhL5dAk+BQ3EDXdmiLBCaw@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130614/bd464785/attachment.pl>
+
+From jgrn at illinois.edu  Wed Jun 19 01:07:05 2013
+From: jgrn at illinois.edu (Jonathan Greenberg)
+Date: Tue, 18 Jun 2013 18:07:05 -0500
+Subject: [R-sig-hpc] force quitting a parallel cluster on Windows
+Message-ID: <CABG0rfsErD+b0QTNw-1Xzfuv95WQ-5R0jFc-Z9JBooJbhgpRtw@mail.gmail.com>
+
+Folks:
+
+Occasionally I'll start a process via foreach with a
+registerDoParallel() backend, and will need to interrupt the process,
+but I occasionally get a "runaway" cluster (the workers do not
+terminate, nor does stopCluster(cl) work.  So far (on a Windows box)
+this involves sending via Windows command line:
+
+taskkill /im Rscript.exe
+
+I was wondering if there is a better (within-R) way of killing a
+misbehaving *parallel* cluster, short of wrapping that statement (or a
+kill -9 on Unix-like systems) in a system() call?
+
+--j
+
+--
+Jonathan A. Greenberg, PhD
+Assistant Professor
+Global Environmental Analysis and Remote Sensing (GEARS) Laboratory
+Department of Geography and Geographic Information Science
+University of Illinois at Urbana-Champaign
+607 South Mathews Avenue, MC 150
+Urbana, IL 61801
+Phone: 217-300-1924
+http://www.geog.illinois.edu/~jgrn/
+AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+
+
+From jgrn at illinois.edu  Thu Jun 20 16:45:39 2013
+From: jgrn at illinois.edu (Jonathan Greenberg)
+Date: Thu, 20 Jun 2013 09:45:39 -0500
+Subject: [R-sig-hpc] Determining the maximum memory usage of a function
+Message-ID: <CABG0rftAwo_CGr+hMrw6K3cZ7=TgeeFPrQv=DBaCte34kaWgcg@mail.gmail.com>
+
+Folks:
+
+I apologize for the cross-posting between r-help and r-sig-hpc, but I
+figured this question was relevant to both lists.  I'm writing a
+function to be applied to an input dataset that will be broken up into
+chunks for memory management reasons and for parallel execution.  I am
+trying to determine, for a given function, what the *maximum* memory
+usage during its execution is (which may not be the beginning or the
+end of the function, but somewhere in the middle), so I can "plan" for
+the chunk size (e.g. have a table of chunk size vs. max memory usage).
+
+Is there a trick for determining this?
+
+--j
+
+--
+Jonathan A. Greenberg, PhD
+Assistant Professor
+Global Environmental Analysis and Remote Sensing (GEARS) Laboratory
+Department of Geography and Geographic Information Science
+University of Illinois at Urbana-Champaign
+607 South Mathews Avenue, MC 150
+Urbana, IL 61801
+Phone: 217-300-1924
+http://www.geog.illinois.edu/~jgrn/
+AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+
+
+From jgrn at illinois.edu  Thu Jun 20 17:36:21 2013
+From: jgrn at illinois.edu (Jonathan Greenberg)
+Date: Thu, 20 Jun 2013 10:36:21 -0500
+Subject: [R-sig-hpc] [R] Determining the maximum memory usage of a
+	function
+In-Reply-To: <53cf559ebff640a7a1e9f80751e26a2f@CHIHT4.ad.uillinois.edu>
+References: <CABG0rftAwo_CGr+hMrw6K3cZ7=TgeeFPrQv=DBaCte34kaWgcg@mail.gmail.com>
+	<53cf559ebff640a7a1e9f80751e26a2f@CHIHT4.ad.uillinois.edu>
+Message-ID: <CABG0rfue9j5pqA+BPaE3tbOtQOmPD7fC70eRXLC1YjPDmhUJxw@mail.gmail.com>
+
+Jim:
+
+Thanks, but I'm looking for something that can be used somewhat
+automatically -- the function in question would be user-provided and
+passed to my "chunking" algorithm, so in this case it would be the
+end-user (not me) who would have to embed these -- would
+Rprof(memory.profiling=TRUE)
+# my function
+Rprof(NULL)
+... and then taking the max of the tseries output be a reasonable
+approach?  If so, which of the three outputs (vsize.small vsize.large
+  nodes) would be best compared against the available memory?
+
+Cheers!
+
+--j
+
+On Thu, Jun 20, 2013 at 10:07 AM, jim holtman <jholtman at gmail.com> wrote:
+> What I would do is to use "memory.size()" to get the amount of memory being
+> used.  Do a call at the beginning of the function to determine the base, and
+> then at other points in the code to see what the difference from the base is
+> and keep track of the maximum difference.  I am not sure if just getting the
+> memory usage at the end would be sufficient since there may be some garbage
+> collection in between, or you might be creating some large objects and then
+> deleting/reusing them.  So keep track after large chunks of code to see what
+> is happening.
+>
+>
+> On Thu, Jun 20, 2013 at 10:45 AM, Jonathan Greenberg <jgrn at illinois.edu>
+> wrote:
+>>
+>> Folks:
+>>
+>> I apologize for the cross-posting between r-help and r-sig-hpc, but I
+>> figured this question was relevant to both lists.  I'm writing a
+>> function to be applied to an input dataset that will be broken up into
+>> chunks for memory management reasons and for parallel execution.  I am
+>> trying to determine, for a given function, what the *maximum* memory
+>> usage during its execution is (which may not be the beginning or the
+>> end of the function, but somewhere in the middle), so I can "plan" for
+>> the chunk size (e.g. have a table of chunk size vs. max memory usage).
+>>
+>> Is there a trick for determining this?
+>>
+>> --j
+>>
+>> --
+>> Jonathan A. Greenberg, PhD
+>> Assistant Professor
+>> Global Environmental Analysis and Remote Sensing (GEARS) Laboratory
+>> Department of Geography and Geographic Information Science
+>> University of Illinois at Urbana-Champaign
+>> 607 South Mathews Avenue, MC 150
+>> Urbana, IL 61801
+>> Phone: 217-300-1924
+>> http://www.geog.illinois.edu/~jgrn/
+>> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+>>
+>> ______________________________________________
+>> R-help at r-project.org mailing list
+>> https://stat.ethz.ch/mailman/listinfo/r-help
+>> PLEASE do read the posting guide
+>> http://www.R-project.org/posting-guide.html
+>> and provide commented, minimal, self-contained, reproducible code.
+>
+>
+>
+>
+> --
+> Jim Holtman
+> Data Munger Guru
+>
+> What is the problem that you are trying to solve?
+> Tell me what you want to do, not how you want to do it.
+
+
+
+-- 
+Jonathan A. Greenberg, PhD
+Assistant Professor
+Global Environmental Analysis and Remote Sensing (GEARS) Laboratory
+Department of Geography and Geographic Information Science
+University of Illinois at Urbana-Champaign
+607 South Mathews Avenue, MC 150
+Urbana, IL 61801
+Phone: 217-300-1924
+http://www.geog.illinois.edu/~jgrn/
+AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+
+
+From rdiaz02 at gmail.com  Fri Jun 21 02:20:44 2013
+From: rdiaz02 at gmail.com (Ramon Diaz-Uriarte)
+Date: Fri, 21 Jun 2013 02:20:44 +0200
+Subject: [R-sig-hpc] Determining the maximum memory usage of a function
+In-Reply-To: <CABG0rftAwo_CGr+hMrw6K3cZ7=TgeeFPrQv=DBaCte34kaWgcg@mail.gmail.com>
+References: <CABG0rftAwo_CGr+hMrw6K3cZ7=TgeeFPrQv=DBaCte34kaWgcg@mail.gmail.com>
+Message-ID: <87ehbwnwkj.wl%rdiaz02@gmail.com>
+
+
+Dear Jonathan,
+
+You mention parallel execution, so I assume that you want to find out the
+max memory consumed by the sum of all of your R processes. I guess one
+option would be to call gc() at the end of each of your processes. gc()
+reports the max used. So return those values, and add them. I am not sure
+this will really work well if you use forking, though: I think you can
+overestimate, by a large margin, the real memory consumed as many pages
+might be shared.
+
+
+So I do that from the shell.  Since summing memory used by different
+processes without double counting (i.e., properly accounting for shared
+memory pages, dynamically loaded code, etc) is not easy to do, I do it the
+other way around. I assume (well, I try to ensure that) no other processes
+will start running/consuming a lot of memory (or, conversely, no other
+processes will quit, freeing a lot of memory) while the ones I am
+benchmarking run. So I just keep track periodically of the total amount of
+free memory (as reported by free, and adding buffers and cached) and, at
+the end, subtract max and min (one might as well subtract the minimal
+amount of free memory from the initial amount of free memory).
+
+
+
+So there are two main pieces:
+
+a) Launching an infinite loop that periodically calls "free" and stores
+that somewhere (in this case, the file "free.RAM.txt").  Something like
+
+while true; do free | grep 'buffers/cache' | awk '{print $4}' >> free.RAM.txt; sleep 0.5; done &
+
+
+b) Killing that as soon as your R process is done, and getting the max,
+the min, and the difference (or the min, the initial, and the difference,
+which should be fairly similar). I do that from the shell too, calling
+R. For instance:
+
+
+Rscript --vanilla -e 'tmp <- scan("free.RAM.txt"); usage <- (max(tmp) - min(tmp))/(1024^2); cat(usage)')
+
+
+
+This is a shell script that I use that puts together the above, and takes
+as input the name of the R script for which I want to measure memory usage
+(and produces some output at the end).
+
+
+
+#############################
+
+RBIN=~/mysources/R-3.0.1-B/bin/R ## wherever the R you are timing lives
+
+SCRIPT=$1
+POST=$(date +"%H-%M_%m-%d-%Y")
+
+rm free.RAM.txt
+
+## Decrease the value after sleep if you are concerned about
+## missing a peak
+
+while true; do free | grep 'buffers/cache' | awk '{print $4}' >> free.RAM.txt; sleep 0.5; done &
+FREE_RAM_PID=$!
+
+$RBIN --vanilla < $SCRIPT > $SCRIPT.$POST.Rout 
+
+kill $FREE_RAM_PID
+
+TOT_RAM_USAGE=$(Rscript --vanilla -e 'tmp <- scan("free.RAM.txt"); usage <- (max(tmp) - min(tmp))/(1024^2); cat(usage)')
+mv free.RAM.txt free.RAM.txt.$SCRIPT.$POST
+
+echo
+echo
+echo $TOT_RAM_USAGE
+
+echo "Total RAM usage = " $TOT_RAM_USAGE >> $SCRIPT.$POST.summary
+
+#########################
+
+Best,
+
+R.
+
+
+P.S. I've removed r-help from the addresses to avoid cross-posting.
+
+On Thu, 20 Jun 2013 09:45:39 -0500,Jonathan Greenberg <jgrn at illinois.edu> wrote:
+> Folks:
+
+> I apologize for the cross-posting between r-help and r-sig-hpc, but I
+> figured this question was relevant to both lists.  I'm writing a
+> function to be applied to an input dataset that will be broken up into
+> chunks for memory management reasons and for parallel execution.  I am
+> trying to determine, for a given function, what the *maximum* memory
+> usage during its execution is (which may not be the beginning or the
+> end of the function, but somewhere in the middle), so I can "plan" for
+> the chunk size (e.g. have a table of chunk size vs. max memory usage).
+
+> Is there a trick for determining this?
+
+> --j
+
+> --
+> Jonathan A. Greenberg, PhD
+> Assistant Professor
+> Global Environmental Analysis and Remote Sensing (GEARS) Laboratory
+> Department of Geography and Geographic Information Science
+> University of Illinois at Urbana-Champaign
+> 607 South Mathews Avenue, MC 150
+> Urbana, IL 61801
+> Phone: 217-300-1924
+> http://www.geog.illinois.edu/~jgrn/
+> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+-- 
+Ramon Diaz-Uriarte
+Department of Biochemistry, Lab B-25
+Facultad de Medicina 
+Universidad Aut?noma de Madrid 
+Arzobispo Morcillo, 4
+28029 Madrid
+Spain
+
+Phone: +34-91-497-2412
+
+Email: rdiaz02 at gmail.com
+       ramon.diaz at iib.uam.es
+
+http://ligarto.org/rdiaz
+
+

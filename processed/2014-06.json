@@ -1,0 +1,55 @@
+{
+  "list": "r-sig-hpc",
+  "description": "",
+  "month": "2014-06",
+  "messages": [
+    {
+      "id": "msg-89f4180c4016",
+      "message_id": "<CALXon6VjB9CB+Wsm5aSkd94XZc5V3SAwjLTYTGwsyWLgmTjxQQ@mail.gmail.com>",
+      "from_name": "Russell Pierce",
+      "from_email_hash": "2649521a24e107e423cc501cb6ad9e37be3a8a0ec6c59c505bef1e18eea57047",
+      "date": "2014-06-26T10:30:19-04:00",
+      "subject": "[R-sig-hpc] Rmpi not spawning across nodes",
+      "subject_clean": "Rmpi not spawning across nodes",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "I am having difficulty getting Rmpi to spawn across nodes.  My system\nadministrator is knowledgable, but unfamilar with R.  Other jobs are\nable to run across nodes on the cluster without difficulty.  The\nsystem I am working on has multiple nodes running R 3.0.2 on\nx86_64-redhat-linux-gnu (64-bit) with Rmpi_0.6-3  with a openmpi\nversion 1.6.5 complied with a nopsm option.  nopsm was set while\ntracking down another error message on the basis of another post\nelsewhere (http://www.open-mpi.org/community/lists/users/2011/10/17660.php)\nand seemed to help get Rmpi to compile and run on the remote node.\nRmpi was specifically R CMD INSTALLed against this nopsm version of\nopenmpi.\n\nWhat I'd like to be able to do, as a proof of concept, is run R\ninteractively with access to the multiple nodes on the cluster.  Here\nis my minimal example...\n\n>From the login node I can run:\nqsub -I -V -l nodes=2:ppn=12\n\nI am transferred to one of the computation nodes, and I can tell that\nI?ve been assigned two nodes to work on using the ?mynodes? command in\nbash.  When I ?cat $PBS_NODEFILE I get a list of each node name\nrepeated 16 times.  Therefore, I am reasonably sure I was actually\nassigned distinct nodes.\n\nI launch R with the bash command:\nmpirun -np 1 -hostfile $PBS_NODEFILE R --interactive ?-vanilla\n\nI've also tried using the -n option rather than -np as I've seen in\nsome other sample scripts with similar results.\n\nWithin R on one of the computation node I type the following commands:\nlibrary(Rmpi)\nmpi.spawn.Rslaves()\nmpi.remote.exec(paste(Sys.info()[c(\"nodename\")],\"checking in\nas\",mpi.comm.rank(),\"of\",mpi.comm.size()))\n\n... the results of these commands indicate that all of the slaves\nstarted on the same node.\n\nI saw the \"Rmpi spawning across nodes\" topic from March of 2012.\n\"Snow Not Distributing\" from 2012 demonstrates a similar problem.  I\ntried Ex60-HelloWorldSnow from that source, but all results indicate\nthat they were generated from the same node.\n\nIs what I am aiming to do possible?  If so, is there something I am\ndoing incorrectly or that I need to check/report to help diagnose the\nproblem?",
+      "body_snippet": "I am having difficulty getting Rmpi to spawn across nodes.  My system\nadministrator is knowledgable, but unfamilar with R.  Other jobs are\nable to run across nodes on the cluster without difficulty.  ",
+      "thread_id": "thread-89f4180c4016",
+      "thread_depth": 0,
+      "month": "2014-06"
+    },
+    {
+      "id": "msg-e8354bf125e8",
+      "message_id": "<53AD21E6.6040804@informatik.uni-hamburg.de>",
+      "from_name": "Stefan Thomas",
+      "from_email_hash": "15245e86ffb0fa1ce642d81624b6b39d08df55c910613a74e7f45ea9886842d3",
+      "date": "2014-06-27T09:48:54+02:00",
+      "subject": "[R-sig-hpc] Rmpi not spawning across nodes",
+      "subject_clean": "Rmpi not spawning across nodes",
+      "in_reply_to": "<CALXon6VjB9CB+Wsm5aSkd94XZc5V3SAwjLTYTGwsyWLgmTjxQQ@mail.gmail.com>",
+      "references": [
+        "<CALXon6VjB9CB+Wsm5aSkd94XZc5V3SAwjLTYTGwsyWLgmTjxQQ@mail.gmail.com>"
+      ],
+      "body_plain": "I had a similar problem. Solved it by using a .Rprofile file as \ndescribed in:\nhttps://www.sharcnet.ca/help/index.php/Using_R_and_MPI\nAll slaves are spawned correctly at R startup. Therefore the \nmpl.spawn.Rslaves() is not needed. The only drawback ist the missing \nTAB-completition in the R-shell.\n\nbest\nstef\n\nAm 26.06.2014 16:30, schrieb Russell Pierce:\n> I am having difficulty getting Rmpi to spawn across nodes.  My system\n> administrator is knowledgable, but unfamilar with R.  Other jobs are\n> able to run across nodes on the cluster without difficulty.  The\n> system I am working on has multiple nodes running R 3.0.2 on\n> x86_64-redhat-linux-gnu (64-bit) with Rmpi_0.6-3  with a openmpi\n> version 1.6.5 complied with a nopsm option.  nopsm was set while\n> tracking down another error message on the basis of another post\n> elsewhere (http://www.open-mpi.org/community/lists/users/2011/10/17660.php)\n> and seemed to help get Rmpi to compile and run on the remote node.\n> Rmpi was specifically R CMD INSTALLed against this nopsm version of\n> openmpi.\n>\n> What I'd like to be able to do, as a proof of concept, is run R\n> interactively with access to the multiple nodes on the cluster.  Here\n> is my minimal example...\n>\n> >From the login node I can run:\n> qsub -I -V -l nodes=2:ppn=12\n>\n> I am transferred to one of the computation nodes, and I can tell that\n> I?ve been assigned two nodes to work on using the ?mynodes? command in\n> bash.  When I ?cat $PBS_NODEFILE I get a list of each node name\n> repeated 16 times.  Therefore, I am reasonably sure I was actually\n> assigned distinct nodes.\n>\n> I launch R with the bash command:\n> mpirun -np 1 -hostfile $PBS_NODEFILE R --interactive ?-vanilla\n>\n> I've also tried using the -n option rather than -np as I've seen in\n> some other sample scripts with similar results.\n>\n> Within R on one of the computation node I type the following commands:\n> library(Rmpi)\n> mpi.spawn.Rslaves()\n> mpi.remote.exec(paste(Sys.info()[c(\"nodename\")],\"checking in\n> as\",mpi.comm.rank(),\"of\",mpi.comm.size()))\n>\n> ... the results of these commands indicate that all of the slaves\n> started on the same node.\n>\n> I saw the \"Rmpi spawning across nodes\" topic from March of 2012.\n> \"Snow Not Distributing\" from 2012 demonstrates a similar problem.  I\n> tried Ex60-HelloWorldSnow from that source, but all results indicate\n> that they were generated from the same node.\n>\n> Is what I am aiming to do possible?  If so, is there something I am\n> doing incorrectly or that I need to check/report to help diagnose the\n> problem?\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc",
+      "body_snippet": "I had a similar problem. Solved it by using a .Rprofile file as \ndescribed in:\nhttps://www.sharcnet.ca/help/index.php/Using_R_and_MPI\nAll slaves are spawned correctly at R startup. Therefore the \nmpl.",
+      "thread_id": "thread-89f4180c4016",
+      "thread_depth": 1,
+      "month": "2014-06"
+    }
+  ],
+  "threads": [
+    {
+      "id": "thread-89f4180c4016",
+      "subject": "Rmpi not spawning across nodes",
+      "message_count": 2,
+      "participants": [
+        "Russell Pierce",
+        "Stefan Thomas"
+      ],
+      "started": "2014-06-26T10:30:19-04:00",
+      "last_reply": "2014-06-27T09:48:54+02:00",
+      "root_message_id": "msg-89f4180c4016"
+    }
+  ]
+}

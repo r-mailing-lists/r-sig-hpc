@@ -1,0 +1,130 @@
+{
+  "list": "r-sig-hpc",
+  "description": "",
+  "month": "2015-08",
+  "messages": [
+    {
+      "id": "msg-1e6e102dcf01",
+      "message_id": "<1480440098.647923.1440576723317.JavaMail.zimbra@csc.fi>",
+      "from_name": "Seija Sirkiä",
+      "from_email_hash": "d3092a879c05b360d759a6e4b6305b35818ec325725af2df8c727899faf75664",
+      "date": "2015-08-26T11:12:03+03:00",
+      "subject": "[R-sig-hpc] I can do mpi.apply but not foreach with doMPI",
+      "subject_clean": "I can do mpi.apply but not foreach with doMPI",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Hi all,\n\nI'm trying to learn to do parallel computing with R and foreach on this cluster of ours but clearly I'm doing something wrong and I can't figure out what.\n\nBriefly, I'm sitting on a Linux cluster, about which the user guide says that the login nodes are based on the RHEL6, while the computing nodes use CentOS 6. Jobs are submitted using SLURM.\n\nSo there I go, requesting a short interactive test session using:\nsrun -p test -n4 -t 0:15:00 --pty Rmpi --no-save\n\nHere Rmpi is the modified R_home_dir/bin/R mentioned in the Rprofile file that comes with Rmpi (\"This R profile can be used when a cluster does not allow spawning --- Another way is to modify R_home_dir/bin/R by adding...\").\n\nWhen my session starts, I get these messages:\nmaster (rank 0, comm 1) of size 4 is running on: c1 \nslave1 (rank 1, comm 1) of size 4 is running on: c1 \nslave2 (rank 2, comm 1) of size 4 is running on: c1 \nslave3 (rank 3, comm 1) of size 4 is running on: c1 \nbefore the prompt. Sounds good, and if I go check top on the c1 node, there I see 3 R's churning away happily at 100% cpu time, and one not doing much. As it should be, as far as I can tell?\n\nIf I then run this little test:\n\nfuntorun<-function(k) {\n  system.time(sort(runif(1e7)))\n}\n\nsystem.time(a<-mpi.apply(1:3,funtorun))\na\n\nb<-a\nsystem.time(for(i in 1:3) b[[i]]<-system.time(sort(runif(1e7))))\nb\n\nit goes through nicely, and the mpi.apply part takes about 2.6 seconds in total, with each of the 3 sorts taking about that same time, while the latter for-loop takes about 7 seconds in total, each of the three sorts taking about 2.3 seconds. Nice, that tells me the workers will do stuff, simultaneously, when requested correctly.\n\nBut if I try this instead:\n\nlibrary(doMPI)\ncl<-startMPIcluster()\nregisterDoMPI(cl)\nsystem.time(a<-foreach(i=1:3) %dopar% system.time(sort(runif(1e7))))\n\nit just hangs up at the foreach line, and never gets through, and only gets killed at the end of the reserved 15 minutes or when I scancel the whole job myself. None of the lines give any errors.\n\nSo what am I doing wrong? I have a hunch this has something to do with how my workers are started, since I never get to do those mpirun commands that the doMPI manual speaks of. But despite my efforts of reading the manual and the documentation of startMPIcluster I haven't figured out what else to try.\n\nMany thanks in advance for your time!\n\nBR,\nSeija Sirki?",
+      "body_snippet": "Hi all,\n\nI'm trying to learn to do parallel computing with R and foreach on this cluster of ours but clearly I'm doing something wrong and I can't figure out what.\n\nBriefly, I'm sitting on a Linux clu",
+      "thread_id": "thread-1e6e102dcf01",
+      "thread_depth": 0,
+      "month": "2015-08"
+    },
+    {
+      "id": "msg-b7458ce1dba5",
+      "message_id": "<CAJ+S-MFa-AwB4wi82VySzPQqACOqBoBZW=iSDKfVk9dBD2DgxQ@mail.gmail.com>",
+      "from_name": "Luis Iván Ortiz Valencia",
+      "from_email_hash": "cb9a189d69271b9bbc1da58191f6993abda78473c729c85d9df53dc4667b14ae",
+      "date": "2015-08-26T09:27:44-03:00",
+      "subject": "[R-sig-hpc] Spatstat and parallel",
+      "subject_clean": "Spatstat and parallel",
+      "in_reply_to": "<CAJ+S-MGW7Yw-D3zQDYXScsMWhqA1_=btq=kSAeOLkChCN=NwBw@mail.gmail.com>",
+      "references": [
+        "<CAJ+S-MGW7Yw-D3zQDYXScsMWhqA1_=btq=kSAeOLkChCN=NwBw@mail.gmail.com>"
+      ],
+      "body_plain": "Hello R users\n\nIs it possible to use parallel procedures to spatialstat objects like point\npatterns ?\n\n-- \nLuis Ivan\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "Hello R users\n\nIs it possible to use parallel procedures to spatialstat objects like point\npatterns ?\n\n-- \nLuis Ivan\n\n\t[[alternative HTML version deleted]]",
+      "thread_id": "thread-b7458ce1dba5",
+      "thread_depth": 0,
+      "month": "2015-08"
+    },
+    {
+      "id": "msg-ef674577a2fb",
+      "message_id": "<CALh21i+pVE5P3d8Q2SdOToH0FYhhWyT8pB9PPzWNCQ_gCoKm_A@mail.gmail.com>",
+      "from_name": "Stephen Weston",
+      "from_email_hash": "507fe1aedccd9cb1c2bba1715ac24f959abe255adeeb866f82b6c8a1896cbd15",
+      "date": "2015-08-26T09:35:14-04:00",
+      "subject": "[R-sig-hpc] I can do mpi.apply but not foreach with doMPI",
+      "subject_clean": "I can do mpi.apply but not foreach with doMPI",
+      "in_reply_to": "<1480440098.647923.1440576723317.JavaMail.zimbra@csc.fi>",
+      "references": [
+        "<1480440098.647923.1440576723317.JavaMail.zimbra@csc.fi>"
+      ],
+      "body_plain": "Hi Seija,\n\nTo use doMPI, you shouldn't start the workers in an Rprofile as\ndescribed in the Rmpi documentation since those workers can only be\nused by functions in the Rmpi package such as mpi.apply. In other\nwords, you don't want to see messages like:\n\n  master (rank 0, comm 1) of size 4 is running on: c1\n  slave1 (rank 1, comm 1) of size 4 is running on: c1\n\nWhen using doMPI from an interactive R session, the workers shouldn't\nbe started until you execute \"startMPIcluster()\":\n\n > cl <- startMPIcluster(3)\n         3 slaves are spawned successfully. 0 failed.\n\nWhat MPI implementation are you using?  I believe the only reason to\nstart the workers in an Rprofile is if your MPI implementation doesn't\nhave spawn support. Open MPI has great spawn support and is able to\nspawn workers from an interactive R session.  MPICH2 has spawn\nsupport, but I believe it can only spawn workers if the R session was\nstarted via mpirun, so I think that Open MPI is preferable for use\nwith Rmpi.\n\nEven if you're using an MPI implementation without spawn support,\ndoMPI can use workers that are all started by mpirun. However, you do\nneed spawn support to start workers from an interactive R with doMPI.\n\nRegards,\n\nSteve Weston\n\n\nOn Wed, Aug 26, 2015 at 4:12 AM, Seija Sirki? <seija.sirkia at csc.fi> wrote:\n> Hi all,\n>\n> I'm trying to learn to do parallel computing with R and foreach on this cluster of ours but clearly I'm doing something wrong and I can't figure out what.\n>\n> Briefly, I'm sitting on a Linux cluster, about which the user guide says that the login nodes are based on the RHEL6, while the computing nodes use CentOS 6. Jobs are submitted using SLURM.\n>\n> So there I go, requesting a short interactive test session using:\n> srun -p test -n4 -t 0:15:00 --pty Rmpi --no-save\n>\n> Here Rmpi is the modified R_home_dir/bin/R mentioned in the Rprofile file that comes with Rmpi (\"This R profile can be used when a cluster does not allow spawning --- Another way is to modify R_home_dir/bin/R by adding...\").\n>\n> When my session starts, I get these messages:\n> master (rank 0, comm 1) of size 4 is running on: c1\n> slave1 (rank 1, comm 1) of size 4 is running on: c1\n> slave2 (rank 2, comm 1) of size 4 is running on: c1\n> slave3 (rank 3, comm 1) of size 4 is running on: c1\n> before the prompt. Sounds good, and if I go check top on the c1 node, there I see 3 R's churning away happily at 100% cpu time, and one not doing much. As it should be, as far as I can tell?\n>\n> If I then run this little test:\n>\n> funtorun<-function(k) {\n>   system.time(sort(runif(1e7)))\n> }\n>\n> system.time(a<-mpi.apply(1:3,funtorun))\n> a\n>\n> b<-a\n> system.time(for(i in 1:3) b[[i]]<-system.time(sort(runif(1e7))))\n> b\n>\n> it goes through nicely, and the mpi.apply part takes about 2.6 seconds in total, with each of the 3 sorts taking about that same time, while the latter for-loop takes about 7 seconds in total, each of the three sorts taking about 2.3 seconds. Nice, that tells me the workers will do stuff, simultaneously, when requested correctly.\n>\n> But if I try this instead:\n>\n> library(doMPI)\n> cl<-startMPIcluster()\n> registerDoMPI(cl)\n> system.time(a<-foreach(i=1:3) %dopar% system.time(sort(runif(1e7))))\n>\n> it just hangs up at the foreach line, and never gets through, and only gets killed at the end of the reserved 15 minutes or when I scancel the whole job myself. None of the lines give any errors.\n>\n> So what am I doing wrong? I have a hunch this has something to do with how my workers are started, since I never get to do those mpirun commands that the doMPI manual speaks of. But despite my efforts of reading the manual and the documentation of startMPIcluster I haven't figured out what else to try.\n>\n> Many thanks in advance for your time!\n>\n> BR,\n> Seija Sirki?\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc",
+      "body_snippet": "Hi Seija,\n\nTo use doMPI, you shouldn't start the workers in an Rprofile as\ndescribed in the Rmpi documentation since those workers can only be\nused by functions in the Rmpi package such as mpi.apply. ",
+      "thread_id": "thread-1e6e102dcf01",
+      "thread_depth": 1,
+      "month": "2015-08"
+    },
+    {
+      "id": "msg-53da344fd349",
+      "message_id": "<D2036CAF.3D6E7%georgeost@gmail.com>",
+      "from_name": "Ostrouchov, George",
+      "from_email_hash": "47f4f013ca9589d5cf88fc7abab6f86916ab6195c294a093653f568b1ab9df35",
+      "date": "2015-08-26T13:16:31-04:00",
+      "subject": "[R-sig-hpc] I can do mpi.apply but not foreach with doMPI",
+      "subject_clean": "I can do mpi.apply but not foreach with doMPI",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Since you are running in batch, consider using the SLURM cluster the way\nit was designed to be used: SPMD style. Below is a simple code inspired by\nyour examples that does a sort to find the bottom 10 numbers.\n\nlibrary(pbdMPI, quiet=TRUE)\ninit()\n\na <- sort(runif(1e7))[1:10]\ncomm.print(a, all.rank=TRUE)\n\nb <- as.numeric(unlist(gather(a)))\nc <- sort(b)[1:10]\ncomm.print(c)\n\nfinalize()\n\nHere is how I run the code in serial:\n\n\n-bash-4.1$ time Rscript bottomten.r\nCOMM.RANK = 0\n [1] 2.596062e-07 3.082678e-07 3.138557e-07 6.444753e-07 7.168856e-07\n [6] 7.280615e-07 1.073349e-06 1.138775e-06 1.226086e-06 1.244014e-06\nCOMM.RANK = 0\n [1] 2.596062e-07 3.082678e-07 3.138557e-07 6.444753e-07 7.168856e-07\n [6] 7.280615e-07 1.073349e-06 1.138775e-06 1.226086e-06 1.244014e-06\n\n\nreal\t0m5.047s\nuser\t0m4.734s\nsys\t0m0.157s\n\nAnd now a parallel run on 8 cores:\n\n-bash-4.1$ time mpirun -np 8 Rscript bottomten.r\nCOMM.RANK = 0\n [1] 1.641456e-07 2.663583e-07 7.601921e-07 1.008157e-06 1.064735e-06\n [6] 1.178822e-06 1.366483e-06 1.381151e-06 1.406297e-06 1.461012e-06\nCOMM.RANK = 1\n [1] 3.492460e-08 6.798655e-08 1.867302e-07 3.015157e-07 3.234018e-07\n [6] 3.348105e-07 4.756730e-07 5.729962e-07 5.888287e-07 6.936025e-07\nCOMM.RANK = 2\n [1] 1.094304e-07 1.136214e-07 2.984889e-07 3.867317e-07 6.183982e-07\n [6] 8.104835e-07 9.895303e-07 1.240522e-06 1.284061e-06 1.376960e-06\nCOMM.RANK = 3\n [1] 3.050082e-08 6.728806e-08 8.335337e-08 4.125759e-07 5.690381e-07\n [6] 6.437768e-07 1.186039e-06 1.340872e-06 1.558103e-06 1.562294e-06\nCOMM.RANK = 4\n [1] 4.889444e-09 1.490116e-08 1.576264e-07 1.578592e-07 1.718290e-07\n [6] 1.958106e-07 2.747402e-07 7.252675e-07 9.618234e-07 9.881333e-07\nCOMM.RANK = 5\n [1] 1.862645e-08 6.728806e-08 1.268927e-07 1.578592e-07 2.654269e-07\n [6] 3.289897e-07 3.348105e-07 6.000046e-07 6.633345e-07 7.471536e-07\nCOMM.RANK = 6\n [1] 1.394656e-07 2.512243e-07 2.977904e-07 3.096648e-07 3.606547e-07\n [6] 6.635674e-07 1.054723e-06 1.059147e-06 1.180219e-06 1.305714e-06\nCOMM.RANK = 7\n [1] 1.785811e-07 1.816079e-07 2.454035e-07 3.625173e-07 4.067552e-07\n [6] 4.153699e-07 4.447066e-07 4.516915e-07 4.768372e-07 5.601906e-07\nCOMM.RANK = 0\n [1] 4.889444e-09 1.490116e-08 1.862645e-08 3.050082e-08 3.492460e-08\n [6] 6.728806e-08 6.728806e-08 6.798655e-08 8.335337e-08 1.094304e-07\n\n\nreal\t0m5.847s\nuser\t0m40.735s\nsys\t0m2.358s\n\nNote that real time barely increased even though we did about 8 times the\nwork. User time reflects the actual total CPU time added across the 8\ncores. The communication operation is gather(), which gathers its argument\nto rank 0 by default. See the pbdDEMO package for other examples.\n\nGeorge\n\n\n\n-----Original Message-----\nFrom: R-sig-hpc <r-sig-hpc-bounces at r-project.org> on behalf of Seija\nSirki? <seija.sirkia at csc.fi>\nDate: Wednesday, August 26, 2015 at 4:12 AM\nTo: <r-sig-hpc at r-project.org>\nSubject: [R-sig-hpc] I can do mpi.apply but not foreach with doMPI\n\n>Hi all,\n>\n>I'm trying to learn to do parallel computing with R and foreach on this\n>cluster of ours but clearly I'm doing something wrong and I can't figure\n>out what.\n>\n>Briefly, I'm sitting on a Linux cluster, about which the user guide says\n>that the login nodes are based on the RHEL6, while the computing nodes\n>use CentOS 6. Jobs are submitted using SLURM.\n>\n>So there I go, requesting a short interactive test session using:\n>srun -p test -n4 -t 0:15:00 --pty Rmpi --no-save\n>\n>Here Rmpi is the modified R_home_dir/bin/R mentioned in the Rprofile file\n>that comes with Rmpi (\"This R profile can be used when a cluster does not\n>allow spawning --- Another way is to modify R_home_dir/bin/R by\n>adding...\").\n>\n>When my session starts, I get these messages:\n>master (rank 0, comm 1) of size 4 is running on: c1\n>slave1 (rank 1, comm 1) of size 4 is running on: c1\n>slave2 (rank 2, comm 1) of size 4 is running on: c1\n>slave3 (rank 3, comm 1) of size 4 is running on: c1\n>before the prompt. Sounds good, and if I go check top on the c1 node,\n>there I see 3 R's churning away happily at 100% cpu time, and one not\n>doing much. As it should be, as far as I can tell?\n>\n>If I then run this little test:\n>\n>funtorun<-function(k) {\n>  system.time(sort(runif(1e7)))\n>}\n>\n>system.time(a<-mpi.apply(1:3,funtorun))\n>a\n>\n>b<-a\n>system.time(for(i in 1:3) b[[i]]<-system.time(sort(runif(1e7))))\n>b\n>\n>it goes through nicely, and the mpi.apply part takes about 2.6 seconds in\n>total, with each of the 3 sorts taking about that same time, while the\n>latter for-loop takes about 7 seconds in total, each of the three sorts\n>taking about 2.3 seconds. Nice, that tells me the workers will do stuff,\n>simultaneously, when requested correctly.\n>\n>But if I try this instead:\n>\n>library(doMPI)\n>cl<-startMPIcluster()\n>registerDoMPI(cl)\n>system.time(a<-foreach(i=1:3) %dopar% system.time(sort(runif(1e7))))\n>\n>it just hangs up at the foreach line, and never gets through, and only\n>gets killed at the end of the reserved 15 minutes or when I scancel the\n>whole job myself. None of the lines give any errors.\n>\n>So what am I doing wrong? I have a hunch this has something to do with\n>how my workers are started, since I never get to do those mpirun commands\n>that the doMPI manual speaks of. But despite my efforts of reading the\n>manual and the documentation of startMPIcluster I haven't figured out\n>what else to try.\n>\n>Many thanks in advance for your time!\n>\n>BR,\n>Seija Sirki?\n>\n>_______________________________________________\n>R-sig-hpc mailing list\n>R-sig-hpc at r-project.org\n>https://stat.ethz.ch/mailman/listinfo/r-sig-hpc",
+      "body_snippet": "Since you are running in batch, consider using the SLURM cluster the way\nit was designed to be used: SPMD style. Below is a simple code inspired by\nyour examples that does a sort to find the bottom 10",
+      "thread_id": "thread-53da344fd349",
+      "thread_depth": 0,
+      "month": "2015-08"
+    },
+    {
+      "id": "msg-5a1a0acab210",
+      "message_id": "<1145100909.819082.1440669650265.JavaMail.zimbra@csc.fi>",
+      "from_name": "Seija Sirkiä",
+      "from_email_hash": "d3092a879c05b360d759a6e4b6305b35818ec325725af2df8c727899faf75664",
+      "date": "2015-08-27T13:00:50+03:00",
+      "subject": "[R-sig-hpc] I can do mpi.apply but not foreach with doMPI",
+      "subject_clean": "I can do mpi.apply but not foreach with doMPI",
+      "in_reply_to": "<CALh21i+pVE5P3d8Q2SdOToH0FYhhWyT8pB9PPzWNCQ_gCoKm_A@mail.gmail.com>",
+      "references": [
+        "<1480440098.647923.1440576723317.JavaMail.zimbra@csc.fi>",
+        "<CALh21i+pVE5P3d8Q2SdOToH0FYhhWyT8pB9PPzWNCQ_gCoKm_A@mail.gmail.com>"
+      ],
+      "body_plain": "Great, thank you Stephen! Yes, we use Open MPI. The reason I used the Rprofile way is that it was the only way to do MPI related R stuff the existing guides here mentioned. That lead me to believe that it was what I should do, but ok, that's what I need to understand next (and then prompt for better guides!)\n\nAnd thank you George as well, you've answered questions I didn't yet know how to formulate :) Very much appreciated.\n\nBR,\nSeija S.\n\n----- Original Message -----\nFrom: \"Stephen Weston\" <stephen.b.weston at gmail.com>\nTo: \"Seija Sirki?\" <seija.sirkia at csc.fi>\nCc: \"r-sig-hpc\" <r-sig-hpc at r-project.org>\nSent: Wednesday, 26 August, 2015 16:35:14\nSubject: Re: [R-sig-hpc] I can do mpi.apply but not foreach with doMPI\n\nHi Seija,\n\nTo use doMPI, you shouldn't start the workers in an Rprofile as\ndescribed in the Rmpi documentation since those workers can only be\nused by functions in the Rmpi package such as mpi.apply. In other\nwords, you don't want to see messages like:\n\n  master (rank 0, comm 1) of size 4 is running on: c1\n  slave1 (rank 1, comm 1) of size 4 is running on: c1\n\nWhen using doMPI from an interactive R session, the workers shouldn't\nbe started until you execute \"startMPIcluster()\":\n\n > cl <- startMPIcluster(3)\n         3 slaves are spawned successfully. 0 failed.\n\nWhat MPI implementation are you using?  I believe the only reason to\nstart the workers in an Rprofile is if your MPI implementation doesn't\nhave spawn support. Open MPI has great spawn support and is able to\nspawn workers from an interactive R session.  MPICH2 has spawn\nsupport, but I believe it can only spawn workers if the R session was\nstarted via mpirun, so I think that Open MPI is preferable for use\nwith Rmpi.\n\nEven if you're using an MPI implementation without spawn support,\ndoMPI can use workers that are all started by mpirun. However, you do\nneed spawn support to start workers from an interactive R with doMPI.\n\nRegards,\n\nSteve Weston\n\n\nOn Wed, Aug 26, 2015 at 4:12 AM, Seija Sirki? <seija.sirkia at csc.fi> wrote:\n> Hi all,\n>\n> I'm trying to learn to do parallel computing with R and foreach on this cluster of ours but clearly I'm doing something wrong and I can't figure out what.\n>\n> Briefly, I'm sitting on a Linux cluster, about which the user guide says that the login nodes are based on the RHEL6, while the computing nodes use CentOS 6. Jobs are submitted using SLURM.\n>\n> So there I go, requesting a short interactive test session using:\n> srun -p test -n4 -t 0:15:00 --pty Rmpi --no-save\n>\n> Here Rmpi is the modified R_home_dir/bin/R mentioned in the Rprofile file that comes with Rmpi (\"This R profile can be used when a cluster does not allow spawning --- Another way is to modify R_home_dir/bin/R by adding...\").\n>\n> When my session starts, I get these messages:\n> master (rank 0, comm 1) of size 4 is running on: c1\n> slave1 (rank 1, comm 1) of size 4 is running on: c1\n> slave2 (rank 2, comm 1) of size 4 is running on: c1\n> slave3 (rank 3, comm 1) of size 4 is running on: c1\n> before the prompt. Sounds good, and if I go check top on the c1 node, there I see 3 R's churning away happily at 100% cpu time, and one not doing much. As it should be, as far as I can tell?\n>\n> If I then run this little test:\n>\n> funtorun<-function(k) {\n>   system.time(sort(runif(1e7)))\n> }\n>\n> system.time(a<-mpi.apply(1:3,funtorun))\n> a\n>\n> b<-a\n> system.time(for(i in 1:3) b[[i]]<-system.time(sort(runif(1e7))))\n> b\n>\n> it goes through nicely, and the mpi.apply part takes about 2.6 seconds in total, with each of the 3 sorts taking about that same time, while the latter for-loop takes about 7 seconds in total, each of the three sorts taking about 2.3 seconds. Nice, that tells me the workers will do stuff, simultaneously, when requested correctly.\n>\n> But if I try this instead:\n>\n> library(doMPI)\n> cl<-startMPIcluster()\n> registerDoMPI(cl)\n> system.time(a<-foreach(i=1:3) %dopar% system.time(sort(runif(1e7))))\n>\n> it just hangs up at the foreach line, and never gets through, and only gets killed at the end of the reserved 15 minutes or when I scancel the whole job myself. None of the lines give any errors.\n>\n> So what am I doing wrong? I have a hunch this has something to do with how my workers are started, since I never get to do those mpirun commands that the doMPI manual speaks of. But despite my efforts of reading the manual and the documentation of startMPIcluster I haven't figured out what else to try.\n>\n> Many thanks in advance for your time!\n>\n> BR,\n> Seija Sirki?\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc",
+      "body_snippet": "Great, thank you Stephen! Yes, we use Open MPI. The reason I used the Rprofile way is that it was the only way to do MPI related R stuff the existing guides here mentioned. That lead me to believe tha",
+      "thread_id": "thread-1e6e102dcf01",
+      "thread_depth": 2,
+      "month": "2015-08"
+    }
+  ],
+  "threads": [
+    {
+      "id": "thread-b7458ce1dba5",
+      "subject": "Spatstat and parallel",
+      "message_count": 1,
+      "participants": [
+        "Luis Iván Ortiz Valencia"
+      ],
+      "started": "2015-08-26T09:27:44-03:00",
+      "last_reply": "2015-08-26T09:27:44-03:00",
+      "root_message_id": "msg-b7458ce1dba5"
+    },
+    {
+      "id": "thread-1e6e102dcf01",
+      "subject": "I can do mpi.apply but not foreach with doMPI",
+      "message_count": 3,
+      "participants": [
+        "Seija Sirkiä",
+        "Stephen Weston"
+      ],
+      "started": "2015-08-26T11:12:03+03:00",
+      "last_reply": "2015-08-27T13:00:50+03:00",
+      "root_message_id": "msg-1e6e102dcf01"
+    },
+    {
+      "id": "thread-53da344fd349",
+      "subject": "I can do mpi.apply but not foreach with doMPI",
+      "message_count": 1,
+      "participants": [
+        "Ostrouchov, George"
+      ],
+      "started": "2015-08-26T13:16:31-04:00",
+      "last_reply": "2015-08-26T13:16:31-04:00",
+      "root_message_id": "msg-53da344fd349"
+    }
+  ]
+}

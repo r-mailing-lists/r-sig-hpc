@@ -1,0 +1,885 @@
+From jens.oehlschlaegel at truecluster.com  Fri Oct  1 22:57:39 2010
+From: jens.oehlschlaegel at truecluster.com (=?UTF-8?Q? Jens_Oehlschl=C3=A4gel ?=)
+Date: Fri, 1 Oct 2010 22:57:39 +0200 (CEST)
+Subject: [R-sig-hpc] Best way to implement ff
+In-Reply-To: <AANLkTin=3fPNjcGWZzaWSdQ5gfY_snUXJtD2we0DfDhQ@mail.gmail.com>
+References: <AANLkTin=3fPNjcGWZzaWSdQ5gfY_snUXJtD2we0DfDhQ@mail.gmail.com>
+Message-ID: <1812500245.1653003.1285966659102.JavaMail.fmail@mwmweb019>
+
+>I need to append columns to the data.>What is the best way of doing this? In "normal R" i would use cbind,>or similar. I looked around, but couldn't find anything. Something>like
+Assuming you have for each virtual column a physical column you could do
+
+simplecbind.ffdf <- function(d, x){
+	nam <- colnames(d)
+	ret <- do.call("ffdf", c(physical(d), list(x)))
+	colnames(ret) <- c(nam, substitute(x))
+	ret
+}
+
+library(ff)
+x <- ff(1:10)
+y <- ff(1:10)
+d <- ffdf(x, y)
+z <- ff(1:10)
+dz <- simplecbind.ffdf(d, z)
+
+Jens
+
+
+From mlimagb at gmail.com  Mon Oct 18 21:42:31 2010
+From: mlimagb at gmail.com (Marcelo Lima)
+Date: Mon, 18 Oct 2010 17:42:31 -0200
+Subject: [R-sig-hpc] Use R on Cuda
+Message-ID: <AANLkTinxP_1GnbH+HA38meYqv5oxNJhkwehMo5Q_FEgL@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101018/28ecfe05/attachment.pl>
+
+From nakama at ki.rim.or.jp  Tue Oct 19 05:37:44 2010
+From: nakama at ki.rim.or.jp (Ei-ji Nakama)
+Date: Tue, 19 Oct 2010 12:37:44 +0900
+Subject: [R-sig-hpc] Use R on Cuda
+In-Reply-To: <AANLkTinxP_1GnbH+HA38meYqv5oxNJhkwehMo5Q_FEgL@mail.gmail.com>
+References: <AANLkTinxP_1GnbH+HA38meYqv5oxNJhkwehMo5Q_FEgL@mail.gmail.com>
+Message-ID: <AANLkTi=WpRm3PVO4Q3GsCXxk7aHuLE22nT06VEtM7CZ+@mail.gmail.com>
+
+Hi,
+I performed only a simple experiment.
+
+1. wrapper for gemm
+http://prs.ism.ac.jp/~nakama/cudablas_gemm/
+
+2. make
+
+3 LANG=C make test
+
+$ LANG=C make test
+R -q -e 'set.seed(1);N<-4e3;A<-matrix(runif(N^2),N,N);system.time(B<-A%*%A)'
+| sed -e '/^>/d'
+   user  system elapsed
+  9.976   0.160   1.761
+LD_PRELOAD=./gemm.so R -q -e
+'set.seed(1);N<-4e3;A<-matrix(runif(N^2),N,N);system.time(B<-A%*%A)' |
+sed -e '/^>/d'
+   user  system elapsed
+  0.968   0.044   1.008
+R -q -e 'set.seed(1);N<-4e3;A<-matrix(as.complex(runif(N^2)),N,N);system.time(B<-A%*%A)'
+| sed -e '/^>/d'
+   user  system elapsed
+ 39.098   0.600   6.619
+LD_PRELOAD=./gemm.so R -q -e
+'set.seed(1);N<-4e3;A<-matrix(as.complex(runif(N^2)),N,N);system.time(B<-A%*%A)'
+| sed -e '/^>/d'
+   user  system elapsed
+  3.388   0.068   3.454
+
+The size that I could operate depended on RAM of GPU.
+
+
+2010/10/19 Marcelo Lima <mlimagb at gmail.com>:
+> Dear all,
+>
+> I'm trying to run R on a cuda 3X (GTX 480) using an i7 processor, however I
+> haven't been successful. Any suggestions?!
+>
+> Thanks in advance,
+>
+> Marcelo
+>
+> --
+> Marcelo Andrade de Lima
+> UNIFESP - Universidade Federal de S?o Paulo
+> Departamento de Bioqu?mica
+> Disciplina de Biologia Molecular
+> Rua Tr?s de Maio 100, 4 andar - Vila Clementino, 04044-020
+> Lab +55 11 55764438 R.1188
+> Cell +55 11 92725274
+> mlima at unifesp.br
+>
+> ? ? ? ?[[alternative HTML version deleted]]
+>
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+>
+
+
+-- 
+EI-JI Nakama? <nakama (a) ki.rim.or.jp>
+"\u4e2d\u9593\u6804\u6cbb"? <nakama (a) ki.rim.or.jp>
+
+
+From nakama at ki.rim.or.jp  Wed Oct 20 07:14:11 2010
+From: nakama at ki.rim.or.jp (Ei-ji Nakama)
+Date: Wed, 20 Oct 2010 14:14:11 +0900
+Subject: [R-sig-hpc] Use R on Cuda
+In-Reply-To: <AANLkTimzphHtVQAaWfuwKi7ieW8-s5zMkUBZFOYzgq=X@mail.gmail.com>
+References: <AANLkTinxP_1GnbH+HA38meYqv5oxNJhkwehMo5Q_FEgL@mail.gmail.com>
+	<AANLkTi=WpRm3PVO4Q3GsCXxk7aHuLE22nT06VEtM7CZ+@mail.gmail.com>
+	<AANLkTimzphHtVQAaWfuwKi7ieW8-s5zMkUBZFOYzgq=X@mail.gmail.com>
+Message-ID: <AANLkTi=aWvOsxdTevgVHFiD7j=tL1ADs0cbRYoc_JkxS@mail.gmail.com>
+
+Hi,
+
+There is GATLAS.
+http://golem5.org/gatlas/
+
+I have one GTX480.:(
+However, that there is a problem in GTX480 is written in GATLAS homepage.
+
+Some coding is necessary to use GATLAS from R.
+
+2010/10/19 Marcelo Lima <mlimagb at gmail.com>:
+> Thanks a lot for help.
+>
+> I was able to run in cuda, but it just used one gpu core. I have 3 GeForce
+> GTX 480, any suggestions to run with all gpus?
+>
+>
+> Regards.
+>
+> Marcelo.
+>
+> On Tue, Oct 19, 2010 at 1:37 AM, Ei-ji Nakama <nakama at ki.rim.or.jp> wrote:
+>>
+>> Hi,
+>> I performed only a simple experiment.
+>>
+>> 1. wrapper for gemm
+>> http://prs.ism.ac.jp/~nakama/cudablas_gemm/
+>>
+>> 2. make
+>>
+>> 3 LANG=C make test
+>>
+>> $ LANG=C make test
+>> R -q -e
+>> 'set.seed(1);N<-4e3;A<-matrix(runif(N^2),N,N);system.time(B<-A%*%A)'
+>> | sed -e '/^>/d'
+>> ? user ?system elapsed
+>> ?9.976 ? 0.160 ? 1.761
+>> LD_PRELOAD=./gemm.so R -q -e
+>> 'set.seed(1);N<-4e3;A<-matrix(runif(N^2),N,N);system.time(B<-A%*%A)' |
+>> sed -e '/^>/d'
+>> ? user ?system elapsed
+>> ?0.968 ? 0.044 ? 1.008
+>> R -q -e
+>> 'set.seed(1);N<-4e3;A<-matrix(as.complex(runif(N^2)),N,N);system.time(B<-A%*%A)'
+>> | sed -e '/^>/d'
+>> ? user ?system elapsed
+>> ?39.098 ? 0.600 ? 6.619
+>> LD_PRELOAD=./gemm.so R -q -e
+>>
+>> 'set.seed(1);N<-4e3;A<-matrix(as.complex(runif(N^2)),N,N);system.time(B<-A%*%A)'
+>> | sed -e '/^>/d'
+>> ? user ?system elapsed
+>> ?3.388 ? 0.068 ? 3.454
+>>
+>> The size that I could operate depended on RAM of GPU.
+>>
+>>
+>> 2010/10/19 Marcelo Lima <mlimagb at gmail.com>:
+>> > Dear all,
+>> >
+>> > I'm trying to run R on a cuda 3X (GTX 480) using an i7 processor,
+>> > however I
+>> > haven't been successful. Any suggestions?!
+>> >
+>> > Thanks in advance,
+>> >
+>> > Marcelo
+>> >
+>> > --
+>> > Marcelo Andrade de Lima
+>> > UNIFESP - Universidade Federal de S?o Paulo
+>> > Departamento de Bioqu?mica
+>> > Disciplina de Biologia Molecular
+>> > Rua Tr?s de Maio 100, 4 andar - Vila Clementino, 04044-020
+>> > Lab +55 11 55764438 R.1188
+>> > Cell +55 11 92725274
+>> > mlima at unifesp.br
+>> >
+>> > ? ? ? ?[[alternative HTML version deleted]]
+>> >
+>> >
+>> > _______________________________________________
+>> > R-sig-hpc mailing list
+>> > R-sig-hpc at r-project.org
+>> > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>> >
+>> >
+>>
+>>
+>> --
+>> EI-JI Nakama? <nakama (a) ki.rim.or.jp>
+>> "\u4e2d\u9593\u6804\u6cbb"? <nakama (a) ki.rim.or.jp>
+>
+>
+>
+> --
+> Marcelo Andrade de Lima
+> UNIFESP - Universidade Federal de S?o Paulo
+> Departamento de Bioqu?mica
+> Disciplina de Biologia Molecular
+> Rua Tr?s de Maio 100, 4 andar - Vila Clementino, 04044-020
+> Lab +55 11 55764438 R.1188
+> Cell +55 11 92725274
+> mlima at unifesp.br
+>
+
+-- 
+EI-JI Nakama? <nakama (a) ki.rim.or.jp>
+"\u4e2d\u9593\u6804\u6cbb"? <nakama (a) ki.rim.or.jp>
+
+
+From hamaadshah at hotmail.com  Wed Oct 20 12:23:04 2010
+From: hamaadshah at hotmail.com (Hamaad Shah)
+Date: Wed, 20 Oct 2010 11:23:04 +0100
+Subject: [R-sig-hpc] R-sig-hpc Digest, Vol 25, Issue 3
+In-Reply-To: <mailman.31.1287568808.21927.r-sig-hpc@r-project.org>
+References: <mailman.31.1287568808.21927.r-sig-hpc@r-project.org>
+Message-ID: <COL119-W63E625A82536740A275A85DD5C0@phx.gbl>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101020/654d7a34/attachment.pl>
+
+From marco at imada.sdu.dk  Wed Oct 20 22:03:09 2010
+From: marco at imada.sdu.dk (Marco Chiarandini)
+Date: Wed, 20 Oct 2010 22:03:09 +0200
+Subject: [R-sig-hpc] Problems with Rmpi, openMPI and SEG in rocks linux
+Message-ID: <3079152E-B1CC-402A-9A80-15E6500B57D3@imada.sdu.dk>
+
+Dear list,
+
+I am trying to launch an Rmpi job inside a SGE system and I am experiencing an unwanted behaviour. Up to a certain number of required slots the procedure works successfully. Beyond that certain number I obtain a segmetation fault in Rslaves.sh while spawning the slaves.
+
+More in the details, I try to use a rocks linux cluster with SGE queue system. Let's say that I use the classical example:
+http://math.acadiau.ca/ACMMaC/Rmpi/sample.html
+
+I put that in a file called: provaMPI.R to which I add first line:
+#!/usr/bin/Rscript
+
+and modify with mpi.spawn.Rslaves(20)
+
+Then I write the bash script (script.sh) to send to qsub:
+
+#!/bin/sh
+# Run using bash
+#$ -S /bin/bash
+#$ -N provaMPI.R
+#$ -pe mpi 21
+#$ -cwd
+/opt/openmpi/bin/orterun -np 1 provaMPI.R
+
+And finally send:
+shell$ qsub script.sh
+
+
+The cluster is set up to run up to 12 processes in each node. I  expect to see filled these slots greedily in the nodes selected by the queueing system, since this is what I see as the policy in the three Parallel Environments that are present in the cluster (mpi, mpich, lam). This is indeed the case if I use for example 12 slaves and require -pe mpi 13, the run execute fine and all output is as expected. But with the case 20 I obtain the segmentation fault. 
+
+I report below the error messages together with the three Parallel Environments. I experience the same problems with all of them (with lam also some executable lamhalt and lamboot not found). 
+
+I have not been able to make up a link between the number of slots required and the crashing issue. I have seen a successful case when I was requiring 12 slaves and 13 slots. But I find it hard to reproduce. I also observed cases among the successful ones in which slots where allocated in more than one node. Overall it seems to me quite a random behaviour with a stronger bias for the unsuccessul cases :( 
+
+Any suggestion about a resolution of this issue would be very much appreciated.
+
+Thank you,
+
+Best regards,
+
+Marco
+
+
+
+
+
+
+$ qconf -sp lam
+pe_name            lam
+slots              128
+user_lists         NONE
+xuser_lists        NONE
+start_proc_args    /opt/gridengine/mpi/startlam.sh $pe_hostfile
+stop_proc_args     /opt/gridengine/mpi/stoplam.sh
+allocation_rule    $fill_up
+control_slaves     TRUE
+job_is_first_task  TRUE
+urgency_slots      min
+accounting_summary FALSE
+[stuetzle at submit-1-0 ACOTSP]$ qconf -sp mpi
+pe_name            mpi
+slots              9999
+user_lists         NONE
+xuser_lists        NONE
+start_proc_args    /opt/gridengine/mpi/startmpi.sh $pe_hostfile
+stop_proc_args     /opt/gridengine/mpi/stopmpi.sh
+allocation_rule    $fill_up
+control_slaves     TRUE
+job_is_first_task  TRUE
+urgency_slots      min
+accounting_summary FALSE
+[stuetzle at submit-1-0 ACOTSP]$ qconf -sp mpich
+pe_name            mpich
+slots              9999
+user_lists         NONE
+xuser_lists        NONE
+start_proc_args    /opt/gridengine/mpi/startmpi.sh -catch_rsh $pe_hostfile
+stop_proc_args     /opt/gridengine/mpi/stopmpi.sh
+allocation_rule    $fill_up
+control_slaves     TRUE
+job_is_first_task  FALSE
+urgency_slots      min
+accounting_summary FALSE
+
+
+
+In provaMPI.R.######
+
+
+/usr/lib/R/library/Rmpi/Rslaves.sh: line 20: 19442 Segmentation fault      (core dumped) $R_HOME/bin/R --no-init-file --slave --no-save < $1 > $hn.$2.$$.log 2>&1
+--------------------------------------------------------------------------
+orterun has exited due to process rank 8 with PID 19435 on
+node compute-1-2.local exiting without calling "finalize". This may
+have caused other processes in the application to be
+terminated by signals sent by orterun (as reported here).
+--------------------------------------------------------------------------
+rm: cannot remove `/tmp/2840522.1.medium1/rsh': No such file or directory
+/opt/gridengine/default/spool/compute-1-14/active_jobs/2840522.1/pe_hostfile
+compute-1-14
+compute-1-14
+compute-1-14
+compute-1-14
+compute-1-14
+
+
+
+In the log files with each node's name.
+
+
+ *** caught segfault ***
+address 0x9ff44d4, cause 'memory not mapped'
+
+Traceback:
+ 1: .Call("mpi_initialize", PACKAGE = "Rmpi")
+ 2: f(libname, pkgname)
+ 3: firstlib(which.lib.loc, package)
+ 4: doTryCatch(return(expr), name, parentenv, handler)
+ 5: tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 6: tryCatchList(expr, classes, parentenv, handlers)
+ 7: tryCatch(expr, error = function(e) {    call <- conditionCall(e)    if (!is.null(call)) {        if (identical(call[[1L]], quote(doTryCatch)))             call <- sys.call(-4L)        dcall <- deparse(call)[1L]        prefix <- paste("Error in", dcall, ": ")        LONG <- 75L        msg <- conditionMessage(e)        sm <- strsplit(msg, "\n")[[1L]]        w <- 14L + nchar(dcall, type = "w") + nchar(sm[1L], type = "w")        if (is.na(w))             w <- 14L + nchar(dcall, type = "b") + nchar(sm[1L],                 type = "b")        if (w > LONG)             prefix <- paste(prefix, "\n  ", sep = "")    }    else prefix <- "Error : "    msg <- paste(prefix, conditionMessage(e), "\n", sep = "")    .Internal(seterrmessage(msg[1L]))    if (!silent && identical(getOption("show.error.messages"),         TRUE)) {        cat(msg, file = stderr())        .Internal(printDeferredWarnings())    }    invisible(structure(msg, class = "try-error"))})
+ 8: try(firstlib(which.lib.loc, package))
+ 9: library(Rmpi, logical.return = TRUE)
+aborting ...
+
+Then all other nodes: 
+
+Error in f(libname, pkgname) : ignoring SIGPIPE signal
+Error in f(libname, pkgname) : ignoring SIGPIPE signal
+Error in f(libname, pkgname) : ignoring SIGPIPE signal
+Error in f(libname, pkgname) : ignoring SIGPIPE signal
+
+
+
+--
+Marco Chiarandini, PhD
+Department of Mathematics and Computer Science,               
+University of Southern Denmark
+Campusvej 55, DK-5230 Odense M, Denmark 
+marco at imada.sdu.dk,  http://www.imada.sdu.dk/~marco
+Phone: +45 6550 4031,  Fax: +45 6550 2325
+
+
+From mlimagb at gmail.com  Fri Oct 22 16:31:05 2010
+From: mlimagb at gmail.com (Marcelo Lima)
+Date: Fri, 22 Oct 2010 12:31:05 -0200
+Subject: [R-sig-hpc] extracting the variance from a covariance matrix
+Message-ID: <AANLkTim7HjwureHrjPpo7vCyAdDSbpkDmW-VrCsw1vjB@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101022/5e2e5be5/attachment.pl>
+
+From josh.m.ulrich at gmail.com  Fri Oct 22 16:33:15 2010
+From: josh.m.ulrich at gmail.com (Joshua Ulrich)
+Date: Fri, 22 Oct 2010 09:33:15 -0500
+Subject: [R-sig-hpc] extracting the variance from a covariance matrix
+In-Reply-To: <AANLkTim7HjwureHrjPpo7vCyAdDSbpkDmW-VrCsw1vjB@mail.gmail.com>
+References: <AANLkTim7HjwureHrjPpo7vCyAdDSbpkDmW-VrCsw1vjB@mail.gmail.com>
+Message-ID: <AANLkTik1w40iDJ+6ETwof6dveJCPJ4Asnr8c7NEkW0T8@mail.gmail.com>
+
+This is a question better suited for R-help than R-sig-hpc.  See ?diag.
+--
+Joshua Ulrich ?| ?FOSS Trading: www.fosstrading.com
+
+
+On Fri, Oct 22, 2010 at 9:31 AM, Marcelo Lima <mlimagb at gmail.com> wrote:
+>
+> Hi,
+>
+> I generated a covariance matrix, since the diagonal of this matrix
+> represents the variance of my dataset I would like to extract it. Any
+> suggestions on how to obtain?
+>
+> Thanks,
+>
+> Marcelo
+>
+> --
+> Marcelo Andrade de Lima
+> UNIFESP - Universidade Federal de S?o Paulo
+> Departamento de Bioqu?mica
+> Disciplina de Biologia Molecular
+> Rua Tr?s de Maio 100, 4 andar - Vila Clementino, 04044-020
+> Lab +55 11 55764438 R.1188
+> Cell +55 11 92725274
+> mlima at unifesp.br
+>
+> ? ? ? ?[[alternative HTML version deleted]]
+>
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From rab at consolidated.net  Fri Oct 22 17:07:14 2010
+From: rab at consolidated.net (R. A. Bilonick)
+Date: Fri, 22 Oct 2010 11:07:14 -0400
+Subject: [R-sig-hpc] extracting the variance from a covariance matrix
+In-Reply-To: <AANLkTim7HjwureHrjPpo7vCyAdDSbpkDmW-VrCsw1vjB@mail.gmail.com>
+References: <AANLkTim7HjwureHrjPpo7vCyAdDSbpkDmW-VrCsw1vjB@mail.gmail.com>
+Message-ID: <1287760034.2188.3.camel@rick-laptop>
+
+On Fri, 2010-10-22 at 12:31 -0200, Marcelo Lima wrote:
+> Hi,
+> 
+> I generated a covariance matrix, since the diagonal of this matrix
+> represents the variance of my dataset I would like to extract it. Any
+> suggestions on how to obtain?
+> 
+> Thanks,
+> 
+> Marcelo
+> 
+> ___________
+
+You can use the "diag" function to extract the diagonal.
+
+
+From noah at bio.umass.edu  Thu Oct 28 16:55:45 2010
+From: noah at bio.umass.edu (noah at bio.umass.edu)
+Date: Thu, 28 Oct 2010 10:55:45 -0400
+Subject: [R-sig-hpc] snow clusters on Windows
+Message-ID: <cfedc797ea44120d84887591b05f84e6.squirrel@www.bio.umass.edu>
+
+Hi all,
+
+Just to Follow up from an old post, I did eventually get snow working more
+or less - thanks for all the help! ?I still must rely on manually
+connecting the nodes [using "manual=TRUE" in makeSOCKcluster() ].  I run a
+simple batch file from the remote computer command prompt that streamlines
+making the manual connection happen.
+
+In order set up passwordless-ssh on our cluster, I went through these steps:
+
+1)?? ? ?Download and install CopSSH (which created another user account
+?svcCOPSSH?)
+
+2)????? Activate my user name
+
+3)????? Add ?C:/Program Files/CopSSH/Bin? to the directory to Path
+variable in windows (ControlPanel -> System -> Advanced System Settings ->
+System Variables -> Path)
+
+4)????? To speed things up, changed UseDNS to "no" (and deleted preceding
+# to uncomment) in C:\Program Files\CopSSH\etc\sshd_config
+
+5)????? Open a DOS terminal, and type? ?ssh-keygen -t rsa.?? Leave
+passphrases blank, just hit return everywhere it asks.? ?Copy the code
+from ?C:/Program Files/copssh/home/[username]/.ssh/id_rsa.pub? into (as an
+extra line) ?C:/Program
+Files/copssh/home/[username]/.ssh/authorized_keys?;? All computers can
+have a copy of the same authorized_keys file, with a line for each
+computers? key.?
+
+6)????? Now, from R, you should be able to type ?system(?ssh [computer
+name] date?)? from any computer, and it will give you the date on
+[computer name].
+
+7)????? Manually let the chosen port through the firewall
+ a simple
+firewall test seems to be if, on the master computer you type:
+
+?????????????? > socketConnection(port = XXXXX, server = TRUE)
+
+??????????????????? And on the slave you type:
+
+?????????????? > socketConnection("computername", port = XXXXX)
+
+
+Best of luck
+-Noah
+?
+
+On Sat, Mar 6, 2010 at 2:38 PM, Stephen Weston
+<stephen.b.weston at gmail.com> wrote:
+>
+> Hi Noah,
+>
+> What happens when you start the slaves manually on other
+> machines on your network? ?Do they simply hang?
+>
+> One of the reasons that it's useful to use manual mode is that
+> it makes it easier to see any error message. ?And if they do
+> hang, you can hit CTRL-C, and then type "traceback()" to
+> find out where the program was hung. ?I would need some
+> more information of that sort before I could even guess what
+> your problem is.
+>
+> That being said, have you ruled out any problems due to
+> a firewall? ?That is a classic problem when going from one
+> to many machines.
+>
+> - Steve
+>
+>
+> On Sat, Mar 6, 2010 at 1:10 PM, Noah Charney <noah at bio.umass.edu> wrote:
+> > Thanks Steve,
+> >
+> > I've made a bit more progress firing up local nodes with your
+suggestions,
+> > but I'm still stuck.
+> >
+> > I can succsesfully use the "manual=TRUE" option to start up slaves
+locally
+> > if I run:
+> >
+> >>makeSOCKcluster("128.XXX.XXX.XX", manual=TRUE) #(as long as the IP
+> > address is for the local computer)
+> >
+> > then I run a *.bat file with the requested command from a local command
+> > shell...
+> >
+> > But this only works locally. ?I still can't get any slaves started on
+> > other machines on the network. ?I know ssh is still working, because I
+can
+> > talk to the other machines in the network using:
+> >
+> >>system("ssh 128.XXX.XXX.XX date")
+> >
+> > And, as you mentioned, the log file doesn't have much in it since the
+> > slaves never get established.
+> >
+> > Any other suggestions?
+> >
+> >
+> > Thanks again!
+> > -Noah
+> > --
+> > Organismic and Evolutionary Biology
+> > University of Massachusetts Amherst
+> > 221 Morrill Science Center South
+> > Amherst, MA 01003
+> >
+> >
+> > ____________________________________________________________________________
+> > ############################################################################
+> >
+> >
+> > makeSOCKcluster will hang if it cannot successfully start all of the
+> > cluster slaves. ?I believe that your second R/snow session is "unhanging"
+> > the first session because it is starting up slaves for the first session.
+> > You
+> > can actually do something very much like that, in a more supported way,
+> > by using the "manual" option with makeSOCKcluster. ?It will display a
+command
+> > to use to start each of the slaves. ?I think that might be worth doing,
+> > because
+> > it might uncover the error that's occurring.
+> >
+> > In general, it's a good idea to use the makeSOCKcluster "outfile" option,
+> > which
+> > will capture error messages in a file on each of the slaves, but that
+> > won't help
+> > if you aren't able to start the slaves running in the first place.
+> >
+> > A common problem is that the slaves can't connect back to the master
+after
+> > they're started. ?That can be fixed by specifying the makeSOCKcluster
+> > "master" option. ?You can diagnose that problem from the log files
+created
+> > using the "outfile" option. ?But I doubt that you're having that problem,
+> > otherwise that would happen when you specified "localhost" to
+> > makeSOCKcluster.
+> >
+> > On Windows, I often specify the slaves and the master using IP addresses,
+> > using a command such as:
+> >
+> > ?cl <- makeCluster(c("192.168.0.101", "192.168.0.102"),
+> > ? ? ? ? ? ? ?outfile="C:/temp/snow.log", master="192.168.0.100")
+> >
+> > - Steve
+> >
+> >
+> > On Tue, Jan 26, 2010 at 11:44 AM, Noah Charney <noah at bio.umass.edu>
+wrote:
+> >> Guy et al,
+> >>
+> >> Thanks for the pointers! I appear to have gotten much of the way there
+> >> (solution described below), but there remains a very strange problem
+with
+> >> makeCluster(). ?I'm still just testing it out on a single computer, and,
+> >> as before, it works fine when I call:
+> >>
+> >>> makeSOCKcluster("localhost")
+> >>
+> >> But if I specify my local host by name:
+> >>
+> >>> makeSOCKcluster("Poopy")
+> >>
+> >> It will hang up indefinitely until I open a second R workspace/window on
+> >> the same machine, and try to call the localhost:
+> >>
+> >>> cl<-makeSOCKcluster("localhost")
+> >> Error in socketConnection(port = port, server = TRUE, blocking =
+TRUE, ?:
+> >> ?cannot open the connection
+> >> In addition: Warning message:
+> >> In socketConnection(port = port, server = TRUE, blocking = TRUE, ?:
+> >> ?port 10187 cannot be opened
+> >>
+> >> This error message seems to be a good sign, because when I now look back
+> >> at the original R workspace, it will have completed making the cluster.
+> >> If I try to make a 3 node cluster, then I need to "nudge" it as above 3
+> >> times from the other workspace. ?Once the cluster is established,
+> >> clusterApply seems to work fine. ?Thoughts?
+> >>
+> >> ------
+> >> To get ssh running from R in the first place on Windows, which was my
+> >> original question:
+> >>
+> >> Install copssh (http://www.itefix.no/i2/download)
+> >>
+> >> Add the ...copssh/bin/ directory to Path variable in windows (Control
+> >> Panel -> System -> Advanced System Settings -> System Variables -> Path)
+> >>
+> >> To speed things up considerably, changed UseDNS to "no" (and deleted
+> >> preceding # to uncomment) in C:\Program Files\CopSSH\etc\sshd_config
+> >>
+> >> I also added a "hosts" file to the CopSSH\etc\ directory with the
+local IP
+> >> and hostname, but I don't think this was necessary
+> >>
+> >> Followed directions to set up password-less ssh login from
+> >> http://nws-r.sourceforge.net/docs/getting_started.html :
+> >>
+> >> ? ? ? ?To generate public and private keys, follow the steps below.
+> >> ? ? ? ?Open a DOS terminal
+> >> ? ? ? ?ssh-keygen -t rsa
+> >> ? ? ? ?cd .ssh (.ssh directory is located in C:/Program
+> > Files/copssh/home/user
+> >> on Windows)
+> >> ? ? ? ?cp id_rsa.pub authorized_keys This step allows password-less
+> > login to
+> >> local machine.
+> >> ? ? ? ?For all remote machines that you want password-less login, append
+> > the
+> >> content of id_rsa.pub to their ?authorized_keys file.
+> >> ? ? ? ?To test the password-less login, type the following command:
+> >> ? ? ? ?% ssh hostname date
+> >> ? ? ? ?If everything is setup correctly, you should not be asked for
+> > password
+> >> and the current date on remote machine will be returned.
+> >>
+> >>
+> >> Now, from R, we should be able to type:
+> >>> system("ssh #insert computer name here# date")
+> >> Tue Jan 26 11:30:31 EST 2010
+> >>>
+> >>
+> >> Thanks
+> >> -Noah Charney
+> >> --
+> >> Organismic and Evolutionary Biology
+> >> University of Massachusetts Amherst
+> >> 221 Morrill Science Center South
+> >> Amherst, MA 01003
+> >>
+> >> _______________________________________________
+> >> R-sig-hpc mailing list
+> >> R-sig-hpc at r-project.org
+> >> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> >>
+> > Hi Noah,
+> >
+> > While I did not use snow, I was able to sucessfully implement cluster
+> > computing with windows workstations using NetWorkSpaces:
+> > http://nws-r.sourceforge.net/
+> >
+> > As you noted the key to these solutions is to get SSH running on windows
+> > boxes which can be accomplished with Cygwin
+> > http://www.cygwin.com/
+> >
+> > The biggest challenge was configuring SSH and here are some links that I
+> > had found helpful back when I was setting this up:
+> >
+> > http://www1.umn.edu/oit/prod/groups/oit/@pub/@oit/@web/@security/documents/asset/oit_asset_001221.pdf
+> >
+> > http://lifehacker.com/205090/geek-to-live--set-up-a-personal-home-ssh-server
+> >
+> > http://www.bmonday.com/articles/653.aspx
+> >
+> > Good Luck!
+> >
+> > Best,
+> >
+> > -- Guy
+> >
+> >
+> > -----Original Message-----
+> > From: r-sig-hpc-bounces at r-project.org [mailto:r-sig-hpc-bounces at
+> > r-project.org] On Behalf Of Noah Charney
+> > Sent: Monday, January 18, 2010 11:59 AM
+> > To: r-sig-hpc at r-project.org
+> > Subject: [R-sig-hpc] snow clusters on Windows
+> >
+> > R-HPC list members,
+> >
+> > I am wondering if anyone could help us with the setup for snow
+clusters on
+> > windows machines. ?Is there something specific we need to do to set up
+SSH
+> > so that R can access it in the absence of linux? ?We are working on
+> > Windows Server 2003, and on Vista, the problem is the same on both. ?We
+> > can create local clusters using the name "localhost" on any computer, but
+> > no other name/IP address we substitute for "localhost" works. ?Example
+> > code is below.
+> >
+> > #This works fine
+> >> cl<-makeCluster('localhost',type='SOCK')
+> >> cl
+> > [[1]]
+> > $con
+> > ? ?description ? ? ? ? ? class ? ? ? ? ? ?mode ? ? ? ? ? ?text
+> > opened
+> > "<-Poopy:10187" ? ? ?"sockconn" ? ? ? ? ? "a+b" ? ? ? ?"binary"
+> > "opened"
+> > ? ? ? can read ? ? ? can write
+> > ? ? ? ? ?"yes" ? ? ? ? ? "yes"
+> > $host
+> > [1] "localhost"
+> > attr(,"class")
+> > [1] "SOCKnode"
+> > attr(,"class")
+> > [1] "SOCKcluster" "cluster"
+> >
+> >> stopCluster(cl)
+> >
+> > #But if we try to call the home computer by name or IP address, or
+> > anything else, it doesn't work...
+> >> cl<-makeCluster('192.168.1.1',type='SOCK')
+> >
+> > #It just hangs there until we hit 'escape', at which point it says:
+> > Warning message:
+> > In system(cmd, wait = FALSE, input = "") : ssh not found
+> >
+> >
+> > Thanks
+> > -Noah Charney
+> > ---
+> > Organismic and Evolutionary Biology
+> > University of Massachusetts Amherst
+> > 221 Morrill Science Center South
+> > Amherst, MA 01003-9297
+> >
+> > _______________________________________________
+> > R-sig-hpc mailing list
+> > R-sig-hpc at r-project.org
+> > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> >
+
+
+From murray at stokely.org  Fri Oct 29 19:39:02 2010
+From: murray at stokely.org (Murray Stokely)
+Date: Fri, 29 Oct 2010 10:39:02 -0700
+Subject: [R-sig-hpc] Serializing global state from within a namespace to
+ distribute to other workers
+Message-ID: <AANLkTi=1JQewn47fNqPQA0SvQ7vjW6SUzyY4OC1U5eTH@mail.gmail.com>
+
+I have a package which implements a parallelapply function for my
+environment but I'm having trouble moving the package into a NAMESPACE
+because of how the function is serialized by save() including the
+NAMESPACESXP of the package.
+
+parallelapply <- function(x, FUN, ...) {
+?environment(FUN) <- .GlobalEnv   # does not have intended effect
+?assign(".GLOBAL.FUN", function(x) { FUN(x, ...) }, env=.GlobalEnv)
+?environment(.GLOBAL.FUN) <- .GlobalEnv   # does not have intended effect
+?save(list = ls(envir = .GlobalEnv, all.names = TRUE),
+? ? ? file = "/tmp/.Rdata",
+ # Here we distribute the .Rdata file to other workers that load it
+and then run .GLOBAL.FUN(n)
+ # this works great if parallelapply is in a package without a
+NAMESPACE, but fails on loadNamespace otherwise.
+}
+
+This relatively simple distribution technique seems to work well in
+practice except for this namespace issue.  Is there any way to more
+completely strip out the package NAMESPACE from the environment of the
+function to be applied in parallel such that it can be loaded on the
+workers without requiring they also load the same package NAMESPACE
+(which is problematic because of all the shared object code in the
+package that the workers don't need to load, etc..)
+
+Or at there other distribution techniques for getting master state to
+the workers for embarrassingly parallel R scripts (e.g. monte carlo
+methods in my case) that I should consider?
+
+        - Murray
+
+
+---------- Forwarded message ----------
+From: Murray Stokely <murray at stokely.org>
+Date: Wed, Oct 27, 2010 at 11:35 PM
+Subject: Creating truly global variable within function within namespace
+To: r-help at r-project.org
+
+
+I am trying to create a function with a package with a NAMESPACE that
+will save() some variables, distribute an Rdata file to another
+computer, where it will be load()ed. ?The problem is that this load()
+tries to load the namespace of the package on the original computer
+that created the .Rdata file, but this package need not be loaded on
+the new computer.
+
+This example function is in a package in a namespace :
+
+create.global.function <- function(x, FUN, ...) {
+?environment(FUN) <- .GlobalEnv
+?assign(".GLOBAL.FUN", function(x) { FUN(x, ...) }, env=.GlobalEnv)
+?environment(.GLOBAL.FUN) <- .GlobalEnv
+?save(list = ls(envir = .GlobalEnv, all.names = TRUE),
+? ? ? file = "/tmp/.Rdata",
+? ? ? envir = .GlobalEnv)
+}
+
+And then if I quit my session and then try to load("/tmp/.Rdata")
+without loading the package, it will try to loadNamespace from the
+.Rdata file and then fail.
+
+Is it possible to fully strip the namespace out of the .GLOBAL.FUN
+before I save() it such that it can be loaded into other R instances
+without trying to load the namespace?
+
+Thanks for any pointers ..
+
+? ? ? ? ? ? - Murray
+
+

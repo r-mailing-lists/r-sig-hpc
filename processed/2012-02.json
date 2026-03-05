@@ -1,0 +1,1089 @@
+{
+  "list": "r-sig-hpc",
+  "description": "",
+  "month": "2012-02",
+  "messages": [
+    {
+      "id": "msg-19745e344d71",
+      "message_id": "<2012020422511274171828@gmail.com>",
+      "from_name": "Xiaobo Gu",
+      "from_email_hash": "e42e0b811de3d2c98cdebac8809c8a6a440a236994d7613f3b90d37da18f7c25",
+      "date": "2012-02-04T22:51:12+08:00",
+      "subject": "[R-sig-hpc] Can't start multi node SNOW cluster",
+      "subject_clean": "Can't start multi node SNOW cluster",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Hi,\n\nFirst of all, my environment is :\n64 bit Windows 7 Home basic with firewall off and the IP address 192.168.72.1 , R 2.14.1 64 bit, snow0.3.8 and doSNOW1.0.5\n\nThe first test senario works:\n\ncl <- makeCluster(4, type = \"SOCK\")\nclusterApply(cl, 1:2, get(\"+\"), 3)\nstopCluster(cl)\n\nBefore start the two node cluster I try to use the multi node syntex on the local machine,\n\nwinOptions <-\n    list(host=\"192.168.72.1\",\n         rscript=\"D:/Amber/Program/R/R-2.14.1/bin/x64/Rscript.exe\",\n         snowlib=\"C:/Users/dell/Documents/R/win-library/2.14\")\ncl <- makeCluster(c(rep(winOptions, 2)), type = \"SOCK\")\n\nThe makeCluster call just hung.\n\nThen I do the same test on the single node 64bit CENTOS LINUX system, using the same versions of R, snow and doSNOW\n\nAgain, cl <- makeCluster(4, type = \"SOCK\") works,\n\nlixOptions <-\n  list(host=\"hdp1\",\n       rscript=\"/opt/r2141/lib64/R/bin/Rscript\",\n       snowlib=\"/opt/r2141/lib64/R/library\")\n\n> cl <- makeCluster(c(rep(lixOptions,2)), type=\"SOCK\")\nThe authenticity of host '192.168.72.7 (192.168.72.7)' can't be established.\nRSA key fingerprint is 03:61:3b:4f:72:60:a7:a3:2a:8f:25:16:be:02:56:7c.\nAre you sure you want to continue connecting (yes/no)? yes\nWarning: Permanently added '192.168.72.7' (RSA) to the list of known hosts.\nssh: /opt/r2141/lib64/R/bin/Rscript: Name or service not known\n\n> cl <- makeCluster(c(rep(lixOptions,2)), type=\"SOCK\")\nssh: /opt/r2141/lib64/R/bin/Rscript: Name or service not known\n\nCan you help find what's wrong here.\n\nThere is another question about multi computer snow clusters,\nbecuase the master process must log onto remote machine to start worker process, where can I specify the user name and password, in modern Windows server environments uers must log on first before doing anything on it.\n\n\nRegards,\n\nXiaobo Gu",
+      "body_snippet": "Hi,\n\nFirst of all, my environment is :\n64 bit Windows 7 Home basic with firewall off and the IP address 192.168.72.1 , R 2.14.1 64 bit, snow0.3.8 and doSNOW1.0.5\n\nThe first test senario works:\n\ncl <- ",
+      "thread_id": "thread-19745e344d71",
+      "thread_depth": 0,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-474c9d3dd601",
+      "message_id": "<CAErODj81tDF-aTYwOka=o34DJP5DzkOdcoEswSjJMqbzVVq5fg@mail.gmail.com>",
+      "from_name": "Paul Johnson",
+      "from_email_hash": "b96b8a38c7fef12892ac8cae395028a3b39f3acce423d9c564ab27dc864c47b3",
+      "date": "2012-02-04T12:29:34-06:00",
+      "subject": "[R-sig-hpc] Rmpi for non matrices results",
+      "subject_clean": "Rmpi for non matrices results",
+      "in_reply_to": "<404a8b4dd13451f5705ca9d6e45d522a.squirrel@ms.mcmaster.ca>",
+      "references": [
+        "<404a8b4dd13451f5705ca9d6e45d522a.squirrel@ms.mcmaster.ca>"
+      ],
+      "body_plain": "Hi!\n\nI wonder if you know that the vignette for the new R parallel package\nhas a worked example on bootstrapping.\n\nYou use a lot of Rmpi functions here that I don't use, I'm usually\ntrying to write a function and distribute across notes with\nclusterApply or such, but it is always interesting to see how other\npeople do it.\n\nIf this program does run for you, I'd say you should count your\nblessing. The only problem is the format of the return? If the sum\ntotal of your question is that the return value is a 30 x 10 matrix\ninstead of a 300x1 column, may I suggest you read ?stack and ?unstack\nto just transform your output?  The plyr package has plenty of high\npower tools to do that, but from what I see here you don't need them.\n\nYou could also collect your results in a list, rather than into the\ncolumns of a matrix, and then it is easy to put all those numbers into\na vector (?unlist).\n\nNow, I have a question for you.  When I run Rmpi jobs in our cluster\nthese days, I get a warning about forking. Do you see that too?\n--------------------------------------------------------------------------\nAn MPI process has executed an operation involving a call to the\n\"fork()\" system call to create a child process.  Open MPI is currently\noperating in a condition that could result in memory corruption or\nother system errors; your MPI job may hang, crash, or produce silent\ndata corruption.  The use of fork() (or system() or other calls that\ncreate child processes) is strongly discouraged.\n\nThe process that invoked fork was:\n\n  Local host:          compute-2-11.local (PID 10326)\n  MPI_COMM_WORLD rank: 0\n\nIf you are *absolutely sure* that your application will successfully\nand correctly survive a call to fork(), you may disable this warning\nby setting the mpi_warn_on_fork MCA parameter to 0.\n--------------------------------------------------------------------------\n~\nOn Tue, Jan 31, 2012 at 4:27 PM,  <khalfala at math.mcmaster.ca> wrote:\n> Hi there,\n> I am facing some problems in transforming my R code in order to be used as\n> a parallel code. The main idea of my code is to get 1000 bootstrap\n> confidence interval. It works by using a boot sample at each loop of the\n> CI. I do have first a loop of size 1000 and at each loop we call a\n> bootsample of size 500. This could last for 6-16 hours to get a set of\n> 1000 CI. Now I am interested in transforming my code using the task push\n> method. The thing that I dont get is how to relate my loop with each\n> slave. I mean if I want to divide the work to be 100 CI at 10 slaves then\n> how to relate the rank of the slave in my loop??\n> I found this example:\n>\n> # Initialize MPI\n> library(\"Rmpi\")\n>\n> # Notice we just say \"give us all the slaves you've got.\"\n> mpi.spawn.Rslaves()\n>\n> if (mpi.comm.size() < 2) {\n> ? ?print(\"More slave processes are required.\")\n> ? ?mpi.quit()\n> ? ?}\n>\n> .Last <- function(){\n> ? ?if (is.loaded(\"mpi_initialize\")){\n> ? ? ? ?if (mpi.comm.size(1) > 0){\n> ? ? ? ? ? ?print(\"Please use mpi.close.Rslaves() to close slaves.\")\n> ? ? ? ? ? ?mpi.close.Rslaves()\n> ? ? ? ?}\n> ? ? ? ?print(\"Please use mpi.quit() to quit R\")\n> ? ? ? ?.Call(\"mpi_finalize\")\n> ? ?}\n> }\n>\n> # Function the slaves will call to perform a validation on the\n> # fold equal to their slave number.\n> # Assumes: thedata,fold,foldNumber,p\n> foldslave <- function() {\n> ? ?# Get a task\n> ? ?task <- mpi.recv.Robj(mpi.any.source(),mpi.any.tag())\n> ? ?task_info <- mpi.get.sourcetag()\n> ? ?tag <- task_info[2]\n>\n> ? ?# While task is not a \"done\" message. Note the use of the tag to indicate\n> ? ?# the type of message\n> ? ?while (tag != 2) {\n> ? ? ? ?# Perform the task.\n> ? ? ? ?foldNumber <- task$foldNumber\n>\n> ? ? ? ?rss <- double(p)\n> ? ? ? ?for (i in 1:p) {\n> ? ? ? ? ? ?# produce a linear model on the first i variables on training\n> data\n> ? ? ? ? ? ?templm <- lm(y~.,data=thedata[fold!=foldNumber,1:(i+1)])\n>\n> ? ? ? ? ? ?# produce predicted data from test data\n> ? ? ? ? ? ?yhat <- predict(templm,newdata=thedata[fold==foldNumber,1:(i+1)])\n>\n> ? ? ? ? ? ?# get rss of yhat-y\n> ? ? ? ? ? ?localrssresult <- sum((yhat-thedata[fold==foldNumber,1])^2)\n> ? ? ? ? ? ?rss[i] <- localrssresult\n> ? ? ? ? ? ?}\n>\n> ? ? ? ?# Construct and send message back to master\n> ? ? ? ?result <- list(result=rss,foldNumber=foldNumber)\n> ? ? ? ?mpi.send.Robj(result,0,1)\n>\n> ? ? ? ?# Get a task\n> ? ? ? ?task <- mpi.recv.Robj(mpi.any.source(),mpi.any.tag())\n> ? ? ? ?task_info <- mpi.get.sourcetag()\n> ? ? ? ?tag <- task_info[2]\n> ? ? ? ?}\n>\n> ? ?junk <- 0\n> ? ?mpi.send.Robj(junk,0,2)\n> ? ?}\n>\n> # We're in the parent.\n> # first make some data\n> n <- 1000 ? ? ? # number of obs\n> p <- 30 ? ? ? ? # number of variables\n>\n> # Create data as a set of n samples of p independent variables,\n> # make a \"random\" beta with higher weights in the front.\n> # Generate y's as y = beta*x + random\n> x <- matrix(rnorm(n*p),n,p)\n> beta <- c(rnorm(p/2,0,5),rnorm(p/2,0,.25))\n> y <- x %*% beta + rnorm(n,0,20)\n> thedata <- data.frame(y=y,x=x)\n>\n> fold <- rep(1:10,length=n)\n> fold <- sample(fold)\n>\n> summary(lm(y~x))\n>\n> # Now, send the data to the slaves\n> mpi.bcast.Robj2slave(thedata)\n> mpi.bcast.Robj2slave(fold)\n> mpi.bcast.Robj2slave(p)\n>\n> # Send the function to the slaves\n> mpi.bcast.Robj2slave(foldslave)\n>\n> # Call the function in all the slaves to get them ready to\n> # undertake tasks\n> mpi.bcast.cmd(foldslave())\n>\n>\n> # Create task list\n> tasks <- vector('list')\n> for (i in 1:10) {\n> ? ?tasks[[i]] <- list(foldNumber=i)\n> ? ?}\n>\n> # Make the round-robin list for slaves\n> n_slaves <- mpi.comm.size()-1\n> slave_ids <- rep(1:n_slaves, length=length(tasks))\n>\n> # Send tasks\n> for (i in 1:length(tasks)) {\n> ? ?slave_id <- slave_ids[i]\n> ? ?mpi.send.Robj(tasks[[i]],slave_id,1)\n> ? ?}\n>\n> # Collect results\n> rssresult <- matrix(0,p,10)\n> for (i in 1:length(tasks)) {\n> ? ?message <- mpi.recv.Robj(mpi.any.source(),mpi.any.tag())\n> ? ?foldNumber <- message$foldNumber\n> ? ?results ? ?<- message$result\n> ? ?rssresult[,foldNumber] <- results\n> ? ?}\n>\n> # Perform closing handshake\n> for (i in 1:n_slaves) {\n> ? ?junk <- 0\n> ? ?mpi.send.Robj(junk,i,2)\n> ? ?}\n>\n> for (i in 1:n_slaves) {\n> ? ?mpi.recv.Robj(mpi.any.source(),2)\n> ? ?}\n>\n> # plot the results\n> plot(apply(rssresult,1,mean))\n>\n> mpi.close.Rslaves()\n> mpi.quit(save=\"no\")\n>\n> In this example the result is given by 30x10 matrix in which they used 10\n> slaves which represents the number of columns of the matrix. I tried\n> looking for another example that dont deal with matrices but couldnt find\n> any. I am wondering if the interest was let say in this case to get a\n> column of 300 numbers and each slave will give a column of 30 numbers then\n> how would we write the foldslave function and in this case how would we\n> call the result from each slave and arrange it in one column?\n> Thank you in advance.\n> Laila\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n\n\n\n-- \nPaul E. Johnson\nProfessor, Political Science\n1541 Lilac Lane, Room 504\nUniversity of Kansas",
+      "body_snippet": "Hi!\n\nI wonder if you know that the vignette for the new R parallel package\nhas a worked example on bootstrapping.\n\nYou use a lot of Rmpi functions here that I don't use, I'm usually\ntrying to write a ",
+      "thread_id": "thread-474c9d3dd601",
+      "thread_depth": 0,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-2bac2ab3f953",
+      "message_id": "<CAErODj9JNdkVS7cR8FSmS4wjuJa6YWgA3bdHgpYarV=965B4ew@mail.gmail.com>",
+      "from_name": "Paul Johnson",
+      "from_email_hash": "b96b8a38c7fef12892ac8cae395028a3b39f3acce423d9c564ab27dc864c47b3",
+      "date": "2012-02-04T14:44:21-06:00",
+      "subject": "[R-sig-hpc] errors in Rmpi programming. I get no error messages, just stalled programs. Would you test your cluster?",
+      "subject_clean": "errors in Rmpi programming. I get no error messages, just stalled programs. Would you test your cluster?",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "I've been working on R mpi programs for a couple of years, and, like\neverybody else on the bleeding edge, I see a lot of weird crashes and\nsuch\n\nOne problem that really concerns me is user error in R program code\nthat causes cluster runs to hang, rather than crash.  R and Rmpi seem\nto not give error messages.  I do not know if this problem traces back\nto OpenMPI, to the Torque cluster scheduler, or R, but I am really\ninterested to  know if you see it too in your parallel efforts.\n\nHere it is in a nutshell.  The user forgets to send a function to the\ncompute nodes, but a function that uses that (not exported) function\ngets called.\n\nThe user forgets to include this:\n\n## objects to export to each node\nclusterExport(cl, c(\"projSeeds\", \"useStream\", \"initSeedStreams\"))\n\nBut in the function that is applied in the cluster, the\n\"initSeedStreams\" function is used, like so:\n\nrunOneSimulation <- function(run, parm){\n  initSeedStreams(run)\n  ##then some gigantic, long lasting computation occurs\n  dat <- data.frame(x1 = rnorm(parm$N), x2 = rnorm(parm$N), y = rnorm(parm$N))\n  m1 <- lm(y ~ x1 + x2, data=dat)\n  useStream(2)\n  dat2 <- data.frame(x1 = rnorm(parm$N), x2 = rnorm(parm$N), y = rnorm(parm$N))\n  m2 <- lm(y ~ x1 + x2, data=dat2)\n  list(m1, summary(m1), model.matrix(m1), m2)\n}\nprojParms <- list(\"N\" = 999)\nnReps <- 15  ##Note more reps than nodes\n\nres <- snow:::clusterApplyLB(cl, 1:nReps, runOneSimulation, projParms )\n\nOn our cluster, what happens is that the master node CPU usage climbs\nto 100%, but no work gets done.  The ganglia program gives a web view,\nit shows the CPU time is not user calculations (which are blue in the\nCPU bar chart), but instead the CPU time is 100% red, the system CPU\nusage.  The program will sit there doing nothing until the walltime\nrequested in the submission script is used up.\n\nThis is bad/frustrating for me, but I'm used to making mistakes and\nfixing them.  .  I'm used to making mistakes and am old enough to\nremember programming for IBM mainframes when a coding mistake resulted\nin a full page of ascii art saying \"ABEND\" on a gigantic\nsprocket-printed piece of paper.  But for the students who are\nlearning to program and use Linux for the first time, it is like a\ndeath sentence.  Too discouraging.\n\nI've got example programs you can try to see if they cause the same\nproblem on your cluster.\n\nThis one is my proposal for the \"multiple random streams\" per repeated\nsimulation:\n\nhttp://winstat.quant.ku.edu/svn/hpcexample/trunk/Ex66-ParallelSeedPrototype/\n\nIf you have, say, 10 nodes, and you repeat a project 10000 times, that\none will use 10000 separate sets of seed streams, so any particular\nrepetition can be re-started from the same spot.\n\nIf your scheduler is different, you may have to modify the submission\nscript, but I *believe sincerely* that this program\n\"controlledSeeds.R\" will run as provided, as long as you also have the\nseedCreator.R in the same folder when you run it for the first time.\nEither that, or you run seedCreator.R one time before submitting this\nto the cluster. It writes the project seeds file \"projSeeds.rda\".\nSuppose that runs happily:\n\nNow, break the program.  Suppose that runs for you, then comment out\nthe line that exports the functions\n\nclusterExport(cl, c(\"projSeeds\", \"useStream\", \"initSeedStreams\"))\n\nOR change it to something like\n\nclusterExport(cl, c(\"projSeeds\", \"initSeedStreams\"))\n\nThen please let me know what happens on your cluster.  Does the job\njust hang like a dead dog until its walltime runs out?\n\nI hope to hear from results of your test.\n\npj\n\nIf you are just interested in testing out the various R parallel\nthings I've explored, I've got:\n\nRmpi:\n\nhttp://winstat.quant.ku.edu/svn/hpcexample/trunk/Ex53-HelloWorldRmpi/\n\n\nSnow:\n\nhttp://winstat.quant.ku.edu/svn/hpcexample/trunk/Ex60-HelloWorldSnow/\n\nSnowFT\n\nhttp://winstat.quant.ku.edu/svn/hpcexample/trunk/Ex61-HelloWorldSnowFT/\n\nR parallel package (R 2.14.1 or newer)\n\nhttp://winstat.quant.ku.edu/svn/hpcexample/trunk/Ex65-R-parallel/\n\n-- \nPaul E. Johnson\nProfessor, Political Science\n1541 Lilac Lane, Room 504\nUniversity of Kansas",
+      "body_snippet": "I've been working on R mpi programs for a couple of years, and, like\neverybody else on the bleeding edge, I see a lot of weird crashes and\nsuch\n\nOne problem that really concerns me is user error in R ",
+      "thread_id": "thread-2bac2ab3f953",
+      "thread_depth": 0,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-de9f54a121ac",
+      "message_id": "<586A4828D7AAA04CA9B258C50A28DA200BF58D78@BALI.uhd.campus>",
+      "from_name": "Hodgess, Erin",
+      "from_email_hash": "9a43d72d3c5a93c98a7b509fb8aef328797f49fac98830a099e885b965325eac",
+      "date": "2012-02-04T17:25:13-06:00",
+      "subject": "[R-sig-hpc] an opinion question",
+      "subject_clean": "an opinion question",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120204/f572a242/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120204/f572a242/attachment.pl>",
+      "thread_id": "thread-de9f54a121ac",
+      "thread_depth": 0,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-bd3c5e2e06c7",
+      "message_id": "<CANz9Z_+7wwHrCQE1GmabcxUw1HLop-97=HRb3v2x5QZ+iqYomA@mail.gmail.com>",
+      "from_name": "Joshua Wiley",
+      "from_email_hash": "c7f07c588294f110fffa28fa75e197f5a9d40a76afe0853fbdeb1992dab12a4a",
+      "date": "2012-02-04T15:34:21-08:00",
+      "subject": "[R-sig-hpc] an opinion question",
+      "subject_clean": "an opinion question",
+      "in_reply_to": "<586A4828D7AAA04CA9B258C50A28DA200BF58D78@BALI.uhd.campus>",
+      "references": [
+        "<586A4828D7AAA04CA9B258C50A28DA200BF58D78@BALI.uhd.campus>"
+      ],
+      "body_plain": "Hi Erin,\n\nWhat do you mean by 'start'?  That is much too vague to get a good\nreply.  We need information about what you are trying to do and what\nyour situation is.  I typically ssh in, try simple stuff / verify\neverything works in a small case in interactive mode and then submit a\nbatch job.\n\nJosh\n\nOn Sat, Feb 4, 2012 at 3:25 PM, Hodgess, Erin <HodgessE at uhd.edu> wrote:\n> Hi everyone!\n>\n> Here is an opinion question please: ?when using R on a cluster, what is the best way to start please?\n>\n> I learned a little bit a couple of years ago but have forgotten most of it.\n>\n> Thanks,\n> Erin\n>\n>\n> Erin M. Hodgess, PhD\n> Associate Professor\n> Department of Computer and Mathematical Sciences\n> University of Houston - Downtown\n> mailto: hodgesse at uhd.edu\n>\n>\n> ? ? ? ?[[alternative HTML version deleted]]\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n\n\n\n-- \nJoshua Wiley\nPh.D. Student, Health Psychology\nProgrammer Analyst II, Statistical Consulting Group\nUniversity of California, Los Angeles\nhttps://joshuawiley.com/",
+      "body_snippet": "Hi Erin,\n\nWhat do you mean by 'start'?  That is much too vague to get a good\nreply.  We need information about what you are trying to do and what\nyour situation is.  I typically ssh in, try simple stu",
+      "thread_id": "thread-de9f54a121ac",
+      "thread_depth": 1,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-306638ecd621",
+      "message_id": "<586A4828D7AAA04CA9B258C50A28DA200BF58D79@BALI.uhd.campus>",
+      "from_name": "Hodgess, Erin",
+      "from_email_hash": "9a43d72d3c5a93c98a7b509fb8aef328797f49fac98830a099e885b965325eac",
+      "date": "2012-02-04T17:41:16-06:00",
+      "subject": "[R-sig-hpc] an opinion question",
+      "subject_clean": "an opinion question",
+      "in_reply_to": null,
+      "references": [
+        "<586A4828D7AAA04CA9B258C50A28DA200BF58D78@BALI.uhd.campus>",
+        "<CANz9Z_+7wwHrCQE1GmabcxUw1HLop-97=HRb3v2x5QZ+iqYomA@mail.gmail.com>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120204/c1980af5/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120204/c1980af5/attachment.pl>",
+      "thread_id": "thread-de9f54a121ac",
+      "thread_depth": 2,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-d23f275aacc7",
+      "message_id": "<CF45C042-0723-48FC-B50D-165BE3B189AC@gmail.com>",
+      "from_name": "Joshua Wiley",
+      "from_email_hash": "c7f07c588294f110fffa28fa75e197f5a9d40a76afe0853fbdeb1992dab12a4a",
+      "date": "2012-02-04T15:56:18-08:00",
+      "subject": "[R-sig-hpc] an opinion question",
+      "subject_clean": "an opinion question",
+      "in_reply_to": "<586A4828D7AAA04CA9B258C50A28DA200BF58D79@BALI.uhd.campus>",
+      "references": [
+        "<586A4828D7AAA04CA9B258C50A28DA200BF58D78@BALI.uhd.campus>",
+        "<CANz9Z_+7wwHrCQE1GmabcxUw1HLop-97=HRb3v2x5QZ+iqYomA@mail.gmail.com>",
+        "<586A4828D7AAA04CA9B258C50A28DA200BF58D79@BALI.uhd.campus>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120204/4f6b5bc0/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120204/4f6b5bc0/attachment.pl>",
+      "thread_id": "thread-de9f54a121ac",
+      "thread_depth": 3,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-2c909949f2d4",
+      "message_id": "<586A4828D7AAA04CA9B258C50A28DA200BF58D7A@BALI.uhd.campus>",
+      "from_name": "Hodgess, Erin",
+      "from_email_hash": "9a43d72d3c5a93c98a7b509fb8aef328797f49fac98830a099e885b965325eac",
+      "date": "2012-02-04T17:59:36-06:00",
+      "subject": "[R-sig-hpc] an opinion question",
+      "subject_clean": "an opinion question",
+      "in_reply_to": null,
+      "references": [
+        "<586A4828D7AAA04CA9B258C50A28DA200BF58D78@BALI.uhd.campus>",
+        "<CANz9Z_+7wwHrCQE1GmabcxUw1HLop-97=HRb3v2x5QZ+iqYomA@mail.gmail.com>",
+        "<586A4828D7AAA04CA9B258C50A28DA200BF58D79@BALI.uhd.campus>",
+        "<CF45C042-0723-48FC-B50D-165BE3B189AC@gmail.com>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120204/bf3569f4/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120204/bf3569f4/attachment.pl>",
+      "thread_id": "thread-de9f54a121ac",
+      "thread_depth": 4,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-0e51db5a9058",
+      "message_id": "<201202051235148421765@gmail.com>",
+      "from_name": "Xiaobo Gu",
+      "from_email_hash": "e42e0b811de3d2c98cdebac8809c8a6a440a236994d7613f3b90d37da18f7c25",
+      "date": "2012-02-05T12:35:14+08:00",
+      "subject": "[R-sig-hpc] Can't start multi node SNOW cluster",
+      "subject_clean": "Can't start multi node SNOW cluster",
+      "in_reply_to": null,
+      "references": [
+        "<2012020422511274171828@gmail.com>"
+      ],
+      "body_plain": "It seems there is a bug in snow or the samle code,\nIt seems snow treats every entry in the sep list as a seperate worker\n\n> winOptions <-\n+     list(host=\"192.168.72.1\",\n+          rscript=\"D:/Amber/Program/R/R-2.14.1/bin/x64/Rscript.exe\",\n+          snowlib=\"C:/Users/dell/Documents/R/win-library/2.14\")\n> cl <- makeCluster(c(rep(winOptions, 2)), type = \"SOCK\", manual=TRUE)\nManually start worker on 192.168.72.1 with\n     D:/Amber/Program/R/R-214~1.1/bin/Rscript.exe C:/Users/dell/Documents/R/win-library/2.14/snow/RSOCKnode.R MASTER=DELL-PC PORT=10187 OUT=D:/rworkout.txt SNOWLIB=C:/Users/dell/Documents/R/win-library/2.14 \nManually start worker on D:/Amber/Program/R/R-2.14.1/bin/x64/Rscript.exe with\n     D:/Amber/Program/R/R-214~1.1/bin/Rscript.exe C:/Users/dell/Documents/R/win-library/2.14/snow/RSOCKnode.R MASTER=DELL-PC PORT=10187 OUT=D:/rworkout.txt SNOWLIB=C:/Users/dell/Documents/R/win-library/2.14 \nManually start worker on C:/Users/dell/Documents/R/win-library/2.14 with\n     D:/Amber/Program/R/R-214~1.1/bin/Rscript.exe C:/Users/dell/Documents/R/win-library/2.14/snow/RSOCKnode.R MASTER=DELL-PC PORT=10187 OUT=D:/rworkout.txt SNOWLIB=C:/Users/dell/Documents/R/win-library/2.14 \nManually start worker on 192.168.72.1 with\n     D:/Amber/Program/R/R-214~1.1/bin/Rscript.exe C:/Users/dell/Documents/R/win-library/2.14/snow/RSOCKnode.R MASTER=DELL-PC PORT=10187 OUT=D:/rworkout.txt SNOWLIB=C:/Users/dell/Documents/R/win-library/2.14 \nManually start worker on D:/Amber/Program/R/R-2.14.1/bin/x64/Rscript.exe with\n     D:/Amber/Program/R/R-214~1.1/bin/Rscript.exe C:/Users/dell/Documents/R/win-library/2.14/snow/RSOCKnode.R MASTER=DELL-PC PORT=10187 OUT=D:/rworkout.txt SNOWLIB=C:/Users/dell/Documents/R/win-library/2.14 \nManually start worker on C:/Users/dell/Documents/R/win-library/2.14 with\n     D:/Amber/Program/R/R-214~1.1/bin/Rscript.exe C:/Users/dell/Documents/R/win-library/2.14/snow/RSOCKnode.R MASTER=DELL-PC PORT=10187 OUT=D:/rworkout.txt SNOWLIB=C:/Users/dell/Documents/R/win-library/2.14 \n> clusterApply(cl, 1:2, get(\"+\"), 3)\n[[1]]\n[1] 4\n\n[[2]]\n[1] 5\n\n> stopCluster(cl)\n\n\n\n\n\nXiaobo Gu\n\nFrom: Xiaobo Gu\nDate: 2012-02-04 22:51\nTo: r-sig-hpc\nSubject: Can't start multi node SNOW cluster\nHi,\n\nFirst of all, my environment is :\n64 bit Windows 7 Home basic with firewall off and the IP address 192.168.72.1 , R 2.14.1 64 bit, snow0.3.8 and doSNOW1.0.5\n\nThe first test senario works:\n\ncl <- makeCluster(4, type = \"SOCK\")\nclusterApply(cl, 1:2, get(\"+\"), 3)\nstopCluster(cl)\n\nBefore start the two node cluster I try to use the multi node syntex on the local machine,\n\nwinOptions <-\n    list(host=\"192.168.72.1\",\n         rscript=\"D:/Amber/Program/R/R-2.14.1/bin/x64/Rscript.exe\",\n         snowlib=\"C:/Users/dell/Documents/R/win-library/2.14\")\ncl <- makeCluster(c(rep(winOptions, 2)), type = \"SOCK\")\n\nThe makeCluster call just hung.\n\nThen I do the same test on the single node 64bit CENTOS LINUX system, using the same versions of R, snow and doSNOW\n\nAgain, cl <- makeCluster(4, type = \"SOCK\") works,\n\nlixOptions <-\n  list(host=\"hdp1\",\n       rscript=\"/opt/r2141/lib64/R/bin/Rscript\",\n       snowlib=\"/opt/r2141/lib64/R/library\")\n\n> cl <- makeCluster(c(rep(lixOptions,2)), type=\"SOCK\")\nThe authenticity of host '192.168.72.7 (192.168.72.7)' can't be established.\nRSA key fingerprint is 03:61:3b:4f:72:60:a7:a3:2a:8f:25:16:be:02:56:7c.\nAre you sure you want to continue connecting (yes/no)? yes\nWarning: Permanently added '192.168.72.7' (RSA) to the list of known hosts.\nssh: /opt/r2141/lib64/R/bin/Rscript: Name or service not known\n\n> cl <- makeCluster(c(rep(lixOptions,2)), type=\"SOCK\")\nssh: /opt/r2141/lib64/R/bin/Rscript: Name or service not known\n\nCan you help find what's wrong here.\n\nThere is another question about multi computer snow clusters,\nbecuase the master process must log onto remote machine to start worker process, where can I specify the user name and password, in modern Windows server environments uers must log on first before doing anything on it.\n\n\nRegards,\n\nXiaobo Gu",
+      "body_snippet": "It seems there is a bug in snow or the samle code,\nIt seems snow treats every entry in the sep list as a seperate worker\n\n> winOptions <-\n+     list(host=\"192.168.72.1\",\n+          rscript=\"D:/Amber/P",
+      "thread_id": "thread-19745e344d71",
+      "thread_depth": 1,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-f588afb87922",
+      "message_id": "<2012020514001740073915@gmail.com>",
+      "from_name": "Xiaobo Gu",
+      "from_email_hash": "e42e0b811de3d2c98cdebac8809c8a6a440a236994d7613f3b90d37da18f7c25",
+      "date": "2012-02-05T14:00:17+08:00",
+      "subject": "[R-sig-hpc] Can't start multi node SNOW cluster",
+      "subject_clean": "Can't start multi node SNOW cluster",
+      "in_reply_to": null,
+      "references": [
+        "<2012020422511274171828@gmail.com>",
+        "<201202051235148421765@gmail.com>"
+      ],
+      "body_plain": "Further testes shows it should be connection problems on the Windows Platform,\n\nOn CENTOS LINUX platform, the following works\ncl <- makeCluster(c(rep(\"192.168.72.21\", 2),rep(\"192.168.72.22\", 2),rep(\"192.168.72.23\", 2)), type = \"SOCK\") \n\nAnd on Windows Platform the following works too\ncl <- makeCluster(c(\"192.168.72.1\",\"192.168.72.1\"), type = \"SOCK\", manual=TRUE) \neven if 192.168.72.1 is a remote machine, but the following does not work\n\ncl <- makeCluster(c(\"192.168.72.1\",\"192.168.72.1\"), type = \"SOCK\") \n\nI think it's because snow use ssh to logon remote machine, but Windows does not have a ssh application, and the remote server does not accept ssh connections.\n\nIs there anyone have successfully run a SNOW cluster on multiple Windows computers?\n\nRegards,\nXiaobo Gu\n\n???? Xiaobo Gu\n????? 2012-02-05 12:35\n???? r-sig-hpc\n??? Re: Can't start multi node SNOW cluster\nIt seems there is a bug in snow or the samle code,\nIt seems snow treats every entry in the sep list as a seperate worker\n\n> winOptions <-\n+     list(host=\"192.168.72.1\",\n+          rscript=\"D:/Amber/Program/R/R-2.14.1/bin/x64/Rscript.exe\",\n+          snowlib=\"C:/Users/dell/Documents/R/win-library/2.14\")\n> cl <- makeCluster(c(rep(winOptions, 2)), type = \"SOCK\", manual=TRUE)\nManually start worker on 192.168.72.1 with\n     D:/Amber/Program/R/R-214~1.1/bin/Rscript.exe C:/Users/dell/Documents/R/win-library/2.14/snow/RSOCKnode.R MASTER=DELL-PC PORT=10187 OUT=D:/rworkout.txt SNOWLIB=C:/Users/dell/Documents/R/win-library/2.14 \nManually start worker on D:/Amber/Program/R/R-2.14.1/bin/x64/Rscript.exe with\n     D:/Amber/Program/R/R-214~1.1/bin/Rscript.exe C:/Users/dell/Documents/R/win-library/2.14/snow/RSOCKnode.R MASTER=DELL-PC PORT=10187 OUT=D:/rworkout.txt SNOWLIB=C:/Users/dell/Documents/R/win-library/2.14 \nManually start worker on C:/Users/dell/Documents/R/win-library/2.14 with\n     D:/Amber/Program/R/R-214~1.1/bin/Rscript.exe C:/Users/dell/Documents/R/win-library/2.14/snow/RSOCKnode.R MASTER=DELL-PC PORT=10187 OUT=D:/rworkout.txt SNOWLIB=C:/Users/dell/Documents/R/win-library/2.14 \nManually start worker on 192.168.72.1 with\n     D:/Amber/Program/R/R-214~1.1/bin/Rscript.exe C:/Users/dell/Documents/R/win-library/2.14/snow/RSOCKnode.R MASTER=DELL-PC PORT=10187 OUT=D:/rworkout.txt SNOWLIB=C:/Users/dell/Documents/R/win-library/2.14 \nManually start worker on D:/Amber/Program/R/R-2.14.1/bin/x64/Rscript.exe with\n     D:/Amber/Program/R/R-214~1.1/bin/Rscript.exe C:/Users/dell/Documents/R/win-library/2.14/snow/RSOCKnode.R MASTER=DELL-PC PORT=10187 OUT=D:/rworkout.txt SNOWLIB=C:/Users/dell/Documents/R/win-library/2.14 \nManually start worker on C:/Users/dell/Documents/R/win-library/2.14 with\n     D:/Amber/Program/R/R-214~1.1/bin/Rscript.exe C:/Users/dell/Documents/R/win-library/2.14/snow/RSOCKnode.R MASTER=DELL-PC PORT=10187 OUT=D:/rworkout.txt SNOWLIB=C:/Users/dell/Documents/R/win-library/2.14 \n> clusterApply(cl, 1:2, get(\"+\"), 3)\n[[1]]\n[1] 4\n\n[[2]]\n[1] 5\n\n> stopCluster(cl)\n\n\n\n\n\nXiaobo Gu\n\nFrom: Xiaobo Gu\nDate: 2012-02-04 22:51\nTo: r-sig-hpc\nSubject: Can't start multi node SNOW cluster\nHi,\n\nFirst of all, my environment is :\n64 bit Windows 7 Home basic with firewall off and the IP address 192.168.72.1 , R 2.14.1 64 bit, snow0.3.8 and doSNOW1.0.5\n\nThe first test senario works:\n\ncl <- makeCluster(4, type = \"SOCK\")\nclusterApply(cl, 1:2, get(\"+\"), 3)\nstopCluster(cl)\n\nBefore start the two node cluster I try to use the multi node syntex on the local machine,\n\nwinOptions <-\n    list(host=\"192.168.72.1\",\n         rscript=\"D:/Amber/Program/R/R-2.14.1/bin/x64/Rscript.exe\",\n         snowlib=\"C:/Users/dell/Documents/R/win-library/2.14\")\ncl <- makeCluster(c(rep(winOptions, 2)), type = \"SOCK\")\n\nThe makeCluster call just hung.\n\nThen I do the same test on the single node 64bit CENTOS LINUX system, using the same versions of R, snow and doSNOW\n\nAgain, cl <- makeCluster(4, type = \"SOCK\") works,\n\nlixOptions <-\n  list(host=\"hdp1\",\n       rscript=\"/opt/r2141/lib64/R/bin/Rscript\",\n       snowlib=\"/opt/r2141/lib64/R/library\")\n\n> cl <- makeCluster(c(rep(lixOptions,2)), type=\"SOCK\")\nThe authenticity of host '192.168.72.7 (192.168.72.7)' can't be established.\nRSA key fingerprint is 03:61:3b:4f:72:60:a7:a3:2a:8f:25:16:be:02:56:7c.\nAre you sure you want to continue connecting (yes/no)? yes\nWarning: Permanently added '192.168.72.7' (RSA) to the list of known hosts.\nssh: /opt/r2141/lib64/R/bin/Rscript: Name or service not known\n\n> cl <- makeCluster(c(rep(lixOptions,2)), type=\"SOCK\")\nssh: /opt/r2141/lib64/R/bin/Rscript: Name or service not known\n\nCan you help find what's wrong here.\n\nThere is another question about multi computer snow clusters,\nbecuase the master process must log onto remote machine to start worker process, where can I specify the user name and password, in modern Windows server environments uers must log on first before doing anything on it.\n\n\nRegards,\n\nXiaobo Gu",
+      "body_snippet": "Further testes shows it should be connection problems on the Windows Platform,\n\nOn CENTOS LINUX platform, the following works\ncl <- makeCluster(c(rep(\"192.168.72.21\", 2),rep(\"192.168.72.22\", 2),rep(\"1",
+      "thread_id": "thread-19745e344d71",
+      "thread_depth": 2,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-db177b2c8611",
+      "message_id": "<CAErODj_aHQ-UobwkhHfiO+Tn4frXX7xF+6a=RnsQ9pp=KMobYQ@mail.gmail.com>",
+      "from_name": "Paul Johnson",
+      "from_email_hash": "b96b8a38c7fef12892ac8cae395028a3b39f3acce423d9c564ab27dc864c47b3",
+      "date": "2012-02-05T16:28:29-06:00",
+      "subject": "[R-sig-hpc] an opinion question",
+      "subject_clean": "an opinion question",
+      "in_reply_to": "<586A4828D7AAA04CA9B258C50A28DA200BF58D78@BALI.uhd.campus>",
+      "references": [
+        "<586A4828D7AAA04CA9B258C50A28DA200BF58D78@BALI.uhd.campus>"
+      ],
+      "body_plain": "On Sat, Feb 4, 2012 at 5:25 PM, Hodgess, Erin <HodgessE at uhd.edu> wrote:\n> Hi everyone!\n>\n> Here is an opinion question please: ?when using R on a cluster, what is the best way to start please?\n>\n\nHi, Erin\n\nThe answer will depend on the kind of cluster you have--the\ninterconnection technology.\n\nOurs used MPI (the OpenMPI libraries) and Rmpi package.  On top of\nRmpi, come various\nfacilitator packages like R's own new \"parallel\" (an adaption of some\nparts of snow), the\nseparate snow package, and convenience tools like snowFT or doParallel.\n\nI've felt that the best thing to do when getting started is to work\nwith Rmpi itself, because\nerrors are more likely to be understandable.  But the proponents of\nsnowFT argue that\nerrors are less likely if you follow their advice.\n\nI'm accumulating lessons from the school of crashed programs here:\n\nhttp://web.ku.edu/~quant/cgi-bin/mw1/index.php?title=Cluster:Main\n\nThat refers to a collection of \"working examples\" of these, and you\ncan do me a favor if you\ncheck them over and give me feedback on what is clear or unclear.  For\nme, the most\ndifficult thing has been understanding where the work of the OS, the\ncluster framework\nand R, divide from each other. But I'm getting closer to having\nreasonable writeups for several.\n\n\nThe list of all the examples is just a Subversion source directory listing,\nhttp://winstat.quant.ku.edu/svn/hpcexample/trunk/\n\nI would like to insert a \"roadmap\" message at the top of that page,\nbut I have to do some\nwork with the web server before that is allowed.\n\nhttp://winstat.quant.ku.edu/svn/hpcexample/trunk/Ex50-R-serial/\nRuns one R  job (a single program) on the cluster\n\nhttp://winstat.quant.ku.edu/svn/hpcexample/trunk/Ex51-R-ManySerialJobs/\nSends many separate R jobs out into the cluster\n\nhttp://winstat.quant.ku.edu/svn/hpcexample/trunk/Ex53-HelloWorldRmpi/\nBasics of Rmpi usage\n\nhttp://winstat.quant.ku.edu/svn/hpcexample/trunk/Ex60-HelloWorldSnow/\nShows similar with the snow package\n\nhttp://winstat.quant.ku.edu/svn/hpcexample/trunk/Ex61-HelloWorldSnowFT/\nIf you wonder what snowFT does differently, see the README\n\nhttp://winstat.quant.ku.edu/svn/hpcexample/trunk/Ex65-R-parallel/\nR 2.14 introduced the parallel package and this tests that out.\n\nhttp://winstat.quant.ku.edu/svn/hpcexample/trunk/Ex66-ParallelSeedPrototype/\nDo you need separate seeds within each run of a simulation? This helps by\ncreating a seed archive file that the repetitions can draw on.\n\nhttp://winstat.quant.ku.edu/svn/hpcexample/trunk/Ex80-PrevSci2007/\nThis is inspired by a negative reaction I had to a published paper.\nI'll replicate that paper, see what's right, what's wrong.\nIt has notes and advice for my class about re-designing an ordinary\n\"run in one system\" R simulation\nprogram into a \"run across the cluster\" program.  This steps through versions.\n\n\n-- \nPaul E. Johnson\nProfessor, Political Science\n1541 Lilac Lane, Room 504\nUniversity of Kansas",
+      "body_snippet": "On Sat, Feb 4, 2012 at 5:25 PM, Hodgess, Erin <HodgessE at uhd.edu> wrote:\n> Hi everyone!\n>\n> Here is an opinion question please: ?when using R on a cluster, what is the best way to start please?\n>\n\nH",
+      "thread_id": "thread-de9f54a121ac",
+      "thread_depth": 1,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-4ee15ec9086d",
+      "message_id": "<4F2F93CC.50004@gmail.com>",
+      "from_name": "Rainer M Krug",
+      "from_email_hash": "e11b90edace280d0de30dfc4fa9de87a9a079d3f2c2f179123fa9e4ae628223d",
+      "date": "2012-02-06T09:48:12+01:00",
+      "subject": "[R-sig-hpc] an opinion question",
+      "subject_clean": "an opinion question",
+      "in_reply_to": "<CF45C042-0723-48FC-B50D-165BE3B189AC@gmail.com>",
+      "references": [
+        "<586A4828D7AAA04CA9B258C50A28DA200BF58D78@BALI.uhd.campus>",
+        "<CANz9Z_+7wwHrCQE1GmabcxUw1HLop-97=HRb3v2x5QZ+iqYomA@mail.gmail.com>",
+        "<586A4828D7AAA04CA9B258C50A28DA200BF58D79@BALI.uhd.campus>",
+        "<CF45C042-0723-48FC-B50D-165BE3B189AC@gmail.com>"
+      ],
+      "body_plain": "-----BEGIN PGP SIGNED MESSAGE-----\nHash: SHA1\n\nOn 05/02/12 00:56, Joshua Wiley wrote:\n> Hi Erin,\n> \n> Okay so our question is about parallelization?  There are packages \n> designed for this that handle distributing to the nodes nicely.\n> I'm not sure if they are the best but snow and snowfall come to\n> mind. Recently I just use the new parallel package but that only\n> came out in R 2.14.0.\n> \n> Basically you jut setup the 10000 loops or implicit loops and the \n> package distributes to nodes as they become available (or you\n> could pressing ate certain nodes to do x number of runs but I don't\n> see a compelling reason why not to just send as they are\n> available).\n\nOK - Salami taktik: I would NOT paralelize the whole problem, but\nrather split it in two parts:\n\n1) 10000 embasassengly parallel simulation of one AR model and store\nthe result. For this you do not have anything to do, apart from\npossibly take care of the random seeds (if you use random numbers)\n\n2) calcluate the measures you want from the saved results (in your\ncase the mean of phi and the error variance)\n\nBy doing this, you leave the whole paralelisatuion to the cluster\nsoftware, which usually saves quite some development time.\n\nThis, by the way, is my odus operandi: I am running regularly\nsensitivity analysis of monte carlo simulation models, and I use array\njobs to simulate these. The calculations for the SA are either done in\nanother job afterwards on the cluster on a desktop computer.\n\nHope this helps and don't hesitate to ask further questions - clusters\nand paralelization can be quite daunting initially.\n\nCheers,\n\nRainer\n\n\n> \n> Cheers,\n> \n> Josh\n> \n> On Feb 4, 2012, at 15:41, \"Hodgess, Erin\" <HodgessE at uhd.edu>\n> wrote:\n> \n>> Hi Josh:\n>> \n>> Thanks for your reply.....the answer to my original question is,\n>> of course, \"it depends\".\n>> \n>> Anyhow, suppose I have something like this:\n>> \n>> I want to run a simulation of 10,000 AR models and get an\n>> average of the phi coefficient and the error variance.\n>> \n>> I have 12 nodes.\n>> \n>> I was thinking of how best to ship out the reps to minimize the \n>> time.\n>> \n>> Does this help, please?\n>> \n>> Thanks again, Erin\n>> \n>> \n>> Erin M. Hodgess, PhD Associate Professor Department of Computer\n>> and Mathematical Sciences University of Houston - Downtown\n>> mailto: hodgesse at uhd.edu\n>> \n>> \n>> \n>> -----Original Message----- From: Joshua Wiley \n>> [mailto:jwiley.psych at gmail.com] Sent: Sat 2/4/2012 5:34 PM To: \n>> Hodgess, Erin Cc: r-sig-hpc at r-project.org Subject: Re:\n>> [R-sig-hpc] an opinion question\n>> \n>> Hi Erin,\n>> \n>> What do you mean by 'start'?  That is much too vague to get a\n>> good reply.  We need information about what you are trying to do\n>> and what your situation is.  I typically ssh in, try simple stuff\n>> / verify everything works in a small case in interactive mode\n>> and then submit a batch job.\n>> \n>> Josh\n>> \n>> On Sat, Feb 4, 2012 at 3:25 PM, Hodgess, Erin <HodgessE at uhd.edu> \n>> wrote:\n>>> Hi everyone!\n>>> \n>>> Here is an opinion question please:  when using R on a\n>>> cluster, what is the best way to start please?\n>>> \n>>> I learned a little bit a couple of years ago but have\n>>> forgotten most of it.\n>>> \n>>> Thanks, Erin\n>>> \n>>> \n>>> Erin M. Hodgess, PhD Associate Professor Department of\n>>> Computer and Mathematical Sciences University of Houston -\n>>> Downtown mailto: hodgesse at uhd.edu\n>>> \n>>> \n>>> [[alternative HTML version deleted]]\n>>> \n>>> _______________________________________________ R-sig-hpc\n>>> mailing list R-sig-hpc at r-project.org \n>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>> \n>> \n>> \n>> -- Joshua Wiley Ph.D. Student, Health Psychology Programmer\n>> Analyst II, Statistical Consulting Group University of\n>> California, Los Angeles https://joshuawiley.com/\n>> \n> \n> [[alternative HTML version deleted]]\n> \n> _______________________________________________ R-sig-hpc mailing \n> list R-sig-hpc at r-project.org \n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n\n\n- -- \nRainer M. Krug, PhD (Conservation Ecology, SUN), MSc (Conservation\nBiology, UCT), Dipl. Phys. (Germany)\n\nCentre of Excellence for Invasion Biology\nStellenbosch University\nSouth Africa\n\nTel :       +33 - (0)9 53 10 27 44\nCell:       +33 - (0)6 85 62 59 98\nFax :       +33 - (0)9 58 10 27 44\n\nFax (D):    +49 - (0)3 21 21 25 22 44\n\nemail:      Rainer at krugs.de\n\nSkype:      RMkrug\n-----BEGIN PGP SIGNATURE-----\nVersion: GnuPG v1.4.11 (GNU/Linux)\nComment: Using GnuPG with Mozilla - http://enigmail.mozdev.org/\n\niEYEARECAAYFAk8vk8wACgkQoYgNqgF2egq7MACghH32dTijXGbJZALrhY2Ye3Xc\naX4An0CTtjHpaf9jjiBRx3gbxO0NRdkz\n=4oIJ\n-----END PGP SIGNATURE-----",
+      "body_snippet": "-----BEGIN PGP SIGNED MESSAGE-----\nHash: SHA1\n\nOn 05/02/12 00:56, Joshua Wiley wrote:\n> Hi Erin,\n> \n> Okay so our question is about parallelization?  There are packages \n> designed for this that handl",
+      "thread_id": "thread-de9f54a121ac",
+      "thread_depth": 4,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-d89c4431d8bf",
+      "message_id": "<CALh21iL8FU4jyWJiOk-epd3VfwKHfK-QnLsjzTK5LdQSFwkt9g@mail.gmail.com>",
+      "from_name": "Stephen Weston",
+      "from_email_hash": "507fe1aedccd9cb1c2bba1715ac24f959abe255adeeb866f82b6c8a1896cbd15",
+      "date": "2012-02-06T10:21:42-05:00",
+      "subject": "[R-sig-hpc] Can't start multi node SNOW cluster",
+      "subject_clean": "Can't start multi node SNOW cluster",
+      "in_reply_to": "<201202051235148421765@gmail.com>",
+      "references": [
+        "<2012020422511274171828@gmail.com>",
+        "<201202051235148421765@gmail.com>"
+      ],
+      "body_plain": "On Sat, Feb 4, 2012 at 11:35 PM, Xiaobo Gu <guxiaobo1982 at gmail.com> wrote:\n> It seems there is a bug in snow or the samle code,\n> It seems snow treats every entry in the sep list as a seperate worker\n>\n>> winOptions <-\n> + ? ? list(host=\"192.168.72.1\",\n> + ? ? ? ? ?rscript=\"D:/Amber/Program/R/R-2.14.1/bin/x64/Rscript.exe\",\n> + ? ? ? ? ?snowlib=\"C:/Users/dell/Documents/R/win-library/2.14\")\n>> cl <- makeCluster(c(rep(winOptions, 2)), type = \"SOCK\", manual=TRUE)\n\nI think you should use something like:\n\n    cl <- makeCluster(lapply(1:2, function(i) winOptions), type =\n\"SOCK\", manual=TRUE)\n\nTo allow options to be passed in with the host names, you need to\nspecify a list of lists.  Using \"c(rep(winOptions, 2))\" concatenates winOptions\nto itself which makes snow think that you're passing in a simple lists of\nhostnames.\n\n- Steve",
+      "body_snippet": "On Sat, Feb 4, 2012 at 11:35 PM, Xiaobo Gu <guxiaobo1982 at gmail.com> wrote:\n> It seems there is a bug in snow or the samle code,\n> It seems snow treats every entry in the sep list as a seperate work",
+      "thread_id": "thread-19745e344d71",
+      "thread_depth": 2,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-2fce5217470f",
+      "message_id": "<201202080019063606002@gmail.com>",
+      "from_name": "Xiaobo Gu",
+      "from_email_hash": "e42e0b811de3d2c98cdebac8809c8a6a440a236994d7613f3b90d37da18f7c25",
+      "date": "2012-02-08T00:19:06+08:00",
+      "subject": "[R-sig-hpc] Can't start multi node SNOW cluster",
+      "subject_clean": "Can't start multi node SNOW cluster",
+      "in_reply_to": null,
+      "references": [
+        "<2012020422511274171828@gmail.com>",
+        "<201202051235148421765@gmail.com>",
+        "<CALh21iL8FU4jyWJiOk-epd3VfwKHfK-QnLsjzTK5LdQSFwkt9g@mail.gmail.com>"
+      ],
+      "body_plain": ">I think you should use something like:\n\n>    cl <- makeCluster(lapply(1:2, function(i) winOptions), type =\n>\"SOCK\", manual=TRUE)\n\n>To allow options to be passed in with the host names, you need to\n>specify a list of lists.  Using \"c(rep(winOptions, 2))\" concatenates winOptions\n>to itself which makes snow think that you're passing in a simple lists of\n>hostnames.\nThanks, that works, but snow still can't start remote workers automatically.",
+      "body_snippet": ">I think you should use something like:\n\n>    cl <- makeCluster(lapply(1:2, function(i) winOptions), type =\n>\"SOCK\", manual=TRUE)\n\n>To allow options to be passed in with the host names, you need to\n>s",
+      "thread_id": "thread-19745e344d71",
+      "thread_depth": 3,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-a1b1dadbbd07",
+      "message_id": "<CALh21i+jnsOfvBPXyQ_R1Wqr-piOL1zsdQb9Qq+GFSrfgHG8Pw@mail.gmail.com>",
+      "from_name": "Stephen Weston",
+      "from_email_hash": "507fe1aedccd9cb1c2bba1715ac24f959abe255adeeb866f82b6c8a1896cbd15",
+      "date": "2012-02-07T15:39:30-05:00",
+      "subject": "[R-sig-hpc] Can't start multi node SNOW cluster",
+      "subject_clean": "Can't start multi node SNOW cluster",
+      "in_reply_to": "<201202080019063606002@gmail.com>",
+      "references": [
+        "<2012020422511274171828@gmail.com>",
+        "<201202051235148421765@gmail.com>",
+        "<CALh21iL8FU4jyWJiOk-epd3VfwKHfK-QnLsjzTK5LdQSFwkt9g@mail.gmail.com>",
+        "<201202080019063606002@gmail.com>"
+      ],
+      "body_plain": "On Tue, Feb 7, 2012 at 11:19 AM, Xiaobo Gu <guxiaobo1982 at gmail.com> wrote:\n>>I think you should use something like:\n>\n>> ? ?cl <- makeCluster(lapply(1:2, function(i) winOptions), type =\n>>\"SOCK\", manual=TRUE)\n>\n>>To allow options to be passed in with the host names, you need to\n>>specify a list of lists. ?Using \"c(rep(winOptions, 2))\" concatenates winOptions\n>>to itself which makes snow think that you're passing in a simple lists of\n>>hostnames.\n> Thanks, that works, but snow still can't start remote workers automatically.\n\nI thought that you had already figured out that the problem was\nnot having sshd's running on your Windows cluster.\n\nWith snow, I believe you have three options for running on multiple\nnodes:\n\n1) Use a socket cluster which depends on ssh/sshd;\n2) Use an MPI cluster which depends on an MPI installation that\nworks with Rmpi;\n3) Use manual mode which obviously isn't automatic.\n\nI thought that some people have managed to use snow on clusters,\nat least using MPI, but I don't really use Windows, so I can't really\nhelp there.\n\n- Steve",
+      "body_snippet": "On Tue, Feb 7, 2012 at 11:19 AM, Xiaobo Gu <guxiaobo1982 at gmail.com> wrote:\n>>I think you should use something like:\n>\n>> ? ?cl <- makeCluster(lapply(1:2, function(i) winOptions), type =\n>>\"SOCK\", m",
+      "thread_id": "thread-19745e344d71",
+      "thread_depth": 4,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-c224f42abbe7",
+      "message_id": "<586A4828D7AAA04CA9B258C50A28DA200F239DD4@BALI.uhd.campus>",
+      "from_name": "Hodgess, Erin",
+      "from_email_hash": "9a43d72d3c5a93c98a7b509fb8aef328797f49fac98830a099e885b965325eac",
+      "date": "2012-02-08T19:45:07-06:00",
+      "subject": "[R-sig-hpc] using mpiexec and a machine file with Rmpi",
+      "subject_clean": "using mpiexec and a machine file with Rmpi",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120208/9b2f5da3/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120208/9b2f5da3/attachment.pl>",
+      "thread_id": "thread-c224f42abbe7",
+      "thread_depth": 0,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-9c4083470b11",
+      "message_id": "<586A4828D7AAA04CA9B258C50A28DA200F239DE3@BALI.uhd.campus>",
+      "from_name": "Hodgess, Erin",
+      "from_email_hash": "9a43d72d3c5a93c98a7b509fb8aef328797f49fac98830a099e885b965325eac",
+      "date": "2012-02-08T20:09:58-06:00",
+      "subject": "[R-sig-hpc] got the mpiexec issue fixed",
+      "subject_clean": "got the mpiexec issue fixed",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120208/6fd7d489/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120208/6fd7d489/attachment.pl>",
+      "thread_id": "thread-9c4083470b11",
+      "thread_depth": 0,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-cc33eb1630b4",
+      "message_id": "<586A4828D7AAA04CA9B258C50A28DA200BF58DA8@BALI.uhd.campus>",
+      "from_name": "Hodgess, Erin",
+      "from_email_hash": "9a43d72d3c5a93c98a7b509fb8aef328797f49fac98830a099e885b965325eac",
+      "date": "2012-02-09T18:10:42-06:00",
+      "subject": "[R-sig-hpc] some examples using Rmpi, please?",
+      "subject_clean": "some examples using Rmpi, please?",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120209/3724aab7/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120209/3724aab7/attachment.pl>",
+      "thread_id": "thread-cc33eb1630b4",
+      "thread_depth": 0,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-cfb388230fa2",
+      "message_id": "<586A4828D7AAA04CA9B258C50A28DA200BF58DAA@BALI.uhd.campus>",
+      "from_name": "Hodgess, Erin",
+      "from_email_hash": "9a43d72d3c5a93c98a7b509fb8aef328797f49fac98830a099e885b965325eac",
+      "date": "2012-02-09T18:26:23-06:00",
+      "subject": "[R-sig-hpc] some examples using Rmpi, please?  answer to my own question",
+      "subject_clean": "some examples using Rmpi, please?  answer to my own question",
+      "in_reply_to": null,
+      "references": [
+        "<586A4828D7AAA04CA9B258C50A28DA200BF58DA8@BALI.uhd.campus>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120209/3c3e9128/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120209/3c3e9128/attachment.pl>",
+      "thread_id": "thread-cc33eb1630b4",
+      "thread_depth": 1,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-f1062e06ec13",
+      "message_id": "<586A4828D7AAA04CA9B258C50A28DA200F3A9071@BALI.uhd.campus>",
+      "from_name": "Hodgess, Erin",
+      "from_email_hash": "9a43d72d3c5a93c98a7b509fb8aef328797f49fac98830a099e885b965325eac",
+      "date": "2012-02-10T15:31:13-06:00",
+      "subject": "[R-sig-hpc] using a macines file from within R",
+      "subject_clean": "using a macines file from within R",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120210/1f1da2ba/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120210/1f1da2ba/attachment.pl>",
+      "thread_id": "thread-f1062e06ec13",
+      "thread_depth": 0,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-d4b2a4281905",
+      "message_id": "<CAErODj_Xks3zg8-pz9YSN_8nOO2-2n7_ETQa6SbYZ9wA5UhsyQ@mail.gmail.com>",
+      "from_name": "Paul Johnson",
+      "from_email_hash": "b96b8a38c7fef12892ac8cae395028a3b39f3acce423d9c564ab27dc864c47b3",
+      "date": "2012-02-11T16:10:23-06:00",
+      "subject": "[R-sig-hpc] using a macines file from within R",
+      "subject_clean": "using a macines file from within R",
+      "in_reply_to": "<586A4828D7AAA04CA9B258C50A28DA200F3A9071@BALI.uhd.campus>",
+      "references": [
+        "<586A4828D7AAA04CA9B258C50A28DA200F3A9071@BALI.uhd.campus>"
+      ],
+      "body_plain": "On Fri, Feb 10, 2012 at 3:31 PM, Hodgess, Erin <HodgessE at uhd.edu> wrote:\n> Hi again!\n>\n>\n> If I use mpi.spawn.Rslaves(nslaves=4), it spawns 4 slaves on the same\n> node.\n>\n>\nGreetings. I've been testing that out on our cluster.\n\nI believe the machines file is only meaningful to the OpenMPI\nframework upon which R sits. So in the submission script, suppose you\nput ppn=1.\n\nThat restricts MPI to use 1 process per node, and so when RMPI spawns\nnodes, it will spawn one per node.\n\n\nOn the other hand, if the submission script has ppn=6 on, for example,\n3 compute  nodes, for example, and your R command has\n\nmpi.spawn.Rslaves(nslaves=14),\n\nThat will spawn the 14 slaves like this (machine names are compute-0,\ncompute-1, compute-2, etc)\n\ncompute-0-0\ncompute-0-1\ncompute-0-2\ncompute-0-3\ncompute-0-4\ncompute-0-5\ncompute-1-0\ncompute-1-1\ncompute-1-2\ncompute-1-3\ncompute-1-4\ncompute-1-5\ncompute-2-0\ncompute-2-1\n\nthat is to say, if your submission allows ppn=6, MPI will spawn 6\nslaves on the first node it finds, and 6 more on 2nd one, and 2 on\nlast one, so there are 14 in all.\n\nI think if you got into the very fine-grained communication between R\nand the openMPI network, you might be able to fiddle with that, but it\nwon't be pretty and I don't think they recommend we (novices) do it.\n\nHope this is not telling you what you already know, as I so often do!\n\n\n>\n> Is there a way to access the machines file from there, please?\n>\n>\n>\n> Thanks,\n>\n> Erin\n>\n>\n>\n>\n>\n> Erin M. Hodgess, Ph.D.\n>\n> Associate Professor\n>\n> Department of Computer and Mathematical Sciences\n>\n> University of Houston - Downtown\n>\n> mailto: hodgesse at uhd.edu\n>\n>\n>\n>\n> ? ? ? ?[[alternative HTML version deleted]]\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n\n\n\n-- \nPaul E. Johnson\nProfessor, Political Science\n1541 Lilac Lane, Room 504\nUniversity of Kansas",
+      "body_snippet": "On Fri, Feb 10, 2012 at 3:31 PM, Hodgess, Erin <HodgessE at uhd.edu> wrote:\n> Hi again!\n>\n>\n> If I use mpi.spawn.Rslaves(nslaves=4), it spawns 4 slaves on the same\n> node.\n>\n>\nGreetings. I've been tes",
+      "thread_id": "thread-f1062e06ec13",
+      "thread_depth": 1,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-0b95ada50125",
+      "message_id": "<CAAjXVjpAKPu_kLojX+Sq53fNtaT3iroZschS9V2K9e-xrcLUQw@mail.gmail.com>",
+      "from_name": "Libo Sun",
+      "from_email_hash": "90d69ce51f5234541e9091c90920b66d3440287fb9bc064261f750bbe13ad0c2",
+      "date": "2012-02-11T15:27:45-07:00",
+      "subject": "[R-sig-hpc] Get identical results for parallel and sequential?",
+      "subject_clean": "Get identical results for parallel and sequential?",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120211/b701e44e/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120211/b701e44e/attachment.pl>",
+      "thread_id": "thread-0b95ada50125",
+      "thread_depth": 0,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-643eadef13aa",
+      "message_id": "<20278.63809.495305.917138@max.nulle.part>",
+      "from_name": "Dirk Eddelbuettel",
+      "from_email_hash": "447d8de83a7b9c5d61116890bacb6dc0c76aee31b3011a41fb7d3c62dac9042f",
+      "date": "2012-02-11T17:26:57-06:00",
+      "subject": "[R-sig-hpc] Get identical results for parallel and sequential?",
+      "subject_clean": "Get identical results for parallel and sequential?",
+      "in_reply_to": "<CAAjXVjpAKPu_kLojX+Sq53fNtaT3iroZschS9V2K9e-xrcLUQw@mail.gmail.com>",
+      "references": [
+        "<CAAjXVjpAKPu_kLojX+Sq53fNtaT3iroZschS9V2K9e-xrcLUQw@mail.gmail.com>"
+      ],
+      "body_plain": "On 11 February 2012 at 15:27, Libo Sun wrote:\n| Hi All,\n| \n| I have a question about R parallel computing by using snowfall.\n| \n| How can I set the seeds on parallel workers to get the same result as\n| sequential mode?\n| \n| For example:\n| \n| > sfSapply(c(1,1),rnorm)\n| [1]  1.823082 -2.222052\n| > rnorm(2)\n| [1] -0.5179967 -1.0807196\n| \n| How to get the identical result?\n\nBy making sure the RNG streams are initialised identically on all nodes.\n\nDirk\n\n-- \n\"Outside of a dog, a book is a man's best friend. Inside of a dog, it is too\ndark to read.\" -- Groucho Marx",
+      "body_snippet": "On 11 February 2012 at 15:27, Libo Sun wrote:\n| Hi All,\n| \n| I have a question about R parallel computing by using snowfall.\n| \n| How can I set the seeds on parallel workers to get the same result as\n",
+      "thread_id": "thread-0b95ada50125",
+      "thread_depth": 1,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-e885d20fab4b",
+      "message_id": "<CAAjXVjpxZr4F9bonWWt8EsgxY=tPzs_7k-Dpbs9bkNtWxN3mCw@mail.gmail.com>",
+      "from_name": "Libo Sun",
+      "from_email_hash": "90d69ce51f5234541e9091c90920b66d3440287fb9bc064261f750bbe13ad0c2",
+      "date": "2012-02-11T16:39:52-07:00",
+      "subject": "[R-sig-hpc] Get identical results for parallel and sequential?",
+      "subject_clean": "Get identical results for parallel and sequential?",
+      "in_reply_to": "<20278.63809.495305.917138@max.nulle.part>",
+      "references": [
+        "<CAAjXVjpAKPu_kLojX+Sq53fNtaT3iroZschS9V2K9e-xrcLUQw@mail.gmail.com>",
+        "<20278.63809.495305.917138@max.nulle.part>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120211/29382694/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120211/29382694/attachment.pl>",
+      "thread_id": "thread-0b95ada50125",
+      "thread_depth": 2,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-84159a00b8f9",
+      "message_id": "<20120212005040.GB31004@laura>",
+      "from_name": "Norm Matloff",
+      "from_email_hash": "4db7a9be8e09c28ffe81d430bd8de418df530a8cc929aef3c751368ba81d90dc",
+      "date": "2012-02-11T16:50:40-08:00",
+      "subject": "[R-sig-hpc] Get identical results for parallel and sequential?",
+      "subject_clean": "Get identical results for parallel and sequential?",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "No, it's certainly not sufficient to simply make sure the same random\nnumber stream is used.\n\nDepending on the manner in which work is partitioned to processes,\nthings can occur in an order different from that one gets in a\nsequential version.\n\nIn typical cases, this will affect only roundoff error, and the parallel\nand sequential results should be close to each other.\n\nBut they could be quite different.  Say for instance you are doing\nvariable selection in regression.  Different partitions of the data\ncould give different sets of predictor variables being chosen, etc.\n\nSo, if your results are quite different, the first guess would be that\nyou simply have a programming error, but there could be inherent\nalgorithmic issues too.\n\nNorm Matloff\n\n\nNorm\n\n\n----- Forwarded message from Libo Sun <libosun at rams.colostate.edu> -----\n\nDate: Sat, 11 Feb 2012 16:39:52 -0700\nFrom: Libo Sun <libosun at rams.colostate.edu>\nTo: Dirk Eddelbuettel <edd at debian.org>\nCc: r-sig-hpc at r-project.org\nSubject: Re: [R-sig-hpc] Get identical results for parallel and sequential?\n\nHow to do that? By using sfClusterSetupRNGstream or sfClusterSetupRNG, it\ncan reproduces the same parallel result, but it cannot give me the same\nresult as sequential mode.\n\nLibo\n\nOn Sat, Feb 11, 2012 at 4:26 PM, Dirk Eddelbuettel <edd at debian.org> wrote:\n\n>\n> On 11 February 2012 at 15:27, Libo Sun wrote:\n> | Hi All,\n> |\n> | I have a question about R parallel computing by using snowfall.\n> |\n> | How can I set the seeds on parallel workers to get the same result as\n> | sequential mode?\n> |\n> | For example:\n> |\n> | > sfSapply(c(1,1),rnorm)\n> | [1]  1.823082 -2.222052\n> | > rnorm(2)\n> | [1] -0.5179967 -1.0807196\n> |\n> | How to get the identical result?\n>\n> By making sure the RNG streams are initialised identically on all nodes.\n>\n> Dirk\n>\n> --\n> \"Outside of a dog, a book is a man's best friend. Inside of a dog, it is\n> too\n> dark to read.\" -- Groucho Marx\n>\n\n\t[[alternative HTML version deleted]]\n\n_______________________________________________\nR-sig-hpc mailing list\nR-sig-hpc at r-project.org\nhttps://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n\n----- End forwarded message -----",
+      "body_snippet": "No, it's certainly not sufficient to simply make sure the same random\nnumber stream is used.\n\nDepending on the manner in which work is partitioned to processes,\nthings can occur in an order different ",
+      "thread_id": "thread-84159a00b8f9",
+      "thread_depth": 0,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-4c9a11885cb6",
+      "message_id": "<CAAjXVjpSf33tYUT9ao2BoCFRMUV=OoNeMEX0+T4Q4Xrbe9Oszw@mail.gmail.com>",
+      "from_name": "Libo Sun",
+      "from_email_hash": "90d69ce51f5234541e9091c90920b66d3440287fb9bc064261f750bbe13ad0c2",
+      "date": "2012-02-11T18:25:12-07:00",
+      "subject": "[R-sig-hpc] Get identical results for parallel and sequential?",
+      "subject_clean": "Get identical results for parallel and sequential?",
+      "in_reply_to": "<20120212005040.GB31004@laura>",
+      "references": [
+        "<20120212005040.GB31004@laura>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120211/e89e2643/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120211/e89e2643/attachment.pl>",
+      "thread_id": "thread-84159a00b8f9",
+      "thread_depth": 1,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-457f344fc64a",
+      "message_id": "<4F372BD0.8030806@uw.edu>",
+      "from_name": "Hana Sevcikova",
+      "from_email_hash": "fb682fb5a0b5dfea1eeacf5a8cbb2579e779cfa608f18329f1e361d748ccfe14",
+      "date": "2012-02-11T19:02:40-08:00",
+      "subject": "[R-sig-hpc] Get identical results for parallel and sequential?",
+      "subject_clean": "Get identical results for parallel and sequential?",
+      "in_reply_to": "<CAAjXVjpSf33tYUT9ao2BoCFRMUV=OoNeMEX0+T4Q4Xrbe9Oszw@mail.gmail.com>",
+      "references": [
+        "<20120212005040.GB31004@laura>",
+        "<CAAjXVjpSf33tYUT9ao2BoCFRMUV=OoNeMEX0+T4Q4Xrbe9Oszw@mail.gmail.com>"
+      ],
+      "body_plain": "Libo,\n\nThe snowFT package can do that:\n\nperformParallel(2, c(1,1), rnorm, seed=1:6) # runs on 2 nodes\n[[1]]\n[1] -3.087424\n\n[[2]]\n[1] 0.5293005\n\nperformParallel(0, c(1,1), rnorm, seed=1:6) # runs sequentially\n[[1]]\n[1] -3.087424\n\n[[2]]\n[1] 0.5293005\n\nHana\n\n\n\nOn 2/11/12 5:25 PM, Libo Sun wrote:\n> Thanks, but I still don't know how to make this very simple example get the\n> same result?\n>\n>> sfSapply(c(1,1),rnorm)\n> [1]  1.823082 -2.222052\n>> rnorm(2)\n> [1] -0.5179967 -1.0807196\n>\n> Libo\n>\n>\n> On Sat, Feb 11, 2012 at 5:50 PM, Norm Matloff<matloff at cs.ucdavis.edu>wrote:\n>\n>> No, it's certainly not sufficient to simply make sure the same random\n>> number stream is used.\n>>\n>> Depending on the manner in which work is partitioned to processes,\n>> things can occur in an order different from that one gets in a\n>> sequential version.\n>>\n>> In typical cases, this will affect only roundoff error, and the parallel\n>> and sequential results should be close to each other.\n>>\n>> But they could be quite different.  Say for instance you are doing\n>> variable selection in regression.  Different partitions of the data\n>> could give different sets of predictor variables being chosen, etc.\n>>\n>> So, if your results are quite different, the first guess would be that\n>> you simply have a programming error, but there could be inherent\n>> algorithmic issues too.\n>>\n>> Norm Matloff\n>>\n>>\n>> Norm\n>>\n>>\n>> ----- Forwarded message from Libo Sun<libosun at rams.colostate.edu>  -----\n>>\n>> Date: Sat, 11 Feb 2012 16:39:52 -0700\n>> From: Libo Sun<libosun at rams.colostate.edu>\n>> To: Dirk Eddelbuettel<edd at debian.org>\n>> Cc: r-sig-hpc at r-project.org\n>> Subject: Re: [R-sig-hpc] Get identical results for parallel and sequential?\n>>\n>> How to do that? By using sfClusterSetupRNGstream or sfClusterSetupRNG, it\n>> can reproduces the same parallel result, but it cannot give me the same\n>> result as sequential mode.\n>>\n>> Libo\n>>\n>> On Sat, Feb 11, 2012 at 4:26 PM, Dirk Eddelbuettel<edd at debian.org>  wrote:\n>>\n>>> On 11 February 2012 at 15:27, Libo Sun wrote:\n>>> | Hi All,\n>>> |\n>>> | I have a question about R parallel computing by using snowfall.\n>>> |\n>>> | How can I set the seeds on parallel workers to get the same result as\n>>> | sequential mode?\n>>> |\n>>> | For example:\n>>> |\n>>> |>  sfSapply(c(1,1),rnorm)\n>>> | [1]  1.823082 -2.222052\n>>> |>  rnorm(2)\n>>> | [1] -0.5179967 -1.0807196\n>>> |\n>>> | How to get the identical result?\n>>>\n>>> By making sure the RNG streams are initialised identically on all nodes.\n>>>\n>>> Dirk\n>>>\n>>> --\n>>> \"Outside of a dog, a book is a man's best friend. Inside of a dog, it is\n>>> too\n>>> dark to read.\" -- Groucho Marx\n>>>\n>>          [[alternative HTML version deleted]]\n>>\n>> _______________________________________________\n>> R-sig-hpc mailing list\n>> R-sig-hpc at r-project.org\n>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>>\n>> ----- End forwarded message -----\n>>\n>> _______________________________________________\n>> R-sig-hpc mailing list\n>> R-sig-hpc at r-project.org\n>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>>\n> \t[[alternative HTML version deleted]]\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc",
+      "body_snippet": "Libo,\n\nThe snowFT package can do that:\n\nperformParallel(2, c(1,1), rnorm, seed=1:6) # runs on 2 nodes\n[[1]]\n[1] -3.087424\n\n[[2]]\n[1] 0.5293005\n\nperformParallel(0, c(1,1), rnorm, seed=1:6) # runs seque",
+      "thread_id": "thread-84159a00b8f9",
+      "thread_depth": 2,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-c965ac3f27f6",
+      "message_id": "<20120212052546.GA31773@laura>",
+      "from_name": "Norm Matloff",
+      "from_email_hash": "4db7a9be8e09c28ffe81d430bd8de418df530a8cc929aef3c751368ba81d90dc",
+      "date": "2012-02-11T21:25:46-08:00",
+      "subject": "[R-sig-hpc] Get identical results for parallel and sequential?",
+      "subject_clean": "Get identical results for parallel and sequential?",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Sorry, I hadn't seen your simple example, and was just speaking\ngenerally.  Looks like a random number stream issue in this case, all\nright.\n\nNorm\n\n----- Forwarded message from Libo Sun <libosun at rams.colostate.edu> -----\n\nDate: Sat, 11 Feb 2012 18:25:12 -0700\nFrom: Libo Sun <libosun at rams.colostate.edu>\nTo: Norm Matloff <matloff at cs.ucdavis.edu>\nCc: r-sig-hpc at r-project.org\nSubject: Re: [R-sig-hpc] Get identical results for parallel and sequential?\n\nThanks, but I still don't know how to make this very simple example get the\nsame result?\n\n> sfSapply(c(1,1),rnorm)\n[1]  1.823082 -2.222052\n> rnorm(2)\n[1] -0.5179967 -1.0807196\n\nLibo\n\n\nOn Sat, Feb 11, 2012 at 5:50 PM, Norm Matloff <matloff at cs.ucdavis.edu>wrote:\n\n> No, it's certainly not sufficient to simply make sure the same random\n> number stream is used.\n>\n> Depending on the manner in which work is partitioned to processes,\n> things can occur in an order different from that one gets in a\n> sequential version.\n>\n> In typical cases, this will affect only roundoff error, and the parallel\n> and sequential results should be close to each other.\n>\n> But they could be quite different.  Say for instance you are doing\n> variable selection in regression.  Different partitions of the data\n> could give different sets of predictor variables being chosen, etc.\n>\n> So, if your results are quite different, the first guess would be that\n> you simply have a programming error, but there could be inherent\n> algorithmic issues too.\n>\n> Norm Matloff\n>\n>\n> Norm\n>\n>\n> ----- Forwarded message from Libo Sun <libosun at rams.colostate.edu> -----\n>\n> Date: Sat, 11 Feb 2012 16:39:52 -0700\n> From: Libo Sun <libosun at rams.colostate.edu>\n> To: Dirk Eddelbuettel <edd at debian.org>\n> Cc: r-sig-hpc at r-project.org\n> Subject: Re: [R-sig-hpc] Get identical results for parallel and sequential?\n>\n> How to do that? By using sfClusterSetupRNGstream or sfClusterSetupRNG, it\n> can reproduces the same parallel result, but it cannot give me the same\n> result as sequential mode.\n>\n> Libo\n>\n> On Sat, Feb 11, 2012 at 4:26 PM, Dirk Eddelbuettel <edd at debian.org> wrote:\n>\n> >\n> > On 11 February 2012 at 15:27, Libo Sun wrote:\n> > | Hi All,\n> > |\n> > | I have a question about R parallel computing by using snowfall.\n> > |\n> > | How can I set the seeds on parallel workers to get the same result as\n> > | sequential mode?\n> > |\n> > | For example:\n> > |\n> > | > sfSapply(c(1,1),rnorm)\n> > | [1]  1.823082 -2.222052\n> > | > rnorm(2)\n> > | [1] -0.5179967 -1.0807196\n> > |\n> > | How to get the identical result?\n> >\n> > By making sure the RNG streams are initialised identically on all nodes.\n> >\n> > Dirk\n> >\n> > --\n> > \"Outside of a dog, a book is a man's best friend. Inside of a dog, it is\n> > too\n> > dark to read.\" -- Groucho Marx\n> >\n>\n>         [[alternative HTML version deleted]]\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>\n> ----- End forwarded message -----\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>\n\n----- End forwarded message -----",
+      "body_snippet": "Sorry, I hadn't seen your simple example, and was just speaking\ngenerally.  Looks like a random number stream issue in this case, all\nright.\n\nNorm\n\n----- Forwarded message from Libo Sun <libosun at ra",
+      "thread_id": "thread-c965ac3f27f6",
+      "thread_depth": 0,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-85a369c1c6e9",
+      "message_id": "<CAErODj84CKAMsNrBZrFxHWQms1Hn9YhmZdoGiS9tG2mNDPZsUw@mail.gmail.com>",
+      "from_name": "Paul Johnson",
+      "from_email_hash": "b96b8a38c7fef12892ac8cae395028a3b39f3acce423d9c564ab27dc864c47b3",
+      "date": "2012-02-14T15:15:59-06:00",
+      "subject": "[R-sig-hpc] Get identical results for parallel and sequential?",
+      "subject_clean": "Get identical results for parallel and sequential?",
+      "in_reply_to": "<CAAjXVjpAKPu_kLojX+Sq53fNtaT3iroZschS9V2K9e-xrcLUQw@mail.gmail.com>",
+      "references": [
+        "<CAAjXVjpAKPu_kLojX+Sq53fNtaT3iroZschS9V2K9e-xrcLUQw@mail.gmail.com>"
+      ],
+      "body_plain": "On Sat, Feb 11, 2012 at 4:27 PM, Libo Sun <libosun at rams.colostate.edu> wrote:\n> Hi All,\n>\n> I have a question about R parallel computing by using snowfall.\n>\n> How can I set the seeds on parallel workers to get the same result as\n> sequential mode?\n>\n\nAs Hana S said, the snowFT package has the ability to assign seeds to\n\"replications\", unlike other methods, which assign seeds to compute\nnodes.  By associating seeds to replications, it is thus assured that\neach time a step runs, it gets same seed, no matter on which node.\n\nI've been trying to generalize that idea to allow multiple (separate)\nstreams of random numbers for each replication.  We have several\nprojects where the replication requires the \"exact same random\nnumbers\" from each of several streams. You could try this out and let\nme know if it works for your purpose.\n\nhttp://winstat.quant.ku.edu/svn/hpcexample/trunk/Ex66-ParallelSeedPrototype\n\nIf the README doesn't seem clear, email me, I will fix it up.\n\npj\n\n\n\n> For example:\n>\n>> sfSapply(c(1,1),rnorm)\n> [1] ?1.823082 -2.222052\n>> rnorm(2)\n> [1] -0.5179967 -1.0807196\n>\n> How to get the identical result?\n>\n> Thanks.\n> Libo\n>\n> ? ? ? ?[[alternative HTML version deleted]]\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n\n\n\n-- \nPaul E. Johnson\nProfessor, Political Science\n1541 Lilac Lane, Room 504\nUniversity of Kansas",
+      "body_snippet": "On Sat, Feb 11, 2012 at 4:27 PM, Libo Sun <libosun at rams.colostate.edu> wrote:\n> Hi All,\n>\n> I have a question about R parallel computing by using snowfall.\n>\n> How can I set the seeds on parallel w",
+      "thread_id": "thread-0b95ada50125",
+      "thread_depth": 1,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-4316ae661493",
+      "message_id": "<CABG0rfvG-JYrb8Qb0cvvFNxySUSh1Xv3VSOim1oAcN6vO6F+Bg@mail.gmail.com>",
+      "from_name": "Jonathan Greenberg",
+      "from_email_hash": "ee98ba3ee4b2c616e18289a81d9dae24466b13e60e03ce28f4f5a12def4b3589",
+      "date": "2012-02-17T09:20:26-06:00",
+      "subject": "[R-sig-hpc] Parallel File System support in R (e.g. GPFS)",
+      "subject_clean": "Parallel File System support in R (e.g. GPFS)",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120217/4f3907a7/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120217/4f3907a7/attachment.pl>",
+      "thread_id": "thread-4316ae661493",
+      "thread_depth": 0,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-cea58f9b2e29",
+      "message_id": "<4F3E734E.4090405@njn.nl>",
+      "from_name": "bart",
+      "from_email_hash": "f28fabf263d4372f7c2ff98ea7531e873e66f86e06a86eb3d868dbcaa885c4cb",
+      "date": "2012-02-17T16:33:34+01:00",
+      "subject": "[R-sig-hpc] Parallel File System support in R (e.g. GPFS)",
+      "subject_clean": "Parallel File System support in R (e.g. GPFS)",
+      "in_reply_to": "<CABG0rfvG-JYrb8Qb0cvvFNxySUSh1Xv3VSOim1oAcN6vO6F+Bg@mail.gmail.com>",
+      "references": [
+        "<CABG0rfvG-JYrb8Qb0cvvFNxySUSh1Xv3VSOim1oAcN6vO6F+Bg@mail.gmail.com>"
+      ],
+      "body_plain": "Hi Jonathan\n\nHave a look at the raster package it has support for dealing with large \nrasters. Some functions have an implementation for using snow clusters. \nfor others you maybe need to take some more effort to make them parallel \nor process small chunks in parallel. I'm not familiar with using GPFS \nsupport.\n\nBart\n\nOn 02/17/2012 04:20 PM, Jonathan Greenberg wrote:\n> R-sig-hpc'ers:\n>\n> I've started running R on a large cluster at my university, which uses the\n> IBM GPFS parallel file system.  I'm wondering if there is any support\n> within R for parallel writes to a single file or if there are any\n> suggestions on to the implement, say, writing to a large binary file\n> representing an image.  The parallelization I'm thinking of is:\n>\n> given an image of x by y columns and rows represented by a flat binary\n> file, process chunks of this image on different cpus/nodes, then write the\n> results to a single file.  The alternative is to write each chunk out\n> separately then \"mosaic\" them back together, but this would involve\n> reading/writing the data twice, and this process is going to be an I/O\n> intensive one.  Thoughts?\n>\n> --j\n>",
+      "body_snippet": "Hi Jonathan\n\nHave a look at the raster package it has support for dealing with large \nrasters. Some functions have an implementation for using snow clusters. \nfor others you maybe need to take some mo",
+      "thread_id": "thread-4316ae661493",
+      "thread_depth": 1,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-28b17637f278",
+      "message_id": "<4F3E835D02000027000129BA@gwia2.boku.ac.at>",
+      "from_name": "Matteo Mattiuzzi",
+      "from_email_hash": "5ae87850511bc74d13de542432f5baa8e82ce730a61a8538266b6798105d1d11",
+      "date": "2012-02-17T16:42:05+01:00",
+      "subject": "[R-sig-hpc] Antw:  Parallel File System support in R (e.g. GPFS)",
+      "subject_clean": "Antw:  Parallel File System support in R (e.g. GPFS)",
+      "in_reply_to": "<CABG0rfvG-JYrb8Qb0cvvFNxySUSh1Xv3VSOim1oAcN6vO6F+Bg@mail.gmail.com>",
+      "references": [
+        "<CABG0rfvG-JYrb8Qb0cvvFNxySUSh1Xv3VSOim1oAcN6vO6F+Bg@mail.gmail.com>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120217/ee10580b/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120217/ee10580b/attachment.pl>",
+      "thread_id": "thread-4316ae661493",
+      "thread_depth": 1,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-15988fd30f94",
+      "message_id": "<4F3EA086.1070405@ornl.gov>",
+      "from_name": "George Ostrouchov",
+      "from_email_hash": "9080d52958959c83b81a189c9cdf0d2d87e68ade72613c46dbc212f344428698",
+      "date": "2012-02-17T13:46:30-05:00",
+      "subject": "[R-sig-hpc] Parallel File System support in R (e.g. GPFS)",
+      "subject_clean": "Parallel File System support in R (e.g. GPFS)",
+      "in_reply_to": "<CABG0rfvG-JYrb8Qb0cvvFNxySUSh1Xv3VSOim1oAcN6vO6F+Bg@mail.gmail.com>",
+      "references": [
+        "<CABG0rfvG-JYrb8Qb0cvvFNxySUSh1Xv3VSOim1oAcN6vO6F+Bg@mail.gmail.com>"
+      ],
+      "body_plain": "Hi Jonathan,\n\nWe are developing some parallel file system readers and writers for R. \nThey are intended to be used in a Single Program Multiple Data (SPMD) \nprogramming mode with Rmpi. Each processor reads its own chunk of data \nand is intended to hand it off to another SPMD R code to do the \nanalysis. We are close to having a parallel version of ncdf, a NetCDF \ncollective read/write package.\n\nGeorge\n\nOn 2/17/12 10:20 AM, Jonathan Greenberg wrote:\n> R-sig-hpc'ers:\n>\n> I've started running R on a large cluster at my university, which uses the\n> IBM GPFS parallel file system.  I'm wondering if there is any support\n> within R for parallel writes to a single file or if there are any\n> suggestions on to the implement, say, writing to a large binary file\n> representing an image.  The parallelization I'm thinking of is:\n>\n> given an image of x by y columns and rows represented by a flat binary\n> file, process chunks of this image on different cpus/nodes, then write the\n> results to a single file.  The alternative is to write each chunk out\n> separately then \"mosaic\" them back together, but this would involve\n> reading/writing the data twice, and this process is going to be an I/O\n> intensive one.  Thoughts?\n>\n> --j\n>\n\n-- \nGeorge Ostrouchov, Ph.D.\nScientific Data Group\nComputer Science and Mathematics Division\nOak Ridge National Laboratory\n\nand\n\nRemote Data Analysis and Visualization Center\nNational Institute for Computational Sciences\nThe University of Tennessee\n\nhttp://www.csm.ornl.gov/~ost",
+      "body_snippet": "Hi Jonathan,\n\nWe are developing some parallel file system readers and writers for R. \nThey are intended to be used in a Single Program Multiple Data (SPMD) \nprogramming mode with Rmpi. Each processor ",
+      "thread_id": "thread-4316ae661493",
+      "thread_depth": 1,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-e617b8d69294",
+      "message_id": "<4F3EA87C.6020701@ornl.gov>",
+      "from_name": "George Ostrouchov",
+      "from_email_hash": "9080d52958959c83b81a189c9cdf0d2d87e68ade72613c46dbc212f344428698",
+      "date": "2012-02-17T14:20:28-05:00",
+      "subject": "[R-sig-hpc] Parallel File System support in R (e.g. GPFS)",
+      "subject_clean": "Parallel File System support in R (e.g. GPFS)",
+      "in_reply_to": "<CABG0rfvG-JYrb8Qb0cvvFNxySUSh1Xv3VSOim1oAcN6vO6F+Bg@mail.gmail.com>",
+      "references": [
+        "<CABG0rfvG-JYrb8Qb0cvvFNxySUSh1Xv3VSOim1oAcN6vO6F+Bg@mail.gmail.com>"
+      ],
+      "body_plain": "Jonathan,\n\nalso, if you are familiar with NetCDF files, we would be glad to have \nyou test drive our pncdf package when it is ready. Let me know.\n\nIf you are interested in running on some NSF funded resources and \ngetting help with your parallel R code, consider \nhttp://rdav.nics.tennessee.edu/. Resource applications are handled \nthrough XSEDE https://portal.xsede.org/. I am interested in getting more \nR users on the RDAV system. It is a 1024 core shared memory system that \nis instrumented to use most of R's parallel capabilities.\n\nGeorge\n\nOn 2/17/12 10:20 AM, Jonathan Greenberg wrote:\n> R-sig-hpc'ers:\n>\n> I've started running R on a large cluster at my university, which uses the\n> IBM GPFS parallel file system.  I'm wondering if there is any support\n> within R for parallel writes to a single file or if there are any\n> suggestions on to the implement, say, writing to a large binary file\n> representing an image.  The parallelization I'm thinking of is:\n>\n> given an image of x by y columns and rows represented by a flat binary\n> file, process chunks of this image on different cpus/nodes, then write the\n> results to a single file.  The alternative is to write each chunk out\n> separately then \"mosaic\" them back together, but this would involve\n> reading/writing the data twice, and this process is going to be an I/O\n> intensive one.  Thoughts?\n>\n> --j\n>\n\n-- \nGeorge Ostrouchov, Ph.D.\nScientific Data Group\nComputer Science and Mathematics Division\nOak Ridge National Laboratory\n\nand\n\nRemote Data Analysis and Visualization Center\nNational Institute for Computational Sciences\nThe University of Tennessee\n\nhttp://www.csm.ornl.gov/~ost",
+      "body_snippet": "Jonathan,\n\nalso, if you are familiar with NetCDF files, we would be glad to have \nyou test drive our pncdf package when it is ready. Let me know.\n\nIf you are interested in running on some NSF funded r",
+      "thread_id": "thread-4316ae661493",
+      "thread_depth": 1,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-6e3ab3e8bc83",
+      "message_id": "<05A0B3AFAE21EC4CA2B1B5D901F6021A03D66235C9D1@MAILBANK.ensae.fr>",
+      "from_name": "To Maxime",
+      "from_email_hash": "8500d1f173022df73e7f844a7d5a1c713a29366098d44dd2cca344de90f2ddec",
+      "date": "2012-02-20T21:35:19+01:00",
+      "subject": "[R-sig-hpc] Bug using SNOW package",
+      "subject_clean": "Bug using SNOW package",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Dear all,\n\nI am using the SNOW library to compute a function.\n\nI start the cluster through the command:\n\ncl <- makeCluster(6, \"SOCK\")\n\nand then program a function sll0 and execute the function on each node by doing:\n\nsll <- function(param,fixed_par){\n       do.call(\"sum\",clusterCall(cl,sll0, param = param, fixed = NA))\n}\n\nExecuting the program on different values, the results are the following:\n\n> v2 <- sll(para2, NA)\n> v2\n[1] 54788.49\n> \n> para3 <- para2 + 0.9\n> v3 <- sll(para3, NA)\n> v3\n[1] 54788.49\n> v3 <- sll(para3, NA)\n> v3\n[1] 67962.31\n\nIt seems to me that there is a problem when the results are returned to the program : it keeps in memory the previous result and gives it to the next operation...\nHave you ever seen this before? What can I do to solve it?\n\nBest,\n\nMaxime",
+      "body_snippet": "Dear all,\n\nI am using the SNOW library to compute a function.\n\nI start the cluster through the command:\n\ncl <- makeCluster(6, \"SOCK\")\n\nand then program a function sll0 and execute the function on each",
+      "thread_id": "thread-6e3ab3e8bc83",
+      "thread_depth": 0,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-2715f0621b70",
+      "message_id": "<586A4828D7AAA04CA9B258C50A28DA200BF58E40@BALI.uhd.campus>",
+      "from_name": "Hodgess, Erin",
+      "from_email_hash": "9a43d72d3c5a93c98a7b509fb8aef328797f49fac98830a099e885b965325eac",
+      "date": "2012-02-22T20:40:23-06:00",
+      "subject": "[R-sig-hpc] question about install gputools",
+      "subject_clean": "question about install gputools",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120222/c98568f1/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120222/c98568f1/attachment.pl>",
+      "thread_id": "thread-2715f0621b70",
+      "thread_depth": 0,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-6b25fd22726f",
+      "message_id": "<20293.43590.817547.914342@max.nulle.part>",
+      "from_name": "Dirk Eddelbuettel",
+      "from_email_hash": "447d8de83a7b9c5d61116890bacb6dc0c76aee31b3011a41fb7d3c62dac9042f",
+      "date": "2012-02-22T20:53:58-06:00",
+      "subject": "[R-sig-hpc] question about install gputools",
+      "subject_clean": "question about install gputools",
+      "in_reply_to": "<586A4828D7AAA04CA9B258C50A28DA200BF58E40@BALI.uhd.campus>",
+      "references": [
+        "<586A4828D7AAA04CA9B258C50A28DA200BF58E40@BALI.uhd.campus>"
+      ],
+      "body_plain": "On 22 February 2012 at 20:40, Hodgess, Erin wrote:\n| Dear HPC People:\n| \n| I'm not sure if R GPU has its own sig, so I thought I'd start here.\n| \n| I'm trying to install gputools on a Debian (squeeze) and I keep getting the error:\n| \n| /usr/bin/ld cannot find -lR\n\nA *complete* and *reproduceable* example, please!\n \n| Has anyone run into this, please?\n\nAs shown below, \"it just works for me\" (provided I make sure CC is the\ngcc-4.4 as I use the CUDA 4.0 APU) on Ubuntu 11.10; it would the same on\nDebian as CRAN tests are done on Debian too.\n\nHow did you install R? Did you install it yourself by chance and forget to\nbuild as a shared library?  I have to guess as you did not supply the\nrequired information.\n\nDirk\n\ninstall log below\n\nedd at max:/tmp$ R CMD INSTALL gputools_0.26.tar.gz \n* installing to library ?/usr/local/lib/R/site-library?\n* installing *source* package ?gputools? ...\n** package ?gputools? successfully unpacked and MD5 sums checked\nconfigure: checking for critical tools used by configure\nchecking \"environment variable COMPILER_BINDIR\"... \"COMPILER_BINDIR not set; using user's default path\"\nchecking \"environment variable CUDA_HOME\"... \"using CUDA_HOME=/usr/local/cuda\"\nchecking \"environment variable CULA_HOME\"... \"using CULA_HOME=/usr/local/cula\"\nchecking for /usr/local/cuda/bin/nvcc... yes\n\"nvcc found\"\nchecking \"whether this is the 64 bit linux version of CUDA\"... checking for /usr/local/cuda/lib64/libcublas.so... yes\n\"yes -- using /usr/local/cuda/lib64 for CUDA libs\"\n\"using -I/usr/share/R/include for R header files\"\n\"using -L/usr/lib/R/lib -lR for R shared libraries\"\nchecking \"whether this is the 64 bit version of CULA\"... checking for /usr/local/cula/lib64/libcula.so... no\nchecking for /usr/local/cula/lib64/libcula.dylib... no\n\"no\"\nchecking \"checking whether cula is present at all\"... checking for /usr/local/cula/lib/libcula.so... no\nchecking for /usr/local/cula/lib/libcula.dylib... no\n\"cula is not installed; gpuFastICA is disabled\"\nconfigure: determining host platform\nchecking build system type... x86_64-unknown-linux-gnu\nchecking host system type... x86_64-unknown-linux-gnu\nconfigure: creating ./config.status\nconfig.status: creating src/Makefile\nconfig.status: creating R/gpuSvm.R\nconfig.status: creating R/gpuFastICA.R\nconfig.status: creating R/gpuSvd.R\n** libs\n** arch - \n/usr/local/cuda/bin/nvcc -gencode arch=compute_10,code=sm_10 -gencode arch=compute_11,code=sm_11 -gencode arch=compute_12,code=sm_12 -gencode arch=compute_13,code=sm_13 -gencode arch=compute_20,code=sm_20 -c -I. -I/usr/local/cuda/include -I/usr/share/R/include -Xcompiler -fpic kendall.cu -o kendall.o\nptxas /tmp/tmpxft_00003a13_00000000-11_kendall.compute_12.ptx, line 282; warning : Double is not supported. Demoting to float\nptxas /tmp/tmpxft_00003a13_00000000-7_kendall.compute_11.ptx, line 282; warning : Double is not supported. Demoting to float\nptxas /tmp/tmpxft_00003a13_00000000-5_kendall.compute_10.ptx, line 282; warning : Double is not supported. Demoting to float\n/usr/local/cuda/bin/nvcc -gencode arch=compute_10,code=sm_10 -gencode arch=compute_11,code=sm_11 -gencode arch=compute_12,code=sm_12 -gencode arch=compute_13,code=sm_13 -gencode arch=compute_20,code=sm_20 -c -I. -I/usr/local/cuda/include -I/usr/share/R/include -Xcompiler -fpic classification.cu -o classification.o\nptxas /tmp/tmpxft_00003ae0_00000000-11_classification.compute_12.ptx, line 384; warning : Double is not supported. Demoting to float\nptxas /tmp/tmpxft_00003ae0_00000000-7_classification.compute_11.ptx, line 384; warning : Double is not supported. Demoting to float\nptxas /tmp/tmpxft_00003ae0_00000000-5_classification.compute_10.ptx, line 384; warning : Double is not supported. Demoting to float\n/usr/local/cuda/bin/nvcc -gencode arch=compute_10,code=sm_10 -gencode arch=compute_11,code=sm_11 -gencode arch=compute_12,code=sm_12 -gencode arch=compute_13,code=sm_13 -gencode arch=compute_20,code=sm_20 -c -I. -I/usr/local/cuda/include -I/usr/share/R/include -Xcompiler -fpic rinterface.cu -o rinterface.o\n/usr/local/cuda/bin/nvcc -gencode arch=compute_10,code=sm_10 -gencode arch=compute_11,code=sm_11 -gencode arch=compute_12,code=sm_12 -gencode arch=compute_13,code=sm_13 -gencode arch=compute_20,code=sm_20 -c -I. -I/usr/local/cuda/include -I/usr/share/R/include -Xcompiler -fpic mi.cu -o mi.o\n/usr/local/cuda/bin/nvcc -gencode arch=compute_10,code=sm_10 -gencode arch=compute_11,code=sm_11 -gencode arch=compute_12,code=sm_12 -gencode arch=compute_13,code=sm_13 -gencode arch=compute_20,code=sm_20 -c -I. -I/usr/local/cuda/include -I/usr/share/R/include -Xcompiler -fpic sort.cu -o sort.o\n/usr/local/cuda/bin/nvcc -gencode arch=compute_10,code=sm_10 -gencode arch=compute_11,code=sm_11 -gencode arch=compute_12,code=sm_12 -gencode arch=compute_13,code=sm_13 -gencode arch=compute_20,code=sm_20 -c -I. -I/usr/local/cuda/include -I/usr/share/R/include -Xcompiler -fpic granger.cu -o granger.o\n/usr/local/cuda/bin/nvcc -gencode arch=compute_10,code=sm_10 -gencode arch=compute_11,code=sm_11 -gencode arch=compute_12,code=sm_12 -gencode arch=compute_13,code=sm_13 -gencode arch=compute_20,code=sm_20 -c -I. -I/usr/local/cuda/include -I/usr/share/R/include -Xcompiler -fpic qrdecomp.cu -o qrdecomp.o\n/usr/local/cuda/bin/nvcc -gencode arch=compute_10,code=sm_10 -gencode arch=compute_11,code=sm_11 -gencode arch=compute_12,code=sm_12 -gencode arch=compute_13,code=sm_13 -gencode arch=compute_20,code=sm_20 -c -I. -I/usr/local/cuda/include -I/usr/share/R/include -Xcompiler -fpic correlation.cu -o correlation.o\nptxas /tmp/tmpxft_00003fc1_00000000-11_correlation.compute_12.ptx, line 1195; warning : Double is not supported. Demoting to float\nptxas /tmp/tmpxft_00003fc1_00000000-7_correlation.compute_11.ptx, line 1195; warning : Double is not supported. Demoting to float\nptxas /tmp/tmpxft_00003fc1_00000000-5_correlation.compute_10.ptx, line 1195; warning : Double is not supported. Demoting to float\n/usr/local/cuda/bin/nvcc -gencode arch=compute_10,code=sm_10 -gencode arch=compute_11,code=sm_11 -gencode arch=compute_12,code=sm_12 -gencode arch=compute_13,code=sm_13 -gencode arch=compute_20,code=sm_20 -c -I. -I/usr/local/cuda/include -I/usr/share/R/include -Xcompiler -fpic hcluster.cu -o hcluster.o\nptxas /tmp/tmpxft_0000408f_00000000-11_hcluster.compute_12.ptx, line 730; warning : Double is not supported. Demoting to float\nptxas /tmp/tmpxft_0000408f_00000000-7_hcluster.compute_11.ptx, line 730; warning : Double is not supported. Demoting to float\nptxas /tmp/tmpxft_0000408f_00000000-5_hcluster.compute_10.ptx, line 730; warning : Double is not supported. Demoting to float\n/usr/local/cuda/bin/nvcc -gencode arch=compute_10,code=sm_10 -gencode arch=compute_11,code=sm_11 -gencode arch=compute_12,code=sm_12 -gencode arch=compute_13,code=sm_13 -gencode arch=compute_20,code=sm_20 -c -I. -I/usr/local/cuda/include -I/usr/share/R/include -Xcompiler -fpic distance.cu -o distance.o\nptxas /tmp/tmpxft_0000415c_00000000-11_distance.compute_12.ptx, line 942; warning : Double is not supported. Demoting to float\nptxas /tmp/tmpxft_0000415c_00000000-7_distance.compute_11.ptx, line 942; warning : Double is not supported. Demoting to float\nptxas /tmp/tmpxft_0000415c_00000000-5_distance.compute_10.ptx, line 942; warning : Double is not supported. Demoting to float\n/usr/local/cuda/bin/nvcc -gencode arch=compute_10,code=sm_10 -gencode arch=compute_11,code=sm_11 -gencode arch=compute_12,code=sm_12 -gencode arch=compute_13,code=sm_13 -gencode arch=compute_20,code=sm_20 -c -I. -I/usr/local/cuda/include -I/usr/share/R/include -Xcompiler -fpic matmult.cu -o matmult.o\n/usr/local/cuda/bin/nvcc -gencode arch=compute_10,code=sm_10 -gencode arch=compute_11,code=sm_11 -gencode arch=compute_12,code=sm_12 -gencode arch=compute_13,code=sm_13 -gencode arch=compute_20,code=sm_20 -c -I. -I/usr/local/cuda/include -I/usr/share/R/include -Xcompiler -fpic lsfit.cu -o lsfit.o\n/usr/local/cuda/bin/nvcc -gencode arch=compute_10,code=sm_10 -gencode arch=compute_11,code=sm_11 -gencode arch=compute_12,code=sm_12 -gencode arch=compute_13,code=sm_13 -gencode arch=compute_20,code=sm_20 -c -I. -I/usr/local/cuda/include -I/usr/share/R/include -Xcompiler -fpic cuseful.cu -o cuseful.o\n/usr/local/cuda/bin/nvcc -gencode arch=compute_10,code=sm_10 -gencode arch=compute_11,code=sm_11 -gencode arch=compute_12,code=sm_12 -gencode arch=compute_13,code=sm_13 -gencode arch=compute_20,code=sm_20 -shared -Xlinker  -L/usr/lib/R/lib -lR -L/usr/local/cuda/lib64 -lcublas kendall.o classification.o   rinterface.o mi.o sort.o granger.o qrdecomp.o correlation.o hcluster.o distance.o matmult.o lsfit.o cuseful.o -o gputools.so\ninstalling to /usr/local/lib/R/site-library/gputools/libs\n** R\n** preparing package for lazy loading\n** help\n*** installing help indices\n** building package indices ...\n** testing if installed package can be loaded\n\n* DONE (gputools)\nedd at max:/tmp$ \n\n\n-- \n\"Outside of a dog, a book is a man's best friend. Inside of a dog, it is too\ndark to read.\" -- Groucho Marx",
+      "body_snippet": "On 22 February 2012 at 20:40, Hodgess, Erin wrote:\n| Dear HPC People:\n| \n| I'm not sure if R GPU has its own sig, so I thought I'd start here.\n| \n| I'm trying to install gputools on a Debian (squeeze)",
+      "thread_id": "thread-2715f0621b70",
+      "thread_depth": 1,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-f73d65873f89",
+      "message_id": "<586A4828D7AAA04CA9B258C50A28DA200F931986@BALI.uhd.campus>",
+      "from_name": "Hodgess, Erin",
+      "from_email_hash": "9a43d72d3c5a93c98a7b509fb8aef328797f49fac98830a099e885b965325eac",
+      "date": "2012-02-22T21:00:56-06:00",
+      "subject": "[R-sig-hpc] question about install gputools",
+      "subject_clean": "question about install gputools",
+      "in_reply_to": "<20293.43590.817547.914342@max.nulle.part>",
+      "references": [
+        "<586A4828D7AAA04CA9B258C50A28DA200BF58E40@BALI.uhd.campus>",
+        "<20293.43590.817547.914342@max.nulle.part>"
+      ],
+      "body_plain": "Hi again!\n\nI installed R-2.14.1 via apt-get install.\n\nI'll get the complete set in a moment.\n\nThanks,\nErin\n\n\n-----Original Message-----\nFrom: Dirk Eddelbuettel [mailto:edd at debian.org] \nSent: Wednesday, February 22, 2012 8:54 PM\nTo: Hodgess, Erin\nCc: r-sig-hpc at r-project.org\nSubject: Re: [R-sig-hpc] question about install gputools\n\n\nOn 22 February 2012 at 20:40, Hodgess, Erin wrote:\n| Dear HPC People:\n| \n| I'm not sure if R GPU has its own sig, so I thought I'd start here.\n| \n| I'm trying to install gputools on a Debian (squeeze) and I keep getting the error:\n| \n| /usr/bin/ld cannot find -lR\n\nA *complete* and *reproduceable* example, please!\n \n| Has anyone run into this, please?\n\nAs shown below, \"it just works for me\" (provided I make sure CC is the\ngcc-4.4 as I use the CUDA 4.0 APU) on Ubuntu 11.10; it would the same on Debian as CRAN tests are done on Debian too.\n\nHow did you install R? Did you install it yourself by chance and forget to build as a shared library?  I have to guess as you did not supply the required information.\n\nDirk\n\ninstall log below\n\nedd at max:/tmp$ R CMD INSTALL gputools_0.26.tar.gz\n* installing to library ?/usr/local/lib/R/site-library?\n* installing *source* package ?gputools? ...\n** package ?gputools? successfully unpacked and MD5 sums checked\nconfigure: checking for critical tools used by configure checking \"environment variable COMPILER_BINDIR\"... \"COMPILER_BINDIR not set; using user's default path\"\nchecking \"environment variable CUDA_HOME\"... \"using CUDA_HOME=/usr/local/cuda\"\nchecking \"environment variable CULA_HOME\"... \"using CULA_HOME=/usr/local/cula\"\nchecking for /usr/local/cuda/bin/nvcc... yes \"nvcc found\"\nchecking \"whether this is the 64 bit linux version of CUDA\"... checking for /usr/local/cuda/lib64/libcublas.so... yes \"yes -- using /usr/local/cuda/lib64 for CUDA libs\"\n\"using -I/usr/share/R/include for R header files\"\n\"using -L/usr/lib/R/lib -lR for R shared libraries\"\nchecking \"whether this is the 64 bit version of CULA\"... checking for /usr/local/cula/lib64/libcula.so... no checking for /usr/local/cula/lib64/libcula.dylib... no \"no\"\nchecking \"checking whether cula is present at all\"... checking for /usr/local/cula/lib/libcula.so... no checking for /usr/local/cula/lib/libcula.dylib... no \"cula is not installed; gpuFastICA is disabled\"\nconfigure: determining host platform\nchecking build system type... x86_64-unknown-linux-gnu checking host system type... x86_64-unknown-linux-gnu\nconfigure: creating ./config.status\nconfig.status: creating src/Makefile\nconfig.status: creating R/gpuSvm.R\nconfig.status: creating R/gpuFastICA.R\nconfig.status: creating R/gpuSvd.R\n** libs\n** arch -\n/usr/local/cuda/bin/nvcc -gencode arch=compute_10,code=sm_10 -gencode arch=compute_11,code=sm_11 -gencode arch=compute_12,code=sm_12 -gencode arch=compute_13,code=sm_13 -gencode arch=compute_20,code=sm_20 -c -I. -I/usr/local/cuda/include -I/usr/share/R/include -Xcompiler -fpic kendall.cu -o kendall.o ptxas /tmp/tmpxft_00003a13_00000000-11_kendall.compute_12.ptx, line 282; warning : Double is not supported. Demoting to float ptxas /tmp/tmpxft_00003a13_00000000-7_kendall.compute_11.ptx, line 282; warning : Double is not supported. Demoting to float ptxas /tmp/tmpxft_00003a13_00000000-5_kendall.compute_10.ptx, line 282; warning : Double is not supported. Demoting to float /usr/local/cuda/bin/nvcc -gencode arch=compute_10,code=sm_10 -gencode arch=compute_11,code=sm_11 -gencode arch=compute_12,code=sm_12 -gencode arch=compute_13,code=sm_13 -gencode arch=compute_20,code=sm_20 -c -I. -I/usr/local/cuda/include -I/usr/share/R/include -Xcompiler -fpic classification.cu -o classification.o ptxas /tmp/tmpxft_00003ae0_00000000-11_classification.compute_12.ptx, line 384; warning : Double is not supported. Demoting to float ptxas /tmp/tmpxft_00003ae0_00000000-7_classification.compute_11.ptx, line 384; warning : Double is not supported. Demoting to float ptxas /tmp/tmpxft_00003ae0_00000000-5_classification.compute_10.ptx, line 384; warning : Double is not supported. Demoting to float /usr/local/cuda/bin/nvcc -gencode arch=compute_10,code=sm_10 -gencode arch=compute_11,code=sm_11 -gencode arch=compute_12,code=sm_12 -gencode arch=compute_13,code=sm_13 -gencode arch=compute_20,code=sm_20 -c -I. -I/usr/local/cuda/include -I/usr/share/R/include -Xcompiler -fpic rinterface.cu -o rinterface.o /usr/local/cuda/bin/nvcc -gencode arch=compute_10,code=sm_10 -gencode arch=compute_11,code=sm_11 -gencode arch=compute_12,code=sm_12 -gencode arch=compute_13,code=sm_13 -gencode arch=compute_20,code=sm_20 -c -I. -I/usr/local/cuda/include -I/usr/share/R/include -Xcompiler -fpic mi.cu -o mi.o /usr/local/cuda/bin/nvcc -gencode arch=compute_10,code=sm_10 -gencode arch=compute_11,code=sm_11 -gencode arch=compute_12,code=sm_12 -gencode arch=compute_13,code=sm_13 -gencode arch=compute_20,code=sm_20 -c -I. -I/usr/local/cuda/include -I/usr/share/R/include -Xcompiler -fpic sort.cu -o sort.o /usr/local/cuda/bin/nvcc -gencode arch=compute_10,code=sm_10 -gencode arch=compute_11,code=sm_11 -gencode arch=compute_12,code=sm_12 -gencode arch=compute_13,code=sm_13 -gencode arch=compute_20,code=sm_20 -c -I. -I/usr/local/cuda/include -I/usr/share/R/include -Xcompiler -fpic granger.cu -o granger.o /usr/local/cuda/bin/nvcc -gencode arch=compute_10,code=sm_10 -gencode arch=compute_11,code=sm_11 -gencode arch=compute_12,code=sm_12 -gencode arch=compute_13,code=sm_13 -gencode arch=compute_20,code=sm_20 -c -I. -I/usr/local/cuda/include -I/usr/share/R/include -Xcompiler -fpic qrdecomp.cu -o qrdecomp.o /usr/local/cuda/bin/nvcc -gencode arch=compute_10,code=sm_10 -gencode arch=compute_11,code=sm_11 -gencode arch=compute_12,code=sm_12 -gencode arch=compute_13,code=sm_13 -gencode arch=compute_20,code=sm_20 -c -I. -I/usr/local/cuda/include -I/usr/share/R/include -Xcompiler -fpic correlation.cu -o correlation.o ptxas /tmp/tmpxft_00003fc1_00000000-11_correlation.compute_12.ptx, line 1195; warning : Double is not supported. Demoting to float ptxas /tmp/tmpxft_00003fc1_00000000-7_correlation.compute_11.ptx, line 1195; warning : Double is not supported. Demoting to float ptxas /tmp/tmpxft_00003fc1_00000000-5_correlation.compute_10.ptx, line 1195; warning : Double is not supported. Demoting to float /usr/local/cuda/bin/nvcc -gencode arch=compute_10,code=sm_10 -gencode arch=compute_11,code=sm_11 -gencode arch=compute_12,code=sm_12 -gencode arch=compute_13,code=sm_13 -gencode arch=compute_20,code=sm_20 -c -I. -I/usr/local/cuda/include -I/usr/share/R/include -Xcompiler -fpic hcluster.cu -o hcluster.o ptxas /tmp/tmpxft_0000408f_00000000-11_hcluster.compute_12.ptx, line 730; warning : Double is not supported. Demoting to float ptxas /tmp/tmpxft_0000408f_00000000-7_hcluster.compute_11.ptx, line 730; warning : Double is not supported. Demoting to float ptxas /tmp/tmpxft_0000408f_00000000-5_hcluster.compute_10.ptx, line 730; warning : Double is not supported. Demoting to float /usr/local/cuda/bin/nvcc -gencode arch=compute_10,code=sm_10 -gencode arch=compute_11,code=sm_11 -gencode arch=compute_12,code=sm_12 -gencode arch=compute_13,code=sm_13 -gencode arch=compute_20,code=sm_20 -c -I. -I/usr/local/cuda/include -I/usr/share/R/include -Xcompiler -fpic distance.cu -o distance.o ptxas /tmp/tmpxft_0000415c_00000000-11_distance.compute_12.ptx, line 942; warning : Double is not supported. Demoting to float ptxas /tmp/tmpxft_0000415c_00000000-7_distance.compute_11.ptx, line 942; warning : Double is not supported. Demoting to float ptxas /tmp/tmpxft_0000415c_00000000-5_distance.compute_10.ptx, line 942; warning : Double is not supported. Demoting to float /usr/local/cuda/bin/nvcc -gencode arch=compute_10,code=sm_10 -gencode arch=compute_11,code=sm_11 -gencode arch=compute_12,code=sm_12 -gencode arch=compute_13,code=sm_13 -gencode arch=compute_20,code=sm_20 -c -I. -I/usr/local/cuda/include -I/usr/share/R/include -Xcompiler -fpic matmult.cu -o matmult.o /usr/local/cuda/bin/nvcc -gencode arch=compute_10,code=sm_10 -gencode arch=compute_11,code=sm_11 -gencode arch=compute_12,code=sm_12 -gencode arch=compute_13,code=sm_13 -gencode arch=compute_20,code=sm_20 -c -I. -I/usr/local/cuda/include -I/usr/share/R/include -Xcompiler -fpic lsfit.cu -o lsfit.o /usr/local/cuda/bin/nvcc -gencode arch=compute_10,code=sm_10 -gencode arch=compute_11,code=sm_11 -gencode arch=compute_12,code=sm_12 -gencode arch=compute_13,code=sm_13 -gencode arch=compute_20,code=sm_20 -c -I. -I/usr/local/cuda/include -I/usr/share/R/include -Xcompiler -fpic cuseful.cu -o cuseful.o\n/usr/local/cuda/bin/nvcc -gencode arch=compute_10,code=sm_10 -gencode arch=compute_11,code=sm_11 -gencode arch=compute_12,code=sm_12 -gencode arch=compute_13,code=sm_13 -gencode arch=compute_20,code=sm_20 -shared -Xlinker  -L/usr/lib/R/lib -lR -L/usr/local/cuda/lib64 -lcublas kendall.o classification.o   rinterface.o mi.o sort.o granger.o qrdecomp.o correlation.o hcluster.o distance.o matmult.o lsfit.o cuseful.o -o gputools.so\ninstalling to /usr/local/lib/R/site-library/gputools/libs\n** R\n** preparing package for lazy loading\n** help\n*** installing help indices\n** building package indices ...\n** testing if installed package can be loaded\n\n* DONE (gputools)\nedd at max:/tmp$ \n\n\n--\n\"Outside of a dog, a book is a man's best friend. Inside of a dog, it is too dark to read.\" -- Groucho Marx",
+      "body_snippet": "Hi again!\n\nI installed R-2.14.1 via apt-get install.\n\nI'll get the complete set in a moment.\n\nThanks,\nErin\n\n\n-----Original Message-----\nFrom: Dirk Eddelbuettel [mailto:edd at debian.org] \nSent: Wednes",
+      "thread_id": "thread-2715f0621b70",
+      "thread_depth": 2,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-93b5c55fb4a3",
+      "message_id": "<586A4828D7AAA04CA9B258C50A28DA200BF58E42@BALI.uhd.campus>",
+      "from_name": "Hodgess, Erin",
+      "from_email_hash": "9a43d72d3c5a93c98a7b509fb8aef328797f49fac98830a099e885b965325eac",
+      "date": "2012-02-22T21:12:36-06:00",
+      "subject": "[R-sig-hpc] question about install gputools",
+      "subject_clean": "question about install gputools",
+      "in_reply_to": null,
+      "references": [
+        "<586A4828D7AAA04CA9B258C50A28DA200BF58E40@BALI.uhd.campus>",
+        "<20293.43590.817547.914342@max.nulle.part>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120222/04291046/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120222/04291046/attachment.pl>",
+      "thread_id": "thread-2715f0621b70",
+      "thread_depth": 2,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-1292e2a9755e",
+      "message_id": "<20293.46017.938783.853388@max.nulle.part>",
+      "from_name": "Dirk Eddelbuettel",
+      "from_email_hash": "447d8de83a7b9c5d61116890bacb6dc0c76aee31b3011a41fb7d3c62dac9042f",
+      "date": "2012-02-22T21:34:25-06:00",
+      "subject": "[R-sig-hpc] question about install gputools",
+      "subject_clean": "question about install gputools",
+      "in_reply_to": "<586A4828D7AAA04CA9B258C50A28DA200BF58E42@BALI.uhd.campus>",
+      "references": [
+        "<586A4828D7AAA04CA9B258C50A28DA200BF58E40@BALI.uhd.campus>",
+        "<20293.43590.817547.914342@max.nulle.part>",
+        "<586A4828D7AAA04CA9B258C50A28DA200BF58E42@BALI.uhd.campus>"
+      ],
+      "body_plain": "On 22 February 2012 at 21:12, Hodgess, Erin wrote:\n| Here we go:\n\nThanks for posting this.  The (omitted) lines right before the error you\nshowed are instructive (and I unindent them here)\n\n| > install.packages(\"gputools_0.26.tar.gz\",repos=NULL,configure.args=c\n| (\"--with-cuda-home=/bccd/software/cuda-3.2.16\"))\n| Installing package(s) into '/bccd/home/bccd/R/x86_64-pc-linux-gnu-library/2.14'\n| (as 'lib' is unspecified)\n| * installing *source* package 'gputools' ...\n[...]\n| /usr/bin/ld: skipping incompatible /usr/lib/gcc/x86_64-linux-gnu/4.4.5/../../.. /libR.so when searching for -lR\n| /usr/bin/ld: skipping incompatible /usr/lib/R/lib/libR.so when searching for -lR\n| /usr/bin/ld: skipping incompatible /usr/lib/libR.so when searching for -lR\n| /usr/bin/ld: cannot find -lR\n| collect2: ld returned 1 exit status\n\nSo it is not that no -lR is found, simply no _compatible_ libR.so is found.\nWhy that is so have no idea. I don't think I have ever seen that error.\n\nThe conflict is between ld and that shared library and would suggest that is\nsomewhat misconfigured.  I fear you need to sort that out at your end.\n\nThe gputools configure and compiled just fine, it simply didn't get R to link.\n\nDirk\n\n-- \n\"Outside of a dog, a book is a man's best friend. Inside of a dog, it is too\ndark to read.\" -- Groucho Marx",
+      "body_snippet": "On 22 February 2012 at 21:12, Hodgess, Erin wrote:\n| Here we go:\n\nThanks for posting this.  The (omitted) lines right before the error you\nshowed are instructive (and I unindent them here)\n\n| > instal",
+      "thread_id": "thread-2715f0621b70",
+      "thread_depth": 3,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-d84a63099682",
+      "message_id": "<20120222231115.ebbsox2g0gwc40ss@webmail.opentransfer.com>",
+      "from_name": "Mark Seligman",
+      "from_email_hash": "d21e5572d88fc0f50ba8c980169067fe9807f16a31a21447bc92d0bfdf58c7e5",
+      "date": "2012-02-22T23:11:15-06:00",
+      "subject": "[R-sig-hpc] question about install gputools",
+      "subject_clean": "question about install gputools",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Did you also install r-base-dev?\n\n\nHodgess, Erin wrote:\n\n> Hi again!\n\n> I installed R-2.14.1 via apt-get install.\n\n> I'll get the complete set in a moment.\n\n> Thanks,\n> Erin",
+      "body_snippet": "Did you also install r-base-dev?\n\n\nHodgess, Erin wrote:\n\n> Hi again!\n\n> I installed R-2.14.1 via apt-get install.\n\n> I'll get the complete set in a moment.\n\n> Thanks,\n> Erin",
+      "thread_id": "thread-d84a63099682",
+      "thread_depth": 0,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-835236be30c5",
+      "message_id": "<586A4828D7AAA04CA9B258C50A28DA200F9322A6@BALI.uhd.campus>",
+      "from_name": "Hodgess, Erin",
+      "from_email_hash": "9a43d72d3c5a93c98a7b509fb8aef328797f49fac98830a099e885b965325eac",
+      "date": "2012-02-23T15:27:57-06:00",
+      "subject": "[R-sig-hpc] question about install gputools",
+      "subject_clean": "question about install gputools",
+      "in_reply_to": "<20293.46017.938783.853388@max.nulle.part>",
+      "references": [
+        "<586A4828D7AAA04CA9B258C50A28DA200BF58E40@BALI.uhd.campus>",
+        "<20293.43590.817547.914342@max.nulle.part>",
+        "<586A4828D7AAA04CA9B258C50A28DA200BF58E42@BALI.uhd.campus>",
+        "<20293.46017.938783.853388@max.nulle.part>"
+      ],
+      "body_plain": "Aha!  We have a 32 bit underlying system, while the package is a 64 bit.\n\nIs there a \"work around\" for that, please? \n\nI've tried creating a Makevars file in the /R/etc directory, but it\ndoesn't help.\n\nI'm thinking that there might not be a work around.\n\nThanks,\nErin\n\n\n-----Original Message-----\nFrom: Dirk Eddelbuettel [mailto:edd at debian.org] \nSent: Wednesday, February 22, 2012 9:34 PM\nTo: Hodgess, Erin\nCc: Dirk Eddelbuettel; r-sig-hpc at r-project.org\nSubject: RE: [R-sig-hpc] question about install gputools\n\n\nOn 22 February 2012 at 21:12, Hodgess, Erin wrote:\n| Here we go:\n\nThanks for posting this.  The (omitted) lines right before the error you\nshowed are instructive (and I unindent them here)\n\n| > install.packages(\"gputools_0.26.tar.gz\",repos=NULL,configure.args=c\n| (\"--with-cuda-home=/bccd/software/cuda-3.2.16\"))\n| Installing package(s) into\n'/bccd/home/bccd/R/x86_64-pc-linux-gnu-library/2.14'\n| (as 'lib' is unspecified)\n| * installing *source* package 'gputools' ...\n[...]\n| /usr/bin/ld: skipping incompatible \n| /usr/lib/gcc/x86_64-linux-gnu/4.4.5/../../.. /libR.so when searching \n| for -lR\n| /usr/bin/ld: skipping incompatible /usr/lib/R/lib/libR.so when \n| searching for -lR\n| /usr/bin/ld: skipping incompatible /usr/lib/libR.so when searching for\n\n| -lR\n| /usr/bin/ld: cannot find -lR\n| collect2: ld returned 1 exit status\n\nSo it is not that no -lR is found, simply no _compatible_ libR.so is\nfound.\nWhy that is so have no idea. I don't think I have ever seen that error.\n\nThe conflict is between ld and that shared library and would suggest\nthat is somewhat misconfigured.  I fear you need to sort that out at\nyour end.\n\nThe gputools configure and compiled just fine, it simply didn't get R to\nlink.\n\nDirk\n\n--\n\"Outside of a dog, a book is a man's best friend. Inside of a dog, it is\ntoo dark to read.\" -- Groucho Marx",
+      "body_snippet": "Aha!  We have a 32 bit underlying system, while the package is a 64 bit.\n\nIs there a \"work around\" for that, please? \n\nI've tried creating a Makevars file in the /R/etc directory, but it\ndoesn't help.",
+      "thread_id": "thread-2715f0621b70",
+      "thread_depth": 4,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-4b40cb9bdf6d",
+      "message_id": "<1330033446.8901.197.camel@brian-rcg>",
+      "from_name": "Brian G. Peterson",
+      "from_email_hash": "2d44e89a02cb2a9eb2f2113de72098dcb74d077b13b61958f1336c3292aa0254",
+      "date": "2012-02-23T15:44:06-06:00",
+      "subject": "[R-sig-hpc] question about install gputools",
+      "subject_clean": "question about install gputools",
+      "in_reply_to": "<586A4828D7AAA04CA9B258C50A28DA200F9322A6@BALI.uhd.campus>",
+      "references": [
+        "<586A4828D7AAA04CA9B258C50A28DA200BF58E40@BALI.uhd.campus>",
+        "<20293.43590.817547.914342@max.nulle.part>",
+        "<586A4828D7AAA04CA9B258C50A28DA200BF58E42@BALI.uhd.campus>",
+        "<20293.46017.938783.853388@max.nulle.part>",
+        "<586A4828D7AAA04CA9B258C50A28DA200F9322A6@BALI.uhd.campus>"
+      ],
+      "body_plain": "On Thu, 2012-02-23 at 15:27 -0600, Hodgess, Erin wrote:\n> Aha!  We have a 32 bit underlying system, while the package is a 64\n> bit.\n> \n> Is there a \"work around\" for that, please? \n> \nYes, call IT and tell them to install a modern operating system so that\nyou can use the full capabilities of the expensive hardware your\ndepartment and grants help pay for.\n> \n-- \nBrian",
+      "body_snippet": "On Thu, 2012-02-23 at 15:27 -0600, Hodgess, Erin wrote:\n> Aha!  We have a 32 bit underlying system, while the package is a 64\n> bit.\n> \n> Is there a \"work around\" for that, please? \n> \nYes, call IT an",
+      "thread_id": "thread-2715f0621b70",
+      "thread_depth": 5,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-dd9f2f715951",
+      "message_id": "<851965BF-D69A-45B3-BE6E-65EA0324CF9A@r-project.org>",
+      "from_name": "Simon Urbanek",
+      "from_email_hash": "4b8015e605c1e8a78e0fc166d7f94d0bc9cab6230366ee1dfdd8a0de17b4b371",
+      "date": "2012-02-23T17:55:54-05:00",
+      "subject": "[R-sig-hpc] question about install gputools",
+      "subject_clean": "question about install gputools",
+      "in_reply_to": "<586A4828D7AAA04CA9B258C50A28DA200F9322A6@BALI.uhd.campus>",
+      "references": [
+        "<586A4828D7AAA04CA9B258C50A28DA200BF58E40@BALI.uhd.campus>",
+        "<20293.43590.817547.914342@max.nulle.part>",
+        "<586A4828D7AAA04CA9B258C50A28DA200BF58E42@BALI.uhd.campus>",
+        "<20293.46017.938783.853388@max.nulle.part>",
+        "<586A4828D7AAA04CA9B258C50A28DA200F9322A6@BALI.uhd.campus>"
+      ],
+      "body_plain": "On Feb 23, 2012, at 4:27 PM, Hodgess, Erin wrote:\n\n> Aha!  We have a 32 bit underlying system, while the package is a 64 bit.\n> \n\nI don't quite buy that - you listed\n\nR version 2.14.1 (2011-12-22)\nCopyright (C) 2011 The R Foundation for Statistical Computing\nISBN 3-900051-07-0\nPlatform: x86_64-pc-linux-gnu (64-bit)\n\nwhich is obviously R running in 64-bit so what are you rally taking about? Do you have a mess in your CUDA libraries? Chance are that you have the wrong CUDA for your system ..\n\nAlso not that the package is neither 32-bit nor 64-bit, it uses whatever the compilers will give it so it's all about your system configuration.\n\nCheers,\nSimon\n\n\n\n> Is there a \"work around\" for that, please? \n> \n> I've tried creating a Makevars file in the /R/etc directory, but it\n> doesn't help.\n> \n> I'm thinking that there might not be a work around.\n> \n> Thanks,\n> Erin\n> \n> \n> -----Original Message-----\n> From: Dirk Eddelbuettel [mailto:edd at debian.org] \n> Sent: Wednesday, February 22, 2012 9:34 PM\n> To: Hodgess, Erin\n> Cc: Dirk Eddelbuettel; r-sig-hpc at r-project.org\n> Subject: RE: [R-sig-hpc] question about install gputools\n> \n> \n> On 22 February 2012 at 21:12, Hodgess, Erin wrote:\n> | Here we go:\n> \n> Thanks for posting this.  The (omitted) lines right before the error you\n> showed are instructive (and I unindent them here)\n> \n> | > install.packages(\"gputools_0.26.tar.gz\",repos=NULL,configure.args=c\n> | (\"--with-cuda-home=/bccd/software/cuda-3.2.16\"))\n> | Installing package(s) into\n> '/bccd/home/bccd/R/x86_64-pc-linux-gnu-library/2.14'\n> | (as 'lib' is unspecified)\n> | * installing *source* package 'gputools' ...\n> [...]\n> | /usr/bin/ld: skipping incompatible \n> | /usr/lib/gcc/x86_64-linux-gnu/4.4.5/../../.. /libR.so when searching \n> | for -lR\n> | /usr/bin/ld: skipping incompatible /usr/lib/R/lib/libR.so when \n> | searching for -lR\n> | /usr/bin/ld: skipping incompatible /usr/lib/libR.so when searching for\n> \n> | -lR\n> | /usr/bin/ld: cannot find -lR\n> | collect2: ld returned 1 exit status\n> \n> So it is not that no -lR is found, simply no _compatible_ libR.so is\n> found.\n> Why that is so have no idea. I don't think I have ever seen that error.\n> \n> The conflict is between ld and that shared library and would suggest\n> that is somewhat misconfigured.  I fear you need to sort that out at\n> your end.\n> \n> The gputools configure and compiled just fine, it simply didn't get R to\n> link.\n> \n> Dirk\n> \n> --\n> \"Outside of a dog, a book is a man's best friend. Inside of a dog, it is\n> too dark to read.\" -- Groucho Marx\n> \n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n> \n>",
+      "body_snippet": "On Feb 23, 2012, at 4:27 PM, Hodgess, Erin wrote:\n\n> Aha!  We have a 32 bit underlying system, while the package is a 64 bit.\n> \n\nI don't quite buy that - you listed\n\nR version 2.14.1 (2011-12-22)\nCop",
+      "thread_id": "thread-2715f0621b70",
+      "thread_depth": 5,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-59a08fff323d",
+      "message_id": "<CAAjXVjqjsv5vwhgCsLVTwd-5dQHGY2aoTsEz=OyeTJZWSMkeog@mail.gmail.com>",
+      "from_name": "Libo Sun",
+      "from_email_hash": "90d69ce51f5234541e9091c90920b66d3440287fb9bc064261f750bbe13ad0c2",
+      "date": "2012-02-25T13:49:42-07:00",
+      "subject": "[R-sig-hpc] Parallel by Socket Cluster on supercomputer SUSE Linux shared-memory system",
+      "subject_clean": "Parallel by Socket Cluster on supercomputer SUSE Linux shared-memory system",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120225/a2a16c0f/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120225/a2a16c0f/attachment.pl>",
+      "thread_id": "thread-59a08fff323d",
+      "thread_depth": 0,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-8a683210f45f",
+      "message_id": "<4F4D09EE.6020308@mcw.edu>",
+      "from_name": "Rodney Sparapani",
+      "from_email_hash": "80fe4292b5572d5960538f5dcb93fcefd448d41429bda1792070458be1093040",
+      "date": "2012-02-28T11:07:58-06:00",
+      "subject": "[R-sig-hpc] Rmpi installation with openmpi (on local directory)",
+      "subject_clean": "Rmpi installation with openmpi (on local directory)",
+      "in_reply_to": "<CAEQKoCGUoB5ZY3Jhsjkehb5QB-J98vSUPeB2d8tVZjaUb+W2aw@mail.gmail.com>",
+      "references": [
+        "<CAEQKoCGUoB5ZY3Jhsjkehb5QB-J98vSUPeB2d8tVZjaUb+W2aw@mail.gmail.com>"
+      ],
+      "body_plain": "Brian Smith wrote:\n> Hi,\n> \n> I was trying to install the Rmpi package on a cluster (running SGE). I\n> first installed the openmpi package in my directory, and then installed the\n> Rmpi package (after downloading tarball from cran) by an interactive R\n> session.\n> \n> If I load Rmpi within an R interactive session everything seems to be fine.\n> However, if I try to use the SGE then I get errors:\n> \n> Error in dyn.load(file, DLLpath = DLLpath, ...) :\n>   unable to load shared object\n> '/home/bs/R/x86_64-unknown-linux-gnu-library/2.14/Rmpi/libs/Rmpi.so':\n>   libmpi.so.0: cannot open shared object file: No such file or directory\n> Error: package/namespace load failed for ?Rmpi?\n> Execution halted\n> \n> Other details of my attempts at the installation are given below. Any help\n> would be greatly appreciated!\n> \n> many thanks!\n> \n> PS: I have read the previous threads on difficulties in installation of\n> Rmpi and have tried to follow the advice/example...\n> \n>\n\nHi Brian et al.:\n\nI'm seeing pretty much the same thing with R 2.14.0 on RHEL 5.7 with GCC \n4.4.4 20100726 (Red Hat 4.4.4-13).  I didn't see a solution in this\nthread.  Any ideas?  Thanks in advance.\n\n/opt/local/src/R/Rmpi:$ R CMD INSTALL Rmpi_0.5-9.tar.gz \\\n--configure-args=--with-mpi=/usr/lib64/openmpi/1.4-gcc\n\n* installing to library '/opt/local/lib64/R/library'\n* installing *source* package 'Rmpi' ...\nchecking for gcc... gcc44 -std=gnu99\nchecking for C compiler default output file name... a.out\nchecking whether the C compiler works... yes\nchecking whether we are cross compiling... no\nchecking for suffix of executables...\nchecking for suffix of object files... o\nchecking whether we are using the GNU C compiler... yes\nchecking whether gcc44 -std=gnu99 accepts -g... yes\nchecking for gcc44 -std=gnu99 option to accept ISO C89... none needed\nTrying to find mpi.h ...\nFound in /usr/lib64/openmpi/1.4-gcc/include\nTrying to find libmpi.so or libmpich.a ...\nFound libmpi in /usr/lib64/openmpi/1.4-gcc/lib\nchecking for openpty in -lutil... yes\nchecking for main in -lpthread... yes\nconfigure: creating ./config.status\nconfig.status: creating src/Makevars\n** Creating default NAMESPACE file\n** libs\ngcc44 -std=gnu99 -I/opt/local/lib64/R/include -DPACKAGE_NAME=\\\"\\\"\n-DPACKAGE_TARNAME=\\\"\\\" -DPACKAGE_VERSION=\\\"\\\" -DPACKAGE_STRING=\\\"\\\"\n-DPACKAGE_BUGREPORT=\\\"\\\" -I/usr/lib64/openmpi/1.4-gcc/include  -DMPI2\n-DOPENMPI -I/usr/local/include    -fpic  -g -c RegQuery.c -o RegQuery.o\ngcc44 -std=gnu99 -I/opt/local/lib64/R/include -DPACKAGE_NAME=\\\"\\\"\n-DPACKAGE_TARNAME=\\\"\\\" -DPACKAGE_VERSION=\\\"\\\" -DPACKAGE_STRING=\\\"\\\"\n-DPACKAGE_BUGREPORT=\\\"\\\" -I/usr/lib64/openmpi/1.4-gcc/include  -DMPI2\n-DOPENMPI -I/usr/local/include    -fpic  -g -c Rmpi.c -o Rmpi.o\ngcc44 -std=gnu99 -I/opt/local/lib64/R/include -DPACKAGE_NAME=\\\"\\\"\n-DPACKAGE_TARNAME=\\\"\\\" -DPACKAGE_VERSION=\\\"\\\" -DPACKAGE_STRING=\\\"\\\"\n-DPACKAGE_BUGREPORT=\\\"\\\" -I/usr/lib64/openmpi/1.4-gcc/include  -DMPI2\n-DOPENMPI -I/usr/local/include    -fpic  -g -c conversion.c -o conversion.o\ngcc44 -std=gnu99 -I/opt/local/lib64/R/include -DPACKAGE_NAME=\\\"\\\"\n-DPACKAGE_TARNAME=\\\"\\\" -DPACKAGE_VERSION=\\\"\\\" -DPACKAGE_STRING=\\\"\\\"\n-DPACKAGE_BUGREPORT=\\\"\\\" -I/usr/lib64/openmpi/1.4-gcc/include  -DMPI2\n-DOPENMPI -I/usr/local/include    -fpic  -g -c internal.c -o internal.o\ngcc44 -std=gnu99 -shared -L/usr/local/lib64 -o Rmpi.so RegQuery.o Rmpi.o\nconversion.o internal.o -L/usr/lib64/openmpi/1.4-gcc/lib -lmpi -lutil\n-lpthread\ninstalling to /opt/local/lib64/R/library/Rmpi/libs\n** R\n** demo\n** inst\n** preparing package for lazy loading\n** help\n*** installing help indices\n** building package indices ...\n** testing if installed package can be loaded\nError in dyn.load(file, DLLpath = DLLpath, ...) :\n   unable to load shared object\n'/opt/local/lib64/R/library/Rmpi/libs/Rmpi.so':\n   libmpi.so.0: cannot open shared object file: No such file or directory\nError: loading failed\nExecution halted\nERROR: loading failed\n* removing '/opt/local/lib64/R/library/Rmpi'\n\n/opt/local/src/R/Rmpi:# yum info openmpi openmpi-devel\nLoaded plugins: rhnplugin, security\nInstalled Packages\nName       : openmpi\nArch       : i386\nVersion    : 1.4\nRelease    : 4.el5\nSize       : 300 k\nRepo       : installed\nSummary    : Open Message Passing Interface\nURL        : http://www.open-mpi.org/\nLicense    : BSD\nDescription: Open MPI is an open source, freely available implementation \nof both the\n            : MPI-1 and MPI-2 standards, combining technologies and \nresources from\n            : several other projects (FT-MPI, LA-MPI, LAM/MPI, and \nPACX-MPI) in\n            : order to build the best MPI library available.  A \ncompletely new MPI-2\n            : compliant implementation, Open MPI offers advantages for \nsystem and\n            : software vendors, application developers, and computer science\n            : researchers. For more information, see \nhttp://www.open-mpi.org/ .\n\nName       : openmpi\nArch       : x86_64\nVersion    : 1.4\nRelease    : 4.el5\nSize       : 316 k\nRepo       : installed\nSummary    : Open Message Passing Interface\nURL        : http://www.open-mpi.org/\nLicense    : BSD\nDescription: Open MPI is an open source, freely available implementation \nof both the\n            : MPI-1 and MPI-2 standards, combining technologies and \nresources from\n            : several other projects (FT-MPI, LA-MPI, LAM/MPI, and \nPACX-MPI) in\n            : order to build the best MPI library available.  A \ncompletely new MPI-2\n            : compliant implementation, Open MPI offers advantages for \nsystem and\n            : software vendors, application developers, and computer science\n            : researchers. For more information, see \nhttp://www.open-mpi.org/ .\n\nName       : openmpi-devel\nArch       : i386\nVersion    : 1.4\nRelease    : 4.el5\nSize       : 3.9 M\nRepo       : installed\nSummary    : Development files for openmpi\nURL        : http://www.open-mpi.org/\nLicense    : BSD\nDescription: Contains development headers and libraries for openmpi\n\nName       : openmpi-devel\nArch       : x86_64\nVersion    : 1.4\nRelease    : 4.el5\nSize       : 3.9 M\nRepo       : installed\nSummary    : Development files for openmpi\nURL        : http://www.open-mpi.org/\nLicense    : BSD\nDescription: Contains development headers and libraries for openmpi\n\n-- \nRodney Sparapani, PhD  Center for Patient Care and Outcomes Research\nSr. Biostatistician               http://www.mcw.edu/pcor\n4 wheels good, 2 wheels better!   Medical College of Wisconsin (MCW)\nWWLD?:  What Would Lombardi Do?   Milwaukee, WI, USA",
+      "body_snippet": "Brian Smith wrote:\n> Hi,\n> \n> I was trying to install the Rmpi package on a cluster (running SGE). I\n> first installed the openmpi package in my directory, and then installed the\n> Rmpi package (after",
+      "thread_id": "thread-8a683210f45f",
+      "thread_depth": 0,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-7796622985c6",
+      "message_id": "<56d18d20c35fea4a61165e0212170357.squirrel@www.stats.uwo.ca>",
+      "from_name": "Hao Yu",
+      "from_email_hash": "f90343116b4a1720ab706b8b458137d0f188602a07689c3a137d7f8799e4a179",
+      "date": "2012-02-28T12:50:53-05:00",
+      "subject": "[R-sig-hpc] Rmpi installation with openmpi (on local directory)",
+      "subject_clean": "Rmpi installation with openmpi (on local directory)",
+      "in_reply_to": "<4F4D09EE.6020308@mcw.edu>",
+      "references": [
+        "<CAEQKoCGUoB5ZY3Jhsjkehb5QB-J98vSUPeB2d8tVZjaUb+W2aw@mail.gmail.com>",
+        "<4F4D09EE.6020308@mcw.edu>"
+      ],
+      "body_plain": "R cannot find libmpi.so in /usr/lib64/openmpi/1.4-gcc/lib. You have to\ntell R where to find it. There are two ways to do it:\n\n1. Modify the env var LD_LIBRARY_PATH to include\n/usr/lib64/openmpi/1.4-gcc/lib.\n2. Modify R in R/bin to add a line (at third line) like\nLD_LIBRARY_PATH=/usr/lib64/openmpi/1.4-gcc/lib\n\nRecompile Rmpi or load Rmpi to see if this works.\n\nHao\n\nRodney Sparapani wrote:\n> Brian Smith wrote:\n>> Hi,\n>>\n>> I was trying to install the Rmpi package on a cluster (running SGE). I\n>> first installed the openmpi package in my directory, and then installed\n>> the\n>> Rmpi package (after downloading tarball from cran) by an interactive R\n>> session.\n>>\n>> If I load Rmpi within an R interactive session everything seems to be\n>> fine.\n>> However, if I try to use the SGE then I get errors:\n>>\n>> Error in dyn.load(file, DLLpath = DLLpath, ...) :\n>>   unable to load shared object\n>> '/home/bs/R/x86_64-unknown-linux-gnu-library/2.14/Rmpi/libs/Rmpi.so':\n>>   libmpi.so.0: cannot open shared object file: No such file or directory\n>> Error: package/namespace load failed for ?Rmpi?\n>> Execution halted\n>>\n>> Other details of my attempts at the installation are given below. Any\n>> help\n>> would be greatly appreciated!\n>>\n>> many thanks!\n>>\n>> PS: I have read the previous threads on difficulties in installation of\n>> Rmpi and have tried to follow the advice/example...\n>>\n>>\n>\n> Hi Brian et al.:\n>\n> I'm seeing pretty much the same thing with R 2.14.0 on RHEL 5.7 with GCC\n> 4.4.4 20100726 (Red Hat 4.4.4-13).  I didn't see a solution in this\n> thread.  Any ideas?  Thanks in advance.\n>\n> /opt/local/src/R/Rmpi:$ R CMD INSTALL Rmpi_0.5-9.tar.gz \\\n> --configure-args=--with-mpi=/usr/lib64/openmpi/1.4-gcc\n>\n> * installing to library '/opt/local/lib64/R/library'\n> * installing *source* package 'Rmpi' ...\n> checking for gcc... gcc44 -std=gnu99\n> checking for C compiler default output file name... a.out\n> checking whether the C compiler works... yes\n> checking whether we are cross compiling... no\n> checking for suffix of executables...\n> checking for suffix of object files... o\n> checking whether we are using the GNU C compiler... yes\n> checking whether gcc44 -std=gnu99 accepts -g... yes\n> checking for gcc44 -std=gnu99 option to accept ISO C89... none needed\n> Trying to find mpi.h ...\n> Found in /usr/lib64/openmpi/1.4-gcc/include\n> Trying to find libmpi.so or libmpich.a ...\n> Found libmpi in /usr/lib64/openmpi/1.4-gcc/lib\n> checking for openpty in -lutil... yes\n> checking for main in -lpthread... yes\n> configure: creating ./config.status\n> config.status: creating src/Makevars\n> ** Creating default NAMESPACE file\n> ** libs\n> gcc44 -std=gnu99 -I/opt/local/lib64/R/include -DPACKAGE_NAME=\\\"\\\"\n> -DPACKAGE_TARNAME=\\\"\\\" -DPACKAGE_VERSION=\\\"\\\" -DPACKAGE_STRING=\\\"\\\"\n> -DPACKAGE_BUGREPORT=\\\"\\\" -I/usr/lib64/openmpi/1.4-gcc/include  -DMPI2\n> -DOPENMPI -I/usr/local/include    -fpic  -g -c RegQuery.c -o RegQuery.o\n> gcc44 -std=gnu99 -I/opt/local/lib64/R/include -DPACKAGE_NAME=\\\"\\\"\n> -DPACKAGE_TARNAME=\\\"\\\" -DPACKAGE_VERSION=\\\"\\\" -DPACKAGE_STRING=\\\"\\\"\n> -DPACKAGE_BUGREPORT=\\\"\\\" -I/usr/lib64/openmpi/1.4-gcc/include  -DMPI2\n> -DOPENMPI -I/usr/local/include    -fpic  -g -c Rmpi.c -o Rmpi.o\n> gcc44 -std=gnu99 -I/opt/local/lib64/R/include -DPACKAGE_NAME=\\\"\\\"\n> -DPACKAGE_TARNAME=\\\"\\\" -DPACKAGE_VERSION=\\\"\\\" -DPACKAGE_STRING=\\\"\\\"\n> -DPACKAGE_BUGREPORT=\\\"\\\" -I/usr/lib64/openmpi/1.4-gcc/include  -DMPI2\n> -DOPENMPI -I/usr/local/include    -fpic  -g -c conversion.c -o\n> conversion.o\n> gcc44 -std=gnu99 -I/opt/local/lib64/R/include -DPACKAGE_NAME=\\\"\\\"\n> -DPACKAGE_TARNAME=\\\"\\\" -DPACKAGE_VERSION=\\\"\\\" -DPACKAGE_STRING=\\\"\\\"\n> -DPACKAGE_BUGREPORT=\\\"\\\" -I/usr/lib64/openmpi/1.4-gcc/include  -DMPI2\n> -DOPENMPI -I/usr/local/include    -fpic  -g -c internal.c -o internal.o\n> gcc44 -std=gnu99 -shared -L/usr/local/lib64 -o Rmpi.so RegQuery.o Rmpi.o\n> conversion.o internal.o -L/usr/lib64/openmpi/1.4-gcc/lib -lmpi -lutil\n> -lpthread\n> installing to /opt/local/lib64/R/library/Rmpi/libs\n> ** R\n> ** demo\n> ** inst\n> ** preparing package for lazy loading\n> ** help\n> *** installing help indices\n> ** building package indices ...\n> ** testing if installed package can be loaded\n> Error in dyn.load(file, DLLpath = DLLpath, ...) :\n>    unable to load shared object\n> '/opt/local/lib64/R/library/Rmpi/libs/Rmpi.so':\n>    libmpi.so.0: cannot open shared object file: No such file or directory\n> Error: loading failed\n> Execution halted\n> ERROR: loading failed\n> * removing '/opt/local/lib64/R/library/Rmpi'\n>\n> /opt/local/src/R/Rmpi:# yum info openmpi openmpi-devel\n> Loaded plugins: rhnplugin, security\n> Installed Packages\n> Name       : openmpi\n> Arch       : i386\n> Version    : 1.4\n> Release    : 4.el5\n> Size       : 300 k\n> Repo       : installed\n> Summary    : Open Message Passing Interface\n> URL        : http://www.open-mpi.org/\n> License    : BSD\n> Description: Open MPI is an open source, freely available implementation\n> of both the\n>             : MPI-1 and MPI-2 standards, combining technologies and\n> resources from\n>             : several other projects (FT-MPI, LA-MPI, LAM/MPI, and\n> PACX-MPI) in\n>             : order to build the best MPI library available.  A\n> completely new MPI-2\n>             : compliant implementation, Open MPI offers advantages for\n> system and\n>             : software vendors, application developers, and computer\n> science\n>             : researchers. For more information, see\n> http://www.open-mpi.org/ .\n>\n> Name       : openmpi\n> Arch       : x86_64\n> Version    : 1.4\n> Release    : 4.el5\n> Size       : 316 k\n> Repo       : installed\n> Summary    : Open Message Passing Interface\n> URL        : http://www.open-mpi.org/\n> License    : BSD\n> Description: Open MPI is an open source, freely available implementation\n> of both the\n>             : MPI-1 and MPI-2 standards, combining technologies and\n> resources from\n>             : several other projects (FT-MPI, LA-MPI, LAM/MPI, and\n> PACX-MPI) in\n>             : order to build the best MPI library available.  A\n> completely new MPI-2\n>             : compliant implementation, Open MPI offers advantages for\n> system and\n>             : software vendors, application developers, and computer\n> science\n>             : researchers. For more information, see\n> http://www.open-mpi.org/ .\n>\n> Name       : openmpi-devel\n> Arch       : i386\n> Version    : 1.4\n> Release    : 4.el5\n> Size       : 3.9 M\n> Repo       : installed\n> Summary    : Development files for openmpi\n> URL        : http://www.open-mpi.org/\n> License    : BSD\n> Description: Contains development headers and libraries for openmpi\n>\n> Name       : openmpi-devel\n> Arch       : x86_64\n> Version    : 1.4\n> Release    : 4.el5\n> Size       : 3.9 M\n> Repo       : installed\n> Summary    : Development files for openmpi\n> URL        : http://www.open-mpi.org/\n> License    : BSD\n> Description: Contains development headers and libraries for openmpi\n>\n> --\n> Rodney Sparapani, PhD  Center for Patient Care and Outcomes Research\n> Sr. Biostatistician               http://www.mcw.edu/pcor\n> 4 wheels good, 2 wheels better!   Medical College of Wisconsin (MCW)\n> WWLD?:  What Would Lombardi Do?   Milwaukee, WI, USA\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>\n\n\n-- \nDepartment of Statistics & Actuarial Sciences\nOffice Phone#:(519)-661-3622\nFax Phone#:(519)-661-3813\nThe University of Western Ontario\nLondon, Ontario N6A 5B7\nhttp://www.stats.uwo.ca/yu",
+      "body_snippet": "R cannot find libmpi.so in /usr/lib64/openmpi/1.4-gcc/lib. You have to\ntell R where to find it. There are two ways to do it:\n\n1. Modify the env var LD_LIBRARY_PATH to include\n/usr/lib64/openmpi/1.4-gc",
+      "thread_id": "thread-8a683210f45f",
+      "thread_depth": 1,
+      "month": "2012-02"
+    },
+    {
+      "id": "msg-8bb75dafe953",
+      "message_id": "<CAAjXVjoGXJbEgqKo+YTDp4aqcTSvNyxMD0Vz7w246vofxCWYgA@mail.gmail.com>",
+      "from_name": "Libo Sun",
+      "from_email_hash": "90d69ce51f5234541e9091c90920b66d3440287fb9bc064261f750bbe13ad0c2",
+      "date": "2012-02-28T11:12:17-07:00",
+      "subject": "[R-sig-hpc] Error: 'Portals failed to handle copy-on-write'",
+      "subject_clean": "Error: 'Portals failed to handle copy-on-write'",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120228/1d5ec833/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120228/1d5ec833/attachment.pl>",
+      "thread_id": "thread-8bb75dafe953",
+      "thread_depth": 0,
+      "month": "2012-02"
+    }
+  ],
+  "threads": [
+    {
+      "id": "thread-474c9d3dd601",
+      "subject": "Rmpi for non matrices results",
+      "message_count": 1,
+      "participants": [
+        "Paul Johnson"
+      ],
+      "started": "2012-02-04T12:29:34-06:00",
+      "last_reply": "2012-02-04T12:29:34-06:00",
+      "root_message_id": "msg-474c9d3dd601"
+    },
+    {
+      "id": "thread-2bac2ab3f953",
+      "subject": "errors in Rmpi programming. I get no error messages, just stalled programs. Would you test your cluster?",
+      "message_count": 1,
+      "participants": [
+        "Paul Johnson"
+      ],
+      "started": "2012-02-04T14:44:21-06:00",
+      "last_reply": "2012-02-04T14:44:21-06:00",
+      "root_message_id": "msg-2bac2ab3f953"
+    },
+    {
+      "id": "thread-de9f54a121ac",
+      "subject": "an opinion question",
+      "message_count": 7,
+      "participants": [
+        "Hodgess, Erin",
+        "Joshua Wiley",
+        "Paul Johnson",
+        "Rainer M Krug"
+      ],
+      "started": "2012-02-04T17:25:13-06:00",
+      "last_reply": "2012-02-06T09:48:12+01:00",
+      "root_message_id": "msg-de9f54a121ac"
+    },
+    {
+      "id": "thread-19745e344d71",
+      "subject": "Can't start multi node SNOW cluster",
+      "message_count": 6,
+      "participants": [
+        "Stephen Weston",
+        "Xiaobo Gu"
+      ],
+      "started": "2012-02-04T22:51:12+08:00",
+      "last_reply": "2012-02-07T15:39:30-05:00",
+      "root_message_id": "msg-19745e344d71"
+    },
+    {
+      "id": "thread-c224f42abbe7",
+      "subject": "using mpiexec and a machine file with Rmpi",
+      "message_count": 1,
+      "participants": [
+        "Hodgess, Erin"
+      ],
+      "started": "2012-02-08T19:45:07-06:00",
+      "last_reply": "2012-02-08T19:45:07-06:00",
+      "root_message_id": "msg-c224f42abbe7"
+    },
+    {
+      "id": "thread-9c4083470b11",
+      "subject": "got the mpiexec issue fixed",
+      "message_count": 1,
+      "participants": [
+        "Hodgess, Erin"
+      ],
+      "started": "2012-02-08T20:09:58-06:00",
+      "last_reply": "2012-02-08T20:09:58-06:00",
+      "root_message_id": "msg-9c4083470b11"
+    },
+    {
+      "id": "thread-cc33eb1630b4",
+      "subject": "some examples using Rmpi, please?",
+      "message_count": 2,
+      "participants": [
+        "Hodgess, Erin"
+      ],
+      "started": "2012-02-09T18:10:42-06:00",
+      "last_reply": "2012-02-09T18:26:23-06:00",
+      "root_message_id": "msg-cc33eb1630b4"
+    },
+    {
+      "id": "thread-f1062e06ec13",
+      "subject": "using a macines file from within R",
+      "message_count": 2,
+      "participants": [
+        "Hodgess, Erin",
+        "Paul Johnson"
+      ],
+      "started": "2012-02-10T15:31:13-06:00",
+      "last_reply": "2012-02-11T16:10:23-06:00",
+      "root_message_id": "msg-f1062e06ec13"
+    },
+    {
+      "id": "thread-0b95ada50125",
+      "subject": "Get identical results for parallel and sequential?",
+      "message_count": 4,
+      "participants": [
+        "Dirk Eddelbuettel",
+        "Libo Sun",
+        "Paul Johnson"
+      ],
+      "started": "2012-02-11T15:27:45-07:00",
+      "last_reply": "2012-02-14T15:15:59-06:00",
+      "root_message_id": "msg-0b95ada50125"
+    },
+    {
+      "id": "thread-84159a00b8f9",
+      "subject": "Get identical results for parallel and sequential?",
+      "message_count": 3,
+      "participants": [
+        "Hana Sevcikova",
+        "Libo Sun",
+        "Norm Matloff"
+      ],
+      "started": "2012-02-11T16:50:40-08:00",
+      "last_reply": "2012-02-11T19:02:40-08:00",
+      "root_message_id": "msg-84159a00b8f9"
+    },
+    {
+      "id": "thread-c965ac3f27f6",
+      "subject": "Get identical results for parallel and sequential?",
+      "message_count": 1,
+      "participants": [
+        "Norm Matloff"
+      ],
+      "started": "2012-02-11T21:25:46-08:00",
+      "last_reply": "2012-02-11T21:25:46-08:00",
+      "root_message_id": "msg-c965ac3f27f6"
+    },
+    {
+      "id": "thread-4316ae661493",
+      "subject": "Parallel File System support in R (e.g. GPFS)",
+      "message_count": 5,
+      "participants": [
+        "George Ostrouchov",
+        "Jonathan Greenberg",
+        "Matteo Mattiuzzi",
+        "bart"
+      ],
+      "started": "2012-02-17T09:20:26-06:00",
+      "last_reply": "2012-02-17T14:20:28-05:00",
+      "root_message_id": "msg-4316ae661493"
+    },
+    {
+      "id": "thread-6e3ab3e8bc83",
+      "subject": "Bug using SNOW package",
+      "message_count": 1,
+      "participants": [
+        "To Maxime"
+      ],
+      "started": "2012-02-20T21:35:19+01:00",
+      "last_reply": "2012-02-20T21:35:19+01:00",
+      "root_message_id": "msg-6e3ab3e8bc83"
+    },
+    {
+      "id": "thread-2715f0621b70",
+      "subject": "question about install gputools",
+      "message_count": 8,
+      "participants": [
+        "Brian G. Peterson",
+        "Dirk Eddelbuettel",
+        "Hodgess, Erin",
+        "Simon Urbanek"
+      ],
+      "started": "2012-02-22T20:40:23-06:00",
+      "last_reply": "2012-02-23T17:55:54-05:00",
+      "root_message_id": "msg-2715f0621b70"
+    },
+    {
+      "id": "thread-d84a63099682",
+      "subject": "question about install gputools",
+      "message_count": 1,
+      "participants": [
+        "Mark Seligman"
+      ],
+      "started": "2012-02-22T23:11:15-06:00",
+      "last_reply": "2012-02-22T23:11:15-06:00",
+      "root_message_id": "msg-d84a63099682"
+    },
+    {
+      "id": "thread-59a08fff323d",
+      "subject": "Parallel by Socket Cluster on supercomputer SUSE Linux shared-memory system",
+      "message_count": 1,
+      "participants": [
+        "Libo Sun"
+      ],
+      "started": "2012-02-25T13:49:42-07:00",
+      "last_reply": "2012-02-25T13:49:42-07:00",
+      "root_message_id": "msg-59a08fff323d"
+    },
+    {
+      "id": "thread-8a683210f45f",
+      "subject": "Rmpi installation with openmpi (on local directory)",
+      "message_count": 2,
+      "participants": [
+        "Hao Yu",
+        "Rodney Sparapani"
+      ],
+      "started": "2012-02-28T11:07:58-06:00",
+      "last_reply": "2012-02-28T12:50:53-05:00",
+      "root_message_id": "msg-8a683210f45f"
+    },
+    {
+      "id": "thread-8bb75dafe953",
+      "subject": "Error: 'Portals failed to handle copy-on-write'",
+      "message_count": 1,
+      "participants": [
+        "Libo Sun"
+      ],
+      "started": "2012-02-28T11:12:17-07:00",
+      "last_reply": "2012-02-28T11:12:17-07:00",
+      "root_message_id": "msg-8bb75dafe953"
+    }
+  ]
+}

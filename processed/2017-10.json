@@ -1,0 +1,63 @@
+{
+  "list": "r-sig-hpc",
+  "description": "",
+  "month": "2017-10",
+  "messages": [
+    {
+      "id": "msg-5ba98967606a",
+      "message_id": "<CAFDcVCS2fX6f+08u1Ju2cMrxhFBOD22uMDhvPr3dCEYkWyHVfA@mail.gmail.com>",
+      "from_name": "Henrik Bengtsson",
+      "from_email_hash": "64a3206ab5ef5f3eb33045076d839aa0671d85aac05489628035c18ce53b4a6e",
+      "date": "2017-10-03T12:17:40-07:00",
+      "subject": "[R-sig-hpc] Rmpi::mpi.spawn.Rslaves() stalls",
+      "subject_clean": "Rmpi::mpi.spawn.Rslaves() stalls",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "ISSUE:\nI'm trying to set up Rmpi on Ubuntu 16.04, but I fail to get it\nrunning.  Whenever I launch `R --vanilla` and do:\n\n    > library(\"Rmpi\")\n    > mpi.spawn.Rslaves(nslaves = 2L)\n2 slaves are spawned successfully. 0 failed.\n\nit just stalls there.  I have to `SIG-QUIT` the R process there.\n\n\nTROUBLESHOOTING:\nI'm a bit puzzled on how to troubleshoot this one, especially from\nR/Rmpi itself.  After calling `mpi.spawn.Rslaves()` I see the\nfollowing process tree:\n\n    $ pstree -Aa 24442\n    R --vanilla\n     |-orted --hnp --set-sid --report-uri 13 --singleton-died-pipe 14\n-mca state_novm_select 1 -mca ess_base_jobid 761266176\n     |   |-Rslaves.sh /usr/lib/R/site-library/Rmpi/Rslaves.sh\n/usr/lib/R/site-library/Rmpi/slavedaemon.R 24442+1 needlog /usr/lib/R\n     |   |   `-R --no-init-file --slave --no-save -f\n/usr/lib/R/site-library/Rmpi/slavedaemon.R\n     |   |      `-{R}\n     |   |-Rslaves.sh /usr/lib/R/site-library/Rmpi/Rslaves.sh\n/usr/lib/R/site-library/Rmpi/slavedaemon.R 24442+1 needlog /usr/lib/R\n     |   |   `-R --no-init-file --slave --no-save -f\n/usr/lib/R/site-library/Rmpi/slavedaemon.R\n     |   |      `-{R}\n     |   `-{orted}\n     `-{R}\n\nand using `debug(Rmpi::mpi.spawn.Rslaves)` I can see that it appears\nto stall in the `mpi.intercomm.merge(intercomm, 0, comm)` call;\n\n    debug: if (realns == 0) stop(\"It seems no single slave spawned.\")\n    Browse[2]>\n       debug: if (mpi.intercomm.merge(intercomm, 0, comm)) {\n       mpi.comm.set.errhandler(comm)\n       mpi.comm.disconnect(intercomm)\n       mpi.bcast(nonblock, type = 1, rank = 0, comm = comm)\n       mpi.bcast(sleep, type = 2, rank = 0, comm = comm)\n       if (!quiet)\n           slave.hostinfo(comm)\n    } else stop(\"Fail to merge the comm for master and slaves.\")\n\nOther than that, I can confirm is that basic `mpicc` and `mpirun` work\nas expected using one of the classic hello-world MPI examples in C:\n\n    $ mpicc -o hello hello.c\n    $ mpirun -n 2 hello\n    Hello: rank 0, world: 2\n    Hello: rank 1, world: 2\n\nwith\n\n    mpirun --version\n    mpirun (Open MPI) 1.10.2\n\n    Report bugs to http://www.open-mpi.org/community/help/\n\nHonestly, I'm not even sure that the above uses the same libraries as\n`Rmpi` uses.\n\nAlso, I did notice that the Rmpi (Debian distro as frequently\nrecommended by Dirk E) was built for R 3.2.3 (see below) - is that\nintended/outdated?\n\nAny suggestions on how to proceed here?  Does anyone know of a Ubuntu\nDocker container with a functional R and Rmpi that I can compare to?\n\n\nSESSION INFORMATION:\n\nI've installed R and Rmpi via the Debian distro;\n\n    sudo apt install r-base\n    sudo apt install r-cran-rmpi\n\nThe above problem occurred with R 3.4.1 as well as after updating to R\n3.4.2.  I've also reinstalled site-wide Rmpi using `sudo apt install\n--reinstall r-cran-rmpi`.\n\nWith the above I have:\n\n    $ R --vanilla\n\n    > library(\"Rmpi\")\n    > sessionInfo()\n    R version 3.4.2 (2017-09-28)\n    Platform: x86_64-pc-linux-gnu (64-bit)\n    Running under: Ubuntu 16.04.3 LTS\n\n    Matrix products: default\n    BLAS: /usr/lib/atlas-base/atlas/libblas.so.3.0\n    LAPACK: /usr/lib/atlas-base/atlas/liblapack.so.3.0\n\n    locale:\n     [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C\n     [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8\n     [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8\n     [7] LC_PAPER=en_US.UTF-8       LC_NAME=C\n     [9] LC_ADDRESS=C               LC_TELEPHONE=C\n    [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C\n\n    attached base packages:\n    [1] stats     graphics  grDevices utils     datasets  methods   base\n\n    other attached packages:\n    [1] Rmpi_0.6-5\n\n    loaded via a namespace (and not attached):\n    [1] compiler_3.4.2\n\n    > packageDescription(\"Rmpi\")\n    Package: Rmpi\n    Version: 0.6-5\n    Date: 2014-05-20\n    Title: Interface (Wrapper) to MPI (Message-Passing Interface)\n    Author: Hao Yu\n    Maintainer: Hao Yu <hyu at stats.uwo.ca>\n    Depends: R (>= 2.15.1)\n    Suggests: parallel\n    Description: Rmpi provides an interface (wrapper) to MPI APIs. It also\n            provides interactive R slave environment.\n    License: GPL (>= 2)\n    URL: http://www.stats.uwo.ca/faculty/yu/Rmpi\n    Packaged: 2014-05-20 14:19:14 UTC; hyu\n    NeedsCompilation: yes\n    Repository: CRAN\n    Date/Publication: 2014-05-21 08:20:01\n    Built: R 3.2.3; x86_64-pc-linux-gnu; \"Sat, 06 Feb 2016 19:52:50 +0000\";\n            unix\n\n    -- File: /usr/lib/R/site-library/Rmpi/Meta/package.rds\n\nI've also made sure that I have no `~/.Renviron` and `~/.Rprofile` file.\n\n\nThank you\n\nHenrik",
+      "body_snippet": "ISSUE:\nI'm trying to set up Rmpi on Ubuntu 16.04, but I fail to get it\nrunning.  Whenever I launch `R --vanilla` and do:\n\n    > library(\"Rmpi\")\n    > mpi.spawn.Rslaves(nslaves = 2L)\n2 slaves are spawn",
+      "thread_id": "thread-5ba98967606a",
+      "thread_depth": 0,
+      "month": "2017-10"
+    },
+    {
+      "id": "msg-85dd0cfec63c",
+      "message_id": "<CAKxd1KMfxonkJi7kLFaaLanTKs1gWN=6+xYuNhR1xapPX3CjJg@mail.gmail.com>",
+      "from_name": "Charles Determan",
+      "from_email_hash": "fcc9a1e7c21371cee92703630056a3d910de1afb77217895dfe5b4bc47c007e1",
+      "date": "2017-10-19T08:53:26-05:00",
+      "subject": "[R-sig-hpc] gpuR 2.0.0 released",
+      "subject_clean": "gpuR 2.0.0 released",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Dear R users,\n\nI am happy to announce the most recent version of gpuR has been\nreleased. There are several new enhancements to the package including\nthe ability to use user written OpenCL kernels.  A full list of\nchanges from the NEWS are shown below.\n\nAPI Changes:\n\n1. deviceType, gpuInfo, cpuInfo not longer accepts 'platform_idx'\nparameter as OpenCL contexts cannot contain more than one platform.\n\nNew Features:\n\n1. Added functionality to create custom OpenCL functions from user\nprovided kernels\n\n2. Added 'synchronize' function to assure completion of device calls\n(necessary for benchmarking)\n\n3. Added determinant function (det)\n\n4. Allow for gpuR object - base object interaction (e.g. vclMatrix * matrix)\n\n5. Added ?inplace' function for ?inplace' operations. These operations\ninclude '+', '-', '*', '/', 'sin', 'asin', 'sinh', 'cos', 'acos',\n'cosh', 'tan', 'atan', 'tanh'.\n\n6. Added 'sqrt', 'sum', 'sign','pmin', and 'pmax' functions\n\n7. Methods to pass two gpuR matrix objects to 'cov'\n\n8. Added 'norm' method\n\n9. Added gpuRmatrix/gpuRvector Arith '+','-' methods\n\nBug Fixes:\n\n1. Fixed incorrect device info when using different contexts\n\n2. Fixed Integer Matrix Multiplication\n\n3. All OpenCL devices will be initialized on startup (previous version\noccasionally would omit some devices)\n\n\nThere are many more features in the works.  Suggestions and\ncontributions continue to be welcomed.  Please submit all through my\ngithub issues https://github.com/cdeterman/gpuR/issues\n<https://github.com/cdeterman/gpuR.git>\n\n\nAlso, thanks to all those as well for testing this package on various\nGPU devices and operating systems.  A lot of the stability of this\npackage is made possible by your efforts.\n\n\nKind regards,\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "Dear R users,\n\nI am happy to announce the most recent version of gpuR has been\nreleased. There are several new enhancements to the package including\nthe ability to use user written OpenCL kernels.  A ",
+      "thread_id": "thread-85dd0cfec63c",
+      "thread_depth": 0,
+      "month": "2017-10"
+    }
+  ],
+  "threads": [
+    {
+      "id": "thread-5ba98967606a",
+      "subject": "Rmpi::mpi.spawn.Rslaves() stalls",
+      "message_count": 1,
+      "participants": [
+        "Henrik Bengtsson"
+      ],
+      "started": "2017-10-03T12:17:40-07:00",
+      "last_reply": "2017-10-03T12:17:40-07:00",
+      "root_message_id": "msg-5ba98967606a"
+    },
+    {
+      "id": "thread-85dd0cfec63c",
+      "subject": "gpuR 2.0.0 released",
+      "message_count": 1,
+      "participants": [
+        "Charles Determan"
+      ],
+      "started": "2017-10-19T08:53:26-05:00",
+      "last_reply": "2017-10-19T08:53:26-05:00",
+      "root_message_id": "msg-85dd0cfec63c"
+    }
+  ]
+}

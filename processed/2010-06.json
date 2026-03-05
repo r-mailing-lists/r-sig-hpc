@@ -1,0 +1,602 @@
+{
+  "list": "r-sig-hpc",
+  "description": "",
+  "month": "2010-06",
+  "messages": [
+    {
+      "id": "msg-721351a4eafa",
+      "message_id": "<AANLkTikE8wVyY7T-kskve-RNvFIAOVaVXwzdjSScalEH@mail.gmail.com>",
+      "from_name": "William Rogers",
+      "from_email_hash": "a3fd6095656d679048d5a604d687576abc6862070dc702fd70bcf2b845af980a",
+      "date": "2010-06-02T11:43:11-05:00",
+      "subject": "[R-sig-hpc] lapply or data.table to find a unit's previous transaction",
+      "subject_clean": "lapply or data.table to find a unit's previous transaction",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100602/b6aeb738/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100602/b6aeb738/attachment.pl>",
+      "thread_id": "thread-721351a4eafa",
+      "thread_depth": 0,
+      "month": "2010-06"
+    },
+    {
+      "id": "msg-8844ef24d0d3",
+      "message_id": "<4C068D17.9090709@braverock.com>",
+      "from_name": "Brian G. Peterson",
+      "from_email_hash": "2d44e89a02cb2a9eb2f2113de72098dcb74d077b13b61958f1336c3292aa0254",
+      "date": "2010-06-02T11:55:51-05:00",
+      "subject": "[R-sig-hpc] lapply or data.table to find a unit's previous\ttransaction",
+      "subject_clean": "lapply or data.table to find a unit's previous\ttransaction",
+      "in_reply_to": "<AANLkTikE8wVyY7T-kskve-RNvFIAOVaVXwzdjSScalEH@mail.gmail.com>",
+      "references": [
+        "<AANLkTikE8wVyY7T-kskve-RNvFIAOVaVXwzdjSScalEH@mail.gmail.com>"
+      ],
+      "body_plain": "William,\n\nThis is a general r-help question, not a high performance computing question, \nand should be directed to r-help for more useful and relevant answers, and to \nkeep this list (and its archives) on topic.\n\nAlso, when you re-post to r-help, you will get a more helpful answer if you \nhave a fully reproducible example, per the posting guidelines.\n\nRegards,\n\n    - Brian\n\nOn 06/02/2010 11:43 AM, William Rogers wrote:\n> I have a dataset of property transactions that inlcudes the transaction ID\n> (TranID), property ID (UnitID), and transaction date (TranDt). I need to\n> create a data frame (or data table) that includes the previous transaction\n> date, if one exists.\n>\n> This is an easy problem in SQL, where I just run a subquery, but I'm trying\n> to make R my one-stop-shopping program.  The following code works on a\n> subset of my data, but I can't run this on my full dataset becuase my\n> computer runs out of memory after about 30 minutes.\n>\n> #First I create a list of all the previous transactions by unit\n>\n> TranList<- as.matrix(Data$TranID, ncol= 1) #Matrix of transaction IDs\n>\n> PreTran<- lapply(TranList,                 #Make a list of all the prevoius\n> transactions\n>    function(x) (with(Data,                  #TranID= cat(UnitID, TranDt)\n>    Data[\n>    UnitID== substr(x, 1, 9)&\n>    TranDt<  Data[TranID== x, \"TranDt\"], ]\n>    ))\n>    )\n>\n> #I do get warnings about missing data because some transactions have no\n> predecessor.\n>\n> #Some transactions have no previous transactions, others have many so I pick\n> the most recent\n>\n> BeforeTran<- lapply(seq_along(PreTran), function(x) (\n> with(PreTran[[x]], PreTran[[x]][which(TranDt== max(TranDt)), ])))\n>\n> #I need to add the current transaction's TranID to the list so I can merge\n> later\n>\n> BeforeTran<- lapply(seq_along(PreTran), function(x) (\n> transform(BeforeTran[[x]], TranID= TranList[x, 1])))\n>\n> #Finally, I convert from a list to a data frame\n>\n> BeforeTran<- do.call(\"rbind\", BeforeTran)\n>\n> #I have used a combination of data.table and for loops, but that seems\n> cheesey and doesn't preform much better.\n>\n> library(data.table)\n>\n> #First I create a list of all the previous transactions by unit\n>\n> TranList<- vector(nrow(Data), mode= \"list\")\n> names(TranList)<- levels(Data$TranID)\n>\n> #Convert my data frame to a data table\n>\n> DataDT<- data.table(Data, key= \"UnitID\")\n>\n> #Use a for loop and data.table to find the date of the previous transaction\n> for (i in levels(Data$TranID)) {\n> if (DataDT[J(substr(i, 1, 9))&  #I run an IF statement to avoid 'missing\n> data' errors\n>     TranDt<= (DataDT[TranID== i, TranDt]), #But it slows things down\n> length(TranDt)]>  1)\n>\n> TranList[[i]]<- cbind(TranID= i, #This finds the last transaction date and\n> combines\n> DataDT[J(substr(i, 1, 9))&  #the current transaction ID\n> TranDt<  (DataDT[TranID== i, TranDt]),\n> list(TranDt= max(TranDt))])\n> }\n>\n> #Finally, I convert from a list to a data table\n>\n> BeforeTran<- do.call(\"rbind\", TranList)\n>\n> My intution says that this code doesn't take advantage of data.table's\n> attributes.\n>\n> Are there any ideas out there?  Thank you.\n>\n> P.S. I've tried plyr and it does not help my memory problem.\n>",
+      "body_snippet": "William,\n\nThis is a general r-help question, not a high performance computing question, \nand should be directed to r-help for more useful and relevant answers, and to \nkeep this list (and its archives",
+      "thread_id": "thread-721351a4eafa",
+      "thread_depth": 1,
+      "month": "2010-06"
+    },
+    {
+      "id": "msg-bbf16c7e1025",
+      "message_id": "<AANLkTilpQ3rADbii-IDLb_MLY6QMp_kFHcCECS-9n4Co@mail.gmail.com>",
+      "from_name": "Max Kuhn",
+      "from_email_hash": "3588dfda283917c3772455ab1c0353851f9d1c038018811529c94e046489b5cb",
+      "date": "2010-06-07T10:35:52-04:00",
+      "subject": "[R-sig-hpc] benchmark problems",
+      "subject_clean": "benchmark problems",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Everyone,\n\nWe've got some big shiny new SMP machines running Cent OS. I'm trying\nto convince our people that they are slow; about 2 fold slower than my\n12 month old MacPro (running either Slackware or OS X).\n\nSo... to show relative/absolute differences in execution time are\nthere any well-known benchmarking problems that I should be using? I'd\nlike to cover a lot of different bases (e.g. linear algebraic\nproblems, memory intensive, CPU intensive, etc). We'd have to make the\nusual caveats about diferences in OS's but it would be good to have\nnumbers.\n\nIf people have good ideas, I wouldn't mind putting a small R package\non R-Forge to make the tests easily accessible.\n\nThanks,\n\nMax",
+      "body_snippet": "Everyone,\n\nWe've got some big shiny new SMP machines running Cent OS. I'm trying\nto convince our people that they are slow; about 2 fold slower than my\n12 month old MacPro (running either Slackware or",
+      "thread_id": "thread-bbf16c7e1025",
+      "thread_depth": 0,
+      "month": "2010-06"
+    },
+    {
+      "id": "msg-b6606a222af5",
+      "message_id": "<AANLkTimiQipJiHoMmdyEmtlxpXlV_VY2BYhCDkhHMfvZ@mail.gmail.com>",
+      "from_name": "Steve Lianoglou",
+      "from_email_hash": "65bbed6d3f5a5c67840e1a8d8d82a54afcd8e5cfa80563594de1bbc0121bb2f0",
+      "date": "2010-06-07T19:02:44-04:00",
+      "subject": "[R-sig-hpc] benchmark problems",
+      "subject_clean": "benchmark problems",
+      "in_reply_to": "<AANLkTilpQ3rADbii-IDLb_MLY6QMp_kFHcCECS-9n4Co@mail.gmail.com>",
+      "references": [
+        "<AANLkTilpQ3rADbii-IDLb_MLY6QMp_kFHcCECS-9n4Co@mail.gmail.com>"
+      ],
+      "body_plain": "Hi,\n\nOn Mon, Jun 7, 2010 at 10:35 AM, Max Kuhn <mxkuhn at gmail.com> wrote:\n> Everyone,\n>\n> We've got some big shiny new SMP machines running Cent OS. I'm trying\n> to convince our people that they are slow; about 2 fold slower than my\n> 12 month old MacPro (running either Slackware or OS X).\n>\n> So... to show relative/absolute differences in execution time are\n> there any well-known benchmarking problems that I should be using? I'd\n> like to cover a lot of different bases (e.g. linear algebraic\n> problems, memory intensive, CPU intensive, etc). We'd have to make the\n> usual caveats about diferences in OS's but it would be good to have\n> numbers.\n>\n> If people have good ideas, I wouldn't mind putting a small R package\n> on R-Forge to make the tests easily accessible.\n\nDoes the LINPACK benchmark help here?\n\nhttp://www.top500.org/project/linpack\nhttp://www.netlib.org/benchmark/hpl/\n\nHere's a MATLAB program that runs the benchmark:\nhttp://people.sc.fsu.edu/~burkardt/m_src/linpack_bench/linpack_bench.html\n\nSorry if that's too obvious of a suggestion, but it's a start.\n\n-steve\n\n-- \nSteve Lianoglou\nGraduate Student: Computational Systems Biology\n | Memorial Sloan-Kettering Cancer Center\n | Weill Medical College of Cornell University\nContact Info: http://cbio.mskcc.org/~lianos/contact",
+      "body_snippet": "Hi,\n\nOn Mon, Jun 7, 2010 at 10:35 AM, Max Kuhn <mxkuhn at gmail.com> wrote:\n> Everyone,\n>\n> We've got some big shiny new SMP machines running Cent OS. I'm trying\n> to convince our people that they are",
+      "thread_id": "thread-bbf16c7e1025",
+      "thread_depth": 1,
+      "month": "2010-06"
+    },
+    {
+      "id": "msg-96b72ed57315",
+      "message_id": "<AANLkTinyo8aWHyXb5Jmw2YQmNtka15pIZWYoZJ7BYIIO@mail.gmail.com>",
+      "from_name": "Max Kuhn",
+      "from_email_hash": "3588dfda283917c3772455ab1c0353851f9d1c038018811529c94e046489b5cb",
+      "date": "2010-06-07T20:53:34-04:00",
+      "subject": "[R-sig-hpc] benchmark problems",
+      "subject_clean": "benchmark problems",
+      "in_reply_to": "<AANLkTimiQipJiHoMmdyEmtlxpXlV_VY2BYhCDkhHMfvZ@mail.gmail.com>",
+      "references": [
+        "<AANLkTilpQ3rADbii-IDLb_MLY6QMp_kFHcCECS-9n4Co@mail.gmail.com>",
+        "<AANLkTimiQipJiHoMmdyEmtlxpXlV_VY2BYhCDkhHMfvZ@mail.gmail.com>"
+      ],
+      "body_plain": "Yes, those are being run. I wanted something from within R to\nspecifically evaluate that build. For example, R built with icc\ninstead of gcc. Also, I want to test a variety of computational\nproblems.\n\nThanks,\n\nMax\n\nOn Mon, Jun 7, 2010 at 7:02 PM, Steve Lianoglou\n<mailinglist.honeypot at gmail.com> wrote:\n> Hi,\n>\n> On Mon, Jun 7, 2010 at 10:35 AM, Max Kuhn <mxkuhn at gmail.com> wrote:\n>> Everyone,\n>>\n>> We've got some big shiny new SMP machines running Cent OS. I'm trying\n>> to convince our people that they are slow; about 2 fold slower than my\n>> 12 month old MacPro (running either Slackware or OS X).\n>>\n>> So... to show relative/absolute differences in execution time are\n>> there any well-known benchmarking problems that I should be using? I'd\n>> like to cover a lot of different bases (e.g. linear algebraic\n>> problems, memory intensive, CPU intensive, etc). We'd have to make the\n>> usual caveats about diferences in OS's but it would be good to have\n>> numbers.\n>>\n>> If people have good ideas, I wouldn't mind putting a small R package\n>> on R-Forge to make the tests easily accessible.\n>\n> Does the LINPACK benchmark help here?\n>\n> http://www.top500.org/project/linpack\n> http://www.netlib.org/benchmark/hpl/\n>\n> Here's a MATLAB program that runs the benchmark:\n> http://people.sc.fsu.edu/~burkardt/m_src/linpack_bench/linpack_bench.html\n>\n> Sorry if that's too obvious of a suggestion, but it's a start.\n>\n> -steve\n>\n> --\n> Steve Lianoglou\n> Graduate Student: Computational Systems Biology\n> ?| Memorial Sloan-Kettering Cancer Center\n> ?| Weill Medical College of Cornell University\n> Contact Info: http://cbio.mskcc.org/~lianos/contact\n>\n\n\n\n-- \n\nMax",
+      "body_snippet": "Yes, those are being run. I wanted something from within R to\nspecifically evaluate that build. For example, R built with icc\ninstead of gcc. Also, I want to test a variety of computational\nproblems.\n",
+      "thread_id": "thread-bbf16c7e1025",
+      "thread_depth": 2,
+      "month": "2010-06"
+    },
+    {
+      "id": "msg-402e045e0207",
+      "message_id": "<19469.39581.563673.442567@ron.nulle.part>",
+      "from_name": "Dirk Eddelbuettel",
+      "from_email_hash": "447d8de83a7b9c5d61116890bacb6dc0c76aee31b3011a41fb7d3c62dac9042f",
+      "date": "2010-06-07T20:19:25-05:00",
+      "subject": "[R-sig-hpc] benchmark problems",
+      "subject_clean": "benchmark problems",
+      "in_reply_to": "<AANLkTinyo8aWHyXb5Jmw2YQmNtka15pIZWYoZJ7BYIIO@mail.gmail.com>",
+      "references": [
+        "<AANLkTilpQ3rADbii-IDLb_MLY6QMp_kFHcCECS-9n4Co@mail.gmail.com>",
+        "<AANLkTimiQipJiHoMmdyEmtlxpXlV_VY2BYhCDkhHMfvZ@mail.gmail.com>",
+        "<AANLkTinyo8aWHyXb5Jmw2YQmNtka15pIZWYoZJ7BYIIO@mail.gmail.com>"
+      ],
+      "body_plain": "Hi Max,\n\nOn 7 June 2010 at 20:53, Max Kuhn wrote:\n| Yes, those are being run. I wanted something from within R to\n| specifically evaluate that build. For example, R built with icc\n| instead of gcc. \n\nThat is a nice idea! Something that has been suggested in the past was to\nsimply run the whole regression test which resembles 'normal' load as it\ncovers a variety of tasks. So you could\n\n       cd gcc-build && /usr/bin/time make check-all\n\n       cd icc-build && /usr/bin/time make check-all\n\n| Also, I want to test a variety of computational problems.\n\nSimon has a page here\n\n\thttp://r.research.att.com/benchmarks/\n\nAlso, we just started an R-Forge project aiming to collect gpu/cpu benchmarks\nand cutoff points (ie to answer \"who wins when\"). That will require some\nbasic infrastructure building as well.  Do you want to join in the effort?\n\nWe're at \n\n\thttps://r-forge.r-project.org/projects/gcb \n\nbut as I said there isn't much there yet...  \n\n-- \n  Regards, Dirk",
+      "body_snippet": "Hi Max,\n\nOn 7 June 2010 at 20:53, Max Kuhn wrote:\n| Yes, those are being run. I wanted something from within R to\n| specifically evaluate that build. For example, R built with icc\n| instead of gcc. \n\n",
+      "thread_id": "thread-bbf16c7e1025",
+      "thread_depth": 3,
+      "month": "2010-06"
+    },
+    {
+      "id": "msg-9f85f2fc53cc",
+      "message_id": "<8AFB4A1479ECD246A26FAA98CC48A93C018FE2A1@granite1604>",
+      "from_name": "John Joseph",
+      "from_email_hash": "3dc303635fd676b0e8fd950ab6166202109227ba160d4bfee8923fd08809d4d1",
+      "date": "2010-06-08T06:38:18-05:00",
+      "subject": "[R-sig-hpc] file closing timing problem",
+      "subject_clean": "file closing timing problem",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100608/409d2bd8/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100608/409d2bd8/attachment.pl>",
+      "thread_id": "thread-9f85f2fc53cc",
+      "thread_depth": 0,
+      "month": "2010-06"
+    },
+    {
+      "id": "msg-66e23e12e6bd",
+      "message_id": "<op.vdzc8dx6yqqyib@amazonas.geoecology.uni-potsdam.de>",
+      "from_name": "Melwin",
+      "from_email_hash": "ac5143e4994f3282c56c52502213b53ede04347716b481cac49a9582a7079133",
+      "date": "2010-06-08T14:06:03+02:00",
+      "subject": "[R-sig-hpc] file closing timing problem",
+      "subject_clean": "file closing timing problem",
+      "in_reply_to": "<8AFB4A1479ECD246A26FAA98CC48A93C018FE2A1@granite1604>",
+      "references": [
+        "<8AFB4A1479ECD246A26FAA98CC48A93C018FE2A1@granite1604>"
+      ],
+      "body_plain": "I am not sure if this belongs on this list, anyway:\n\nWait until somefile.dat (i.e. a file that is supposed to be modified by  \nswat_edit.exe) has been renewed:\n\nwhile ( difftime(Sys.time(),file.info(\"somefile.dat\")$atime,units=\"sec\") >  \n30 )\n\tSys.sleep(1)\n#to be placed between your two system calls\n\ncheers,\n\nMelwin\n\nAm 08.06.2010, 13:38 Uhr, schrieb John Joseph <John.Joseph at utsa.edu>:\n\n> Hello,\n> I hope someone can help me with what seems like a simple problem.  I  \n> have the following code:\n> system(\"swat_edit.exe\", wait=FALSE, invisible=FALSE)\n> system(\"swat2005.exe\")\n> In the first line, swat_edit.exe edits hundreds of input files, which  \n> are then to be used by swat2005.exe in its calculations.  The problem is  \n> that before swat_edit.exe finishes editing and closing all the input  \n> files, swat2005.exe begins, and an error occurs that such-and-such an  \n> input file is already in use so that swat2005.exe cannot run.\n> Naturally, one would think that changing wait=FALSE ot wait=TRUE might  \n> solve the problem.  But wait = TRUE gives an error.\n> I am using Windows 7 and Windows XP, and this problem occurs with both.   \n> I've inserted a time-delaying statement, z<- mean(runif(30000000,0,1),  \n> to buy time, but this only helps on the older computer I have, not on  \n> the new Core i7, which I really want to make use of.  The suggestion has  \n> been made to switch to a Linux system, but I'm having trouble getting  \n> the source code for swat_edit.exe so that I can recompile for Linux.   \n> Any ideas, if I want to try to achieve this in Windows?\n> Your help would be much appreciated.\n> John Joseph\n>\n> \t[[alternative HTML version deleted]]\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n\n\n--",
+      "body_snippet": "I am not sure if this belongs on this list, anyway:\n\nWait until somefile.dat (i.e. a file that is supposed to be modified by  \nswat_edit.exe) has been renewed:\n\nwhile ( difftime(Sys.time(),file.info(\"",
+      "thread_id": "thread-9f85f2fc53cc",
+      "thread_depth": 1,
+      "month": "2010-06"
+    },
+    {
+      "id": "msg-7ce6cc202c8c",
+      "message_id": "<8AFB4A1479ECD246A26FAA98CC48A93C018FE2A2@granite1604>",
+      "from_name": "John Joseph",
+      "from_email_hash": "3dc303635fd676b0e8fd950ab6166202109227ba160d4bfee8923fd08809d4d1",
+      "date": "2010-06-08T10:47:35-05:00",
+      "subject": "[R-sig-hpc] file closing timing problem",
+      "subject_clean": "file closing timing problem",
+      "in_reply_to": null,
+      "references": [
+        "<8AFB4A1479ECD246A26FAA98CC48A93C018FE2A1@granite1604>",
+        "<op.vdzc8dx6yqqyib@amazonas.geoecology.uni-potsdam.de>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100608/c4ccc86d/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100608/c4ccc86d/attachment.pl>",
+      "thread_id": "thread-9f85f2fc53cc",
+      "thread_depth": 2,
+      "month": "2010-06"
+    },
+    {
+      "id": "msg-90fd2cd48fa0",
+      "message_id": "<4C178805.7070904@ceam.es>",
+      "from_name": "Paco Pastor",
+      "from_email_hash": "458245f0cc1a0437b375b9c49b204703e29d130966748f65e0284ae43713e416",
+      "date": "2010-06-15T16:02:45+02:00",
+      "subject": "[R-sig-hpc] Using R in a linux cluster",
+      "subject_clean": "Using R in a linux cluster",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Hello\n\nI'd like to use R in a Ubuntu cluster so I have installed R and Rmpi in \na clean Ubuntu Lucid installation. Reading about Rmpi I need to have R \nand Rmpi installed in all nodes in the cluster. I have tried to export R \nexecutable and /usr/lib/R to the other nodes. When I try to run R in \nnode2 I get the following error\n\nmeteo at boira2:/boira/R$ ./R\n\n./R: line 208: /usr/lib/R/etc/ldpaths: No such file or directory\n\n/usr/lib/R/bin/exec/R: error while loading shared libraries: libR.so: cannot open shared object file: No such file or directory\n\n\n\nThen, after exporting /etc/R I get a the same error with libblas.so.3gf \nnot found\n\nWhat should be better? to install R and Rmpi in every node or to export \nR and all dependencies from the master node to the rest of nodes in the \ncluster? I'd prefer to keep R installed just in the master node so any \npackages update or config changes are not to be repeated in the other \nnodes (just 2, not a big deal but...)\n\nThanks in advance.\n\n-- \n---------------------------------------------------------------\nFrancisco Pastor\nMeteorology department\nFundaci?n CEAM\npaco at ceam.es\nhttp://www.ceam.es/ceamet - http://www.ceam.es\nParque Tecnologico, C/ Charles R. Darwin, 14\n46980 PATERNA (Valencia), Spain\nTlf. 96 131 82 27 - Fax. 96 131 81 90\n---------------------------------------------------------------\nUsuario Linux registrado: 363952",
+      "body_snippet": "Hello\n\nI'd like to use R in a Ubuntu cluster so I have installed R and Rmpi in \na clean Ubuntu Lucid installation. Reading about Rmpi I need to have R \nand Rmpi installed in all nodes in the cluster. ",
+      "thread_id": "thread-90fd2cd48fa0",
+      "thread_depth": 0,
+      "month": "2010-06"
+    },
+    {
+      "id": "msg-07fd957bd292",
+      "message_id": "<19479.36901.4952.293958@ron.nulle.part>",
+      "from_name": "Dirk Eddelbuettel",
+      "from_email_hash": "447d8de83a7b9c5d61116890bacb6dc0c76aee31b3011a41fb7d3c62dac9042f",
+      "date": "2010-06-15T09:37:25-05:00",
+      "subject": "[R-sig-hpc] Using R in a linux cluster",
+      "subject_clean": "Using R in a linux cluster",
+      "in_reply_to": "<4C178805.7070904@ceam.es>",
+      "references": [
+        "<4C178805.7070904@ceam.es>"
+      ],
+      "body_plain": "Hi Paco,\n\nOn 15 June 2010 at 16:02, Paco Pastor wrote:\n| I'd like to use R in a Ubuntu cluster so I have installed R and Rmpi in \n| a clean Ubuntu Lucid installation. Reading about Rmpi I need to have R \n| and Rmpi installed in all nodes in the cluster. I have tried to export R \n| executable and /usr/lib/R to the other nodes. When I try to run R in \n\nNo, that won't work.\n\n[...]\n| Then, after exporting /etc/R I get a the same error with libblas.so.3gf \n| not found\n| \n| What should be better? to install R and Rmpi in every node or to export \n\nYes. \n\nAll nodes need to 'symmetric' ie have R, the same packages, libraries, ...\nEven the paths should be identical.\n\n| R and all dependencies from the master node to the rest of nodes in the \n| cluster? I'd prefer to keep R installed just in the master node so any \n| packages update or config changes are not to be repeated in the other \n| nodes (just 2, not a big deal but...)\n\nA common solution is to have the master either be an NFS server or write to\nan NFS server.  Eg I have one /usr/local/lib/R/site-packages/ and the other\nmachines access this via NFS.  Pretty easy when you use autofs auto-mounting.\n\nBut as so often, you need an extra bit of sys.admining to get all this going.\n\n-- \n  Regards, Dirk",
+      "body_snippet": "Hi Paco,\n\nOn 15 June 2010 at 16:02, Paco Pastor wrote:\n| I'd like to use R in a Ubuntu cluster so I have installed R and Rmpi in \n| a clean Ubuntu Lucid installation. Reading about Rmpi I need to have",
+      "thread_id": "thread-90fd2cd48fa0",
+      "thread_depth": 1,
+      "month": "2010-06"
+    },
+    {
+      "id": "msg-8cdb679c4ef6",
+      "message_id": "<4C1795EF.3060700@gmail.com>",
+      "from_name": "Etienne Bellemare Racine",
+      "from_email_hash": "43b2a5b474c9e620c2a0ea1a2ccc70c29d0c1c5133fe827016988c6bbef8a35d",
+      "date": "2010-06-15T11:02:07-04:00",
+      "subject": "[R-sig-hpc] Submit condor job, executable = R",
+      "subject_clean": "Submit condor job, executable = R",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100615/7cddf68f/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100615/7cddf68f/attachment.pl>",
+      "thread_id": "thread-8cdb679c4ef6",
+      "thread_depth": 0,
+      "month": "2010-06"
+    },
+    {
+      "id": "msg-5368770b7da1",
+      "message_id": "<4C17A61E.3040907@gmail.com>",
+      "from_name": "Etienne Bellemare Racine",
+      "from_email_hash": "43b2a5b474c9e620c2a0ea1a2ccc70c29d0c1c5133fe827016988c6bbef8a35d",
+      "date": "2010-06-15T12:11:10-04:00",
+      "subject": "[R-sig-hpc] Submit condor job, executable = R",
+      "subject_clean": "Submit condor job, executable = R",
+      "in_reply_to": "<101CBF5360343B45B9C9B0B05D71474C25B714@BALI.uhd.campus>",
+      "references": [
+        "<4C1795EF.3060700@gmail.com>",
+        "<101CBF5360343B45B9C9B0B05D71474C25B714@BALI.uhd.campus>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100615/3e9afd8b/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100615/3e9afd8b/attachment.pl>",
+      "thread_id": "thread-5368770b7da1",
+      "thread_depth": 0,
+      "month": "2010-06"
+    },
+    {
+      "id": "msg-9355105f6b5f",
+      "message_id": "<0c8506b872877202011ee7e64fd19d42.squirrel@mail.ecs.vuw.ac.nz>",
+      "from_name": "Kevin.Buckley at ecs.vuw.ac.nz",
+      "from_email_hash": "fb879ea72521cc5dcfc8958d067acbe7d85612ad10ad1eff3a8d2f9328015738",
+      "date": "2010-06-16T11:17:09+12:00",
+      "subject": "[R-sig-hpc] Submit condor job, executable = R",
+      "subject_clean": "Submit condor job, executable = R",
+      "in_reply_to": "<4C17A61E.3040907@gmail.com>",
+      "references": [
+        "<4C1795EF.3060700@gmail.com>",
+        "<101CBF5360343B45B9C9B0B05D71474C25B714@BALI.uhd.campus>",
+        "<4C17A61E.3040907@gmail.com>"
+      ],
+      "body_plain": "Given that you have an R execution working when you use a .bat file\nas the Condor executable, why not carry on doing that but pass the\nGridR generated R script as an argument to the batch fle?\n\nIn the batch file, something like:\n\nc:\\\"program files\"\\r\\r-2.6.0\\bin\\r.exe --no-save < %1\n\n(The %1 is the first argument as seen by the batch file,\n %2 the 2nd and so on)\n\nIn the Condor command file:\n\nexecutable = C:\\Belfry\\DoMyR.bat\n\narguments = C:\\Temp\\GridRTmp\\Remscript.R\n\n\nApologies if the actual R command is not exact there, (I am not\nan \"R man\" but have some run R stuff under Condor for others !)\nbut you'll get the underlying idea.\n\n-- \nKevin M. Buckley                                  Room:  CO327\nSchool of Engineering and                         Phone: +64 4 463 5971\n Computer Science\nVictoria University of Wellington\nNew Zealand",
+      "body_snippet": "Given that you have an R execution working when you use a .bat file\nas the Condor executable, why not carry on doing that but pass the\nGridR generated R script as an argument to the batch fle?\n\nIn the",
+      "thread_id": "thread-5368770b7da1",
+      "thread_depth": 1,
+      "month": "2010-06"
+    },
+    {
+      "id": "msg-4b47365d92c3",
+      "message_id": "<4C19489E.203@gmail.com>",
+      "from_name": "Etienne Bellemare Racine",
+      "from_email_hash": "43b2a5b474c9e620c2a0ea1a2ccc70c29d0c1c5133fe827016988c6bbef8a35d",
+      "date": "2010-06-16T17:56:46-04:00",
+      "subject": "[R-sig-hpc] Submit condor job, executable = R",
+      "subject_clean": "Submit condor job, executable = R",
+      "in_reply_to": "<0c8506b872877202011ee7e64fd19d42.squirrel@mail.ecs.vuw.ac.nz>",
+      "references": [
+        "<4C1795EF.3060700@gmail.com>",
+        "<101CBF5360343B45B9C9B0B05D71474C25B714@BALI.uhd.campus>",
+        "<4C17A61E.3040907@gmail.com>",
+        "<0c8506b872877202011ee7e64fd19d42.squirrel@mail.ecs.vuw.ac.nz>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100616/6da7c3e3/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100616/6da7c3e3/attachment.pl>",
+      "thread_id": "thread-5368770b7da1",
+      "thread_depth": 2,
+      "month": "2010-06"
+    },
+    {
+      "id": "msg-359496a77f70",
+      "message_id": "<19481.60138.260928.613494@lynne.math.ethz.ch>",
+      "from_name": "Martin Maechler",
+      "from_email_hash": "c2c86f22f78a4ecfe6d0e6b4e2be505a3f5beb0470ea88c903688ac536018a98",
+      "date": "2010-06-17T11:29:14+02:00",
+      "subject": "[R-sig-hpc] parallel random numbers: set.seed(i), rsprng, rlecuyer, ??",
+      "subject_clean": "parallel random numbers: set.seed(i), rsprng, rlecuyer, ??",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Again, I've been asked about RNG (random number generation) in\nthe context of - say embarrassingly - parallel computation.\n\nI've heard of many people just using\nset.seed(i)  on the i-th computing node,\nand when asked for advice, I've typically even acknowledged,\nthat I though this to be save, in the case of\n  { i in 1:N }  and  N < 1000 (say),\nbut have always warned, that people have argued (I vaguely\nrecall a talk given by Tony Rossini) that you need something\nelse, namely with *proven* independent random streams:\n\nAnd there are sophisticated approaches: the CRAN task view on\nHPC  mentions the R packages, 'rsprng' and 'rlecuyer'.\nThe first interfaces to SPRNG 2.0, ie extra software which is\noutdated (SPRNG 4.0 is current, but not back-compatible), and\ndoes not compile without error {\n  gcc -c -O3 -DLittleEndian -DUSE_PMLCG  -DINTEL   -I../include  metropolis.c\n  metropolis.c:157:14: error: operator '!' has no right operand\n}\nEven if fixed, it's not trivial to install in a cluster\nenvironment without root priviledges, and so I guess the package\nwill currently be used by less than 1% of people doing\ncluster/parallel R computations.\nThe second pkg, rlecuyer, has all functions \"invisible\", as\ntheir names start with \".lec.\" which also does not look like\nproduction-quality, at first look, at least.\nMore importantly, ideally the R functions used, which call\nrnorm(), runif(), r<...> and may have internal C code also\ninterfacing to R's C-API 'unif_rand()'.\nSo a ``reasonable'' R package should really ensure that R's\nrunif(), rnorm(), ... RNGs automatically use the package's\nalternative, by establishing itself {C level / R level}\nas R's RNGs; in R, see\n   help(Random.user)\nI'm pretty sure that both packages do not make use of this R API\nfeature.\n\nI'm asking for advice, mostly if you really have collected\nexperience, and am hence including the package authors of\n'rsprng' and 'rlecuyer' in the addressees of this e-mail.\n(IIRC, you all have to subscribe to R-SIG-HPC if you want your\n replies to be  posted to the mailing list. \n So, for now, please use \"reply to all\" if possible)\n\nAnd yes, let's think of a simple situation of an \"embarassingly\nparallel\" application, e.g., pure simulation,\nor bootstrap (or cross-validation).\n\nThanks in advance,\n\nMartin Maechler,\nETH Zurich",
+      "body_snippet": "Again, I've been asked about RNG (random number generation) in\nthe context of - say embarrassingly - parallel computation.\n\nI've heard of many people just using\nset.seed(i)  on the i-th computing node",
+      "thread_id": "thread-359496a77f70",
+      "thread_depth": 0,
+      "month": "2010-06"
+    },
+    {
+      "id": "msg-29cc1971d641",
+      "message_id": "<op.vef55tykyqqyib@mueggelsee.ad.geoecology.uni-potsdam.de>",
+      "from_name": "Melwin",
+      "from_email_hash": "ac5143e4994f3282c56c52502213b53ede04347716b481cac49a9582a7079133",
+      "date": "2010-06-17T15:52:31+02:00",
+      "subject": "[R-sig-hpc] Rmpi: mpi.remote.exec(..., ret=FALSE) becomes blocking",
+      "subject_clean": "Rmpi: mpi.remote.exec(..., ret=FALSE) becomes blocking",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Hi there,\nI am calling computationally intensive complex functions on the slaves via  \nthe Rmpi-function mpi.remote.exec (Win2000, R 2.10.0, Rmpi 0.5-7,  \nDeinoMPI).\nDespite using the argument \"ret=FALSE\", these calls sometimes become  \nblocking, i.e. the program waits for all slaves to finish.\nHowever, this happens infrequently, I couldn't reproduce this behaviour  \nconsistently or with a simple example.\nIt seems that it happens only when the number of slaves is larger than 4.\n\nHas anyone observed this behaviour before? Any suggestions for remedies?\n\nThanks in advance,\n\nMelwin",
+      "body_snippet": "Hi there,\nI am calling computationally intensive complex functions on the slaves via  \nthe Rmpi-function mpi.remote.exec (Win2000, R 2.10.0, Rmpi 0.5-7,  \nDeinoMPI).\nDespite using the argument \"ret=FA",
+      "thread_id": "thread-29cc1971d641",
+      "thread_depth": 0,
+      "month": "2010-06"
+    },
+    {
+      "id": "msg-a259d3474767",
+      "message_id": "<19482.10698.588857.881116@ron.nulle.part>",
+      "from_name": "Dirk Eddelbuettel",
+      "from_email_hash": "447d8de83a7b9c5d61116890bacb6dc0c76aee31b3011a41fb7d3c62dac9042f",
+      "date": "2010-06-17T08:57:30-05:00",
+      "subject": "[R-sig-hpc] parallel random numbers: set.seed(i), rsprng, rlecuyer, ??",
+      "subject_clean": "parallel random numbers: set.seed(i), rsprng, rlecuyer, ??",
+      "in_reply_to": "<19481.60138.260928.613494@lynne.math.ethz.ch>",
+      "references": [
+        "<19481.60138.260928.613494@lynne.math.ethz.ch>"
+      ],
+      "body_plain": "It is a genuine issue, but it is also taken care of automagically if you use\nthe snow package.  See ?clusterSetupRNG:\n\nsnow-rand                 package:snow                 R Documentation\n\nUniform Random Number Generation in SNOW Clusters\n\nDescription:\n\n     Initialize independent uniform random number streams to be used in\n     a SNOW cluster. It uses either the L'Ecuyer's random number\n     generator (package rlecuyer required) or the SPRNG generator\n     (package rsprng required).\n\nUsage:\n\n     clusterSetupRNG (cl, type = \"RNGstream\", ...)\n     \n     clusterSetupRNGstream (cl, seed=rep(12345,6), ...)\n     clusterSetupSPRNG (cl, seed = round(2^32 * runif(1)),\n                        prngkind = \"default\", para = 0, ...) \n[...]     \n\n\nThe \"if in doubt, try standing on the shoulder of giants\" approach ...\n\n-- \n  Regards, Dirk",
+      "body_snippet": "It is a genuine issue, but it is also taken care of automagically if you use\nthe snow package.  See ?clusterSetupRNG:\n\nsnow-rand                 package:snow                 R Documentation\n\nUniform R",
+      "thread_id": "thread-359496a77f70",
+      "thread_depth": 1,
+      "month": "2010-06"
+    },
+    {
+      "id": "msg-18dcbf7dbc00",
+      "message_id": "<AANLkTinNMJ4ETAV1CiJgt6OvihCGl0sRLV0P0dCBqtqY@mail.gmail.com>",
+      "from_name": "A.J. Rossini",
+      "from_email_hash": "035aa365217fa4ca7185e15d86df9cfadfe895a8833f74f31844a380f3e3aaa4",
+      "date": "2010-06-17T16:13:01+02:00",
+      "subject": "[R-sig-hpc] parallel random numbers: set.seed(i), rsprng, rlecuyer, ??",
+      "subject_clean": "parallel random numbers: set.seed(i), rsprng, rlecuyer, ??",
+      "in_reply_to": "<19482.10698.588857.881116@ron.nulle.part>",
+      "references": [
+        "<19481.60138.260928.613494@lynne.math.ethz.ch>",
+        "<19482.10698.588857.881116@ron.nulle.part>"
+      ],
+      "body_plain": "On Thu, Jun 17, 2010 at 3:57 PM, Dirk Eddelbuettel <edd at debian.org> wrote:\n>\n> It is a genuine issue, but it is also taken care of automagically if you use\n> the snow package. ?See ?clusterSetupRNG:\n>\n> snow-rand ? ? ? ? ? ? ? ? package:snow ? ? ? ? ? ? ? ? R Documentation\n>\n> Uniform Random Number Generation in SNOW Clusters\n>\n> Description:\n>\n> ? ? Initialize independent uniform random number streams to be used in\n> ? ? a SNOW cluster. It uses either the L'Ecuyer's random number\n> ? ? generator (package rlecuyer required) or the SPRNG generator\n> ? ? (package rsprng required).\n>\n> Usage:\n>\n> ? ? clusterSetupRNG (cl, type = \"RNGstream\", ...)\n>\n> ? ? clusterSetupRNGstream (cl, seed=rep(12345,6), ...)\n> ? ? clusterSetupSPRNG (cl, seed = round(2^32 * runif(1)),\n> ? ? ? ? ? ? ? ? ? ? ? ?prngkind = \"default\", para = 0, ...)\n> [...]\n>\n>\n> The \"if in doubt, try standing on the shoulder of giants\" approach ...\n>\n>\n\nmy work address was cc'd, but I'm subscribed via my personal address.\n So my first response is queued up for moderator approval.\n\nBasically:\n\nSNOW handles it for you, as Dirk said.\n\nUse Rlecuyer and NOT rsprng, as Raphael said.  sprng's justifications\nfor the 2.0 version seemed a bit dicey, L'Ecuyer's approach appears to\nbe better supported theoretically.\n\nThe \"lots of random seeds that I pick approach\" will work most of the\ntime -- but you will NEVER know when it fails (and you end up with a\nfew correlated or identical streams or sub-streams), so unless you\nlike playing fast and loose with your results, don't.\nSo in practice it usually works.  Fine if \"usually\" is good enough for you.\n\nAhh.  Enough real thinking for today.  Back to being a pointy and\nair-headed boss for a new group.\n(hiring soon to support Molecular Diagnostics).\n\nbest,\n-tony\n\nblindglobe at gmail.com\nMuttenz, Switzerland.\n\"Commit early,commit often, and commit in a repository from which we\ncan easily roll-back your mistakes\" (AJR, 4Jan05).\n\nDrink Coffee:  Do stupid things faster with more energy!",
+      "body_snippet": "On Thu, Jun 17, 2010 at 3:57 PM, Dirk Eddelbuettel <edd at debian.org> wrote:\n>\n> It is a genuine issue, but it is also taken care of automagically if you use\n> the snow package. ?See ?clusterSetupRNG",
+      "thread_id": "thread-359496a77f70",
+      "thread_depth": 2,
+      "month": "2010-06"
+    },
+    {
+      "id": "msg-5201e796044d",
+      "message_id": "<19482.12801.204908.855375@ron.nulle.part>",
+      "from_name": "Dirk Eddelbuettel",
+      "from_email_hash": "447d8de83a7b9c5d61116890bacb6dc0c76aee31b3011a41fb7d3c62dac9042f",
+      "date": "2010-06-17T09:32:33-05:00",
+      "subject": "[R-sig-hpc] Non-moderation (Was: parallel random numbers: set.seed(i), rsprng, rlecuyer, ??)",
+      "subject_clean": "Non-moderation (Was: parallel random numbers: set.seed(i), rsprng, rlecuyer, ??)",
+      "in_reply_to": "<AANLkTinNMJ4ETAV1CiJgt6OvihCGl0sRLV0P0dCBqtqY@mail.gmail.com>",
+      "references": [
+        "<19481.60138.260928.613494@lynne.math.ethz.ch>",
+        "<19482.10698.588857.881116@ron.nulle.part>",
+        "<AANLkTinNMJ4ETAV1CiJgt6OvihCGl0sRLV0P0dCBqtqY@mail.gmail.com>"
+      ],
+      "body_plain": "On 17 June 2010 at 16:13, A.J. Rossini wrote:\n|  So my first response is queued up for moderator approval.\n\nYou did the right thing in reposting as I have several hundred of those\nqueued up from the different lists I stand behind.\n\nLife's too short, and spammers as well as fools are too plentyful. If posters\nfeel that what they have to say is important, then it surely should be\nimportant enough for them to subscribe (or use a subscribed gateway such as\nnabble/gmane/... ).   So 'subscribe to post' is the rule in lists I administer.\n\n-- \n  Regards, Dirk",
+      "body_snippet": "On 17 June 2010 at 16:13, A.J. Rossini wrote:\n|  So my first response is queued up for moderator approval.\n\nYou did the right thing in reposting as I have several hundred of those\nqueued up from the d",
+      "thread_id": "thread-359496a77f70",
+      "thread_depth": 3,
+      "month": "2010-06"
+    },
+    {
+      "id": "msg-05aa6467d6d2",
+      "message_id": "<4C20AD54.90502@imperial.ac.uk>",
+      "from_name": "Unger Kristian",
+      "from_email_hash": "cc9a820b13bb0be20b06245fc4f068ead4dcdcc90596b937f6cf9e7ac2073890",
+      "date": "2010-06-22T13:32:20+01:00",
+      "subject": "[R-sig-hpc] snowfall error",
+      "subject_clean": "snowfall error",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100622/e3882500/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100622/e3882500/attachment.pl>",
+      "thread_id": "thread-05aa6467d6d2",
+      "thread_depth": 0,
+      "month": "2010-06"
+    },
+    {
+      "id": "msg-b09a2cbaf42d",
+      "message_id": "<089F898C-C3A9-40CD-903B-A629B16F896E@me.com>",
+      "from_name": "Raphael Gottardo",
+      "from_email_hash": "79388c33c763caf508eedc4dfb897c29a464e8fb83e46c25f097eaabdaf40a9a",
+      "date": "2010-06-22T09:18:33-04:00",
+      "subject": "[R-sig-hpc] snowfall error",
+      "subject_clean": "snowfall error",
+      "in_reply_to": "<4C20AD54.90502@imperial.ac.uk>",
+      "references": [
+        "<4C20AD54.90502@imperial.ac.uk>"
+      ],
+      "body_plain": "This can happen sometimes, try to remove the ~/.sfCluster directory, quit R and try again.\n\nRaphael\n\nOn Jun 22, 2010, at 8:32 AM, Unger Kristian wrote:\n\n> Hi!\n> \n> I am a quite new user of the snowfall package and when I try to run a \n> wrapper function (which works fine in normal serial mode) in parallel \n> mode I get the following error message:\n> \n> R snowfall Error in serialize(node$con) : error reading from connection\n> \n> Looking this error message up in Google did not help much so I would \n> appreciate if I could get any advice from here.\n> \n> Best wishes\n> \n> Kristian\n> \n> -- \n> _____\n> \n> Dr Kristian Unger\n> \n> Bioinformaticist Chernobyl Tissue Bank\n> \n> Department of Surgery and Cancer\n> \n> Imperial College London\n> \n> Rm G02, Ground floor G Block\n> Hammersmith Hospital\n> Du Cane Road,\n> London W12 0HS\n> \n> Tel +44-20-8383-2443\n> \n> Mob +44-795-1080619\n> \n> http://www1.imperial.ac.uk/medicine/about/divisions/is/histo/\n> http://www.chernobyltissuebank.com\n> \n> \n> \t[[alternative HTML version deleted]]\n> \n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc",
+      "body_snippet": "This can happen sometimes, try to remove the ~/.sfCluster directory, quit R and try again.\n\nRaphael\n\nOn Jun 22, 2010, at 8:32 AM, Unger Kristian wrote:\n\n> Hi!\n> \n> I am a quite new user of the snowfal",
+      "thread_id": "thread-05aa6467d6d2",
+      "thread_depth": 1,
+      "month": "2010-06"
+    },
+    {
+      "id": "msg-8525c8ed4d48",
+      "message_id": "<4C20C3B2.6030507@imperial.ac.uk>",
+      "from_name": "Unger Kristian",
+      "from_email_hash": "cc9a820b13bb0be20b06245fc4f068ead4dcdcc90596b937f6cf9e7ac2073890",
+      "date": "2010-06-22T15:07:46+01:00",
+      "subject": "[R-sig-hpc] snowfall error",
+      "subject_clean": "snowfall error",
+      "in_reply_to": "<089F898C-C3A9-40CD-903B-A629B16F896E@me.com>",
+      "references": [
+        "<4C20AD54.90502@imperial.ac.uk>",
+        "<089F898C-C3A9-40CD-903B-A629B16F896E@me.com>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100622/a0676b32/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100622/a0676b32/attachment.pl>",
+      "thread_id": "thread-05aa6467d6d2",
+      "thread_depth": 2,
+      "month": "2010-06"
+    },
+    {
+      "id": "msg-3ccaf7a01129",
+      "message_id": "<03951642-b863-c1c6-dd90-97b435a8241a@me.com>",
+      "from_name": "Raphael Gottardo",
+      "from_email_hash": "79388c33c763caf508eedc4dfb897c29a464e8fb83e46c25f097eaabdaf40a9a",
+      "date": "2010-06-22T07:13:54-07:00",
+      "subject": "[R-sig-hpc] snowfall error",
+      "subject_clean": "snowfall error",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "In that case, send us the command and more details about your configuration. What sort of cluster are you using? (i.e. several machines, one machine with multiple cores).\nWhat type of connection? Sockets, etc.\nAlso what's your session Info?\nOn Jun 22, 2010, at 10:07 AM, Unger Kristian wrote:\n\nThanks you Raphael. Unfortunately deleting ~/.sfCluster does not help.\n\nKristian\n\nOn 22/06/10 14:18, Raphael Gottardo wrote:\nThis can happen sometimes, try to remove the ~/.sfCluster directory, quit R and try again.\n\nRaphael\n\nOn Jun 22, 2010, at 8:32 AM, Unger Kristian wrote:\n\n  \nHi!\n\nI am a quite new user of the snowfall package and when I try to run a \nwrapper function (which works fine in normal serial mode) in parallel \nmode I get the following error message:\n\nR snowfall Error in serialize(node$con) : error reading from connection\n\nLooking this error message up in Google did not help much so I would \nappreciate if I could get any advice from here.\n\nBest wishes\n\nKristian\n\n-- \n_____\n\nDr Kristian Unger\n\nBioinformaticist Chernobyl Tissue Bank\n\nDepartment of Surgery and Cancer\n\nImperial College London\n\nRm G02, Ground floor G Block\nHammersmith Hospital\nDu Cane Road,\nLondon W12 0HS\n\nTel +44-20-8383-2443\n\nMob +44-795-1080619\n\nhttp://www1.imperial.ac.uk/medicine/about/divisions/is/histo/\nhttp://wwwchernobyltissuebank.com\n\n\n\t[[alternative HTML version deleted]]\n\n_______________________________________________\nR-sig-hpc mailing list\nR-sig-hpc at r-project.org\nhttps://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n    \n  \n\n-- \n_____ \n \nDr Kristian Unger\n \nBioinformaticist Chernobyl Tissue Bank\n \nDepartment of Surgery and Cancer\n \nImperial College London\n \nRm G02, Ground floor G Block\nHammersmith Hospital\nDu Cane Road, \nLondon W12 0HS\n \nTel +44-20-8383-2443\n \nMob +44-795-1080619\n \nhttp://www1.imperial.ac.uk/medicine/about/divisions/is/histo/\nhttp://www.chernobyltissuebank.com\n\n-------------- next part --------------\nAn HTML attachment was scrubbed...\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100622/8c81e465/attachment.html>",
+      "body_snippet": "In that case, send us the command and more details about your configuration. What sort of cluster are you using? (i.e. several machines, one machine with multiple cores).\nWhat type of connection? Sock",
+      "thread_id": "thread-3ccaf7a01129",
+      "thread_depth": 0,
+      "month": "2010-06"
+    },
+    {
+      "id": "msg-d4a75aac1cb9",
+      "message_id": "<4C20CC7E.3010804@imperial.ac.uk>",
+      "from_name": "Unger Kristian",
+      "from_email_hash": "cc9a820b13bb0be20b06245fc4f068ead4dcdcc90596b937f6cf9e7ac2073890",
+      "date": "2010-06-22T15:45:18+01:00",
+      "subject": "[R-sig-hpc] snowfall error",
+      "subject_clean": "snowfall error",
+      "in_reply_to": "<03951642-b863-c1c6-dd90-97b435a8241a@me.com>",
+      "references": [
+        "<03951642-b863-c1c6-dd90-97b435a8241a@me.com>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100622/c42741f3/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100622/c42741f3/attachment.pl>",
+      "thread_id": "thread-3ccaf7a01129",
+      "thread_depth": 1,
+      "month": "2010-06"
+    },
+    {
+      "id": "msg-b0649b11d4ae",
+      "message_id": "<4C220633.2020107@imperial.ac.uk>",
+      "from_name": "Unger Kristian",
+      "from_email_hash": "cc9a820b13bb0be20b06245fc4f068ead4dcdcc90596b937f6cf9e7ac2073890",
+      "date": "2010-06-23T14:03:47+01:00",
+      "subject": "[R-sig-hpc] Fwd: Re:  snowfall error",
+      "subject_clean": "snowfall error",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100623/9ab463de/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100623/9ab463de/attachment.pl>",
+      "thread_id": "thread-b0649b11d4ae",
+      "thread_depth": 0,
+      "month": "2010-06"
+    }
+  ],
+  "threads": [
+    {
+      "id": "thread-721351a4eafa",
+      "subject": "lapply or data.table to find a unit's previous transaction",
+      "message_count": 2,
+      "participants": [
+        "Brian G. Peterson",
+        "William Rogers"
+      ],
+      "started": "2010-06-02T11:43:11-05:00",
+      "last_reply": "2010-06-02T11:55:51-05:00",
+      "root_message_id": "msg-721351a4eafa"
+    },
+    {
+      "id": "thread-bbf16c7e1025",
+      "subject": "benchmark problems",
+      "message_count": 4,
+      "participants": [
+        "Dirk Eddelbuettel",
+        "Max Kuhn",
+        "Steve Lianoglou"
+      ],
+      "started": "2010-06-07T10:35:52-04:00",
+      "last_reply": "2010-06-07T20:19:25-05:00",
+      "root_message_id": "msg-bbf16c7e1025"
+    },
+    {
+      "id": "thread-9f85f2fc53cc",
+      "subject": "file closing timing problem",
+      "message_count": 3,
+      "participants": [
+        "John Joseph",
+        "Melwin"
+      ],
+      "started": "2010-06-08T06:38:18-05:00",
+      "last_reply": "2010-06-08T10:47:35-05:00",
+      "root_message_id": "msg-9f85f2fc53cc"
+    },
+    {
+      "id": "thread-8cdb679c4ef6",
+      "subject": "Submit condor job, executable = R",
+      "message_count": 1,
+      "participants": [
+        "Etienne Bellemare Racine"
+      ],
+      "started": "2010-06-15T11:02:07-04:00",
+      "last_reply": "2010-06-15T11:02:07-04:00",
+      "root_message_id": "msg-8cdb679c4ef6"
+    },
+    {
+      "id": "thread-5368770b7da1",
+      "subject": "Submit condor job, executable = R",
+      "message_count": 3,
+      "participants": [
+        "Etienne Bellemare Racine",
+        "Kevin.Buckley at ecs.vuw.ac.nz"
+      ],
+      "started": "2010-06-15T12:11:10-04:00",
+      "last_reply": "2010-06-16T17:56:46-04:00",
+      "root_message_id": "msg-5368770b7da1"
+    },
+    {
+      "id": "thread-90fd2cd48fa0",
+      "subject": "Using R in a linux cluster",
+      "message_count": 2,
+      "participants": [
+        "Dirk Eddelbuettel",
+        "Paco Pastor"
+      ],
+      "started": "2010-06-15T16:02:45+02:00",
+      "last_reply": "2010-06-15T09:37:25-05:00",
+      "root_message_id": "msg-90fd2cd48fa0"
+    },
+    {
+      "id": "thread-359496a77f70",
+      "subject": "parallel random numbers: set.seed(i), rsprng, rlecuyer, ??",
+      "message_count": 4,
+      "participants": [
+        "A.J. Rossini",
+        "Dirk Eddelbuettel",
+        "Martin Maechler"
+      ],
+      "started": "2010-06-17T11:29:14+02:00",
+      "last_reply": "2010-06-17T09:32:33-05:00",
+      "root_message_id": "msg-359496a77f70"
+    },
+    {
+      "id": "thread-29cc1971d641",
+      "subject": "Rmpi: mpi.remote.exec(..., ret=FALSE) becomes blocking",
+      "message_count": 1,
+      "participants": [
+        "Melwin"
+      ],
+      "started": "2010-06-17T15:52:31+02:00",
+      "last_reply": "2010-06-17T15:52:31+02:00",
+      "root_message_id": "msg-29cc1971d641"
+    },
+    {
+      "id": "thread-3ccaf7a01129",
+      "subject": "snowfall error",
+      "message_count": 2,
+      "participants": [
+        "Raphael Gottardo",
+        "Unger Kristian"
+      ],
+      "started": "2010-06-22T07:13:54-07:00",
+      "last_reply": "2010-06-22T15:45:18+01:00",
+      "root_message_id": "msg-3ccaf7a01129"
+    },
+    {
+      "id": "thread-05aa6467d6d2",
+      "subject": "snowfall error",
+      "message_count": 3,
+      "participants": [
+        "Raphael Gottardo",
+        "Unger Kristian"
+      ],
+      "started": "2010-06-22T13:32:20+01:00",
+      "last_reply": "2010-06-22T15:07:46+01:00",
+      "root_message_id": "msg-05aa6467d6d2"
+    },
+    {
+      "id": "thread-b0649b11d4ae",
+      "subject": "snowfall error",
+      "message_count": 1,
+      "participants": [
+        "Unger Kristian"
+      ],
+      "started": "2010-06-23T14:03:47+01:00",
+      "last_reply": "2010-06-23T14:03:47+01:00",
+      "root_message_id": "msg-b0649b11d4ae"
+    }
+  ]
+}

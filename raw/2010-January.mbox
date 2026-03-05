@@ -1,0 +1,2950 @@
+From mwkimpel at gmail.com  Mon Jan  4 20:23:31 2010
+From: mwkimpel at gmail.com (Mark Kimpel)
+Date: Mon, 4 Jan 2010 14:23:31 -0500
+Subject: [R-sig-hpc] mixing MP with MPI in R?
+Message-ID: <6b93d1831001041123p2d668de9o4ce5ce442f9f2393@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100104/187cf80d/attachment.pl>
+
+From mwkimpel at gmail.com  Mon Jan  4 20:51:36 2010
+From: mwkimpel at gmail.com (Mark Kimpel)
+Date: Mon, 4 Jan 2010 14:51:36 -0500
+Subject: [R-sig-hpc] mixing MP with MPI in R?
+In-Reply-To: <32e7d95c1001041139x7a0482d7x1c925ac876c1945b@mail.gmail.com>
+References: <6b93d1831001041123p2d668de9o4ce5ce442f9f2393@mail.gmail.com>
+	<32e7d95c1001041138t5eeb23fcucc6e1616a39fa890@mail.gmail.com>
+	<32e7d95c1001041139x7a0482d7x1c925ac876c1945b@mail.gmail.com>
+Message-ID: <6b93d1831001041151h3c1bacb2if90a1f3703b2287e@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100104/ae0ec21f/attachment.pl>
+
+From brian at braverock.com  Mon Jan  4 20:58:13 2010
+From: brian at braverock.com (Brian G. Peterson)
+Date: Mon, 04 Jan 2010 13:58:13 -0600
+Subject: [R-sig-hpc] mixing MP with MPI in R?
+In-Reply-To: <6b93d1831001041123p2d668de9o4ce5ce442f9f2393@mail.gmail.com>
+References: <6b93d1831001041123p2d668de9o4ce5ce442f9f2393@mail.gmail.com>
+Message-ID: <4B424855.8040101@braverock.com>
+
+Mark Kimpel wrote:
+> I recently ran into a problem that was easier to solve using mutilcore
+> compared with Rmpi because I had a large matrix that I was performing
+> calculations on and it copying it for each process ate up my 12GB of memory.
+> I now have access to 2 Linux machine, each a core i7 with 12GB of memory,
+> and wonder how I might speed things up even faster by using some sort of
+> combination of multicore and Rmpi/snow.
+>
+> I'm a novice at this, so perhaps the answer is obvious, but is it possible
+> to spawn to multiple machines with non-shared memory but within each machine
+> used shared memory? If my novice understanding is correct, the former uses
+> openMPI and the latter openMP.
+>
+> If this is possible, a self-contained example would be appreciated, even if
+> the calculations are so trivial as to not make the parallelization
+> worthwhile in the example case
+>
+>   
+See:
+
+http://cran.r-project.org/web/packages/foreach/vignettes/nested.pdf
+
+This should work fine with doMPI/doSnow and doMC
+
+Regards,
+
+   - Brian
+
+-- 
+Brian G. Peterson
+http://braverock.com/brian/
+Ph: 773-459-4973
+IM: bgpbraverock
+
+
+From stephen.b.weston at gmail.com  Tue Jan  5 18:59:20 2010
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Tue, 5 Jan 2010 12:59:20 -0500
+Subject: [R-sig-hpc] mixing MP with MPI in R?
+In-Reply-To: <6b93d1831001041123p2d668de9o4ce5ce442f9f2393@mail.gmail.com>
+References: <6b93d1831001041123p2d668de9o4ce5ce442f9f2393@mail.gmail.com>
+Message-ID: <57e838141001050959w2158f2faofa3042f8c9a06a4e@mail.gmail.com>
+
+It's very easy to combine the use of snow and multicore.  Here's a simple
+example of a parallel colMeans function.  First I define a version that
+uses multicore, and then call that from the cluster workers of a
+snow program in a recursive-like way:
+
+mcColMeans <- function(m) {
+  unlist(mclapply(splitCols(m, ncol(m)), mean))
+}
+
+hybridColMeans <- function(m, cl) {
+  unlist(clusterApply(cl, splitCols(m, length(cl)), mcColMeans))
+}
+
+The only trick is to load the multicore package on each of the cluster
+workers before calling "hybridColMeans".  You can do that with a
+function such as:
+
+initCluster <- function(cl) {
+  clusterCall(cl, function() library(multicore))
+}
+
+I've experimented with various ways of doing hybrid parallelism in
+the foreach and doMPI packages, but as you can see, it's easy
+to do yourself.  You just need to be familiar with different methods
+of splitting your data so that you can efficiently get parallelism
+across different machines using snow, across different cores using
+multicore, and still use vector operations if possible at the lowest
+level.
+
+- Steve
+
+
+On Mon, Jan 4, 2010 at 2:23 PM, Mark Kimpel <mwkimpel at gmail.com> wrote:
+> I recently ran into a problem that was easier to solve using mutilcore
+> compared with Rmpi because I had a large matrix that I was performing
+> calculations on and it copying it for each process ate up my 12GB of memory.
+> I now have access to 2 Linux machine, each a core i7 with 12GB of memory,
+> and wonder how I might speed things up even faster by using some sort of
+> combination of multicore and Rmpi/snow.
+>
+> I'm a novice at this, so perhaps the answer is obvious, but is it possible
+> to spawn to multiple machines with non-shared memory but within each machine
+> used shared memory? If my novice understanding is correct, the former uses
+> openMPI and the latter openMP.
+>
+> If this is possible, a self-contained example would be appreciated, even if
+> the calculations are so trivial as to not make the parallelization
+> worthwhile in the example case
+>
+> Mark
+>
+> Mark W. Kimpel MD ?** Neuroinformatics ** Dept. of Psychiatry
+> Indiana University School of Medicine
+>
+> 15032 Hunter Court, Westfield, IN ?46074
+>
+> (317) 490-5129 Work, & Mobile & VoiceMail
+> (317) 399-1219 Skype No Voicemail please
+>
+> ? ? ? ?[[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From ostrouchovg at ornl.gov  Tue Jan  5 19:55:44 2010
+From: ostrouchovg at ornl.gov (George Ostrouchov)
+Date: Tue, 05 Jan 2010 13:55:44 -0500
+Subject: [R-sig-hpc] Any TeraGrid users here?
+Message-ID: <4B438B30.3010704@ornl.gov>
+
+I am looking for one or two TeraGrid users who have an interest in 
+data-parallel analysis with R. We are deploying the center Remote Data 
+Analysis and Visualization (RDAV). The center will become operational 
+sometime around mid 2010 but a small number of "friendly" users will be 
+able to begin use a few months earlier. See 
+http://www.vizworld.com/2009/09/utornl-receives-10m-nsf-remote-visualization/ 
+for a description of RDAV resources. This will be a 1024 core shared 
+memory system that will include 16 GPUs, four terabytes of memory, and a 
+petabyte parallel file system.
+
+Among other resources, the center will maintain an Rmpi enabled R 
+environment along with additional convenience functions for developing 
+large parallel data analysis applications. The RDAV will be co-located 
+with the National Institute for Computational Sciences (NICS) 
+http://www.nics.tennessee.edu/.
+
+Please let me know if you are interested in being an early R user of 
+this system and also let me know what is your current TeraGrid 
+relationship (see http://www.teragrid.org/userinfo/ and 
+http://www.nics.tennessee.edu/TeraGrid_Allocation_Info).
+
+Thanks!
+George
+
+-- 
+George Ostrouchov, Ph.D.
+Statistics and Data Sciences Group
+Computer Science and Mathematics Division
+Oak Ridge National Laboratory
+(865) 574-3137  http://www.csm.ornl.gov/~ost
+
+
+From HodgessE at uhd.edu  Tue Jan  5 22:32:08 2010
+From: HodgessE at uhd.edu (Hodgess, Erin)
+Date: Tue, 5 Jan 2010 15:32:08 -0600
+Subject: [R-sig-hpc] trouble with saving object
+Message-ID: <101CBF5360343B45B9C9B0B05D71474C25AF6D@BALI.uhd.campus>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100105/9fa93050/attachment.pl>
+
+From stephen.b.weston at gmail.com  Tue Jan  5 23:08:35 2010
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Tue, 5 Jan 2010 17:08:35 -0500
+Subject: [R-sig-hpc] trouble with saving object
+In-Reply-To: <101CBF5360343B45B9C9B0B05D71474C25AF6D@BALI.uhd.campus>
+References: <101CBF5360343B45B9C9B0B05D71474C25AF6D@BALI.uhd.campus>
+Message-ID: <57e838141001051408s1d2a4db3od1d20b83a826a041@mail.gmail.com>
+
+Hi Erin,
+
+The problem is that you're trying to use foreach just like
+a for loop.  It's more of a hybrid between a for loop and
+lapply.  Basically, side effects in the loop don't work.  It's
+the return value that counts.
+
+Try something more like this:
+
+    library(doMPI)
+    cl <- startMPIcluster()
+    registerDoMPI(cl)
+    zz <- foreach(i=1:10000, .combine='c') %dopar% {
+      x <- arima.sim(list(order=c(1,0,0), ar=-0.9), n=120)
+      arima(x, order=c(1,0,0))$model$phi
+    }
+    print(zz)
+    closeCluster(cl)
+    mpi.quit()
+
+Note that the standard 'c' function is used to combine
+the "phi" elements together into a vector, which is returned
+in the variable "zz".
+
+Hope this helps,
+
+- Steve
+
+
+On Tue, Jan 5, 2010 at 4:32 PM, Hodgess, Erin <HodgessE at uhd.edu> wrote:
+> Dear R HPC People:
+>
+> Here is a function that I have put together:
+>
+> library(foreach)
+> library(doMPI)
+> cl <- startMPIcluster()
+> registerDoMPI(cl)
+> zz <- numeric(length=10000)
+> foreach(i=1:10000,.combine=cbind) %dopar% {
+> ?x <- arima.sim(list(order=c(1,0,0),ar=-0.9),n=120)
+> ?z[i] <- arima(x,order=c(1,0,0))$model$phi
+> ?}
+> assign("zz",z,envir=.GlobalEnv)
+> ? ? # and shut it down
+> ? ? closeCluster(cl)
+>
+> but it doesn't save the zz variable.
+>
+> Does anything look out of whack, please?
+>
+> Thanks,
+> Erin
+>
+>
+>
+> Erin M. Hodgess, PhD
+> Associate Professor
+> Department of Computer and Mathematical Sciences
+> University of Houston - Downtown
+> mailto: hodgesse at uhd.edu
+>
+>
+> ? ? ? ?[[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From HodgessE at uhd.edu  Wed Jan  6 09:00:12 2010
+From: HodgessE at uhd.edu (Hodgess, Erin)
+Date: Wed, 6 Jan 2010 02:00:12 -0600
+Subject: [R-sig-hpc] time to process
+Message-ID: <101CBF5360343B45B9C9B0B05D71474C25AF73@BALI.uhd.campus>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100106/5ae1013e/attachment.pl>
+
+From stephen.b.weston at gmail.com  Wed Jan  6 14:34:32 2010
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Wed, 6 Jan 2010 08:34:32 -0500
+Subject: [R-sig-hpc] time to process
+In-Reply-To: <101CBF5360343B45B9C9B0B05D71474C25AF73@BALI.uhd.campus>
+References: <101CBF5360343B45B9C9B0B05D71474C25AF73@BALI.uhd.campus>
+Message-ID: <57e838141001060534m1110b94j84af403d233946d2@mail.gmail.com>
+
+I think your primary problem is that the tasks are individually
+quite small.  The master process is probably the bottleneck,
+spending all of it's time sending out tasks and retrieving
+the results.  But since you have a lot of tasks, you can group
+them together so they can be executed more efficiently.
+
+The doMPI package has a backend-specific option, named
+"chunkSIze" that can do that kind grouping, or chunking,
+automatically.  You specify chunkSize using a list that you
+pass to foreach via the ".options.mpi" argument.  Here's
+an example:
+
+suppressMessages(library(doMPI))
+
+# Create and register an MPI cluster
+cl <- startMPIcluster()
+registerDoMPI(cl)
+
+# Initialize variables
+n <- 10000
+opts <- list(chunkSize=100)
+
+# Perform simulations in parallel
+r <- foreach(1:n, .combine='c', .options.mpi=opts) %dopar% {
+  x <- ts(arima.sim(list(order=c(1,0,0), ar=-0.9), n=360), start=1975, freq=12)
+  y <- aggregate(x, nfreq=4, sum)
+  arima(y, order=c(1,0,0))$model$phi
+}
+
+# Print a summary of the resulting vector
+print(summary(r))
+
+# Shutdown the cluster and quit
+closeCluster(cl)
+mpi.quit()
+
+
+I picked a chunkSize of 100 because that should increase the
+amount of work by a factor of 100, while still keeping 100
+tasks.  That shouldn't work out too badly even with 58 workers.
+
+On my two core machine, this runs in about 100 seconds.
+
+But I'm curious about how you're running the program, and what kind
+of computers/network you're running on.  There might be something
+else going wrong to explain such bad performance compared to
+what I'm seeing.
+
+As for user vs. elapsed time, they both have useful information,
+but most of the time you only really care about elapsed time,
+since that is what ultimately matters to most people.
+
+- Steve
+
+
+
+On Wed, Jan 6, 2010 at 3:00 AM, Hodgess, Erin <HodgessE at uhd.edu> wrote:
+> Dear R HPC People:
+>
+> I have the following function, which works:
+>> library(doMPI)
+> Loading required package: foreach
+> Loading required package: iterators
+> Loading required package: codetools
+> Loading required package: Rmpi
+>> cl <- startMPIcluster()
+> ? ? ? ?58 slaves are spawned successfully. 0 failed.
+>> registerDoMPI(cl)
+>> xa <- seq(from=1,by=3,length=120)
+>> xb <- seq(from=3,by=3,length=120)
+>> zz <- foreach(i=1:10000,.combine=c) %dopar% {
+> + ?x <- ts(arima.sim(list(order=c(1,0,0),ar=-0.9),n=360),start=1975,freq=12)
+> + ?y <- aggregate(x,nfreq=4,sum)
+> + ?arima(y,order=c(1,0,0))$model$phi
+> + ?}
+>> ? ? ?closeCluster(cl)
+>>
+>>
+>>
+> [1] "Please use mpi.quit() to quit R"
+>> proc.time()
+> ? user ?system elapsed
+> 184.678 ? 3.896 378.648
+>
+> But I thought that it might run faster. ?Are my statements not parallelizable or have I done something wrong, please?
+> Finally, do I look at user time or elapsed time, please?
+>
+> Thanks,
+> Erin
+>
+>
+> Erin M. Hodgess, PhD
+> Associate Professor
+> Department of Computer and Mathematical Sciences
+> University of Houston - Downtown
+> mailto: hodgesse at uhd.edu
+>
+>
+> ? ? ? ?[[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From vqnguyen at uci.edu  Thu Jan  7 00:22:56 2010
+From: vqnguyen at uci.edu (Vinh Nguyen)
+Date: Wed, 6 Jan 2010 15:22:56 -0800
+Subject: [R-sig-hpc] snow/snowfall: advantages of MPI over the socket method?
+Message-ID: <13c5a0ae1001061522v4dc472a3s5ad35057cf21b30c@mail.gmail.com>
+
+Dear R-HPC list,
+
+I've been using snowfall via the socket method quite a bit the last
+year for a lot of my simulation studies.  The cluster I work on has
+SGE and I've been extracting information from the "qhost" command to
+find idle nodes to spawn R instances via sfInit().  Yes, I know this
+may turn some heads for system admins but I've been diligent in not
+hogging the shared resources -- this workflow has served me well.
+
+I've also been working with a system admin at my school to try to get
+OpenMPI running with snow/snowfall.  At first, we were going to go
+with the LAM/MPI implementation for use with the "sfCluster" unix
+program but decided to go with OpenMPI since it is being actively
+developed (and is possible to work with SGE).  I think things are
+working.  I am aware that you can run batch programs using this
+method, but I prefer to run the interactive session (via mpirun with
+RMPISNOW).
+
+Some things I noticed that are different compared to the socket method:
+1.  I declare the number of cpus and nodes before my R session is
+launched via the mpirun command.  This launches that many R instances
+on the different nodes (master + workers/slaves).
+2.  If there is an error in the R code (eg, object not found), the R
+session terminates.
+3.  I use sfInit() to declare the number of cpus to use from the
+cluster created in 1.
+
+Are there any advantages of the MPI method over the socket method?
+The only advantages I see are to be able to use sfCluster with LAM/MPI
+to select idle nodes from step 1 or to use mpirun/RMPISNOW with SGE to
+manage the shared resources.  Aside from these, my experience is that
+the socket method is the easier and even better (comment 2) method.
+Please let me know otherwise.
+
+Thanks.
+Vinh
+
+
+From vqnguyen at uci.edu  Thu Jan  7 01:40:32 2010
+From: vqnguyen at uci.edu (Vinh Nguyen)
+Date: Wed, 6 Jan 2010 16:40:32 -0800
+Subject: [R-sig-hpc] snow/snowfall: advantages of MPI over the socket
+	method?
+In-Reply-To: <13c5a0ae1001061522v4dc472a3s5ad35057cf21b30c@mail.gmail.com>
+References: <13c5a0ae1001061522v4dc472a3s5ad35057cf21b30c@mail.gmail.com>
+Message-ID: <13c5a0ae1001061640h6b706da1h618f15795226020b@mail.gmail.com>
+
+Also, suppose I execute R instances of RMPISNOW via mpirun on a node
+(something along the line of "mpirun -np3 --host myhost RMPISNOW).
+using "ps augx", i see that there are 2 R instances started (not
+including the master process).  In RMPISNOW, executing sfInit(cpus=2,
+parallel=TRUE, type="MPI") opens two more.  The following is a snippet
+from ps augx:
+
+vqnguyen 12481 97.2  0.4 315320 71108 ?        R    16:24   0:49
+/apps/R/2.10.0/lib64/R/bin/exec/R --slave --no-restore
+--file=/apps/R/2.10.0/lib64/R/library/snow/RMPInode.R --args
+SNOWLIB=/apps/R/2.10.0/lib64/R/library OUT=/dev/null
+vqnguyen 12480 97.2  0.4 313088 68872 ?        R    16:24   0:49
+/apps/R/2.10.0/lib64/R/bin/exec/R --slave --no-restore
+--file=/apps/R/2.10.0/lib64/R/library/snow/RMPInode.R --args
+SNOWLIB=/apps/R/2.10.0/lib64/R/library OUT=/dev/null
+vqnguyen 12467 74.6  0.1 258704 29844 ?        S    16:22   2:33
+/apps/R/2.10.0/lib64/R/bin/exec/R --no-save
+vqnguyen 12470 74.6  0.1 258700 29844 ?        S    16:22   2:33
+/apps/R/2.10.0/lib64/R/bin/exec/R --no-save
+
+The first two are spawned after sfInit() is ran.
+
+Is this how things should look like?  I was expecting only two slaves.
+ Can anyone confirm?  Thanks.
+
+Vinh
+
+On Wed, Jan 6, 2010 at 3:22 PM, Vinh Nguyen <vqnguyen at uci.edu> wrote:
+> Dear R-HPC list,
+>
+> I've been using snowfall via the socket method quite a bit the last
+> year for a lot of my simulation studies. ?The cluster I work on has
+> SGE and I've been extracting information from the "qhost" command to
+> find idle nodes to spawn R instances via sfInit(). ?Yes, I know this
+> may turn some heads for system admins but I've been diligent in not
+> hogging the shared resources -- this workflow has served me well.
+>
+> I've also been working with a system admin at my school to try to get
+> OpenMPI running with snow/snowfall. ?At first, we were going to go
+> with the LAM/MPI implementation for use with the "sfCluster" unix
+> program but decided to go with OpenMPI since it is being actively
+> developed (and is possible to work with SGE). ?I think things are
+> working. ?I am aware that you can run batch programs using this
+> method, but I prefer to run the interactive session (via mpirun with
+> RMPISNOW).
+>
+> Some things I noticed that are different compared to the socket method:
+> 1. ?I declare the number of cpus and nodes before my R session is
+> launched via the mpirun command. ?This launches that many R instances
+> on the different nodes (master + workers/slaves).
+> 2. ?If there is an error in the R code (eg, object not found), the R
+> session terminates.
+> 3. ?I use sfInit() to declare the number of cpus to use from the
+> cluster created in 1.
+>
+> Are there any advantages of the MPI method over the socket method?
+> The only advantages I see are to be able to use sfCluster with LAM/MPI
+> to select idle nodes from step 1 or to use mpirun/RMPISNOW with SGE to
+> manage the shared resources. ?Aside from these, my experience is that
+> the socket method is the easier and even better (comment 2) method.
+> Please let me know otherwise.
+>
+> Thanks.
+> Vinh
+>
+
+
+From stephen.b.weston at gmail.com  Thu Jan 14 22:46:44 2010
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Thu, 14 Jan 2010 16:46:44 -0500
+Subject: [R-sig-hpc] itertools 0.1-1 and doMPI 0.1-4
+Message-ID: <57e838141001141346t1f6b2c76va54bf26fc79e5e1b@mail.gmail.com>
+
+I'd like to announce the new "itertools" package, and version 0.1-4 of
+the "doMPI" package, which have been uploaded to CRAN under the GPL-2
+license.  Both of these packages are intended to be used with the
+"foreach" and "iterators" packages.
+
+The "itertools" package provides a variety of functions used to create
+iterators, and was inspired by the Python itertools module.  It let's
+you create iterators for splitting, chunking, repeating, recycling,
+zipping, and filtering your data.  It also includes the "ireadBin"
+function, which creates an iterator that reads binary data from a
+connection object.  ireadBin supports seeking before reading, which can
+be used in a parallel computing context to allow the workers to read
+different portions of a large input file, for example.  I am planning to
+write an example that demonstrates that technique in the near future.
+
+The new version of "doMPI" fixes a few problems in version 0.1-3, but
+also includes the new backend-specific "initEnvirMaster" option.  This
+allows you to specify an R function that is executed in the master
+process at the beginning of the foreach loop.  It is intended to be used
+in conjunction with the "initEnvir" option, which specifies an R
+function that is executed by the cluster workers.  By using both
+together, MPI collective communication functions can be executed to
+initialize the cluster workers.  This is particularly useful for sending
+large matrices to each of the workers, since it allows data to be
+broadcast using the mpi.bcast function without calling the R "serialize"
+function.  An example of this technique is in the new "rforest.R" file,
+a parallel random forest benchmark which is included in the "benchmark"
+directory of the doMPI distribution.
+
+Both of these projects are being developed on R-Forge, and I welcome any
+comments or suggestions on how to improve them.  I'd particularly like
+suggestions for better programming examples.  Not being a statistician,
+figuring out useful, realistic examples is a big problem for me.
+Perhaps a suggestion from one of you could prevent me from writing a
+third example script for computing a poor approximation of pi.
+
+- Steve Weston
+
+
+From sebastian.rohrer at basf.com  Mon Jan 18 14:42:19 2010
+From: sebastian.rohrer at basf.com (sebastian.rohrer at basf.com)
+Date: Mon, 18 Jan 2010 14:42:19 +0100
+Subject: [R-sig-hpc] Plain: Problem with Rmpi
+Message-ID: <OFCD01728B.DC99135E-ONC12576AF.004A25A6-C12576AF.004B491C@basf-c-s.be>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100118/6b4ee487/attachment.pl>
+
+From stephen.b.weston at gmail.com  Mon Jan 18 16:35:45 2010
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Mon, 18 Jan 2010 10:35:45 -0500
+Subject: [R-sig-hpc] Plain: Problem with Rmpi
+In-Reply-To: <OFCD01728B.DC99135E-ONC12576AF.004A25A6-C12576AF.004B491C@basf-c-s.be>
+References: <OFCD01728B.DC99135E-ONC12576AF.004A25A6-C12576AF.004B491C@basf-c-s.be>
+Message-ID: <57e838141001180735h267cdbebra6e7e23970bdffb3@mail.gmail.com>
+
+Why are you calling mpi.close.Rslaves?  I believe that you should
+only do that if you've started the slaves via mpi.spawn.Rslaves.
+
+I'm not sure if that has any bearing on your problem, however.
+But I wouldn't draw too many conclusions based on not seeing
+messages to stdout from the slaves right before quitting,
+especially messages that are produced on different machines.
+To improve the chances of it working, I suggest that you
+add a call to flush(stdout()) after the cat.  But you might want
+to do something else to prove whether the slaves are really
+running.
+
+- Steve
+
+
+On Mon, Jan 18, 2010 at 8:42 AM,  <sebastian.rohrer at basf.com> wrote:
+> Dear List,
+>
+> I have the following problem with R (2.10.0) Rmpi using OpenMPI 1.3.3.:
+>
+> I use Dirk Eddelbuettels test script for testing if Rmpi works.
+> (http://dirk.eddelbuettel.com/papers/ismNov2009introHPCwithR.pdf, the
+> example is on Slide 96)
+>
+> The script looks as follows:
+>
+> require(Rmpi)
+> rk <- mpi.comm.rank(0)
+> sz <- mpi.comm.size(0)
+>
+> name <- mpi.get.processor.name()
+> cat("Hello, rank", rk, "size", sz, "on", name, "\n")
+>
+> mpi.close.Rslaves()
+> mpi.quit()
+>
+> According to Dirk's slides, the output should look something like:
+> Hello, rank 4 size 8 on ron
+> Hello, rank 0 size 8 on ron
+> Hello, rank 3 size 8 on mccoy
+> Hello, rank 7 size 8 on mccoy
+> Hello, rank Hello, rank 21 size 8 on joe
+> size 8 on tony
+> Hello, rank 6 size 8 on tony
+> Hello, rank 5 size 8 on joe
+>
+> I call the script:
+>
+> /programs/openmpi-1.3.3/bin/orterun -host node02,node03 -n 4
+> /programs/R/R-2.10.0/bin/Rscript mpiTest_03.R
+>
+> The output looks like:
+>
+> master (rank 0, comm 1) of size 4 is running on: node02
+> slave1 (rank 1, comm 1) of size 4 is running on: node03
+> slave2 (rank 2, comm 1) of size 4 is running on: node02
+> slave3 (rank 3, comm 1) of size 4 is running on: node03
+> Hello, rank 0 size 4 on node02
+>
+> So, in my understanding there is a master and 3 slaves are spawned. But
+> the call for the processor name is executed only on the master. Right?
+> Any suggestions on what could be the problem?
+>
+> Thanks a lot!
+>
+> Sebastian
+>
+>
+>
+>
+> ? ? ? ?[[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From hyu at stats.uwo.ca  Mon Jan 18 19:43:33 2010
+From: hyu at stats.uwo.ca (Hao Yu)
+Date: Mon, 18 Jan 2010 13:43:33 -0500 (EST)
+Subject: [R-sig-hpc] Plain: Problem with Rmpi
+In-Reply-To: <57e838141001180735h267cdbebra6e7e23970bdffb3@mail.gmail.com>
+References: <OFCD01728B.DC99135E-ONC12576AF.004A25A6-C12576AF.004B491C@basf-c-s.be>
+	<57e838141001180735h267cdbebra6e7e23970bdffb3@mail.gmail.com>
+Message-ID: <8164653c5f3912bb3313060742e26227.squirrel@www.stats.uwo.ca>
+
+mpi.spawn.Rslaves is not needed since orterun is used to create 1 master
+and 3 slaves.
+
+I assume Rprofile in Rmpi is used. Then all slaves are in infinite loop
+waiting for master instructions. They will not take any R scripts through
+BATCH mode (only master will process them).
+
+You may use mpi.remote.exec to get what you want or modify slave.hostinfo.
+
+Hao
+
+
+Stephen Weston wrote:
+> Why are you calling mpi.close.Rslaves?  I believe that you should
+> only do that if you've started the slaves via mpi.spawn.Rslaves.
+>
+> I'm not sure if that has any bearing on your problem, however.
+> But I wouldn't draw too many conclusions based on not seeing
+> messages to stdout from the slaves right before quitting,
+> especially messages that are produced on different machines.
+> To improve the chances of it working, I suggest that you
+> add a call to flush(stdout()) after the cat.  But you might want
+> to do something else to prove whether the slaves are really
+> running.
+>
+> - Steve
+>
+>
+> On Mon, Jan 18, 2010 at 8:42 AM,  <sebastian.rohrer at basf.com> wrote:
+>> Dear List,
+>>
+>> I have the following problem with R (2.10.0) Rmpi using OpenMPI 1.3.3.:
+>>
+>> I use Dirk Eddelbuettels test script for testing if Rmpi works.
+>> (http://dirk.eddelbuettel.com/papers/ismNov2009introHPCwithR.pdf, the
+>> example is on Slide 96)
+>>
+>> The script looks as follows:
+>>
+>> require(Rmpi)
+>> rk <- mpi.comm.rank(0)
+>> sz <- mpi.comm.size(0)
+>>
+>> name <- mpi.get.processor.name()
+>> cat("Hello, rank", rk, "size", sz, "on", name, "\n")
+>>
+>> mpi.close.Rslaves()
+>> mpi.quit()
+>>
+>> According to Dirk's slides, the output should look something like:
+>> Hello, rank 4 size 8 on ron
+>> Hello, rank 0 size 8 on ron
+>> Hello, rank 3 size 8 on mccoy
+>> Hello, rank 7 size 8 on mccoy
+>> Hello, rank Hello, rank 21 size 8 on joe
+>> size 8 on tony
+>> Hello, rank 6 size 8 on tony
+>> Hello, rank 5 size 8 on joe
+>>
+>> I call the script:
+>>
+>> /programs/openmpi-1.3.3/bin/orterun -host node02,node03 -n 4
+>> /programs/R/R-2.10.0/bin/Rscript mpiTest_03.R
+>>
+>> The output looks like:
+>>
+>> master (rank 0, comm 1) of size 4 is running on: node02
+>> slave1 (rank 1, comm 1) of size 4 is running on: node03
+>> slave2 (rank 2, comm 1) of size 4 is running on: node02
+>> slave3 (rank 3, comm 1) of size 4 is running on: node03
+>> Hello, rank 0 size 4 on node02
+>>
+>> So, in my understanding there is a master and 3 slaves are spawned. But
+>> the call for the processor name is executed only on the master. Right?
+>> Any suggestions on what could be the problem?
+>>
+>> Thanks a lot!
+>>
+>> Sebastian
+>>
+>>
+>>
+>>
+>> ? ? ? ?[[alternative HTML version deleted]]
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+-- 
+Department of Statistics & Actuarial Sciences
+Fax Phone#:(519)-661-3813
+The University of Western Ontario
+Office Phone#:(519)-661-3622
+London, Ontario N6A 5B7
+http://www.stats.uwo.ca/faculty/yu
+
+
+From pauljohn32 at gmail.com  Mon Jan 18 20:16:31 2010
+From: pauljohn32 at gmail.com (Paul Johnson)
+Date: Mon, 18 Jan 2010 13:16:31 -0600
+Subject: [R-sig-hpc] wrestling to compile sprng as RPM for a Rocks Cluster.
+	Long rambling whining request for help :)
+Message-ID: <13e802631001181116na410d47i9c932339fcd6a2da@mail.gmail.com>
+
+Anybody have sprng (scalable parallel random number generator) RPM and
+SRPM files for RedHat/Centos with MPI?
+
+There are various posts about troubles compiling it, but I don't find
+details on the fixes.
+
+Many R packages for HPC require Rmpi, Rmpi requires rsprng, which in
+turn requires the C++/Fortran library SPRNG (capitalized? or not?).
+
+SPRNG is here, http://sprng.fsu.edu/. AFAICT, it is now in version 4.
+The source (dated 6/7/2007) is available here:
+
+http://sprng.fsu.edu/Version4.0/sprng4.tar.gz
+
+I've been trying to compile that on Centos so I can build an RPM for a Cluster.
+
+There are a number of wrinkles with this compile. It has a standard
+GNU INSTALL file, which is encouraging.  But
+
+1. The c++ code in the sprng4 package is not consistent with the
+guidelines of the current gcc c++ compiler.  There are quite a few
+little changes to make, like changing
+
+#include <iostream.h>
+
+to
+
+#include <iostream>
+
+I am attaching a patch file which includes the changes  that are, as
+far as I can tell, MINIMALLY necessary to get sprng4 to compile,
+except for the EXAMPLES directory.
+
+In the sprng4 source directory, this patch requires -p2, as in
+
+patch -p2 < sprng-4.patch
+
+2. The build in the EXAMPLES directory  has some big problems. Even
+after applying that patch, the "make" fails with errors in [1].
+
+The make will complete, however, if we delete the EXAMPLES directory
+from the Makefile in the top level. That is, change:
+
+SUBDIRS = SRC lib check TESTS include EXAMPLES .
+
+to
+
+SUBDIRS = SRC lib check TESTS include .
+
+After applying the sprng-4.patch (attached), running the configure,
+and then making that one change, then the make will finish.
+
+3. The "make install" step does not copy the include files into the
+install directory. I mean, if you run "ls" in the install folder,
+there is "bin", "lib" and "share", but no "include".
+
+
+I found many hints about the required fixes in the packaging efforts
+of Eugeny A. Rostovtsev (REAL) <real at altlinux.org> in the ALTLINUX
+distribution.  The SRPM file supplies "sprng4.tar.gz", but it is not
+the original source code package from the SPRNG authors.  The
+packaging is a little atypical for the RPM framework, as one is
+supposed to supply the original "pristine" source and a patch.
+Nevertheless, it is very informative. The patch I attach here includes
+the changes incorporated in the ALTLINUX package (after some cleanup).
+Most changes are C++ cleanup.
+
+In the SPEC file that Mr. Rostovtsev uses in ALTLINUX, he deals with
+the "lack of installed include files" problem by copying the *.h files
+"by hand" after running "make install". For your reference, I'm
+attaching that SPEC file so you can see for yourself. The SPEC file
+assumes the MPI implementation has an executable file called
+"mpivars.sh", and there is no such file in OpenMPI 1.3.
+
+In Debian/Ubuntu, I see Dirk Eddelbuettel supplies libsprng-2.  I'm trying
+to see how that compiles. The source code on that one is pretty
+old.  If I can't figure out sprng4, I
+will go back and work more on sprng-2 following Dirk's lead.
+
+I find also Nakama's mention of troubles compiling sprng4 and some
+proposed patches:
+
+http://prs.ism.ac.jp/~nakama/mascagni/
+
+He proposes patches and fixes, but I can't make them compile AT ALL.
+I notice those patches were proposed here about 1.5 years ago.
+
+If you have ideas, I'd be glad to hear them. In the interim, I'm going
+to study how Dirk compiled & installed SPRNG2 to see if I can make an RPM
+that way.
+
+pj
+
+[1]
+mpif77 -Wl,-R/usr/local/libexec/openmpi/lib -DHAVE_CONFIG_H -I. -I.
+-I../.. -I../../include   -I../../include -DSPRNG_MPI -g -O2 -c -o
+sprngf_mpi_tmp-sprngf_mpi.o `test -f 'sprngf_mpi.F' || echo './'`sprngf_mpi.F
+mpif77 -Wl,-R/usr/local/libexec/openmpi/lib  -g -O2   -o
+sprngf_mpi.tmp -I/usr/lib/openmpi/include
+-I/usr/lib/openmpi/include/openmpi -pthread
+-Wl,-R/usr/local/libexec/openmpi/lib --showme:link
+sprngf_mpi_tmp-sprngf_mpi.o -L../../lib -lsprng -lm -lstdc++ -lm
+-pthread -Wl,-R/usr/local/libexec/openmpi/lib -g -O2 -o sprngf_mpi.tmp
+-I/usr/lib/openmpi/include -I/usr/lib/openmpi/include/openmpi -pthread
+-Wl,-R/usr/local/libexec/openmpi/lib sprngf_mpi_tmp-sprngf_mpi.o
+-L../../lib -lsprng -lm -lstdc++ -lm -L/usr/lib/openmpi/lib -lmpi_f77
+-lmpi -lopen-rte -lopen-pal -ldl -Wl,--export-dynamic -lnsl -lutil -lm
+-ldl
+mpif77 -Wl,-R/usr/local/libexec/openmpi/lib -DHAVE_CONFIG_H -I. -I.
+-I../.. -I../../include   -I../../include -DSPRNG_MPI -g -O2 -c -o
+sprngf_simple_mpi_tmp-sprngf-simple_mpi.o `test -f
+'sprngf-simple_mpi.F' || echo './'`sprngf-simple_mpi.F
+mpif77 -Wl,-R/usr/local/libexec/openmpi/lib  -g -O2   -o
+sprngf-simple_mpi.tmp -I/usr/lib/openmpi/include
+-I/usr/lib/openmpi/include/openmpi -pthread
+-Wl,-R/usr/local/libexec/openmpi/lib --showme:link
+sprngf_simple_mpi_tmp-sprngf-simple_mpi.o -L../../lib -lsprng -lm
+-lstdc++ -lm
+-pthread -Wl,-R/usr/local/libexec/openmpi/lib -g -O2 -o
+sprngf-simple_mpi.tmp -I/usr/lib/openmpi/include
+-I/usr/lib/openmpi/include/openmpi -pthread
+-Wl,-R/usr/local/libexec/openmpi/lib
+sprngf_simple_mpi_tmp-sprngf-simple_mpi.o -L../../lib -lsprng -lm
+-lstdc++ -lm -L/usr/lib/openmpi/lib -lmpi_f77 -lmpi -lopen-rte
+-lopen-pal -ldl -Wl,--export-dynamic -lnsl -lutil -lm -ldl
+mv: cannot stat `sprng-simple_mpi.tmp': No such file or directory
+make[4]: *** [sprng_mpi_test] Error 1
+make[4]: Leaving directory
+`/home/pauljohn/LinuxDownloads/src/sprngrpm/sprng-4.0/EXAMPLES/mpisprng'
+make[3]: *** [all-recursive] Error 1
+make[3]: Leaving directory
+`/home/pauljohn/LinuxDownloads/src/sprngrpm/sprng-4.0/EXAMPLES/mpisprng'
+make[2]: *** [all-recursive] Error 1
+make[2]: Leaving directory
+`/home/pauljohn/LinuxDownloads/src/sprngrpm/sprng-4.0/EXAMPLES'
+make[1]: *** [all-recursive] Error 1
+make[1]: Leaving directory
+`/home/pauljohn/LinuxDownloads/src/sprngrpm/sprng-4.0'
+make: *** [all] Error 2
+
+
+
+-- 
+Paul E. Johnson
+Professor, Political Science
+1541 Lilac Lane, Room 504
+University of Kansas
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: sprng.spec
+Type: text/x-rpm-spec
+Size: 5597 bytes
+Desc: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100118/f212754b/attachment-0002.bin>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: sprng-4.patch
+Type: text/x-diff
+Size: 24467 bytes
+Desc: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100118/f212754b/attachment-0003.bin>
+
+From noah at bio.umass.edu  Mon Jan 18 20:58:42 2010
+From: noah at bio.umass.edu (Noah Charney)
+Date: Mon, 18 Jan 2010 14:58:42 -0500
+Subject: [R-sig-hpc] snow clusters on Windows
+Message-ID: <9abded39721a93dd0978b2431a4f7f83.squirrel@www.bio.umass.edu>
+
+R-HPC list members,
+
+I am wondering if anyone could help us with the setup for snow clusters on
+windows machines.  Is there something specific we need to do to set up SSH
+so that R can access it in the absence of linux?  We are working on
+Windows Server 2003, and on Vista, the problem is the same on both.  We
+can create local clusters using the name "localhost" on any computer, but
+no other name/IP address we substitute for "localhost" works.  Example
+code is below.
+
+#This works fine
+> cl<-makeCluster('localhost',type='SOCK')
+> cl
+[[1]]
+$con
+    description           class            mode            text         
+opened
+"<-Poopy:10187"      "sockconn"           "a+b"        "binary"       
+"opened"
+       can read       can write
+          "yes"           "yes"
+$host
+[1] "localhost"
+attr(,"class")
+[1] "SOCKnode"
+attr(,"class")
+[1] "SOCKcluster" "cluster"
+
+> stopCluster(cl)
+
+#But if we try to call the home computer by name or IP address, or
+anything else, it doesn't work...
+> cl<-makeCluster('192.168.1.1',type='SOCK')
+
+#It just hangs there until we hit 'escape', at which point it says:
+Warning message:
+In system(cmd, wait = FALSE, input = "") : ssh not found
+
+
+Thanks
+-Noah Charney
+---
+Organismic and Evolutionary Biology
+University of Massachusetts Amherst
+221 Morrill Science Center South
+Amherst, MA 01003-9297
+
+
+From hyu at stats.uwo.ca  Mon Jan 18 21:16:15 2010
+From: hyu at stats.uwo.ca (Hao Yu)
+Date: Mon, 18 Jan 2010 15:16:15 -0500 (EST)
+Subject: [R-sig-hpc] wrestling to compile sprng as RPM for a Rocks
+ Cluster. Long rambling whining request for help :)
+In-Reply-To: <13e802631001181116na410d47i9c932339fcd6a2da@mail.gmail.com>
+References: <13e802631001181116na410d47i9c932339fcd6a2da@mail.gmail.com>
+Message-ID: <0e42ddab3a6f161040fe3cc66da61ea5.squirrel@www.stats.uwo.ca>
+
+Paul,
+
+rsprng is suggested (not required) in Rmpi. I am using rlecuyer. rlecuyer
+can be simply installed in R as
+install.packages("rlecuyer")
+
+To use rlecuyer in Rmpi, run mpi.setup.rngstream(). Otherwise use
+mpi.setup.sprng() for SRRNG.
+
+Hao
+
+
+Paul Johnson wrote:
+> Anybody have sprng (scalable parallel random number generator) RPM and
+> SRPM files for RedHat/Centos with MPI?
+>
+> There are various posts about troubles compiling it, but I don't find
+> details on the fixes.
+>
+> Many R packages for HPC require Rmpi, Rmpi requires rsprng, which in
+> turn requires the C++/Fortran library SPRNG (capitalized? or not?).
+>
+> SPRNG is here, http://sprng.fsu.edu/. AFAICT, it is now in version 4.
+> The source (dated 6/7/2007) is available here:
+>
+> http://sprng.fsu.edu/Version4.0/sprng4.tar.gz
+>
+> I've been trying to compile that on Centos so I can build an RPM for a
+> Cluster.
+>
+> There are a number of wrinkles with this compile. It has a standard
+> GNU INSTALL file, which is encouraging.  But
+>
+> 1. The c++ code in the sprng4 package is not consistent with the
+> guidelines of the current gcc c++ compiler.  There are quite a few
+> little changes to make, like changing
+>
+> #include <iostream.h>
+>
+> to
+>
+> #include <iostream>
+>
+> I am attaching a patch file which includes the changes  that are, as
+> far as I can tell, MINIMALLY necessary to get sprng4 to compile,
+> except for the EXAMPLES directory.
+>
+> In the sprng4 source directory, this patch requires -p2, as in
+>
+> patch -p2 < sprng-4.patch
+>
+> 2. The build in the EXAMPLES directory  has some big problems. Even
+> after applying that patch, the "make" fails with errors in [1].
+>
+> The make will complete, however, if we delete the EXAMPLES directory
+> from the Makefile in the top level. That is, change:
+>
+> SUBDIRS = SRC lib check TESTS include EXAMPLES .
+>
+> to
+>
+> SUBDIRS = SRC lib check TESTS include .
+>
+> After applying the sprng-4.patch (attached), running the configure,
+> and then making that one change, then the make will finish.
+>
+> 3. The "make install" step does not copy the include files into the
+> install directory. I mean, if you run "ls" in the install folder,
+> there is "bin", "lib" and "share", but no "include".
+>
+>
+> I found many hints about the required fixes in the packaging efforts
+> of Eugeny A. Rostovtsev (REAL) <real at altlinux.org> in the ALTLINUX
+> distribution.  The SRPM file supplies "sprng4.tar.gz", but it is not
+> the original source code package from the SPRNG authors.  The
+> packaging is a little atypical for the RPM framework, as one is
+> supposed to supply the original "pristine" source and a patch.
+> Nevertheless, it is very informative. The patch I attach here includes
+> the changes incorporated in the ALTLINUX package (after some cleanup).
+> Most changes are C++ cleanup.
+>
+> In the SPEC file that Mr. Rostovtsev uses in ALTLINUX, he deals with
+> the "lack of installed include files" problem by copying the *.h files
+> "by hand" after running "make install". For your reference, I'm
+> attaching that SPEC file so you can see for yourself. The SPEC file
+> assumes the MPI implementation has an executable file called
+> "mpivars.sh", and there is no such file in OpenMPI 1.3.
+>
+> In Debian/Ubuntu, I see Dirk Eddelbuettel supplies libsprng-2.  I'm trying
+> to see how that compiles. The source code on that one is pretty
+> old.  If I can't figure out sprng4, I
+> will go back and work more on sprng-2 following Dirk's lead.
+>
+> I find also Nakama's mention of troubles compiling sprng4 and some
+> proposed patches:
+>
+> http://prs.ism.ac.jp/~nakama/mascagni/
+>
+> He proposes patches and fixes, but I can't make them compile AT ALL.
+> I notice those patches were proposed here about 1.5 years ago.
+>
+> If you have ideas, I'd be glad to hear them. In the interim, I'm going
+> to study how Dirk compiled & installed SPRNG2 to see if I can make an RPM
+> that way.
+>
+> pj
+>
+> [1]
+> mpif77 -Wl,-R/usr/local/libexec/openmpi/lib -DHAVE_CONFIG_H -I. -I.
+> -I../.. -I../../include   -I../../include -DSPRNG_MPI -g -O2 -c -o
+> sprngf_mpi_tmp-sprngf_mpi.o `test -f 'sprngf_mpi.F' || echo
+> './'`sprngf_mpi.F
+> mpif77 -Wl,-R/usr/local/libexec/openmpi/lib  -g -O2   -o
+> sprngf_mpi.tmp -I/usr/lib/openmpi/include
+> -I/usr/lib/openmpi/include/openmpi -pthread
+> -Wl,-R/usr/local/libexec/openmpi/lib --showme:link
+> sprngf_mpi_tmp-sprngf_mpi.o -L../../lib -lsprng -lm -lstdc++ -lm
+> -pthread -Wl,-R/usr/local/libexec/openmpi/lib -g -O2 -o sprngf_mpi.tmp
+> -I/usr/lib/openmpi/include -I/usr/lib/openmpi/include/openmpi -pthread
+> -Wl,-R/usr/local/libexec/openmpi/lib sprngf_mpi_tmp-sprngf_mpi.o
+> -L../../lib -lsprng -lm -lstdc++ -lm -L/usr/lib/openmpi/lib -lmpi_f77
+> -lmpi -lopen-rte -lopen-pal -ldl -Wl,--export-dynamic -lnsl -lutil -lm
+> -ldl
+> mpif77 -Wl,-R/usr/local/libexec/openmpi/lib -DHAVE_CONFIG_H -I. -I.
+> -I../.. -I../../include   -I../../include -DSPRNG_MPI -g -O2 -c -o
+> sprngf_simple_mpi_tmp-sprngf-simple_mpi.o `test -f
+> 'sprngf-simple_mpi.F' || echo './'`sprngf-simple_mpi.F
+> mpif77 -Wl,-R/usr/local/libexec/openmpi/lib  -g -O2   -o
+> sprngf-simple_mpi.tmp -I/usr/lib/openmpi/include
+> -I/usr/lib/openmpi/include/openmpi -pthread
+> -Wl,-R/usr/local/libexec/openmpi/lib --showme:link
+> sprngf_simple_mpi_tmp-sprngf-simple_mpi.o -L../../lib -lsprng -lm
+> -lstdc++ -lm
+> -pthread -Wl,-R/usr/local/libexec/openmpi/lib -g -O2 -o
+> sprngf-simple_mpi.tmp -I/usr/lib/openmpi/include
+> -I/usr/lib/openmpi/include/openmpi -pthread
+> -Wl,-R/usr/local/libexec/openmpi/lib
+> sprngf_simple_mpi_tmp-sprngf-simple_mpi.o -L../../lib -lsprng -lm
+> -lstdc++ -lm -L/usr/lib/openmpi/lib -lmpi_f77 -lmpi -lopen-rte
+> -lopen-pal -ldl -Wl,--export-dynamic -lnsl -lutil -lm -ldl
+> mv: cannot stat `sprng-simple_mpi.tmp': No such file or directory
+> make[4]: *** [sprng_mpi_test] Error 1
+> make[4]: Leaving directory
+> `/home/pauljohn/LinuxDownloads/src/sprngrpm/sprng-4.0/EXAMPLES/mpisprng'
+> make[3]: *** [all-recursive] Error 1
+> make[3]: Leaving directory
+> `/home/pauljohn/LinuxDownloads/src/sprngrpm/sprng-4.0/EXAMPLES/mpisprng'
+> make[2]: *** [all-recursive] Error 1
+> make[2]: Leaving directory
+> `/home/pauljohn/LinuxDownloads/src/sprngrpm/sprng-4.0/EXAMPLES'
+> make[1]: *** [all-recursive] Error 1
+> make[1]: Leaving directory
+> `/home/pauljohn/LinuxDownloads/src/sprngrpm/sprng-4.0'
+> make: *** [all] Error 2
+>
+>
+>
+> --
+> Paul E. Johnson
+> Professor, Political Science
+> 1541 Lilac Lane, Room 504
+> University of Kansas
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+-- 
+Department of Statistics & Actuarial Sciences
+Fax Phone#:(519)-661-3813
+The University of Western Ontario
+Office Phone#:(519)-661-3622
+London, Ontario N6A 5B7
+http://www.stats.uwo.ca/faculty/yu
+
+
+From guy.yollin at rotellacapital.com  Mon Jan 18 22:18:13 2010
+From: guy.yollin at rotellacapital.com (Guy Yollin)
+Date: Mon, 18 Jan 2010 15:18:13 -0600
+Subject: [R-sig-hpc] snow clusters on Windows
+In-Reply-To: <9abded39721a93dd0978b2431a4f7f83.squirrel@www.bio.umass.edu>
+References: <9abded39721a93dd0978b2431a4f7f83.squirrel@www.bio.umass.edu>
+Message-ID: <E4259A82356E7F46B4F911FB27B0D7251C1D09035C@AUSP01VMBX02.collaborationhost.net>
+
+Hi Noah,
+
+While I did not use snow, I was able to sucessfully implement cluster computing with windows workstations using NetWorkSpaces:
+http://nws-r.sourceforge.net/
+
+As you noted the key to these solutions is to get SSH running on windows boxes which can be accomplished with Cygwin 
+http://www.cygwin.com/
+
+The biggest challenge was configuring SSH and here are some links that I had found helpful back when I was setting this up:
+
+http://www1.umn.edu/oit/prod/groups/oit/@pub/@oit/@web/@security/documents/asset/oit_asset_001221.pdf
+
+http://lifehacker.com/205090/geek-to-live--set-up-a-personal-home-ssh-server
+
+http://www.bmonday.com/articles/653.aspx
+
+Good Luck!
+
+Best,
+
+-- Guy
+
+
+-----Original Message-----
+From: r-sig-hpc-bounces at r-project.org [mailto:r-sig-hpc-bounces at r-project.org] On Behalf Of Noah Charney
+Sent: Monday, January 18, 2010 11:59 AM
+To: r-sig-hpc at r-project.org
+Subject: [R-sig-hpc] snow clusters on Windows
+
+R-HPC list members,
+
+I am wondering if anyone could help us with the setup for snow clusters on
+windows machines.  Is there something specific we need to do to set up SSH
+so that R can access it in the absence of linux?  We are working on
+Windows Server 2003, and on Vista, the problem is the same on both.  We
+can create local clusters using the name "localhost" on any computer, but
+no other name/IP address we substitute for "localhost" works.  Example
+code is below.
+
+#This works fine
+> cl<-makeCluster('localhost',type='SOCK')
+> cl
+[[1]]
+$con
+    description           class            mode            text         
+opened
+"<-Poopy:10187"      "sockconn"           "a+b"        "binary"       
+"opened"
+       can read       can write
+          "yes"           "yes"
+$host
+[1] "localhost"
+attr(,"class")
+[1] "SOCKnode"
+attr(,"class")
+[1] "SOCKcluster" "cluster"
+
+> stopCluster(cl)
+
+#But if we try to call the home computer by name or IP address, or
+anything else, it doesn't work...
+> cl<-makeCluster('192.168.1.1',type='SOCK')
+
+#It just hangs there until we hit 'escape', at which point it says:
+Warning message:
+In system(cmd, wait = FALSE, input = "") : ssh not found
+
+
+Thanks
+-Noah Charney
+---
+Organismic and Evolutionary Biology
+University of Massachusetts Amherst
+221 Morrill Science Center South
+Amherst, MA 01003-9297
+
+_______________________________________________
+R-sig-hpc mailing list
+R-sig-hpc at r-project.org
+https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From matteo.mattiuzzi at boku.ac.at  Tue Jan 19 12:04:10 2010
+From: matteo.mattiuzzi at boku.ac.at (Matteo Mattiuzzi)
+Date: Tue, 19 Jan 2010 12:04:10 +0100
+Subject: [R-sig-hpc] RSGE and Sun Grid Engine: Unable to initialize
+	environment	 because of error: denied: host "r10n26" is
+	neither submit nor	 admin host Exiting.
+Message-ID: <4B559FBA0200002700006C6D@gwia2.boku.ac.at>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100119/2a3c2700/attachment.pl>
+
+From sebastian.rohrer at basf.com  Tue Jan 19 14:58:30 2010
+From: sebastian.rohrer at basf.com (sebastian.rohrer at basf.com)
+Date: Tue, 19 Jan 2010 14:58:30 +0100
+Subject: [R-sig-hpc] Antwort: Re:  Plain: Problem with Rmpi
+In-Reply-To: <8164653c5f3912bb3313060742e26227.squirrel@www.stats.uwo.ca>
+Message-ID: <OFA83F8EB5.D373F770-ONC12576B0.004A47BB-C12576B0.004CC4C1@basf-c-s.be>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100119/520379c9/attachment.pl>
+
+From stephen.b.weston at gmail.com  Tue Jan 19 17:11:16 2010
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Tue, 19 Jan 2010 11:11:16 -0500
+Subject: [R-sig-hpc] Antwort: Re: Plain: Problem with Rmpi
+In-Reply-To: <OFA83F8EB5.D373F770-ONC12576B0.004A47BB-C12576B0.004CC4C1@basf-c-s.be>
+References: <8164653c5f3912bb3313060742e26227.squirrel@www.stats.uwo.ca>
+	<OFA83F8EB5.D373F770-ONC12576B0.004A47BB-C12576B0.004CC4C1@basf-c-s.be>
+Message-ID: <57e838141001190811j70fce21w789f25969de504f9@mail.gmail.com>
+
+>From looking over the Rmpi Rprofile, it appears that it is used to put the
+cluster workers into a "worker loop" or "task loop", allowing you to use
+the higher level functions in Rmpi when spawn isn't supported, or if you
+choose to start your workers using orterun, perhaps for performance
+reasons.  From your message, I see that you are starting the workers
+using orterun, since you specified "-n 4".
+
+Rmpi's Rprofile definitely isn't compatible with the doMPI package, since
+it puts all of the workers into an Rmpi worker loop, ready to execute
+"Rmpi tasks", thus preventing them from executing "doMPI tasks".
+In doMPI, the startMPIcluster function plays a very similar role as
+.Rprofile in Rmpi.  That is, it puts all of the workers into a doMPI worker
+loop, allowing them to execute tasks sent to them from foreach/%dopar%.
+
+Note that doMPI and snow only use the "low level" functions in Rmpi,
+and never make use of Rprofile.  They use Rmpi for communication,
+not execution purposes.
+
+I hope that explains a bit of what is going on.
+
+- Steve
+
+
+
+On Tue, Jan 19, 2010 at 8:58 AM,  <sebastian.rohrer at basf.com> wrote:
+> Hao and Stephen,
+> thanks a lot. Your comments took me a good step further. But I must
+> confess, I am a bit confused about the significance of the .Rprofile
+> provided with Rmpi. I'm quite sure this is because I am a total noob
+> concerning HPC but maybe you can help me understand the issue.
+> After Stephen's response I changed my script to:
+>
+> require(Rmpi)
+>
+> print(mpi.remote.exec(rnorm(5)))
+>
+> mpi.close.Rslaves()
+> mpi.quit()
+>
+> and called it with
+>
+> /programs/openmpi-1.3.3/bin/orterun -host node02,node03 -n 4 Rscript
+> mpiTest_03.R
+>
+> ,which ran without error and procduced the following output:
+>
+> master (rank 0, comm 1) of size 4 is running on: node02
+> slave1 (rank 1, comm 1) of size 4 is running on: node03
+> slave2 (rank 2, comm 1) of size 4 is running on: node02
+> slave3 (rank 3, comm 1) of size 4 is running on: node03
+> ? ? ? ? ?X1 ? ? ? ? X2 ? ? ? ? ? X3
+> 1 ?0.6422312 -1.4176550 -0.864957823
+> 2 -0.9049865 ?1.3221402 ?0.322550244
+> 3 ?1.1318463 -0.3170188 -0.001224240
+> 4 ?0.8153995 ?1.4860591 -1.507712241
+> 5 -0.1545055 ?0.3834336 -0.104543321
+> [1] 1
+>
+> So everything seems OK, three slaves are running and therefore
+> mpi.remote.exec(rnorm(5)) is executed on three slaves.
+> BTW: if I leave out "mpi.close.Rslaves()" the program will produce the
+> same output, but then hang indefinitely.
+>
+> After Hao's response, I removed the .Rprofile from Rmpi from the working
+> directory. The sample script above wouldn't run anymore, but this is
+> expected if I understood Hao's comment in the right way.
+> What really strikes me, is that a test script I prepared for testing
+> Stephen's doMPI package (this is my ultimate goal: foreach, iterators and
+> doMPI) now ran smoothly:
+>
+> library(doMPI)
+> cl <- startMPIcluster()
+> registerDoMPI(cl)
+>
+> foreach(i = 1:3) %dopar% sqrt(i)
+>
+> closeCluster(cl)
+> mpi.quit()
+>
+> /programs/openmpi-1.3.3/bin/orterun -host node02,node03 -n 4 Rscript
+> mpiTest_04.R
+>
+> Output:
+>
+> [[1]]
+> [1] 1
+>
+> [[2]]
+> [1] 1.414214
+>
+> [[3]]
+> [1] 1.732051
+>
+> So this seems to work allright. The same is true for the bootMPI.R example
+> provided with doMPI. Both, however, don't work if I restore the Rmpi
+> .Rprofile.
+>
+> I'm sorry to bother you with these newbie questions, but I really would
+> like to understand what is going on here.
+>
+> Thanks a lot for your support and thanks to both of you Hao and Stephen
+> for providing these great packages!
+>
+> Cheers, Sebastian
+>
+>
+>
+>
+>
+>
+> "Hao Yu" <hyu at stats.uwo.ca>
+> 18.01.2010 19:43
+> Bitte antworten an
+> hyu at stats.uwo.ca
+>
+>
+> An
+> "Stephen Weston" <stephen.b.weston at gmail.com>
+> Kopie
+> sebastian.rohrer at basf.com, "R-sig-hpc at r-project.org"
+> <r-sig-hpc at r-project.org>
+> Thema
+> Re: [R-sig-hpc] Plain: Problem with Rmpi
+>
+>
+>
+>
+>
+>
+> mpi.spawn.Rslaves is not needed since orterun is used to create 1 master
+> and 3 slaves.
+>
+> I assume Rprofile in Rmpi is used. Then all slaves are in infinite loop
+> waiting for master instructions. They will not take any R scripts through
+> BATCH mode (only master will process them).
+>
+> You may use mpi.remote.exec to get what you want or modify slave.hostinfo.
+>
+> Hao
+>
+>
+> Stephen Weston wrote:
+>> Why are you calling mpi.close.Rslaves? ?I believe that you should
+>> only do that if you've started the slaves via mpi.spawn.Rslaves.
+>>
+>> I'm not sure if that has any bearing on your problem, however.
+>> But I wouldn't draw too many conclusions based on not seeing
+>> messages to stdout from the slaves right before quitting,
+>> especially messages that are produced on different machines.
+>> To improve the chances of it working, I suggest that you
+>> add a call to flush(stdout()) after the cat. ?But you might want
+>> to do something else to prove whether the slaves are really
+>> running.
+>>
+>> - Steve
+>>
+>>
+>> On Mon, Jan 18, 2010 at 8:42 AM, ?<sebastian.rohrer at basf.com> wrote:
+>>> Dear List,
+>>>
+>>> I have the following problem with R (2.10.0) Rmpi using OpenMPI 1.3.3.:
+>>>
+>>> I use Dirk Eddelbuettels test script for testing if Rmpi works.
+>>> (http://dirk.eddelbuettel.com/papers/ismNov2009introHPCwithR.pdf, the
+>>> example is on Slide 96)
+>>>
+>>> The script looks as follows:
+>>>
+>>> require(Rmpi)
+>>> rk <- mpi.comm.rank(0)
+>>> sz <- mpi.comm.size(0)
+>>>
+>>> name <- mpi.get.processor.name()
+>>> cat("Hello, rank", rk, "size", sz, "on", name, "\n")
+>>>
+>>> mpi.close.Rslaves()
+>>> mpi.quit()
+>>>
+>>> According to Dirk's slides, the output should look something like:
+>>> Hello, rank 4 size 8 on ron
+>>> Hello, rank 0 size 8 on ron
+>>> Hello, rank 3 size 8 on mccoy
+>>> Hello, rank 7 size 8 on mccoy
+>>> Hello, rank Hello, rank 21 size 8 on joe
+>>> size 8 on tony
+>>> Hello, rank 6 size 8 on tony
+>>> Hello, rank 5 size 8 on joe
+>>>
+>>> I call the script:
+>>>
+>>> /programs/openmpi-1.3.3/bin/orterun -host node02,node03 -n 4
+>>> /programs/R/R-2.10.0/bin/Rscript mpiTest_03.R
+>>>
+>>> The output looks like:
+>>>
+>>> master (rank 0, comm 1) of size 4 is running on: node02
+>>> slave1 (rank 1, comm 1) of size 4 is running on: node03
+>>> slave2 (rank 2, comm 1) of size 4 is running on: node02
+>>> slave3 (rank 3, comm 1) of size 4 is running on: node03
+>>> Hello, rank 0 size 4 on node02
+>>>
+>>> So, in my understanding there is a master and 3 slaves are spawned. But
+>>> the call for the processor name is executed only on the master. Right?
+>>> Any suggestions on what could be the problem?
+>>>
+>>> Thanks a lot!
+>>>
+>>> Sebastian
+>>>
+>>>
+>>>
+>>>
+>>> ? ? ? ?[[alternative HTML version deleted]]
+>>>
+>>> _______________________________________________
+>>> R-sig-hpc mailing list
+>>> R-sig-hpc at r-project.org
+>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>
+>
+> --
+> Department of Statistics & Actuarial Sciences
+> Fax Phone#:(519)-661-3813
+> The University of Western Ontario
+> Office Phone#:(519)-661-3622
+> London, Ontario N6A 5B7
+> http://www.stats.uwo.ca/faculty/yu
+>
+>
+> ? ? ? ?[[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From ross at biostat.ucsf.edu  Tue Jan 19 19:12:55 2010
+From: ross at biostat.ucsf.edu (Ross Boylan)
+Date: Tue, 19 Jan 2010 10:12:55 -0800
+Subject: [R-sig-hpc] Antwort: Re:  Plain: Problem with Rmpi
+In-Reply-To: <OFA83F8EB5.D373F770-ONC12576B0.004A47BB-C12576B0.004CC4C1@basf-c-s.be>
+References: <OFA83F8EB5.D373F770-ONC12576B0.004A47BB-C12576B0.004CC4C1@basf-c-s.be>
+Message-ID: <1263924775.10417.38.camel@corn.betterworld.us>
+
+On Tue, 2010-01-19 at 14:58 +0100, sebastian.rohrer at basf.com wrote:
+> But I must 
+> confess, I am a bit confused about the significance of the .Rprofile 
+> provided with Rmpi. I'm quite sure this is because I am a total noob 
+> concerning HPC but maybe you can help me understand the issue.
+> After Stephen's response I changed my script to: 
+> 
+> require(Rmpi)
+> 
+> print(mpi.remote.exec(rnorm(5)))
+> 
+> mpi.close.Rslaves()
+> mpi.quit()
+> 
+> and called it with
+> 
+> /programs/openmpi-1.3.3/bin/orterun -host node02,node03 -n 4 Rscript 
+> mpiTest_03.R
+You are not necessarily getting the Rmpi .Rprofile.  To use it, you need
+to copy it to your startup directory, or link from there.  Or you need
+to set an environment variable or use an R command line option.
+
+On Debian Lenny, r-cran-rmpi (thanks to Dirk for the packaging) has the
+file at /usr/lib/R/site-library/Rmpi/Rprofile
+
+As others have said, you don't necessarily want to use that profile; it
+depends on how you want to use Rmpi.
+
+Ross Boylan
+
+
+From pauljohn32 at gmail.com  Wed Jan 20 05:46:50 2010
+From: pauljohn32 at gmail.com (Paul Johnson)
+Date: Tue, 19 Jan 2010 22:46:50 -0600
+Subject: [R-sig-hpc] Patches -> success with sprng2.0b on Ubuntu;
+	Centos/Rocks Cluster 	still mysterious in Fortran
+Message-ID: <13e802631001192046u6e371183l96e1400e621bd495@mail.gmail.com>
+
+Hello, everybody.
+
+I stubbornly persist (for replication purposes) toward the goal of
+building sprng on a cluster running Rocks Linux (Centos based) in
+order to use Rmpi.
+
+
+=============Chapter 1: Ubuntu likes me================
+
+My laptop is Ubuntu 8.10, and I have been doing the development there.
+ I ended up taking advantage of fixes discovered by Dirk E in his
+package for Debian/Ubuntu and the fixes proposed for ALTLinux. And
+advice from several others in various email lists.
+
+I have worked with sprng versions 2.0a and 2.0b.  2.0a is used in the
+libsprng package in Debian/Ubuntu channels, but it is no longer
+available from the FSU website.  From the FSU site, they offer version
+2.0b.
+
+I uploaded a series of patches, a copy of the source code (for your
+convenience), and output to this directory:
+http://pj.freefaculty.org/linux/sprng
+
+sprng2.0b.tar.gz
+
+sprng-01-C-comments-onlyfor2.0a.patch
+sprng-02-dirk-misc.patch
+sprng-03-makefiles.patch
+sprng-04-AllCFixes.patch
+sprng-05-fixmenu.patch
+sprng-06-openmpi.patch
+
+The first patch is only used if you are working with sprng2.0a.tar.gz,
+it is NOT used with 2.0b.  All of the rest apply to both. The last is
+strictly optional.
+
+The steps to open the code, apply the patches, and, most importantly,
+to demonstrate the full functionality (results of "checksprng" and
+"timespring") are in this text files:
+
+Ubuntu-build-check.txt
+timesprng.txt
+
+The C and Fortran examples work fine.  As a result, I consider the
+question of compiling "cleanly" and "testing" on Ubuntu to be solved.
+It works with or without MPI.
+
+That may seem trivial, but it takes some effort.  The Debian/Ubuntu
+package libsrpng does not currently conduct the testing phase.  In the
+files I uploaded, you can see full functioning versions of checksprng
+and testsprng.
+
+
+==========Chapter 2: Centos hate me ========
+
+The report on my final goal--installing this in a Rocks cluster--is
+not so perfect.  The C examples work. The Fortran with pointer
+checking examples don't work.  Maybe I don't care??  The libraries do
+compile.  Maybe that's good enough for Rmpi?
+
+I put the output from "make" and the check programs in this file:
+
+Centos-build.txt
+
+Even getting this to compile on Centos is a hassle.  The versions of
+the compilers, openmpi, and the "echo" program are different. For
+example, the fortran compiler on Centos enforces a line length
+limitation, so several print statements in Fortran examples cause
+compiler failures.  I also learned that, unlike Ubuntu where "echo"
+will translate \134 into the "backslash" character, on Centos it is
+necessary to add a zero, as in \0134.  After hacking and such, I'm
+able to compile sprng2.0b on Centos, and I can run all of the C-based
+random generator tests.  The Fortran scripts with pointer checking
+fail.
+
+I'm trying to decide if that's important. I don't write Fortran
+programs. But I'd hate to release this on an unsuspecting user group
+unless I can understand what's going on. If you are a Fortran user,
+perhaps you can advise me how to debug this.
+
+Observe the last part of the output:
+
+
+./checksprng
+
+lfg: Checking Default C interface:
+
+Result:  PASSED
+
+
+lfg: Checking Simple C interface:
+
+Result:  PASSED
+
+
+lfg: Checking C interface with pointer checking:
+
+Result:  PASSED
+
+
+lcg: Checking Default C interface:
+
+Result:  PASSED
+
+
+lcg: Checking Simple C interface:
+
+Result:  PASSED
+
+
+lcg: Checking C interface with pointer checking:
+
+Result:  PASSED
+
+
+lcg64: Checking Default C interface:
+
+Result:  PASSED
+
+
+lcg64: Checking Simple C interface:
+
+Result:  PASSED
+
+
+lcg64: Checking C interface with pointer checking:
+
+Result:  PASSED
+
+
+cmrg: Checking Default C interface:
+
+Result:  PASSED
+
+
+cmrg: Checking Simple C interface:
+
+Result:  PASSED
+
+
+cmrg: Checking C interface with pointer checking:
+
+Result:  PASSED
+
+
+mlfg: Checking Default C interface:
+
+Result:  PASSED
+
+
+mlfg: Checking Simple C interface:
+
+Result:  PASSED
+
+
+mlfg: Checking C interface with pointer checking:
+
+Result:  PASSED
+
+
+pmlcg: Checking Default C interface:
+
+Result:  PASSED
+
+
+pmlcg: Checking Simple C interface:
+
+Result:  PASSED
+
+
+pmlcg: Checking C interface with pointer checking:
+
+Result:  PASSED
+
+
+lfg: Checking Default FORTRAN interface:
+./checksprng: line 57:  6879 Segmentation fault      ./check.fsprng <
+gen0_lfg.data 2> /dev/null
+
+lfg: Checking Simple FORTRAN interface:
+  Expect SPRNG ERROR: packed string invalid.
+
+ Result:  PASSED
+
+
+lfg: Checking FORTRAN interface with pointer checking:
+ FAILED: Integer generator incorrect.
+ FAILED: Float generator incorrect.
+ FAILED: Double generator incorrect stream.
+ FAILED: Generator was unable to spawn.
+ FAILED: Generator incorrect after spawning.
+ Probable  error in spawning the generators.
+ FAILED: Generator was unable to pack.
+ FAILED: Incorrect stream after pack/unpack.
+ Probable error in (un)packing the generators.
+ FAILED: Generator incorrect stream after pack/unpack.
+ Probably an error in (un)packing the generators.
+ FAILED: Free returns           -1 instead of 6.
+ FAILED: Free returns           -1 instead of 0.
+ FAILED: Generator does not produce expected stream
+    ... when ngens <= 0.
+ FAILED: Generator produces more than 1 stream
+     ... when ngens = 0.
+ FAILED: Spawn returned           0  instead of 1
+    ... when nspawned was 0.
+ FAILED: Generator wrong when nspawned = -1.
+ Expect SPRNG ERROR: packed string invalid
+
+ Result:  FAILED
+
+
+lcg: Checking Default FORTRAN interface:
+./checksprng: line 66:  6882 Segmentation fault      ./check.fsprng <
+gen1_lcg.data 2> /dev/null
+
+lcg: Checking Simple FORTRAN interface:
+  Expect SPRNG ERROR: packed string invalid.
+
+ Result:  PASSED
+
+
+lcg: Checking FORTRAN interface with pointer checking:
+ FAILED: Integer generator incorrect.
+ FAILED: Float generator incorrect.
+ FAILED: Double generator incorrect stream.
+ FAILED: Generator was unable to spawn.
+ FAILED: Generator incorrect after spawning.
+ Probable  error in spawning the generators.
+ FAILED: Generator was unable to pack.
+ FAILED: Incorrect stream after pack/unpack.
+ Probable error in (un)packing the generators.
+ FAILED: Generator incorrect stream after pack/unpack.
+ Probably an error in (un)packing the generators.
+ FAILED: Free returns           -1 instead of 6.
+ FAILED: Free returns           -1 instead of 0.
+ FAILED: Generator does not produce expected stream
+    ... when ngens <= 0.
+ FAILED: Generator produces more than 1 stream
+     ... when ngens = 0.
+ FAILED: Spawn returned           0  instead of 1
+    ... when nspawned was 0.
+ FAILED: Generator wrong when nspawned = -1.
+ Expect SPRNG ERROR: packed string invalid
+
+ Result:  FAILED
+
+
+lcg64: Checking Default FORTRAN interface:
+./checksprng: line 75:  6885 Segmentation fault      ./check.fsprng <
+gen2_lcg64.data 2> /dev/null
+
+lcg64: Checking Simple FORTRAN interface:
+  Expect SPRNG ERROR: packed string invalid.
+
+ Result:  PASSED
+
+
+lcg64: Checking FORTRAN interface with pointer checking:
+ FAILED: Integer generator incorrect.
+ FAILED: Float generator incorrect.
+ FAILED: Double generator incorrect stream.
+ FAILED: Generator was unable to spawn.
+ FAILED: Generator incorrect after spawning.
+ Probable  error in spawning the generators.
+ FAILED: Generator was unable to pack.
+ FAILED: Incorrect stream after pack/unpack.
+ Probable error in (un)packing the generators.
+ FAILED: Generator incorrect stream after pack/unpack.
+ Probably an error in (un)packing the generators.
+ FAILED: Free returns           -1 instead of 6.
+ FAILED: Free returns           -1 instead of 0.
+ FAILED: Generator does not produce expected stream
+    ... when ngens <= 0.
+ FAILED: Generator produces more than 1 stream
+     ... when ngens = 0.
+ FAILED: Spawn returned           0  instead of 1
+    ... when nspawned was 0.
+ FAILED: Generator wrong when nspawned = -1.
+ Expect SPRNG ERROR: packed string invalid
+
+ Result:  FAILED
+
+
+cmrg: Checking Default FORTRAN interface:
+./checksprng: line 84:  6888 Segmentation fault      ./check.fsprng <
+gen3_cmrg.data 2> /dev/null
+
+cmrg: Checking Simple FORTRAN interface:
+  Expect SPRNG ERROR: packed string invalid.
+
+ Result:  PASSED
+
+
+cmrg: Checking FORTRAN interface with pointer checking:
+ FAILED: Integer generator incorrect.
+ FAILED: Float generator incorrect.
+ FAILED: Double generator incorrect stream.
+ FAILED: Generator was unable to spawn.
+ FAILED: Generator incorrect after spawning.
+ Probable  error in spawning the generators.
+ FAILED: Generator was unable to pack.
+ FAILED: Incorrect stream after pack/unpack.
+ Probable error in (un)packing the generators.
+ FAILED: Generator incorrect stream after pack/unpack.
+ Probably an error in (un)packing the generators.
+ FAILED: Free returns           -1 instead of 6.
+ FAILED: Free returns           -1 instead of 0.
+ FAILED: Generator does not produce expected stream
+    ... when ngens <= 0.
+ FAILED: Generator produces more than 1 stream
+     ... when ngens = 0.
+ FAILED: Spawn returned           0  instead of 1
+    ... when nspawned was 0.
+ FAILED: Generator wrong when nspawned = -1.
+ Expect SPRNG ERROR: packed string invalid
+
+ Result:  FAILED
+
+
+mlfg: Checking Default FORTRAN interface:
+./checksprng: line 93:  6891 Segmentation fault      ./check.fsprng <
+gen4_mlfg.data 2> /dev/null
+
+mlfg: Checking Simple FORTRAN interface:
+  Expect SPRNG ERROR: packed string invalid.
+
+ Result:  PASSED
+
+
+mlfg: Checking FORTRAN interface with pointer checking:
+ FAILED: Integer generator incorrect.
+ FAILED: Float generator incorrect.
+ FAILED: Double generator incorrect stream.
+ FAILED: Generator was unable to spawn.
+ FAILED: Generator incorrect after spawning.
+ Probable  error in spawning the generators.
+ FAILED: Generator was unable to pack.
+ FAILED: Incorrect stream after pack/unpack.
+ Probable error in (un)packing the generators.
+ FAILED: Generator incorrect stream after pack/unpack.
+ Probably an error in (un)packing the generators.
+ FAILED: Free returns           -1 instead of 6.
+ FAILED: Free returns           -1 instead of 0.
+ FAILED: Generator does not produce expected stream
+    ... when ngens <= 0.
+ FAILED: Generator produces more than 1 stream
+     ... when ngens = 0.
+ FAILED: Spawn returned           0  instead of 1
+    ... when nspawned was 0.
+ FAILED: Generator wrong when nspawned = -1.
+ Expect SPRNG ERROR: packed string invalid
+
+ Result:  FAILED
+
+
+pmlcg: Checking Default FORTRAN interface:
+./checksprng: line 102:  6894 Segmentation fault      ./check.fsprng <
+gen5_pmlcg.data 2> /dev/null
+
+pmlcg: Checking Simple FORTRAN interface:
+  Expect SPRNG ERROR: packed string invalid.
+
+ Result:  PASSED
+
+
+pmlcg: Checking FORTRAN interface with pointer checking:
+ FAILED: Integer generator incorrect.
+ FAILED: Float generator incorrect.
+ FAILED: Double generator incorrect stream.
+ FAILED: Generator was unable to spawn.
+ FAILED: Generator incorrect after spawning.
+ Probable  error in spawning the generators.
+ FAILED: Generator was unable to pack.
+ FAILED: Incorrect stream after pack/unpack.
+ Probable error in (un)packing the generators.
+ FAILED: Generator incorrect stream after pack/unpack.
+ Probably an error in (un)packing the generators.
+ FAILED: Free returns           -1 instead of 6.
+ FAILED: Free returns           -1 instead of 0.
+ FAILED: Generator does not produce expected stream
+    ... when ngens <= 0.
+ FAILED: Generator produces more than 1 stream
+     ... when ngens = 0.
+ FAILED: Spawn returned           0  instead of 1
+    ... when nspawned was 0.
+ FAILED: Generator wrong when nspawned = -1.
+ Expect SPRNG ERROR: packed string invalid
+
+-- 
+Paul E. Johnson
+Professor, Political Science
+1541 Lilac Lane, Room 504
+University of Kansas
+
+
+From hyu at stats.uwo.ca  Thu Jan 21 17:57:15 2010
+From: hyu at stats.uwo.ca (Hao Yu)
+Date: Thu, 21 Jan 2010 11:57:15 -0500 (EST)
+Subject: [R-sig-hpc] Rmpi for Windows 32bit and 64bit
+Message-ID: <fb056494afa0e2d373b4a1308a149932.squirrel@www.stats.uwo.ca>
+
+Hi.
+
+I finally made Rmpi run under Windows 64bit and simplified how to load
+Rmpi under both 32bit and 64bit windows. See the instructions at
+http://www.stats.uwo.ca/faculty/yu/Rmpi/windows.htm
+
+I haven't test this setting under multiple windows yet. I need to fix
+mpichhosts function due to various registry changes among different
+windows.
+
+Hao
+-- 
+Department of Statistics & Actuarial Sciences
+Fax Phone#:(519)-661-3813
+The University of Western Ontario
+Office Phone#:(519)-661-3622
+London, Ontario N6A 5B7
+http://www.stats.uwo.ca/faculty/yu
+
+
+From mwkimpel at gmail.com  Tue Jan 26 15:27:56 2010
+From: mwkimpel at gmail.com (Mark Kimpel)
+Date: Tue, 26 Jan 2010 09:27:56 -0500
+Subject: [R-sig-hpc] "chunking" parallel tasks
+Message-ID: <6b93d1831001260627h121b1ec9u12ca3c2401d4ec03@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100126/63420c80/attachment.pl>
+
+From brian at braverock.com  Tue Jan 26 15:44:01 2010
+From: brian at braverock.com (Brian G. Peterson)
+Date: Tue, 26 Jan 2010 08:44:01 -0600
+Subject: [R-sig-hpc] "chunking" parallel tasks
+In-Reply-To: <6b93d1831001260627h121b1ec9u12ca3c2401d4ec03@mail.gmail.com>
+References: <6b93d1831001260627h121b1ec9u12ca3c2401d4ec03@mail.gmail.com>
+Message-ID: <4B5EFFB1.1050207@braverock.com>
+
+Mark Kimpel wrote:
+> I have seen references on this list to "chunking" parallel tasks. If I am
+> interpreting this correctly that is to decrease the overhead of multiple
+> system calls. For instance, if I  have a loop of 10000 simple tasks and 10
+> processors, then 10 chunks of 1000 would be processed.
+>
+> Which of the parallel packages has the ability to take "chunk" (or its
+> equivalent) as an argument? I've googled chunk with R and come up with
+> everything but want I'm interested in.
+>   
+Google "nesting foreach loops"
+
+The foreach package will do what you want.  Steve Weston has posted some 
+examples to this list on this topic as well.
+
+Regards,
+
+   - Brian
+
+
+From HodgessE at uhd.edu  Tue Jan 26 16:42:47 2010
+From: HodgessE at uhd.edu (Hodgess, Erin)
+Date: Tue, 26 Jan 2010 09:42:47 -0600
+Subject: [R-sig-hpc] "chunking" parallel tasks
+References: <6b93d1831001260627h121b1ec9u12ca3c2401d4ec03@mail.gmail.com>
+Message-ID: <101CBF5360343B45B9C9B0B05D71474C25B070@BALI.uhd.campus>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100126/f8d6dcd1/attachment.pl>
+
+From stephen.b.weston at gmail.com  Tue Jan 26 16:48:03 2010
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Tue, 26 Jan 2010 10:48:03 -0500
+Subject: [R-sig-hpc] "chunking" parallel tasks
+In-Reply-To: <4B5EFFB1.1050207@braverock.com>
+References: <6b93d1831001260627h121b1ec9u12ca3c2401d4ec03@mail.gmail.com>
+	<4B5EFFB1.1050207@braverock.com>
+Message-ID: <57e838141001260748l2c70235fo2afeb9a842982927@mail.gmail.com>
+
+In parallel computing, "chunking" is used to bundle multiple messages
+together, since big messages can very often be sent much more efficiently
+than short messages.  That means that in systems like "snow" and "foreach",
+if your task executes very quickly, most of the time may be spent moving
+data around, rather than doing useful work.  By bundling many tasks
+together, you might be able to do the communication efficiently enough so
+that you get a benefit from doing the tasks in parallel.  However, if you
+have short tasks and large inputs and/or outputs, chunking won't really
+help you, since it isn't going to make the communication more efficient.
+You need to figure out some way to decrease the amount of data that is
+being moved around.
+
+The nws package supports "chunking" via the eachElem "chunkSize" element
+of the "eo" argument.  The multicore package supports chunking as an all
+or nothing thing via the "mc.preschedule" argument to mclapply.  The doMC
+package uses the backend-specific "preschedule" option, which it passes on
+to mclapply via the "mc.preschedule" argument.  The doMPI package uses
+the backend-specific "chunkSize" option to specify any chunk size, much
+like nws.
+
+The iterators and itertools packages contain various functions that create
+iterators that allow you to split up data in chunks, so they support "chunking"
+in their own way.  That allows you to do manual chunking, as I call it, with
+any of the foreach backends.
+
+The snow package has some internal functions that split vectors and matrices
+into chunks.  They are used in functions such as parMM, parCapply, and
+parRapply.
+
+- Steve
+
+
+On Tue, Jan 26, 2010 at 9:44 AM, Brian G. Peterson <brian at braverock.com> wrote:
+> Mark Kimpel wrote:
+>>
+>> I have seen references on this list to "chunking" parallel tasks. If I am
+>> interpreting this correctly that is to decrease the overhead of multiple
+>> system calls. For instance, if I ?have a loop of 10000 simple tasks and 10
+>> processors, then 10 chunks of 1000 would be processed.
+>>
+>> Which of the parallel packages has the ability to take "chunk" (or its
+>> equivalent) as an argument? I've googled chunk with R and come up with
+>> everything but want I'm interested in.
+>>
+>
+> Google "nesting foreach loops"
+>
+> The foreach package will do what you want. ?Steve Weston has posted some
+> examples to this list on this topic as well.
+>
+> Regards,
+>
+> ?- Brian
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From noah at bio.umass.edu  Tue Jan 26 17:44:28 2010
+From: noah at bio.umass.edu (Noah Charney)
+Date: Tue, 26 Jan 2010 11:44:28 -0500
+Subject: [R-sig-hpc] snow clusters on Windows
+Message-ID: <15396d814d058ced80cd706dc11d3cd5.squirrel@www.bio.umass.edu>
+
+Guy et al,
+
+Thanks for the pointers! I appear to have gotten much of the way there
+(solution described below), but there remains a very strange problem with
+makeCluster().  I'm still just testing it out on a single computer, and,
+as before, it works fine when I call:
+
+> makeSOCKcluster("localhost")
+
+But if I specify my local host by name:
+
+> makeSOCKcluster("Poopy")
+
+It will hang up indefinitely until I open a second R workspace/window on
+the same machine, and try to call the localhost:
+
+> cl<-makeSOCKcluster("localhost")
+Error in socketConnection(port = port, server = TRUE, blocking = TRUE,  :
+  cannot open the connection
+In addition: Warning message:
+In socketConnection(port = port, server = TRUE, blocking = TRUE,  :
+  port 10187 cannot be opened
+
+This error message seems to be a good sign, because when I now look back
+at the original R workspace, it will have completed making the cluster. 
+If I try to make a 3 node cluster, then I need to "nudge" it as above 3
+times from the other workspace.  Once the cluster is established,
+clusterApply seems to work fine.  Thoughts?
+
+------
+To get ssh running from R in the first place on Windows, which was my
+original question:
+
+Install copssh (http://www.itefix.no/i2/download)
+
+Add the ...copssh/bin/ directory to Path variable in windows (Control
+Panel -> System -> Advanced System Settings -> System Variables -> Path)
+
+To speed things up considerably, changed UseDNS to "no" (and deleted
+preceding # to uncomment) in C:\Program Files\CopSSH\etc\sshd_config
+
+I also added a "hosts" file to the CopSSH\etc\ directory with the local IP
+and hostname, but I don't think this was necessary
+
+Followed directions to set up password-less ssh login from
+http://nws-r.sourceforge.net/docs/getting_started.html :
+
+	To generate public and private keys, follow the steps below.
+	Open a DOS terminal
+	ssh-keygen -t rsa
+	cd .ssh (.ssh directory is located in C:/Program Files/copssh/home/user
+on Windows)
+	cp id_rsa.pub authorized_keys This step allows password-less login to
+local machine.
+	For all remote machines that you want password-less login, append the
+content of id_rsa.pub to their 	authorized_keys file.
+	To test the password-less login, type the following command:
+	% ssh hostname date
+	If everything is setup correctly, you should not be asked for password
+and the current date on remote machine will be returned.
+
+
+Now, from R, we should be able to type:
+> system("ssh #insert computer name here# date")
+Tue Jan 26 11:30:31 EST 2010
+>
+
+Thanks
+-Noah Charney
+-- 
+Organismic and Evolutionary Biology
+University of Massachusetts Amherst
+221 Morrill Science Center South
+Amherst, MA 01003
+
+
+From mwkimpel at gmail.com  Tue Jan 26 17:49:29 2010
+From: mwkimpel at gmail.com (Mark Kimpel)
+Date: Tue, 26 Jan 2010 11:49:29 -0500
+Subject: [R-sig-hpc] "chunking" parallel tasks
+In-Reply-To: <57e838141001260748l2c70235fo2afeb9a842982927@mail.gmail.com>
+References: <6b93d1831001260627h121b1ec9u12ca3c2401d4ec03@mail.gmail.com>
+	<4B5EFFB1.1050207@braverock.com>
+	<57e838141001260748l2c70235fo2afeb9a842982927@mail.gmail.com>
+Message-ID: <6b93d1831001260849v7815cfeajb53a810c281ef5b3@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100126/0fcd6122/attachment.pl>
+
+From mtmorgan at fhcrc.org  Tue Jan 26 18:10:01 2010
+From: mtmorgan at fhcrc.org (Martin Morgan)
+Date: Tue, 26 Jan 2010 09:10:01 -0800
+Subject: [R-sig-hpc] "chunking" parallel tasks
+In-Reply-To: <57e838141001260748l2c70235fo2afeb9a842982927@mail.gmail.com>
+References: <6b93d1831001260627h121b1ec9u12ca3c2401d4ec03@mail.gmail.com>	<4B5EFFB1.1050207@braverock.com>
+	<57e838141001260748l2c70235fo2afeb9a842982927@mail.gmail.com>
+Message-ID: <4B5F21E9.6080204@fhcrc.org>
+
+On 01/26/2010 07:48 AM, Stephen Weston wrote:
+> In parallel computing, "chunking" is used to bundle multiple messages
+> together, since big messages can very often be sent much more efficiently
+> than short messages.  That means that in systems like "snow" and "foreach",
+> if your task executes very quickly, most of the time may be spent moving
+> data around, rather than doing useful work.  By bundling many tasks
+> together, you might be able to do the communication efficiently enough so
+> that you get a benefit from doing the tasks in parallel.  However, if you
+> have short tasks and large inputs and/or outputs, chunking won't really
+> help you, since it isn't going to make the communication more efficient.
+> You need to figure out some way to decrease the amount of data that is
+> being moved around.
+
+Another perhaps more common use is for 'cheap' load-balancing, where the
+individual tasks may take variable amounts of time (e.g., during
+simulations). Say each of the first 100 tasks take 10 times longer than
+the next 900. Dividing the 1000 tasks equally between 10 nodes means
+that the entire computation is limited by the first node, which takes
+(100 x 10) / 1 time units, versus (900 x 1) / 9 for the remaining 9
+nodes. Choose a smaller chunk size, e.g., 10. All nodes get 10 big
+tasks, and when complete come back for more. Ignoring communication time
+the elapsed time is something like (100 x 10) / 10 (for the 100 big jobs
+each taking 10 time units, divided between 10 processors) + (900 x 1) /
+10  (for the remaining 900 small jobs, each taking 1 time unit, divided
+across 10 nodes).
+
+Since not explicitly mentioned elsewhere, the Rmpi mpi.*apply functions
+have a job.num argument for this purpose.
+
+Martin
+
+> 
+> The nws package supports "chunking" via the eachElem "chunkSize" element
+> of the "eo" argument.  The multicore package supports chunking as an all
+> or nothing thing via the "mc.preschedule" argument to mclapply.  The doMC
+> package uses the backend-specific "preschedule" option, which it passes on
+> to mclapply via the "mc.preschedule" argument.  The doMPI package uses
+> the backend-specific "chunkSize" option to specify any chunk size, much
+> like nws.
+> 
+> The iterators and itertools packages contain various functions that create
+> iterators that allow you to split up data in chunks, so they support "chunking"
+> in their own way.  That allows you to do manual chunking, as I call it, with
+> any of the foreach backends.
+> 
+> The snow package has some internal functions that split vectors and matrices
+> into chunks.  They are used in functions such as parMM, parCapply, and
+> parRapply.
+> 
+> - Steve
+> 
+> 
+> On Tue, Jan 26, 2010 at 9:44 AM, Brian G. Peterson <brian at braverock.com> wrote:
+>> Mark Kimpel wrote:
+>>>
+>>> I have seen references on this list to "chunking" parallel tasks. If I am
+>>> interpreting this correctly that is to decrease the overhead of multiple
+>>> system calls. For instance, if I  have a loop of 10000 simple tasks and 10
+>>> processors, then 10 chunks of 1000 would be processed.
+>>>
+>>> Which of the parallel packages has the ability to take "chunk" (or its
+>>> equivalent) as an argument? I've googled chunk with R and come up with
+>>> everything but want I'm interested in.
+>>>
+>>
+>> Google "nesting foreach loops"
+>>
+>> The foreach package will do what you want.  Steve Weston has posted some
+>> examples to this list on this topic as well.
+>>
+>> Regards,
+>>
+>>  - Brian
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+-- 
+Martin Morgan
+Computational Biology / Fred Hutchinson Cancer Research Center
+1100 Fairview Ave. N.
+PO Box 19024 Seattle, WA 98109
+
+Location: Arnold Building M1 B861
+Phone: (206) 667-2793
+
+
+From mwkimpel at gmail.com  Tue Jan 26 18:33:06 2010
+From: mwkimpel at gmail.com (Mark Kimpel)
+Date: Tue, 26 Jan 2010 12:33:06 -0500
+Subject: [R-sig-hpc] "chunking" parallel tasks
+In-Reply-To: <4B5F21E9.6080204@fhcrc.org>
+References: <6b93d1831001260627h121b1ec9u12ca3c2401d4ec03@mail.gmail.com>
+	<4B5EFFB1.1050207@braverock.com>
+	<57e838141001260748l2c70235fo2afeb9a842982927@mail.gmail.com>
+	<4B5F21E9.6080204@fhcrc.org>
+Message-ID: <6b93d1831001260933j659d1486rf2fa79ca0c1825b@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100126/34c80b0c/attachment.pl>
+
+From matloff at cs.ucdavis.edu  Tue Jan 26 18:51:34 2010
+From: matloff at cs.ucdavis.edu (Norm Matloff)
+Date: Tue, 26 Jan 2010 09:51:34 -0800
+Subject: [R-sig-hpc] "chunking" parallel tasks
+In-Reply-To: <4B5F21E9.6080204@fhcrc.org>
+References: <6b93d1831001260627h121b1ec9u12ca3c2401d4ec03@mail.gmail.com>
+	<4B5EFFB1.1050207@braverock.com>
+	<57e838141001260748l2c70235fo2afeb9a842982927@mail.gmail.com>
+	<4B5F21E9.6080204@fhcrc.org>
+Message-ID: <20100126175134.GB3675@laura>
+
+There are some very sophisticated strategies for chunking out there in
+the parallel processing world, aimed at dealing with the load balancing
+problem.  The idea is to use very large chunks at the beginning and
+middle stages of the computation, to minimize communication overhead and
+the like, but then switch to smaller ones near the end in order to keep
+all the processes busy.  For example, the "guided" option in OpenMP does
+this.
+
+However, in my experience, it is seldom necessary to resort to this, as
+load balancing is typically not a problem.  One can even show this
+theoretically:  Say task times are T[1], T[2], etc., and are i.i.d.  The
+standard deviation of sum(T[1:k]), divided by the mean, goes to 0 as k
+goes to infinity--i.e. the sum is essentially constant.  Of course, that
+is an idealized model, but again in practice I have found that load
+balancing is not much of an issue.
+
+For that reason and because of the communication overhead, in most cases
+it is actually faster to statically assign 1/p of the tasks to each of
+the p processes, i.e. not do chunking.
+
+Norm Matloff
+
+
+From mtmorgan at fhcrc.org  Tue Jan 26 18:54:16 2010
+From: mtmorgan at fhcrc.org (Martin Morgan)
+Date: Tue, 26 Jan 2010 09:54:16 -0800
+Subject: [R-sig-hpc] "chunking" parallel tasks
+In-Reply-To: <20100126175134.GB3675@laura>
+References: <6b93d1831001260627h121b1ec9u12ca3c2401d4ec03@mail.gmail.com>	<4B5EFFB1.1050207@braverock.com>	<57e838141001260748l2c70235fo2afeb9a842982927@mail.gmail.com>	<4B5F21E9.6080204@fhcrc.org>
+	<20100126175134.GB3675@laura>
+Message-ID: <4B5F2C48.1050808@fhcrc.org>
+
+On 01/26/2010 09:51 AM, Norm Matloff wrote:
+> There are some very sophisticated strategies for chunking out there in
+> the parallel processing world, aimed at dealing with the load balancing
+> problem.  The idea is to use very large chunks at the beginning and
+> middle stages of the computation, to minimize communication overhead and
+> the like, but then switch to smaller ones near the end in order to keep
+> all the processes busy.  For example, the "guided" option in OpenMP does
+> this.
+> 
+> However, in my experience, it is seldom necessary to resort to this, as
+> load balancing is typically not a problem.  One can even show this
+> theoretically:  Say task times are T[1], T[2], etc., and are i.i.d.  The
+> standard deviation of sum(T[1:k]), divided by the mean, goes to 0 as k
+> goes to infinity--i.e. the sum is essentially constant.  Of course, that
+> is an idealized model, but again in practice I have found that load
+> balancing is not much of an issue.
+> 
+> For that reason and because of the communication overhead, in most cases
+> it is actually faster to statically assign 1/p of the tasks to each of
+> the p processes, i.e. not do chunking.
+
+Agreed, and for the matrix operations Mark hinted at one likely gets the
+most benefit by using R's vectorized matrix operations (rather than
+*apply), then by using vectorized blas/lapack libraries, then multicore.
+Probably distributing tasks across nodes in a cluster (e.g., mpi) for
+matrix operations is almost always a losing proposition -- communication
+costs are just too high.
+
+Martin
+> 
+> Norm Matloff
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+-- 
+Martin Morgan
+Computational Biology / Fred Hutchinson Cancer Research Center
+1100 Fairview Ave. N.
+PO Box 19024 Seattle, WA 98109
+
+Location: Arnold Building M1 B861
+Phone: (206) 667-2793
+
+
+From saptarshi.guha at gmail.com  Tue Jan 26 19:32:46 2010
+From: saptarshi.guha at gmail.com (Saptarshi Guha)
+Date: Tue, 26 Jan 2010 13:32:46 -0500
+Subject: [R-sig-hpc] "chunking" parallel tasks
+In-Reply-To: <4B5F2C48.1050808@fhcrc.org>
+References: <6b93d1831001260627h121b1ec9u12ca3c2401d4ec03@mail.gmail.com> 
+	<4B5EFFB1.1050207@braverock.com>
+	<57e838141001260748l2c70235fo2afeb9a842982927@mail.gmail.com> 
+	<4B5F21E9.6080204@fhcrc.org> <20100126175134.GB3675@laura> 
+	<4B5F2C48.1050808@fhcrc.org>
+Message-ID: <1e7471d51001261032t7b0cce13j361a988569b30fad@mail.gmail.com>
+
+One other approach, were the computation per chunk runs into
+several(tens of ) minutes, is to monitor the running time of long
+running tasks(each working on a chunk), if greater than a cut off,
+split the chunk and assign to unused (or lesser loaded) machines. If a
+task for a particular chunk finishes earlier than some task for a
+duplicated task, invalidate the latter and kill it.
+Of course, the run time for a chunk should be greater(much) than the
+cost of duplicating a chunk, reading it in and starting new tasks. To
+implement this, one would have write a system which actually monitors
+the running time tasks, the chunking and duplication.
+
+I think Hadoop Mapreduce does something similar, though it is most
+certainly not the best tool for some tasks.
+
+Regards
+Saptarshi
+
+On Tue, Jan 26, 2010 at 12:54 PM, Martin Morgan <mtmorgan at fhcrc.org> wrote:
+> On 01/26/2010 09:51 AM, Norm Matloff wrote:
+>> There are some very sophisticated strategies for chunking out there in
+>> the parallel processing world, aimed at dealing with the load balancing
+>> problem. ?The idea is to use very large chunks at the beginning and
+>> middle stages of the computation, to minimize communication overhead and
+>> the like, but then switch to smaller ones near the end in order to keep
+>> all the processes busy. ?For example, the "guided" option in OpenMP does
+>> this.
+>>
+>> However, in my experience, it is seldom necessary to resort to this, as
+>> load balancing is typically not a problem. ?One can even show this
+>> theoretically: ?Say task times are T[1], T[2], etc., and are i.i.d. ?The
+>> standard deviation of sum(T[1:k]), divided by the mean, goes to 0 as k
+>> goes to infinity--i.e. the sum is essentially constant. ?Of course, that
+>> is an idealized model, but again in practice I have found that load
+>> balancing is not much of an issue.
+>>
+>> For that reason and because of the communication overhead, in most cases
+>> it is actually faster to statically assign 1/p of the tasks to each of
+>> the p processes, i.e. not do chunking.
+>
+> Agreed, and for the matrix operations Mark hinted at one likely gets the
+> most benefit by using R's vectorized matrix operations (rather than
+> *apply), then by using vectorized blas/lapack libraries, then multicore.
+> Probably distributing tasks across nodes in a cluster (e.g., mpi) for
+> matrix operations is almost always a losing proposition -- communication
+> costs are just too high.
+>
+> Martin
+>>
+>> Norm Matloff
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+>
+> --
+> Martin Morgan
+> Computational Biology / Fred Hutchinson Cancer Research Center
+> 1100 Fairview Ave. N.
+> PO Box 19024 Seattle, WA 98109
+>
+> Location: Arnold Building M1 B861
+> Phone: (206) 667-2793
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From saptarshi.guha at gmail.com  Tue Jan 26 19:33:24 2010
+From: saptarshi.guha at gmail.com (Saptarshi Guha)
+Date: Tue, 26 Jan 2010 13:33:24 -0500
+Subject: [R-sig-hpc] "chunking" parallel tasks
+In-Reply-To: <1e7471d51001261032t7b0cce13j361a988569b30fad@mail.gmail.com>
+References: <6b93d1831001260627h121b1ec9u12ca3c2401d4ec03@mail.gmail.com> 
+	<4B5EFFB1.1050207@braverock.com>
+	<57e838141001260748l2c70235fo2afeb9a842982927@mail.gmail.com> 
+	<4B5F21E9.6080204@fhcrc.org> <20100126175134.GB3675@laura> 
+	<4B5F2C48.1050808@fhcrc.org>
+	<1e7471d51001261032t7b0cce13j361a988569b30fad@mail.gmail.com>
+Message-ID: <1e7471d51001261033m3e188a39w4a20aec62177bfd1@mail.gmail.com>
+
+>> duplicated task, invalidate the latter and kill it.
+should be 'duplicated chunk'
+
+On Tue, Jan 26, 2010 at 1:32 PM, Saptarshi Guha
+<saptarshi.guha at gmail.com> wrote:
+> One other approach, were the computation per chunk runs into
+> several(tens of ) minutes, is to monitor the running time of long
+> running tasks(each working on a chunk), if greater than a cut off,
+> split the chunk and assign to unused (or lesser loaded) machines. If a
+> task for a particular chunk finishes earlier than some task for a
+> duplicated task, invalidate the latter and kill it.
+> Of course, the run time for a chunk should be greater(much) than the
+> cost of duplicating a chunk, reading it in and starting new tasks. To
+> implement this, one would have write a system which actually monitors
+> the running time tasks, the chunking and duplication.
+>
+> I think Hadoop Mapreduce does something similar, though it is most
+> certainly not the best tool for some tasks.
+>
+> Regards
+> Saptarshi
+>
+> On Tue, Jan 26, 2010 at 12:54 PM, Martin Morgan <mtmorgan at fhcrc.org> wrote:
+>> On 01/26/2010 09:51 AM, Norm Matloff wrote:
+>>> There are some very sophisticated strategies for chunking out there in
+>>> the parallel processing world, aimed at dealing with the load balancing
+>>> problem. ?The idea is to use very large chunks at the beginning and
+>>> middle stages of the computation, to minimize communication overhead and
+>>> the like, but then switch to smaller ones near the end in order to keep
+>>> all the processes busy. ?For example, the "guided" option in OpenMP does
+>>> this.
+>>>
+>>> However, in my experience, it is seldom necessary to resort to this, as
+>>> load balancing is typically not a problem. ?One can even show this
+>>> theoretically: ?Say task times are T[1], T[2], etc., and are i.i.d. ?The
+>>> standard deviation of sum(T[1:k]), divided by the mean, goes to 0 as k
+>>> goes to infinity--i.e. the sum is essentially constant. ?Of course, that
+>>> is an idealized model, but again in practice I have found that load
+>>> balancing is not much of an issue.
+>>>
+>>> For that reason and because of the communication overhead, in most cases
+>>> it is actually faster to statically assign 1/p of the tasks to each of
+>>> the p processes, i.e. not do chunking.
+>>
+>> Agreed, and for the matrix operations Mark hinted at one likely gets the
+>> most benefit by using R's vectorized matrix operations (rather than
+>> *apply), then by using vectorized blas/lapack libraries, then multicore.
+>> Probably distributing tasks across nodes in a cluster (e.g., mpi) for
+>> matrix operations is almost always a losing proposition -- communication
+>> costs are just too high.
+>>
+>> Martin
+>>>
+>>> Norm Matloff
+>>>
+>>> _______________________________________________
+>>> R-sig-hpc mailing list
+>>> R-sig-hpc at r-project.org
+>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>>
+>> --
+>> Martin Morgan
+>> Computational Biology / Fred Hutchinson Cancer Research Center
+>> 1100 Fairview Ave. N.
+>> PO Box 19024 Seattle, WA 98109
+>>
+>> Location: Arnold Building M1 B861
+>> Phone: (206) 667-2793
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>
+
+
+From stephen.b.weston at gmail.com  Tue Jan 26 20:30:25 2010
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Tue, 26 Jan 2010 14:30:25 -0500
+Subject: [R-sig-hpc] snow clusters on Windows
+In-Reply-To: <15396d814d058ced80cd706dc11d3cd5.squirrel@www.bio.umass.edu>
+References: <15396d814d058ced80cd706dc11d3cd5.squirrel@www.bio.umass.edu>
+Message-ID: <57e838141001261130r7db61c83mb702faf26405aa42@mail.gmail.com>
+
+makeSOCKcluster will hang if it cannot successfully start all of the
+cluster slaves.  I believe that your second R/snow session is "unhanging"
+the first session because it is starting up slaves for the first session.  You
+can actually do something very much like that, in a more supported way,
+by using the "manual" option with makeSOCKcluster.  It will display a command
+to use to start each of the slaves.  I think that might be worth doing, because
+it might uncover the error that's occurring.
+
+In general, it's a good idea to use the makeSOCKcluster "outfile" option, which
+will capture error messages in a file on each of the slaves, but that won't help
+if you aren't able to start the slaves running in the first place.
+
+A common problem is that the slaves can't connect back to the master after
+they're started.  That can be fixed by specifying the makeSOCKcluster
+"master" option.  You can diagnose that problem from the log files created
+using the "outfile" option.  But I doubt that you're having that problem,
+otherwise that would happen when you specified "localhost" to makeSOCKcluster.
+
+On Windows, I often specify the slaves and the master using IP addresses,
+using a command such as:
+
+  cl <- makeCluster(c("192.168.0.101", "192.168.0.102"),
+               outfile="C:/temp/snow.log", master="192.168.0.100")
+
+- Steve
+
+
+On Tue, Jan 26, 2010 at 11:44 AM, Noah Charney <noah at bio.umass.edu> wrote:
+> Guy et al,
+>
+> Thanks for the pointers! I appear to have gotten much of the way there
+> (solution described below), but there remains a very strange problem with
+> makeCluster(). ?I'm still just testing it out on a single computer, and,
+> as before, it works fine when I call:
+>
+>> makeSOCKcluster("localhost")
+>
+> But if I specify my local host by name:
+>
+>> makeSOCKcluster("Poopy")
+>
+> It will hang up indefinitely until I open a second R workspace/window on
+> the same machine, and try to call the localhost:
+>
+>> cl<-makeSOCKcluster("localhost")
+> Error in socketConnection(port = port, server = TRUE, blocking = TRUE, ?:
+> ?cannot open the connection
+> In addition: Warning message:
+> In socketConnection(port = port, server = TRUE, blocking = TRUE, ?:
+> ?port 10187 cannot be opened
+>
+> This error message seems to be a good sign, because when I now look back
+> at the original R workspace, it will have completed making the cluster.
+> If I try to make a 3 node cluster, then I need to "nudge" it as above 3
+> times from the other workspace. ?Once the cluster is established,
+> clusterApply seems to work fine. ?Thoughts?
+>
+> ------
+> To get ssh running from R in the first place on Windows, which was my
+> original question:
+>
+> Install copssh (http://www.itefix.no/i2/download)
+>
+> Add the ...copssh/bin/ directory to Path variable in windows (Control
+> Panel -> System -> Advanced System Settings -> System Variables -> Path)
+>
+> To speed things up considerably, changed UseDNS to "no" (and deleted
+> preceding # to uncomment) in C:\Program Files\CopSSH\etc\sshd_config
+>
+> I also added a "hosts" file to the CopSSH\etc\ directory with the local IP
+> and hostname, but I don't think this was necessary
+>
+> Followed directions to set up password-less ssh login from
+> http://nws-r.sourceforge.net/docs/getting_started.html :
+>
+> ? ? ? ?To generate public and private keys, follow the steps below.
+> ? ? ? ?Open a DOS terminal
+> ? ? ? ?ssh-keygen -t rsa
+> ? ? ? ?cd .ssh (.ssh directory is located in C:/Program Files/copssh/home/user
+> on Windows)
+> ? ? ? ?cp id_rsa.pub authorized_keys This step allows password-less login to
+> local machine.
+> ? ? ? ?For all remote machines that you want password-less login, append the
+> content of id_rsa.pub to their ?authorized_keys file.
+> ? ? ? ?To test the password-less login, type the following command:
+> ? ? ? ?% ssh hostname date
+> ? ? ? ?If everything is setup correctly, you should not be asked for password
+> and the current date on remote machine will be returned.
+>
+>
+> Now, from R, we should be able to type:
+>> system("ssh #insert computer name here# date")
+> Tue Jan 26 11:30:31 EST 2010
+>>
+>
+> Thanks
+> -Noah Charney
+> --
+> Organismic and Evolutionary Biology
+> University of Massachusetts Amherst
+> 221 Morrill Science Center South
+> Amherst, MA 01003
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From blindglobe at gmail.com  Thu Jan 28 09:09:00 2010
+From: blindglobe at gmail.com (A.J. Rossini)
+Date: Thu, 28 Jan 2010 09:09:00 +0100
+Subject: [R-sig-hpc] wrestling to compile sprng as RPM for a Rocks
+	Cluster. Long rambling whining request for help :)
+In-Reply-To: <0e42ddab3a6f161040fe3cc66da61ea5.squirrel@www.stats.uwo.ca>
+References: <13e802631001181116na410d47i9c932339fcd6a2da@mail.gmail.com> 
+	<0e42ddab3a6f161040fe3cc66da61ea5.squirrel@www.stats.uwo.ca>
+Message-ID: <1abe3fa91001280009j6219ec83h7b5862e2b861b058@mail.gmail.com>
+
+Paul -
+
+As per Hao's comment, it is far better to use the rlecuyer package --
+sprng is theoretically not as well justifiable as an RNG.
+
+On Mon, Jan 18, 2010 at 9:16 PM, Hao Yu <hyu at stats.uwo.ca> wrote:
+> Paul,
+>
+> rsprng is suggested (not required) in Rmpi. I am using rlecuyer. rlecuyer
+> can be simply installed in R as
+> install.packages("rlecuyer")
+>
+> To use rlecuyer in Rmpi, run mpi.setup.rngstream(). Otherwise use
+> mpi.setup.sprng() for SRRNG.
+>
+> Hao
+>
+>
+> Paul Johnson wrote:
+>> Anybody have sprng (scalable parallel random number generator) RPM and
+>> SRPM files for RedHat/Centos with MPI?
+>>
+>> There are various posts about troubles compiling it, but I don't find
+>> details on the fixes.
+>>
+>> Many R packages for HPC require Rmpi, Rmpi requires rsprng, which in
+>> turn requires the C++/Fortran library SPRNG (capitalized? or not?).
+>>
+>> SPRNG is here, http://sprng.fsu.edu/. AFAICT, it is now in version 4.
+>> The source (dated 6/7/2007) is available here:
+>>
+>> http://sprng.fsu.edu/Version4.0/sprng4.tar.gz
+>>
+>> I've been trying to compile that on Centos so I can build an RPM for a
+>> Cluster.
+>>
+>> There are a number of wrinkles with this compile. It has a standard
+>> GNU INSTALL file, which is encouraging. ?But
+>>
+>> 1. The c++ code in the sprng4 package is not consistent with the
+>> guidelines of the current gcc c++ compiler. ?There are quite a few
+>> little changes to make, like changing
+>>
+>> #include <iostream.h>
+>>
+>> to
+>>
+>> #include <iostream>
+>>
+>> I am attaching a patch file which includes the changes ?that are, as
+>> far as I can tell, MINIMALLY necessary to get sprng4 to compile,
+>> except for the EXAMPLES directory.
+>>
+>> In the sprng4 source directory, this patch requires -p2, as in
+>>
+>> patch -p2 < sprng-4.patch
+>>
+>> 2. The build in the EXAMPLES directory ?has some big problems. Even
+>> after applying that patch, the "make" fails with errors in [1].
+>>
+>> The make will complete, however, if we delete the EXAMPLES directory
+>> from the Makefile in the top level. That is, change:
+>>
+>> SUBDIRS = SRC lib check TESTS include EXAMPLES .
+>>
+>> to
+>>
+>> SUBDIRS = SRC lib check TESTS include .
+>>
+>> After applying the sprng-4.patch (attached), running the configure,
+>> and then making that one change, then the make will finish.
+>>
+>> 3. The "make install" step does not copy the include files into the
+>> install directory. I mean, if you run "ls" in the install folder,
+>> there is "bin", "lib" and "share", but no "include".
+>>
+>>
+>> I found many hints about the required fixes in the packaging efforts
+>> of Eugeny A. Rostovtsev (REAL) <real at altlinux.org> in the ALTLINUX
+>> distribution. ?The SRPM file supplies "sprng4.tar.gz", but it is not
+>> the original source code package from the SPRNG authors. ?The
+>> packaging is a little atypical for the RPM framework, as one is
+>> supposed to supply the original "pristine" source and a patch.
+>> Nevertheless, it is very informative. The patch I attach here includes
+>> the changes incorporated in the ALTLINUX package (after some cleanup).
+>> Most changes are C++ cleanup.
+>>
+>> In the SPEC file that Mr. Rostovtsev uses in ALTLINUX, he deals with
+>> the "lack of installed include files" problem by copying the *.h files
+>> "by hand" after running "make install". For your reference, I'm
+>> attaching that SPEC file so you can see for yourself. The SPEC file
+>> assumes the MPI implementation has an executable file called
+>> "mpivars.sh", and there is no such file in OpenMPI 1.3.
+>>
+>> In Debian/Ubuntu, I see Dirk Eddelbuettel supplies libsprng-2. ?I'm trying
+>> to see how that compiles. The source code on that one is pretty
+>> old. ?If I can't figure out sprng4, I
+>> will go back and work more on sprng-2 following Dirk's lead.
+>>
+>> I find also Nakama's mention of troubles compiling sprng4 and some
+>> proposed patches:
+>>
+>> http://prs.ism.ac.jp/~nakama/mascagni/
+>>
+>> He proposes patches and fixes, but I can't make them compile AT ALL.
+>> I notice those patches were proposed here about 1.5 years ago.
+>>
+>> If you have ideas, I'd be glad to hear them. In the interim, I'm going
+>> to study how Dirk compiled & installed SPRNG2 to see if I can make an RPM
+>> that way.
+>>
+>> pj
+>>
+>> [1]
+>> mpif77 -Wl,-R/usr/local/libexec/openmpi/lib -DHAVE_CONFIG_H -I. -I.
+>> -I../.. -I../../include ? -I../../include -DSPRNG_MPI -g -O2 -c -o
+>> sprngf_mpi_tmp-sprngf_mpi.o `test -f 'sprngf_mpi.F' || echo
+>> './'`sprngf_mpi.F
+>> mpif77 -Wl,-R/usr/local/libexec/openmpi/lib ?-g -O2 ? -o
+>> sprngf_mpi.tmp -I/usr/lib/openmpi/include
+>> -I/usr/lib/openmpi/include/openmpi -pthread
+>> -Wl,-R/usr/local/libexec/openmpi/lib --showme:link
+>> sprngf_mpi_tmp-sprngf_mpi.o -L../../lib -lsprng -lm -lstdc++ -lm
+>> -pthread -Wl,-R/usr/local/libexec/openmpi/lib -g -O2 -o sprngf_mpi.tmp
+>> -I/usr/lib/openmpi/include -I/usr/lib/openmpi/include/openmpi -pthread
+>> -Wl,-R/usr/local/libexec/openmpi/lib sprngf_mpi_tmp-sprngf_mpi.o
+>> -L../../lib -lsprng -lm -lstdc++ -lm -L/usr/lib/openmpi/lib -lmpi_f77
+>> -lmpi -lopen-rte -lopen-pal -ldl -Wl,--export-dynamic -lnsl -lutil -lm
+>> -ldl
+>> mpif77 -Wl,-R/usr/local/libexec/openmpi/lib -DHAVE_CONFIG_H -I. -I.
+>> -I../.. -I../../include ? -I../../include -DSPRNG_MPI -g -O2 -c -o
+>> sprngf_simple_mpi_tmp-sprngf-simple_mpi.o `test -f
+>> 'sprngf-simple_mpi.F' || echo './'`sprngf-simple_mpi.F
+>> mpif77 -Wl,-R/usr/local/libexec/openmpi/lib ?-g -O2 ? -o
+>> sprngf-simple_mpi.tmp -I/usr/lib/openmpi/include
+>> -I/usr/lib/openmpi/include/openmpi -pthread
+>> -Wl,-R/usr/local/libexec/openmpi/lib --showme:link
+>> sprngf_simple_mpi_tmp-sprngf-simple_mpi.o -L../../lib -lsprng -lm
+>> -lstdc++ -lm
+>> -pthread -Wl,-R/usr/local/libexec/openmpi/lib -g -O2 -o
+>> sprngf-simple_mpi.tmp -I/usr/lib/openmpi/include
+>> -I/usr/lib/openmpi/include/openmpi -pthread
+>> -Wl,-R/usr/local/libexec/openmpi/lib
+>> sprngf_simple_mpi_tmp-sprngf-simple_mpi.o -L../../lib -lsprng -lm
+>> -lstdc++ -lm -L/usr/lib/openmpi/lib -lmpi_f77 -lmpi -lopen-rte
+>> -lopen-pal -ldl -Wl,--export-dynamic -lnsl -lutil -lm -ldl
+>> mv: cannot stat `sprng-simple_mpi.tmp': No such file or directory
+>> make[4]: *** [sprng_mpi_test] Error 1
+>> make[4]: Leaving directory
+>> `/home/pauljohn/LinuxDownloads/src/sprngrpm/sprng-4.0/EXAMPLES/mpisprng'
+>> make[3]: *** [all-recursive] Error 1
+>> make[3]: Leaving directory
+>> `/home/pauljohn/LinuxDownloads/src/sprngrpm/sprng-4.0/EXAMPLES/mpisprng'
+>> make[2]: *** [all-recursive] Error 1
+>> make[2]: Leaving directory
+>> `/home/pauljohn/LinuxDownloads/src/sprngrpm/sprng-4.0/EXAMPLES'
+>> make[1]: *** [all-recursive] Error 1
+>> make[1]: Leaving directory
+>> `/home/pauljohn/LinuxDownloads/src/sprngrpm/sprng-4.0'
+>> make: *** [all] Error 2
+>>
+>>
+>>
+>> --
+>> Paul E. Johnson
+>> Professor, Political Science
+>> 1541 Lilac Lane, Room 504
+>> University of Kansas
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>
+>
+> --
+> Department of Statistics & Actuarial Sciences
+> Fax Phone#:(519)-661-3813
+> The University of Western Ontario
+> Office Phone#:(519)-661-3622
+> London, Ontario N6A 5B7
+> http://www.stats.uwo.ca/faculty/yu
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+
+-- 
+best,
+-tony
+
+blindglobe at gmail.com
+Muttenz, Switzerland.
+"Commit early,commit often, and commit in a repository from which we
+can easily roll-back your mistakes" (AJR, 4Jan05).
+
+Drink Coffee:  Do stupid things faster with more energy!
+
+

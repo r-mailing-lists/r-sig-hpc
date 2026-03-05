@@ -1,0 +1,1109 @@
+{
+  "list": "r-sig-hpc",
+  "description": "",
+  "month": "2012-03",
+  "messages": [
+    {
+      "id": "msg-2ec26c21b37c",
+      "message_id": "<CAGC_mZSugQd=Yfc+=g6L535EaHtfr-45aN33g99mh0bL+ur+mw@mail.gmail.com>",
+      "from_name": "Zack Holden",
+      "from_email_hash": "b29eff06ef1f6d074cd5b04b1ea9f757af88ce51572d185285291c6985e873b1",
+      "date": "2012-03-01T10:42:28-07:00",
+      "subject": "[R-sig-hpc] Rmpi - separate operations on data subsets or unique datasets?",
+      "subject_clean": "Rmpi - separate operations on data subsets or unique datasets?",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120301/1b911335/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120301/1b911335/attachment.pl>",
+      "thread_id": "thread-2ec26c21b37c",
+      "thread_depth": 0,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-bc67b7052716",
+      "message_id": "<4F505BC6.6070100@norbl.com>",
+      "from_name": "Barnet Wagman",
+      "from_email_hash": "115e00c4e6be73f8bad83b8e83c4aef3b25a4cc4c4e4660070efe6e628a07871",
+      "date": "2012-03-01T23:33:58-06:00",
+      "subject": "[R-sig-hpc] Rmpi with open mpi 1.4.5 or 1.4.4?",
+      "subject_clean": "Rmpi with open mpi 1.4.5 or 1.4.4?",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120301/7018ff50/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120301/7018ff50/attachment.pl>",
+      "thread_id": "thread-bc67b7052716",
+      "thread_depth": 0,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-12d232e00e71",
+      "message_id": "<1331068770.21935.YahooMailNeo@web120606.mail.ne1.yahoo.com>",
+      "from_name": "Scott Raynaud",
+      "from_email_hash": "3cd197fc08b7a6d3b4c739f9d0bc356f18208f8b876e112dc85e58629fbeff0f",
+      "date": "2012-03-06T13:19:30-08:00",
+      "subject": "[R-sig-hpc] Parallel loop",
+      "subject_clean": "Parallel loop",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "I'm trying to convert a loop in a simulation program to a parallel\nprocess using multicore.? It looks like this:\n\nsimus=1000?\nset.seed(12345)\nfor(iter in 1:simus){\n?\n#bunch of code setting up random draws from various \n#distributions for X matrix?\n?\n#Computaion of Y\n?\n(fitmodel <- lmer(modelformula,data,family=binomial(link=logit),nAGQ=2))\n?\nestbeta<-fixef(fitmodel)\n?sdebeta<-sqrt(diag(vcov(fitmodel)))\n? for(l in 1:betasize)\n? {? \n?? cibeta<-estbeta[l]-sgnbeta[l]*z1score*sdebeta[l]\n??? if(beta[l]*cibeta>0)????????????? powaprox[[l]]<-powaprox[[l]]+1\n????? sdepower[l,iter]<-as.numeric(sdebeta[l])\n? }? \n##------------------------------------------------------------------------##\n????????????????????????? } ##? iteration end here\n?\n?\nThe variable fitmodel is defined elsewhere and consists of\nfixed and random parts.? Betasize is the length of the vector of\nfixed effects.? Looks like near the bottom there's a \ncounter that increments if the slope estimate doesn't trap 0.? \nThe next line records the standard deviation.? It's these two items\nthat I need to recover.\n?\nSo I'm thinking that I'm going to recode this way to run on\na machine that has 4-Xeon CPUs:\n?\nlibrary(multicore)\noptions(cores=4)\nsimus=1000\nsim.base.fun<-function(iter){? #replaces for(iter in 1:simus){\n\n#bunch of code setting up random draws from various \n#distributions for X matrix?\n?\n#Computaion of Y\n?\n(fitmodel <- lmer(modelformula,data,family=binomial(link=logit),nAGQ=2))\n?\nestbeta<-fixef(fitmodel)\n?sdebeta<-sqrt(diag(vcov(fitmodel)))\n? for(l in 1:betasize)\n? {? \n?? cibeta<-estbeta[l]-sgnbeta[l]*z1score*sdebeta[l]\n??? if(beta[l]*cibeta>0)?????\n??? return(powaprox[[1]]<-powaprox[[1]]+1 #replaces powaprox[[l]]<-powaprox[[l]]+1\n??? retunr(sedpower[1,iter]<-as.numeric(sdebeta[1]) #replaces sdepower[l,iter]<-as.numeric(sdebeta[l])\n?????}\n????????????????????????????????????? }#end of sim.base.fun\nsim.fun<_lapply(iter in 1:simus),sim.base.fun)\n?\n?\nDo I need a collect statement?? How do I kill the worker\nprocesses?? One thing I'm not accounting for is the random\nnumber generating process.? I've seen a couple of ways of\ndoing this, one using mclapply and another using rlecuyer,\nbut I'm not sure how to make them work.?? Suggestions?\nIs there a way to replicate the same random numbers used \nin the conventional loop in the parallel loop?\n?\nMy machine has 4-Intel? Xeon? Processor X5650 CPUs.\nWhen I type:\n?\nlibrary(multicore)\nmulticore:::detectCores()\n?\nit returns 4.? However, the Intel cutsheet says each of these proceesors\nhas 6 cores.? How can I acces them?? I know there's a point of diminishing\nreturns but I can't figure out what it is unless I test it.",
+      "body_snippet": "I'm trying to convert a loop in a simulation program to a parallel\nprocess using multicore.? It looks like this:\n\nsimus=1000?\nset.seed(12345)\nfor(iter in 1:simus){\n?\n#bunch of code setting up random d",
+      "thread_id": "thread-12d232e00e71",
+      "thread_depth": 0,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-25c6abeef52f",
+      "message_id": "<A43D9DA4-990A-46A6-8FA2-C49459048051@r-project.org>",
+      "from_name": "Simon Urbanek",
+      "from_email_hash": "4b8015e605c1e8a78e0fc166d7f94d0bc9cab6230366ee1dfdd8a0de17b4b371",
+      "date": "2012-03-06T21:27:48-05:00",
+      "subject": "[R-sig-hpc] Parallel loop",
+      "subject_clean": "Parallel loop",
+      "in_reply_to": "<1331068770.21935.YahooMailNeo@web120606.mail.ne1.yahoo.com>",
+      "references": [
+        "<1331068770.21935.YahooMailNeo@web120606.mail.ne1.yahoo.com>"
+      ],
+      "body_plain": "Scott,\n\nOn Mar 6, 2012, at 4:19 PM, Scott Raynaud wrote:\n\n> I'm trying to convert a loop in a simulation program to a parallel\n> process using multicore.  It looks like this:\n> \n> simus=1000 \n> set.seed(12345)\n> for(iter in 1:simus){\n>  \n> #bunch of code setting up random draws from various \n> #distributions for X matrix \n>  \n> #Computaion of Y\n>  \n> (fitmodel <- lmer(modelformula,data,family=binomial(link=logit),nAGQ=2))\n>  \n> estbeta<-fixef(fitmodel)\n>  sdebeta<-sqrt(diag(vcov(fitmodel)))\n>   for(l in 1:betasize)\n>   {  \n>    cibeta<-estbeta[l]-sgnbeta[l]*z1score*sdebeta[l]\n>     if(beta[l]*cibeta>0)              powaprox[[l]]<-powaprox[[l]]+1\n>       sdepower[l,iter]<-as.numeric(sdebeta[l])\n>   }  \n> ##------------------------------------------------------------------------##\n>                           } ##  iteration end here\n>  \n>  \n> The variable fitmodel is defined elsewhere and consists of\n> fixed and random parts.  Betasize is the length of the vector of\n> fixed effects.  Looks like near the bottom there's a \n> counter that increments if the slope estimate doesn't trap 0.  \n> The next line records the standard deviation.  It's these two items\n> that I need to recover.\n>  \n> So I'm thinking that I'm going to recode this way to run on\n> a machine that has 4-Xeon CPUs:\n>  \n> library(multicore)\n> options(cores=4)\n> simus=1000\n> sim.base.fun<-function(iter){  #replaces for(iter in 1:simus){\n> \n> #bunch of code setting up random draws from various \n> #distributions for X matrix \n>  \n> #Computaion of Y\n>  \n> (fitmodel <- lmer(modelformula,data,family=binomial(link=logit),nAGQ=2))\n>  \n> estbeta<-fixef(fitmodel)\n>  sdebeta<-sqrt(diag(vcov(fitmodel)))\n>   for(l in 1:betasize)\n>   {  \n>    cibeta<-estbeta[l]-sgnbeta[l]*z1score*sdebeta[l]\n>     if(beta[l]*cibeta>0)     \n>     return(powaprox[[1]]<-powaprox[[1]]+1 #replaces powaprox[[l]]<-powaprox[[l]]+1\n>     retunr(sedpower[1,iter]<-as.numeric(sdebeta[1]) #replaces sdepower[l,iter]<-as.numeric(sdebeta[l])\n>      }\n>                                       }#end of sim.base.fun\n> sim.fun<_lapply(iter in 1:simus),sim.base.fun)\n>  \n\nNo, the above won't work (all typos aside) since you are still using assignments. Inherently the above is not parallelizable as-is because of\npowaprox[[l]]<-powaprox[[l]]+1\nbut that is trivially removed. Also the inner for loop is entirely superfluous.\n\nSince your code was incomplete this is just a suggestion as we can't test anything (I'm not even checking if what you're doing makes any sense), but it should give you an idea of what to do:\n\nsim.base <- function(iter) { \n  ## your unstated code goes here ...\n  fitmodel <- lmer(modelformula,data,family=binomial(link=logit),nAGQ=2)\n  estbeta <- fixef(fitmodel)\n  sdebeta <- sqrt(diag(vcov(fitmodel)))\n  list( powf = estbeta-sgnbeta*z1score*sdebeta*beta > 0,\n        sdepower = sdebeta)\n  )\n}\n\nres <- lapply(seq.int(simus), sim.base)\npowf <- sapply(res, function(x) x$powf)\nsdepower <- sapply(res, function(x) x$sdepower)\npowapprox <- apply(powf, 1, sum)\n\n\nTo parallelize, replace lapply above with mclapply. \n\n\n\n>  Do I need a collect statement? \n\nNo, if you use mclapply it's all done for you.\n\n\n> How do I kill the worker processes? \n\nNo, they go away once they're done computing.\n\n\n> One thing I'm not accounting for is the random\n> number generating process.  I've seen a couple of ways of\n> doing this, one using mclapply and another using rlecuyer,\n> but I'm not sure how to make them work.   Suggestions?\n> Is there a way to replicate the same random numbers used \n> in the conventional loop in the parallel loop?\n\nThere is but you may need read up on that - you have to use a generator that produces a streaming sequence such that you can skip forward (also see recent discussion here and R-devel). For the above you may get away without it by simply setting different seeds in each iteration.\n\n\n>  My machine has 4-Intel? Xeon? Processor X5650 CPUs.\n> When I type:\n>  \n> library(multicore)\n> multicore:::detectCores()\n>  \n> it returns 4.  However, the Intel cutsheet says each of these proceesors\n> has 6 cores.  How can I acces them? \n\nYou can set any number of cores you want using mc.cores=... argument - the detected cores are just a default if you don't specify anything.\n\nWhat OS/distro is this? It is very unusual to see the number of cores reported wrongly by the system ...\n\nCheers,\nSimon\n\n\n\n> I know there's a point of diminishing\n> returns but I can't figure out what it is unless I test it.\n> \n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n> \n>",
+      "body_snippet": "Scott,\n\nOn Mar 6, 2012, at 4:19 PM, Scott Raynaud wrote:\n\n> I'm trying to convert a loop in a simulation program to a parallel\n> process using multicore.  It looks like this:\n> \n> simus=1000 \n> set.se",
+      "thread_id": "thread-12d232e00e71",
+      "thread_depth": 1,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-6902d9b34cce",
+      "message_id": "<1331224641.49349.YahooMailNeo@web120606.mail.ne1.yahoo.com>",
+      "from_name": "Scott Raynaud",
+      "from_email_hash": "3cd197fc08b7a6d3b4c739f9d0bc356f18208f8b876e112dc85e58629fbeff0f",
+      "date": "2012-03-08T08:37:21-08:00",
+      "subject": "[R-sig-hpc] Parallel loop",
+      "subject_clean": "Parallel loop",
+      "in_reply_to": "<A43D9DA4-990A-46A6-8FA2-C49459048051@r-project.org>",
+      "references": [
+        "<1331068770.21935.YahooMailNeo@web120606.mail.ne1.yahoo.com>",
+        "<A43D9DA4-990A-46A6-8FA2-C49459048051@r-project.org>"
+      ],
+      "body_plain": "Thanks for the feedback.? Part of my problem is that I need the most\nrecent copy of R.? My IS team told me they can only get an earlier\ncopy using apt-get, but I think there must be a way so I've tasked them\nwith figuring it out.? \n\nMy?OS is Kubuntu. I just thought it odd that it could only detect the \nnumber of CPUs rather than the number of cores.? I'm completely\nnew to parallel processing but it seems that something is not right\nin the core detection.\n\nOne quetion I still have regrds child processes. I understand they \nfinish on their own, but what if I need to kill those processing because \nof an obvious problem.? How can I do that?\n\n----- Original Message -----\nFrom: Simon Urbanek <simon.urbanek at r-project.org>\nTo: Scott Raynaud <scott.raynaud at yahoo.com>\nCc: \"r-sig-hpc at r-project.org\" <r-sig-hpc at r-project.org>\nSent: Tuesday, March 6, 2012 8:27 PM\nSubject: Re: [R-sig-hpc] Parallel loop\n\nScott,\n\nOn Mar 6, 2012, at 4:19 PM, Scott Raynaud wrote:\n\n> I'm trying to convert a loop in a simulation program to a parallel\n> process using multicore.? It looks like this:\n> \n> simus=1000 \n> set.seed(12345)\n> for(iter in 1:simus){\n>? \n> #bunch of code setting up random draws from various \n> #distributions for X matrix \n>? \n> #Computaion of Y\n>? \n> (fitmodel <- lmer(modelformula,data,family=binomial(link=logit),nAGQ=2))\n>? \n> estbeta<-fixef(fitmodel)\n>? sdebeta<-sqrt(diag(vcov(fitmodel)))\n>? for(l in 1:betasize)\n>? {? \n>? ? cibeta<-estbeta[l]-sgnbeta[l]*z1score*sdebeta[l]\n>? ? if(beta[l]*cibeta>0)? ? ? ? ? ? ? powaprox[[l]]<-powaprox[[l]]+1\n>? ? ? sdepower[l,iter]<-as.numeric(sdebeta[l])\n>? }? \n> ##------------------------------------------------------------------------##\n>? ? ? ? ? ? ? ? ? ? ? ? ? } ##? iteration end here\n>? \n>? \n> The variable fitmodel is defined elsewhere and consists of\n> fixed and random parts.? Betasize is the length of the vector of\n> fixed effects.? Looks like near the bottom there's a \n> counter that increments if the slope estimate doesn't trap 0.? \n> The next line records the standard deviation.? It's these two items\n> that I need to recover.\n>? \n> So I'm thinking that I'm going to recode this way to run on\n> a machine that has 4-Xeon CPUs:\n>? \n> library(multicore)\n> options(cores=4)\n> simus=1000\n> sim.base.fun<-function(iter){? #replaces for(iter in 1:simus){\n> \n> #bunch of code setting up random draws from various \n> #distributions for X matrix \n>? \n> #Computaion of Y\n>? \n> (fitmodel <- lmer(modelformula,data,family=binomial(link=logit),nAGQ=2))\n>? \n> estbeta<-fixef(fitmodel)\n>? sdebeta<-sqrt(diag(vcov(fitmodel)))\n>? for(l in 1:betasize)\n>? {? \n>? ? cibeta<-estbeta[l]-sgnbeta[l]*z1score*sdebeta[l]\n>? ? if(beta[l]*cibeta>0)? ? \n>? ? return(powaprox[[1]]<-powaprox[[1]]+1 #replaces powaprox[[l]]<-powaprox[[l]]+1\n>? ? retunr(sedpower[1,iter]<-as.numeric(sdebeta[1]) #replaces sdepower[l,iter]<-as.numeric(sdebeta[l])\n>? ? ? }\n>? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? }#end of sim.base.fun\n> sim.fun<_lapply(iter in 1:simus),sim.base.fun)\n>? \n\nNo, the above won't work (all typos aside) since you are still using assignments. Inherently the above is not parallelizable as-is because of\npowaprox[[l]]<-powaprox[[l]]+1\nbut that is trivially removed. Also the inner for loop is entirely superfluous.\n\nSince your code was incomplete this is just a suggestion as we can't test anything (I'm not even checking if what you're doing makes any sense), but it should give you an idea of what to do:\n\nsim.base <- function(iter) { \n? ## your unstated code goes here ...\n? fitmodel <- lmer(modelformula,data,family=binomial(link=logit),nAGQ=2)\n? estbeta <- fixef(fitmodel)\n? sdebeta <- sqrt(diag(vcov(fitmodel)))\n? list( powf = estbeta-sgnbeta*z1score*sdebeta*beta > 0,\n? ? ? ? sdepower = sdebeta)\n? )\n}\n\nres <- lapply(seq.int(simus), sim.base)\npowf <- sapply(res, function(x) x$powf)\nsdepower <- sapply(res, function(x) x$sdepower)\npowapprox <- apply(powf, 1, sum)\n\n\nTo parallelize, replace lapply above with mclapply. \n\n\n\n>? Do I need a collect statement? \n\nNo, if you use mclapply it's all done for you.\n\n\n> How do I kill the worker processes? \n\nNo, they go away once they're done computing.\n\n\n> One thing I'm not accounting for is the random\n> number generating process.? I've seen a couple of ways of\n> doing this, one using mclapply and another using rlecuyer,\n> but I'm not sure how to make them work.? Suggestions?\n> Is there a way to replicate the same random numbers used \n> in the conventional loop in the parallel loop?\n\nThere is but you may need read up on that - you have to use a generator that produces a streaming sequence such that you can skip forward (also see recent discussion here and R-devel). For the above you may get away without it by simply setting different seeds in each iteration.\n\n\n>? My machine has 4-Intel? Xeon? Processor X5650 CPUs.\n> When I type:\n>? \n> library(multicore)\n> multicore:::detectCores()\n>? \n> it returns 4.? However, the Intel cutsheet says each of these proceesors\n> has 6 cores.? How can I acces them? \n\nYou can set any number of cores you want using mc.cores=... argument - the detected cores are just a default if you don't specify anything.\n\nWhat OS/distro is this? It is very unusual to see the number of cores reported wrongly by the system ...\n\nCheers,\nSimon\n\n\n\n> I know there's a point of diminishing\n> returns but I can't figure out what it is unless I test it.\n> \n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n> \n>",
+      "body_snippet": "Thanks for the feedback.? Part of my problem is that I need the most\nrecent copy of R.? My IS team told me they can only get an earlier\ncopy using apt-get, but I think there must be a way so I've task",
+      "thread_id": "thread-12d232e00e71",
+      "thread_depth": 2,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-d6cb3a52e9f6",
+      "message_id": "<4F58E4F9.6000605@mcw.edu>",
+      "from_name": "Rodney Sparapani",
+      "from_email_hash": "80fe4292b5572d5960538f5dcb93fcefd448d41429bda1792070458be1093040",
+      "date": "2012-03-08T10:57:29-06:00",
+      "subject": "[R-sig-hpc] Parallel loop",
+      "subject_clean": "Parallel loop",
+      "in_reply_to": "<1331224641.49349.YahooMailNeo@web120606.mail.ne1.yahoo.com>",
+      "references": [
+        "<1331068770.21935.YahooMailNeo@web120606.mail.ne1.yahoo.com>",
+        "<A43D9DA4-990A-46A6-8FA2-C49459048051@r-project.org>",
+        "<1331224641.49349.YahooMailNeo@web120606.mail.ne1.yahoo.com>"
+      ],
+      "body_plain": "Scott Raynaud wrote:\n> Thanks for the feedback.  Part of my problem is that I need the most\n> recent copy of R.  My IS team told me they can only get an earlier\n> copy using apt-get, but I think there must be a way so I've tasked them\n> with figuring it out.  \n>\n> My OS is Kubuntu. I just thought it odd that it could only detect the \n> number of CPUs rather than the number of cores.  I'm completely\n> new to parallel processing but it seems that something is not right\n> in the core detection.\n>\n> One quetion I still have regrds child processes. I understand they \n> finish on their own, but what if I need to kill those processing because \n> of an obvious problem.  How can I do that?\n>   \nIf you kill the parent, then all of the children should die.  On Ubuntu,\nr-base and r-base-dev are the packages; see\nhttp://cran.r-project.org/bin/linux/ubuntu/README \nYou don't need the most recent.  Just 2.14.0 or higher.\n\n-- \nRodney Sparapani, PhD  Center for Patient Care and Outcomes Research\nSr. Biostatistician               http://www.mcw.edu/pcor\n4 wheels good, 2 wheels better!   Medical College of Wisconsin (MCW)\nWWLD?:  What Would Lombardi Do?   Milwaukee, WI, USA",
+      "body_snippet": "Scott Raynaud wrote:\n> Thanks for the feedback.  Part of my problem is that I need the most\n> recent copy of R.  My IS team told me they can only get an earlier\n> copy using apt-get, but I think there",
+      "thread_id": "thread-12d232e00e71",
+      "thread_depth": 3,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-05b17fdb1a91",
+      "message_id": "<A47EE59F-7945-4DB1-9C0A-1DEFBC888B9A@r-project.org>",
+      "from_name": "Simon Urbanek",
+      "from_email_hash": "4b8015e605c1e8a78e0fc166d7f94d0bc9cab6230366ee1dfdd8a0de17b4b371",
+      "date": "2012-03-08T21:30:13-05:00",
+      "subject": "[R-sig-hpc] Parallel loop",
+      "subject_clean": "Parallel loop",
+      "in_reply_to": "<1331224641.49349.YahooMailNeo@web120606.mail.ne1.yahoo.com>",
+      "references": [
+        "<1331068770.21935.YahooMailNeo@web120606.mail.ne1.yahoo.com>",
+        "<A43D9DA4-990A-46A6-8FA2-C49459048051@r-project.org>",
+        "<1331224641.49349.YahooMailNeo@web120606.mail.ne1.yahoo.com>"
+      ],
+      "body_plain": "Scott,\n\nOn Mar 8, 2012, at 11:37 AM, Scott Raynaud wrote:\n\n> Thanks for the feedback.  Part of my problem is that I need the most recent copy of R. \n\nI don't quite understand how this is related to your question ... The version of R plays no role here ...\n\n\n> My IS team told me they can only get an earlier copy using apt-get, but I think there must be a way so I've tasked them with figuring it out.  \n> \n> My OS is Kubuntu. I just thought it odd that it could only detect the  number of CPUs rather than the number of cores.  I'm completely new to parallel processing but it seems that something is not right in the core detection.\n> \n\nThe core detection in multicore on Linux simply looks at /proc/cpuinfo so if it's not right, then your OS is reporting something odd. Note that the detection is just a fall-back if you don't specify anything, so it's really up to you how many parallel processes you want to use.\n\n\n> One quetion I still have regrds child processes. I understand they finish on their own, but what if I need to kill those processing because of an obvious problem.  How can I do that?\n> \n\nIf you interrupt the master process it automatically kills all child processes and cleans up - at least for all high-level functions like mclapply. If you use low-level functions, you can always use kill(children()); collect() \n\nCheers,\nSimon\n\n\n\n> ----- Original Message -----\n> From: Simon Urbanek <simon.urbanek at r-project.org>\n> To: Scott Raynaud <scott.raynaud at yahoo.com>\n> Cc: \"r-sig-hpc at r-project.org\" <r-sig-hpc at r-project.org>\n> Sent: Tuesday, March 6, 2012 8:27 PM\n> Subject: Re: [R-sig-hpc] Parallel loop\n> \n> Scott,\n> \n> On Mar 6, 2012, at 4:19 PM, Scott Raynaud wrote:\n> \n>> I'm trying to convert a loop in a simulation program to a parallel\n>> process using multicore.  It looks like this:\n>> \n>> simus=1000 \n>> set.seed(12345)\n>> for(iter in 1:simus){\n>>   \n>> #bunch of code setting up random draws from various \n>> #distributions for X matrix \n>>   \n>> #Computaion of Y\n>>   \n>> (fitmodel <- lmer(modelformula,data,family=binomial(link=logit),nAGQ=2))\n>>   \n>> estbeta<-fixef(fitmodel)\n>>   sdebeta<-sqrt(diag(vcov(fitmodel)))\n>>   for(l in 1:betasize)\n>>   {  \n>>     cibeta<-estbeta[l]-sgnbeta[l]*z1score*sdebeta[l]\n>>     if(beta[l]*cibeta>0)              powaprox[[l]]<-powaprox[[l]]+1\n>>       sdepower[l,iter]<-as.numeric(sdebeta[l])\n>>   }  \n>> ##------------------------------------------------------------------------##\n>>                           } ##  iteration end here\n>>   \n>>   \n>> The variable fitmodel is defined elsewhere and consists of\n>> fixed and random parts.  Betasize is the length of the vector of\n>> fixed effects.  Looks like near the bottom there's a \n>> counter that increments if the slope estimate doesn't trap 0.  \n>> The next line records the standard deviation.  It's these two items\n>> that I need to recover.\n>>   \n>> So I'm thinking that I'm going to recode this way to run on\n>> a machine that has 4-Xeon CPUs:\n>>   \n>> library(multicore)\n>> options(cores=4)\n>> simus=1000\n>> sim.base.fun<-function(iter){  #replaces for(iter in 1:simus){\n>> \n>> #bunch of code setting up random draws from various \n>> #distributions for X matrix \n>>   \n>> #Computaion of Y\n>>   \n>> (fitmodel <- lmer(modelformula,data,family=binomial(link=logit),nAGQ=2))\n>>   \n>> estbeta<-fixef(fitmodel)\n>>   sdebeta<-sqrt(diag(vcov(fitmodel)))\n>>   for(l in 1:betasize)\n>>   {  \n>>     cibeta<-estbeta[l]-sgnbeta[l]*z1score*sdebeta[l]\n>>     if(beta[l]*cibeta>0)    \n>>     return(powaprox[[1]]<-powaprox[[1]]+1 #replaces powaprox[[l]]<-powaprox[[l]]+1\n>>     retunr(sedpower[1,iter]<-as.numeric(sdebeta[1]) #replaces sdepower[l,iter]<-as.numeric(sdebeta[l])\n>>       }\n>>                                       }#end of sim.base.fun\n>> sim.fun<_lapply(iter in 1:simus),sim.base.fun)\n>>   \n> \n> No, the above won't work (all typos aside) since you are still using assignments. Inherently the above is not parallelizable as-is because of\n> powaprox[[l]]<-powaprox[[l]]+1\n> but that is trivially removed. Also the inner for loop is entirely superfluous.\n> \n> Since your code was incomplete this is just a suggestion as we can't test anything (I'm not even checking if what you're doing makes any sense), but it should give you an idea of what to do:\n> \n> sim.base <- function(iter) { \n>   ## your unstated code goes here ...\n>   fitmodel <- lmer(modelformula,data,family=binomial(link=logit),nAGQ=2)\n>   estbeta <- fixef(fitmodel)\n>   sdebeta <- sqrt(diag(vcov(fitmodel)))\n>   list( powf = estbeta-sgnbeta*z1score*sdebeta*beta > 0,\n>         sdepower = sdebeta)\n>   )\n> }\n> \n> res <- lapply(seq.int(simus), sim.base)\n> powf <- sapply(res, function(x) x$powf)\n> sdepower <- sapply(res, function(x) x$sdepower)\n> powapprox <- apply(powf, 1, sum)\n> \n> \n> To parallelize, replace lapply above with mclapply. \n> \n> \n> \n>>   Do I need a collect statement? \n> \n> No, if you use mclapply it's all done for you.\n> \n> \n>> How do I kill the worker processes? \n> \n> No, they go away once they're done computing.\n> \n> \n>> One thing I'm not accounting for is the random\n>> number generating process.  I've seen a couple of ways of\n>> doing this, one using mclapply and another using rlecuyer,\n>> but I'm not sure how to make them work.  Suggestions?\n>> Is there a way to replicate the same random numbers used \n>> in the conventional loop in the parallel loop?\n> \n> There is but you may need read up on that - you have to use a generator that produces a streaming sequence such that you can skip forward (also see recent discussion here and R-devel). For the above you may get away without it by simply setting different seeds in each iteration.\n> \n> \n>>   My machine has 4-Intel? Xeon? Processor X5650 CPUs.\n>> When I type:\n>>   \n>> library(multicore)\n>> multicore:::detectCores()\n>>   \n>> it returns 4.  However, the Intel cutsheet says each of these proceesors\n>> has 6 cores.  How can I acces them? \n> \n> You can set any number of cores you want using mc.cores=... argument - the detected cores are just a default if you don't specify anything.\n> \n> What OS/distro is this? It is very unusual to see the number of cores reported wrongly by the system ...\n> \n> Cheers,\n> Simon\n> \n> \n> \n>> I know there's a point of diminishing\n>> returns but I can't figure out what it is unless I test it.\n>> \n>> _______________________________________________\n>> R-sig-hpc mailing list\n>> R-sig-hpc at r-project.org\n>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>> \n>> \n> \n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n> \n>",
+      "body_snippet": "Scott,\n\nOn Mar 8, 2012, at 11:37 AM, Scott Raynaud wrote:\n\n> Thanks for the feedback.  Part of my problem is that I need the most recent copy of R. \n\nI don't quite understand how this is related to yo",
+      "thread_id": "thread-12d232e00e71",
+      "thread_depth": 3,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-41f2e98fe215",
+      "message_id": "<4F5DD2B3020000F900008F25@gwia1.boku.ac.at>",
+      "from_name": "Patrik Waldmann",
+      "from_email_hash": "5422de27106a441456dee56c7875899e9cf1a66baf324006c91c4e68a62851f0",
+      "date": "2012-03-12T10:40:51+01:00",
+      "subject": "[R-sig-hpc] Matrix multiplication",
+      "subject_clean": "Matrix multiplication",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Dear members,\n\nI noticed that there isn't a function for matrix multiplication in the new parallel library. What would be the most efficient way to do a matrix multiplication there?\n\nPatrik Waldmann",
+      "body_snippet": "Dear members,\n\nI noticed that there isn't a function for matrix multiplication in the new parallel library. What would be the most efficient way to do a matrix multiplication there?\n\nPatrik Waldmann",
+      "thread_id": "thread-41f2e98fe215",
+      "thread_depth": 0,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-8aff0bed6b5a",
+      "message_id": "<4F5DC57A.30601@ipht-jena.de>",
+      "from_name": "Claudia Beleites",
+      "from_email_hash": "84f31892209c320dec87048b9b592f8173550a086b18936bcc901dd57f61bcf0",
+      "date": "2012-03-12T10:44:26+01:00",
+      "subject": "[R-sig-hpc] Matrix multiplication",
+      "subject_clean": "Matrix multiplication",
+      "in_reply_to": "<4F5DD2B3020000F900008F25@gwia1.boku.ac.at>",
+      "references": [
+        "<4F5DD2B3020000F900008F25@gwia1.boku.ac.at>"
+      ],
+      "body_plain": "Dear Patrick,\n\n> I noticed that there isn't a function for matrix multiplication in\n> the new parallel library. What would be the most efficient way to do\n> a matrix multiplication there?\nI use libgotoblas2 / libopenblas which automatically does multithreaded\n%*% matrix multiplication. There's an environment variable\nGOTO_NUM_THREADS to decide how many threads to use.\n\nBest,\n\nClaudia Beleites\n\n\n-- \nClaudia Beleites\nSpectroscopy/Imaging\nInstitute of Photonic Technology\nAlbert-Einstein-Str. 9\n07745 Jena\nGermany\n\nemail: claudia.beleites at ipht-jena.de\nphone: +49 3641 206-133\nfax:   +49 2641 206-399",
+      "body_snippet": "Dear Patrick,\n\n> I noticed that there isn't a function for matrix multiplication in\n> the new parallel library. What would be the most efficient way to do\n> a matrix multiplication there?\nI use libgot",
+      "thread_id": "thread-41f2e98fe215",
+      "thread_depth": 1,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-c3abe9e70e41",
+      "message_id": "<985EC062-19EA-4515-8FCA-BB23CD93B773@r-project.org>",
+      "from_name": "Simon Urbanek",
+      "from_email_hash": "4b8015e605c1e8a78e0fc166d7f94d0bc9cab6230366ee1dfdd8a0de17b4b371",
+      "date": "2012-03-13T02:26:41-04:00",
+      "subject": "[R-sig-hpc] Matrix multiplication",
+      "subject_clean": "Matrix multiplication",
+      "in_reply_to": "<4F5DD2B3020000F900008F25@gwia1.boku.ac.at>",
+      "references": [
+        "<4F5DD2B3020000F900008F25@gwia1.boku.ac.at>"
+      ],
+      "body_plain": "On Mar 12, 2012, at 5:40 AM, Patrik Waldmann wrote:\n\n> Dear members,\n> \n> I noticed that there isn't a function for matrix multiplication in the new parallel library. What would be the most efficient way to do a matrix multiplication there?\n> \n\nThe parallel package is for *explicit* parallelization. R already does implicit parallelization (using OpenMP or multi-threaded BLAS or both) automatically - this includes matrix multiplication.\n\nCheers,\nSimon",
+      "body_snippet": "On Mar 12, 2012, at 5:40 AM, Patrik Waldmann wrote:\n\n> Dear members,\n> \n> I noticed that there isn't a function for matrix multiplication in the new parallel library. What would be the most efficient ",
+      "thread_id": "thread-41f2e98fe215",
+      "thread_depth": 1,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-3feeb6dd512d",
+      "message_id": "<4F5F2034020000F900008F64@gwia1.boku.ac.at>",
+      "from_name": "Patrik Waldmann",
+      "from_email_hash": "5422de27106a441456dee56c7875899e9cf1a66baf324006c91c4e68a62851f0",
+      "date": "2012-03-13T10:23:48+01:00",
+      "subject": "[R-sig-hpc] Matrix multiplication",
+      "subject_clean": "Matrix multiplication",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "What does automatically mean? Is X%*%t(X) parallelized?\n\nPatrik\n\n>>> Simon Urbanek <simon.urbanek at r-project.org> 03/13/12 07:27 AM >>>\n\nOn Mar 12, 2012, at 5:40 AM, Patrik Waldmann wrote:\n\n> Dear members,\n> \n> I noticed that there isn't a function for matrix multiplication in the new parallel library. What would be the most efficient way to do a matrix multiplication there?\n> \n\nThe parallel package is for *explicit* parallelization. R already does implicit parallelization (using OpenMP or multi-threaded BLAS or both) automatically - this includes matrix multiplication.\n\nCheers,\nSimon",
+      "body_snippet": "What does automatically mean? Is X%*%t(X) parallelized?\n\nPatrik\n\n>>> Simon Urbanek <simon.urbanek at r-project.org> 03/13/12 07:27 AM >>>\n\nOn Mar 12, 2012, at 5:40 AM, Patrik Waldmann wrote:\n\n> Dear m",
+      "thread_id": "thread-3feeb6dd512d",
+      "thread_depth": 0,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-e5533448d99e",
+      "message_id": "<002e01cd0116$06542ae0$12fc80a0$@sitarasoft.com>",
+      "from_name": "Vicky Budhiraja",
+      "from_email_hash": "2cae5cc32bd8ea70e92b4c13ae04a58e2fe57b26c5c1a94a65ac1ca000237bf7",
+      "date": "2012-03-13T18:07:11+05:30",
+      "subject": "[R-sig-hpc] Matrix multiplication",
+      "subject_clean": "Matrix multiplication",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120313/c61cedce/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120313/c61cedce/attachment.pl>",
+      "thread_id": "thread-e5533448d99e",
+      "thread_depth": 0,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-4a242c9bddc0",
+      "message_id": "<1331643285.28362.317.camel@brian-rcg>",
+      "from_name": "Brian G. Peterson",
+      "from_email_hash": "2d44e89a02cb2a9eb2f2113de72098dcb74d077b13b61958f1336c3292aa0254",
+      "date": "2012-03-13T07:54:45-05:00",
+      "subject": "[R-sig-hpc] Matrix multiplication",
+      "subject_clean": "Matrix multiplication",
+      "in_reply_to": "<4F5F2034020000F900008F64@gwia1.boku.ac.at>",
+      "references": [
+        "<4F5F2034020000F900008F64@gwia1.boku.ac.at>"
+      ],
+      "body_plain": "> >>> Simon Urbanek <simon.urbanek at r-project.org> 03/13/12 07:27 AM >>>\n> \n> On Mar 12, 2012, at 5:40 AM, Patrik Waldmann wrote:\n> \n> > Dear members,\n> > \n> > I noticed that there isn't a function for matrix multiplication in the new parallel library. What would be the most efficient way to do a matrix multiplication there?\n> > \n> \n> The parallel package is for *explicit* parallelization. R already does implicit parallelization (using OpenMP or multi-threaded BLAS or both) automatically - this includes matrix multiplication.\n\nOn Tue, 2012-03-13 at 10:23 +0100, Patrik Waldmann wrote:\n> What does automatically mean? Is X%*%t(X) parallelized?\n\nMatrix multiplication %*% is a BLAS function, as Simon and Claudia already told you.\n\nSo, if your BLAS does multithreaded matrix multiplication, it will use\nmultiple threads 'implicitly', as Simon pointed out.\n\nBecause the actual matrix multiplication operation is carried out by the\nBLAS, R doesn't really care how the BLAS does it... it could be on one\nthread (non-parallel), on multiple threads (as with gotoblas or openblas\nconfigured that way) or on a GPU (as with Magma BLAS), and R would not\ncare.\n\n'explicit' parallelization if for taking some other code in R and\nexplicitly telling R to use a certain number of worker nodes to\naccomplish the task.  This type of parallelization is often used for\nsimulation and optimization, where the block of code to be parallelized\nmay be very large.\n\nBe aware that there can be unintended negative interactions between\nimplicit and explicit parallelization.  On cluster nodes I tend to\nconfigure the BLAS to use only one thread to avoid resource contention\nwhen all cores are doing explicit parallelization.\n\n\n-- \nBrian G. Peterson\nhttp://braverock.com/brian/\nPh: 773-459-4973\nIM: bgpbraverock",
+      "body_snippet": "> >>> Simon Urbanek <simon.urbanek at r-project.org> 03/13/12 07:27 AM >>>\n> \n> On Mar 12, 2012, at 5:40 AM, Patrik Waldmann wrote:\n> \n> > Dear members,\n> > \n> > I noticed that there isn't a function ",
+      "thread_id": "thread-3feeb6dd512d",
+      "thread_depth": 1,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-68e2cdab5b2a",
+      "message_id": "<4F5F7890.10102@gmail.com>",
+      "from_name": "Paul Gilbert",
+      "from_email_hash": "aa7dbc26c3f15087b2ccda228b01f598ecfa2ae9d7fa19309941c01a2c4f0d2f",
+      "date": "2012-03-13T12:40:48-04:00",
+      "subject": "[R-sig-hpc] Matrix multiplication",
+      "subject_clean": "Matrix multiplication",
+      "in_reply_to": "<1331643285.28362.317.camel@brian-rcg>",
+      "references": [
+        "<4F5F2034020000F900008F64@gwia1.boku.ac.at>",
+        "<1331643285.28362.317.camel@brian-rcg>"
+      ],
+      "body_plain": "Brian\n\nThanks for spelling this out for those of us that are a bit slow. \n(Newbie questions below)\n\nOn 12-03-13 08:54 AM, Brian G. Peterson wrote:\n>>>>> Simon Urbanek<simon.urbanek at r-project.org>  03/13/12 07:27 AM>>>\n>>\n>> On Mar 12, 2012, at 5:40 AM, Patrik Waldmann wrote:\n>>\n>>> Dear members,\n>>>\n>>> I noticed that there isn't a function for matrix multiplication in the new parallel library. What would be the most efficient way to do a matrix multiplication there?\n>>>\n>>\n>> The parallel package is for *explicit* parallelization. R already does implicit parallelization (using OpenMP or multi-threaded BLAS or both) automatically - this includes matrix multiplication.\n>\n> On Tue, 2012-03-13 at 10:23 +0100, Patrik Waldmann wrote:\n>> What does automatically mean? Is X%*%t(X) parallelized?\n>\n> Matrix multiplication %*% is a BLAS function, as Simon and Claudia already told you.\n>\n> So, if your BLAS does multithreaded matrix multiplication, it will use\n> multiple threads 'implicitly', as Simon pointed out.\n\nIs there an easy way to know if the R I am using has been compiled with \nmulti-thread BLAS support?\n>\n> Because the actual matrix multiplication operation is carried out by the\n> BLAS, R doesn't really care how the BLAS does it... it could be on one\n> thread (non-parallel), on multiple threads (as with gotoblas or openblas\n> configured that way) or on a GPU (as with Magma BLAS), and R would not\n> care.\n>\n> 'explicit' parallelization if for taking some other code in R and\n> explicitly telling R to use a certain number of worker nodes to\n> accomplish the task.  This type of parallelization is often used for\n> simulation and optimization, where the block of code to be parallelized\n> may be very large.\n>\n> Be aware that there can be unintended negative interactions between\n> implicit and explicit parallelization.  On cluster nodes I tend to\n> configure the BLAS to use only one thread to avoid resource contention\n> when all cores are doing explicit parallelization.\n\nHow do you do this? Does it need to be done when you are compiling R, or \ncan it be done on the fly while running R processes?\n\nThanks, Paul",
+      "body_snippet": "Brian\n\nThanks for spelling this out for those of us that are a bit slow. \n(Newbie questions below)\n\nOn 12-03-13 08:54 AM, Brian G. Peterson wrote:\n>>>>> Simon Urbanek<simon.urbanek at r-project.org>  ",
+      "thread_id": "thread-3feeb6dd512d",
+      "thread_depth": 2,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-553d6b4282ab",
+      "message_id": "<1331657448.28362.331.camel@brian-rcg>",
+      "from_name": "Brian G. Peterson",
+      "from_email_hash": "2d44e89a02cb2a9eb2f2113de72098dcb74d077b13b61958f1336c3292aa0254",
+      "date": "2012-03-13T11:50:48-05:00",
+      "subject": "[R-sig-hpc] Matrix multiplication",
+      "subject_clean": "Matrix multiplication",
+      "in_reply_to": "<4F5F7890.10102@gmail.com>",
+      "references": [
+        "<4F5F2034020000F900008F64@gwia1.boku.ac.at>",
+        "<1331643285.28362.317.camel@brian-rcg>",
+        "<4F5F7890.10102@gmail.com>"
+      ],
+      "body_plain": "On Tue, 2012-03-13 at 12:40 -0400, Paul Gilbert wrote:\n> Brian\n> \n> Thanks for spelling this out for those of us that are a bit slow. \n> (Newbie questions below)\n\n<... snip ...>\n\n> > So, if your BLAS does multithreaded matrix multiplication, it will use\n> > multiple threads 'implicitly', as Simon pointed out.\n> \n> Is there an easy way to know if the R I am using has been compiled with \n> multi-thread BLAS support?\n\nBLAS should be 'plug and play', as R is usually compiled to use a shared\nobject BLAS.  As such, installing the BLAS on your machine (and\nappropriately configuring it) should 'just work' with te new BLAS when\nyou restart R.\n\nDirk et. al. wrote a paper, now a bit dated, that benchmarked some of\nthe BLAS libraries, that should have some additional details.\n \n<...snip...>\n\n> > Be aware that there can be unintended negative interactions between\n> > implicit and explicit parallelization.  On cluster nodes I tend to\n> > configure the BLAS to use only one thread to avoid resource contention\n> > when all cores are doing explicit parallelization.\n> \n> How do you do this? Does it need to be done when you are compiling R, or \n> can it be done on the fly while running R processes?\n\nSome BLAS, like gotoblas, support an environment variable to change the\nnumber of cores to be used.  This can be changed at run-time.  Others,\nlike the mkl, are always multithreaded.  Others, like ATLAS, can be\ncompiled in either single threaded or multi-threaded modes.  \n\nSo, for me, on my cluster nodes, I use a single threaded BLAS, assuming\nthat *explicit* parallelization will be the primary driver of CPU load,\nand not wanting to over-commit the processor when 12 calculations each\ntry to spawn 12 threads in the BLAS.  On other machines, I might use a\nmultithreaded BLAS like gotoblas so that I have some flexibility (though\napparently unlike Claudia, I rarely change it in practice).\n\nRegards,\n\n   - Brian\n\n-- \nBrian G. Peterson\nhttp://braverock.com/brian/\nPh: 773-459-4973\nIM: bgpbraverock",
+      "body_snippet": "On Tue, 2012-03-13 at 12:40 -0400, Paul Gilbert wrote:\n> Brian\n> \n> Thanks for spelling this out for those of us that are a bit slow. \n> (Newbie questions below)\n\n<... snip ...>\n\n> > So, if your BLAS ",
+      "thread_id": "thread-3feeb6dd512d",
+      "thread_depth": 3,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-9efaa8456174",
+      "message_id": "<4F5F9A8E.5060509@gmail.com>",
+      "from_name": "Paul Gilbert",
+      "from_email_hash": "aa7dbc26c3f15087b2ccda228b01f598ecfa2ae9d7fa19309941c01a2c4f0d2f",
+      "date": "2012-03-13T15:05:50-04:00",
+      "subject": "[R-sig-hpc] Matrix multiplication",
+      "subject_clean": "Matrix multiplication",
+      "in_reply_to": "<1331657448.28362.331.camel@brian-rcg>",
+      "references": [
+        "<4F5F2034020000F900008F64@gwia1.boku.ac.at>",
+        "<1331643285.28362.317.camel@brian-rcg>",
+        "<4F5F7890.10102@gmail.com>",
+        "<1331657448.28362.331.camel@brian-rcg>"
+      ],
+      "body_plain": "On 12-03-13 12:50 PM, Brian G. Peterson wrote:\n> On Tue, 2012-03-13 at 12:40 -0400, Paul Gilbert wrote:\n>> Brian\n>>\n>> Thanks for spelling this out for those of us that are a bit slow.\n>> (Newbie questions below)\n>\n> <... snip ...>\n>\n>>> So, if your BLAS does multithreaded matrix multiplication, it will use\n>>> multiple threads 'implicitly', as Simon pointed out.\n>>\n>> Is there an easy way to know if the R I am using has been compiled with\n>> multi-thread BLAS support?\n>\n> BLAS should be 'plug and play', as R is usually compiled to use a shared\n> object BLAS.  As such, installing the BLAS on your machine (and\n> appropriately configuring it) should 'just work' with te new BLAS when\n> you restart R.\n>\n> Dirk et. al. wrote a paper, now a bit dated, that benchmarked some of\n> the BLAS libraries, that should have some additional details.\n\n(I have a long history of getting things that should 'just work' to \n'just not work'.) But I didn't really state my question very well. I'm \nreally wondering about two related situations. How can I confirm after a \nchange to underlying system that R is using the new configuration, and \nsecond, if I am  running benchmarks in R is there an easy way to record \nthe underlying configuration that is being used.\n\nThanks again,\nPaul\n>\n> <...snip...>\n>\n>>> Be aware that there can be unintended negative interactions between\n>>> implicit and explicit parallelization.  On cluster nodes I tend to\n>>> configure the BLAS to use only one thread to avoid resource contention\n>>> when all cores are doing explicit parallelization.\n>>\n>> How do you do this? Does it need to be done when you are compiling R, or\n>> can it be done on the fly while running R processes?\n>\n> Some BLAS, like gotoblas, support an environment variable to change the\n> number of cores to be used.  This can be changed at run-time.  Others,\n> like the mkl, are always multithreaded.  Others, like ATLAS, can be\n> compiled in either single threaded or multi-threaded modes.\n>\n> So, for me, on my cluster nodes, I use a single threaded BLAS, assuming\n> that *explicit* parallelization will be the primary driver of CPU load,\n> and not wanting to over-commit the processor when 12 calculations each\n> try to spawn 12 threads in the BLAS.  On other machines, I might use a\n> multithreaded BLAS like gotoblas so that I have some flexibility (though\n> apparently unlike Claudia, I rarely change it in practice).\n>\n> Regards,\n>\n>     - Brian\n>",
+      "body_snippet": "On 12-03-13 12:50 PM, Brian G. Peterson wrote:\n> On Tue, 2012-03-13 at 12:40 -0400, Paul Gilbert wrote:\n>> Brian\n>>\n>> Thanks for spelling this out for those of us that are a bit slow.\n>> (Newbie ques",
+      "thread_id": "thread-3feeb6dd512d",
+      "thread_depth": 4,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-17d1edcee345",
+      "message_id": "<1331667368.28362.337.camel@brian-rcg>",
+      "from_name": "Brian G. Peterson",
+      "from_email_hash": "2d44e89a02cb2a9eb2f2113de72098dcb74d077b13b61958f1336c3292aa0254",
+      "date": "2012-03-13T14:36:08-05:00",
+      "subject": "[R-sig-hpc] Matrix multiplication",
+      "subject_clean": "Matrix multiplication",
+      "in_reply_to": "<4F5F9A8E.5060509@gmail.com>",
+      "references": [
+        "<4F5F2034020000F900008F64@gwia1.boku.ac.at>",
+        "<1331643285.28362.317.camel@brian-rcg>",
+        "<4F5F7890.10102@gmail.com>",
+        "<1331657448.28362.331.camel@brian-rcg>",
+        "<4F5F9A8E.5060509@gmail.com>"
+      ],
+      "body_plain": "On Tue, 2012-03-13 at 15:05 -0400, Paul Gilbert wrote:\n> (I have a long history of getting things that should 'just work' to \n> 'just not work'.) But I didn't really state my question very well. I'm\n> really wondering about two related situations. How can I confirm after\n> a change to underlying system that R is using the new configuration,\n> and second, if I am  running benchmarks in R is there an easy way to\n> record the underlying configuration that is being used.\n\nI usually use 'top' in another 'screen' window.  In the case of\nexplicity parallelization, you'll see more R processes.  In the case of\nimplicit parallelization, you'll see (at least) the CPU utilization go\nup to or over 100% on the single R process (and up to 100% on each\nindividual core) while the calculation happens.\n\nGood luck,\n\n   - Brian\n> \n-- \nBrian G. Peterson\nhttp://braverock.com/brian/\nPh: 773-459-4973\nIM: bgpbraverock",
+      "body_snippet": "On Tue, 2012-03-13 at 15:05 -0400, Paul Gilbert wrote:\n> (I have a long history of getting things that should 'just work' to \n> 'just not work'.) But I didn't really state my question very well. I'm\n>",
+      "thread_id": "thread-3feeb6dd512d",
+      "thread_depth": 5,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-30909de50fc8",
+      "message_id": "<CA+MmmTJN4D3guHX5gSbw0tLr1Az9FR8YSyXOxtbu4jRBV9CHgg@mail.gmail.com>",
+      "from_name": "Sean O'Riordain",
+      "from_email_hash": "dd8fd961009c3a88893d9c0b20385532852028764ca27139077a29efdd358d53",
+      "date": "2012-03-13T21:41:28Z",
+      "subject": "[R-sig-hpc] Matrix multiplication",
+      "subject_clean": "Matrix multiplication",
+      "in_reply_to": "<1331667368.28362.337.camel@brian-rcg>",
+      "references": [
+        "<4F5F2034020000F900008F64@gwia1.boku.ac.at>",
+        "<1331643285.28362.317.camel@brian-rcg>",
+        "<4F5F7890.10102@gmail.com>",
+        "<1331657448.28362.331.camel@brian-rcg>",
+        "<4F5F9A8E.5060509@gmail.com>",
+        "<1331667368.28362.337.camel@brian-rcg>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120313/66b3009d/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120313/66b3009d/attachment.pl>",
+      "thread_id": "thread-3feeb6dd512d",
+      "thread_depth": 6,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-67c88aa048f0",
+      "message_id": "<668D1E28-EB98-4C1B-A19A-7AC854746321@r-project.org>",
+      "from_name": "Simon Urbanek",
+      "from_email_hash": "4b8015e605c1e8a78e0fc166d7f94d0bc9cab6230366ee1dfdd8a0de17b4b371",
+      "date": "2012-03-13T21:59:24-04:00",
+      "subject": "[R-sig-hpc] Matrix multiplication",
+      "subject_clean": "Matrix multiplication",
+      "in_reply_to": "<4F5F9A8E.5060509@gmail.com>",
+      "references": [
+        "<4F5F2034020000F900008F64@gwia1.boku.ac.at>",
+        "<1331643285.28362.317.camel@brian-rcg>",
+        "<4F5F7890.10102@gmail.com>",
+        "<1331657448.28362.331.camel@brian-rcg>",
+        "<4F5F9A8E.5060509@gmail.com>"
+      ],
+      "body_plain": "On Mar 13, 2012, at 3:05 PM, Paul Gilbert wrote:\n\n> \n> \n> On 12-03-13 12:50 PM, Brian G. Peterson wrote:\n>> On Tue, 2012-03-13 at 12:40 -0400, Paul Gilbert wrote:\n>>> Brian\n>>> \n>>> Thanks for spelling this out for those of us that are a bit slow.\n>>> (Newbie questions below)\n>> \n>> <... snip ...>\n>> \n>>>> So, if your BLAS does multithreaded matrix multiplication, it will use\n>>>> multiple threads 'implicitly', as Simon pointed out.\n>>> \n>>> Is there an easy way to know if the R I am using has been compiled with\n>>> multi-thread BLAS support?\n>> \n>> BLAS should be 'plug and play', as R is usually compiled to use a shared\n>> object BLAS.  As such, installing the BLAS on your machine (and\n>> appropriately configuring it) should 'just work' with te new BLAS when\n>> you restart R.\n>> \n>> Dirk et. al. wrote a paper, now a bit dated, that benchmarked some of\n>> the BLAS libraries, that should have some additional details.\n> \n> (I have a long history of getting things that should 'just work' to 'just not work'.) But I didn't really state my question very well. I'm really wondering about two related situations. How can I confirm after a change to underlying system that R is using the new configuration, and second, if I am  running benchmarks in R is there an easy way to record the underlying configuration that is being used.\n> \n\nYou can check whether you're leveraging multiple cores simply via system.time:\n\n> m=matrix(rnorm(4e6),2000)\n> system.time(m %*% m)\n   user  system elapsed \n  6.860   0.020   0.584 \n\nThe above is clearly using threaded BLAS (here I'm using ATLAS), because the elapsed time is much smaller than the CPU time so it was computed in parallel. In contrast this is what you get using single-threaded R BLAS on the same machine:\n\n> system.time(m %*% m)\n   user  system elapsed \n 10.480   0.020  10.505 \n\nIt takes about 18x longer - this is a combination of the number of cores and the less optimized BLAS - and the elapsed time is greater or equal to the CPU time = single-threaded.\n\nAs for recording the underlying configuration - that is not really possible in general - you have to know what you enabled/compiled. In case of a shared BLAS implementation you may be able to infer that from the library name, but for static BLAS it is close to impossible to figure it out.\n\nCheers,\nSimon\n\n\n\n> Thanks again,\n> Paul\n>> \n>> <...snip...>\n>> \n>>>> Be aware that there can be unintended negative interactions between\n>>>> implicit and explicit parallelization.  On cluster nodes I tend to\n>>>> configure the BLAS to use only one thread to avoid resource contention\n>>>> when all cores are doing explicit parallelization.\n>>> \n>>> How do you do this? Does it need to be done when you are compiling R, or\n>>> can it be done on the fly while running R processes?\n>> \n>> Some BLAS, like gotoblas, support an environment variable to change the\n>> number of cores to be used.  This can be changed at run-time.  Others,\n>> like the mkl, are always multithreaded.  Others, like ATLAS, can be\n>> compiled in either single threaded or multi-threaded modes.\n>> \n>> So, for me, on my cluster nodes, I use a single threaded BLAS, assuming\n>> that *explicit* parallelization will be the primary driver of CPU load,\n>> and not wanting to over-commit the processor when 12 calculations each\n>> try to spawn 12 threads in the BLAS.  On other machines, I might use a\n>> multithreaded BLAS like gotoblas so that I have some flexibility (though\n>> apparently unlike Claudia, I rarely change it in practice).\n>> \n>> Regards,\n>> \n>>    - Brian\n>> \n> \n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n> \n>",
+      "body_snippet": "On Mar 13, 2012, at 3:05 PM, Paul Gilbert wrote:\n\n> \n> \n> On 12-03-13 12:50 PM, Brian G. Peterson wrote:\n>> On Tue, 2012-03-13 at 12:40 -0400, Paul Gilbert wrote:\n>>> Brian\n>>> \n>>> Thanks for spellin",
+      "thread_id": "thread-3feeb6dd512d",
+      "thread_depth": 5,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-839a892b29b6",
+      "message_id": "<jjqbb5$jp8$1@dough.gmane.org>",
+      "from_name": "Claudia Beleites",
+      "from_email_hash": "84f31892209c320dec87048b9b592f8173550a086b18936bcc901dd57f61bcf0",
+      "date": "2012-03-14T15:47:32+01:00",
+      "subject": "[R-sig-hpc] Matrix multiplication",
+      "subject_clean": "Matrix multiplication",
+      "in_reply_to": "<1331657448.28362.331.camel@brian-rcg>",
+      "references": [
+        "<4F5F2034020000F900008F64@gwia1.boku.ac.at>",
+        "<1331643285.28362.317.camel@brian-rcg>",
+        "<4F5F7890.10102@gmail.com>",
+        "<1331657448.28362.331.camel@brian-rcg>"
+      ],
+      "body_plain": ">  On other machines, I might use a\n> multithreaded BLAS like gotoblas so that I have some flexibility (though\n> apparently unlike Claudia, I rarely change it in practice).\n\n:-) Yes, I do change it in practice, because I have steps where I use\nexplicit parallelization via multicore or snow and I switch between the\n3 different parallel computation types. Our server has 2 hex-core CPUs\nbut only 8 GB RAM. The spectroscopic data analysis I use usually isn't\nreally hard computationally, but the data sets are often uncomfortably\nlarge for the server. With explicit parallelization RAM often restricts\nme to 2 or 3 threads.\n\nHere's what I observe and why I switch back and forth:\n\nIf the calculation is implicitly parallel with the optimized BLAS,\nthat's the way to go. Easiest on RAM, fast, no whatsoever coding effort.\nJust lean back and enjoy seeing all cores hard at work.\nThere are functions like %*% and (t)crossprod that use all 12 cores (or\nwhatever I restrict NUM_GOTO_THREADS to).\n\nOther functions, e.g. loess () seem never to use more than all 6 cores\nof one CPU. For these, I'm better off with explicit parallelization with\n2 snow nodes and NUM_GOTO_THREADS = 6 (I have to execute taskset on each\nnode). However, snow (and multicore) need more RAM as the data must be\nloaded in each node. That would mean e.g. NUM_GOTO_THREADS = 11 (to\nleave an \"alibi-core\" for my colleague) in the main R session, and e.g.\n2 nodes with NUM_GOTO_THREADS = 6 or 3 nodes with NUM_GOTO_THREADS = 4.\n\nMulticore doesn't make use of the implicit parallelization of the BLAS.\nBut it is easier to use than snow: no cluster set up required, no hassle\nwith exporting all variables, etc.\nSo, if the function anyways doesn't have any implicit parallelization, I\njust change lapply to mclapply, and that's it.\n\nBest,\n\nClaudia",
+      "body_snippet": ">  On other machines, I might use a\n> multithreaded BLAS like gotoblas so that I have some flexibility (though\n> apparently unlike Claudia, I rarely change it in practice).\n\n:-) Yes, I do change it in",
+      "thread_id": "thread-3feeb6dd512d",
+      "thread_depth": 4,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-fa929bd3dc56",
+      "message_id": "<4F60CD21.7030404@gmail.com>",
+      "from_name": "Paul Gilbert",
+      "from_email_hash": "aa7dbc26c3f15087b2ccda228b01f598ecfa2ae9d7fa19309941c01a2c4f0d2f",
+      "date": "2012-03-14T12:53:53-04:00",
+      "subject": "[R-sig-hpc] Matrix multiplication",
+      "subject_clean": "Matrix multiplication",
+      "in_reply_to": "<668D1E28-EB98-4C1B-A19A-7AC854746321@r-project.org>",
+      "references": [
+        "<4F5F2034020000F900008F64@gwia1.boku.ac.at>",
+        "<1331643285.28362.317.camel@brian-rcg>",
+        "<4F5F7890.10102@gmail.com>",
+        "<1331657448.28362.331.camel@brian-rcg>",
+        "<4F5F9A8E.5060509@gmail.com>",
+        "<668D1E28-EB98-4C1B-A19A-7AC854746321@r-project.org>"
+      ],
+      "body_plain": "On 12-03-13 09:59 PM, Simon Urbanek wrote:\n>\n> On Mar 13, 2012, at 3:05 PM, Paul Gilbert wrote:\n>\n>>\n>>\n>> On 12-03-13 12:50 PM, Brian G. Peterson wrote:\n>>> On Tue, 2012-03-13 at 12:40 -0400, Paul Gilbert wrote:\n>>>> Brian\n>>>>\n>>>> Thanks for spelling this out for those of us that are a bit slow.\n>>>> (Newbie questions below)\n>>>\n>>> <... snip ...>\n>>>\n>>>>> So, if your BLAS does multithreaded matrix multiplication, it will use\n>>>>> multiple threads 'implicitly', as Simon pointed out.\n>>>>\n>>>> Is there an easy way to know if the R I am using has been compiled with\n>>>> multi-thread BLAS support?\n>>>\n>>> BLAS should be 'plug and play', as R is usually compiled to use a shared\n>>> object BLAS.  As such, installing the BLAS on your machine (and\n>>> appropriately configuring it) should 'just work' with te new BLAS when\n>>> you restart R.\n>>>\n>>> Dirk et. al. wrote a paper, now a bit dated, that benchmarked some of\n>>> the BLAS libraries, that should have some additional details.\n>>\n>> (I have a long history of getting things that should 'just work' to 'just not work'.) But I didn't really state my question very well. I'm really wondering about two related situations. How can I confirm after a change to underlying system that R is using the new configuration, and second, if I am  running benchmarks in R is there an easy way to record the underlying configuration that is being used.\n>>\n>\n> You can check whether you're leveraging multiple cores simply via system.time:\n>\n>> m=matrix(rnorm(4e6),2000)\n>> system.time(m %*% m)\n>     user  system elapsed\n>    6.860   0.020   0.584\n>\n> The above is clearly using threaded BLAS (here I'm using ATLAS), because\n> the elapsed time is much smaller than the CPU time so it was computed in parallel.\n\nPerhaps I am misreading something. I don't see elapse < CPU, so it does \nnot seem quite as obvious as you suggest, but I certainly see the \ndifference with the single-thread below.\n\n>In contrast this is what you get using single-threaded R BLAS on the same machine:\n>\n>> system.time(m %*% m)\n>     user  system elapsed\n>   10.480   0.020  10.505\n>\n> It takes about 18x longer - this is a combination of the number of cores and the less optimized BLAS - and the elapsed time is greater or equal to the CPU time = single-threaded.\n>\n> As for recording the underlying configuration - that is not really possible in general - you have toknow what you enabled/compiled. In case of a shared BLAS implementation \nyou may be able to infer that from the library name, but for static BLAS \nit is close to impossible to figure it out.\n\nI was afraid this would be the case. It is often hard to keep track even \nwhen I'm compiling R myself, and I guess if you don't compile yourself \nthere is not much hope of knowing what you really have.\n(Food for thought when considering timing comparisons.)\n\nThanks,\nPaul\n\n> Cheers,\n> Simon\n>\n>\n>\n>> Thanks again,\n>> Paul\n>>>\n>>> <...snip...>\n>>>\n>>>>> Be aware that there can be unintended negative interactions between\n>>>>> implicit and explicit parallelization.  On cluster nodes I tend to\n>>>>> configure the BLAS to use only one thread to avoid resource contention\n>>>>> when all cores are doing explicit parallelization.\n>>>>\n>>>> How do you do this? Does it need to be done when you are compiling R, or\n>>>> can it be done on the fly while running R processes?\n>>>\n>>> Some BLAS, like gotoblas, support an environment variable to change the\n>>> number of cores to be used.  This can be changed at run-time.  Others,\n>>> like the mkl, are always multithreaded.  Others, like ATLAS, can be\n>>> compiled in either single threaded or multi-threaded modes.\n>>>\n>>> So, for me, on my cluster nodes, I use a single threaded BLAS, assuming\n>>> that *explicit* parallelization will be the primary driver of CPU load,\n>>> and not wanting to over-commit the processor when 12 calculations each\n>>> try to spawn 12 threads in the BLAS.  On other machines, I might use a\n>>> multithreaded BLAS like gotoblas so that I have some flexibility (though\n>>> apparently unlike Claudia, I rarely change it in practice).\n>>>\n>>> Regards,\n>>>\n>>>     - Brian\n>>>\n>>\n>> _______________________________________________\n>> R-sig-hpc mailing list\n>> R-sig-hpc at r-project.org\n>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>>\n>>\n>",
+      "body_snippet": "On 12-03-13 09:59 PM, Simon Urbanek wrote:\n>\n> On Mar 13, 2012, at 3:05 PM, Paul Gilbert wrote:\n>\n>>\n>>\n>> On 12-03-13 12:50 PM, Brian G. Peterson wrote:\n>>> On Tue, 2012-03-13 at 12:40 -0400, Paul Gi",
+      "thread_id": "thread-3feeb6dd512d",
+      "thread_depth": 6,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-335a430a4557",
+      "message_id": "<4F60D0BA.50007@gmail.com>",
+      "from_name": "Paul Gilbert",
+      "from_email_hash": "aa7dbc26c3f15087b2ccda228b01f598ecfa2ae9d7fa19309941c01a2c4f0d2f",
+      "date": "2012-03-14T13:09:14-04:00",
+      "subject": "[R-sig-hpc] Matrix multiplication",
+      "subject_clean": "Matrix multiplication",
+      "in_reply_to": "<jjqbb5$jp8$1@dough.gmane.org>",
+      "references": [
+        "<4F5F2034020000F900008F64@gwia1.boku.ac.at>",
+        "<1331643285.28362.317.camel@brian-rcg>",
+        "<4F5F7890.10102@gmail.com>",
+        "<1331657448.28362.331.camel@brian-rcg>",
+        "<jjqbb5$jp8$1@dough.gmane.org>"
+      ],
+      "body_plain": "On 12-03-14 10:47 AM, Claudia Beleites wrote:\n>>   On other machines, I might use a\n>> multithreaded BLAS like gotoblas so that I have some flexibility (though\n>> apparently unlike Claudia, I rarely change it in practice).\n>\n> :-) Yes, I do change it in practice, because I have steps where I use\n> explicit parallelization via multicore or snow and I switch between the\n> 3 different parallel computation types. Our server has 2 hex-core CPUs\n> but only 8 GB RAM. The spectroscopic data analysis I use usually isn't\n> really hard computationally, but the data sets are often uncomfortably\n> large for the server. With explicit parallelization RAM often restricts\n> me to 2 or 3 threads.\n>\n> Here's what I observe and why I switch back and forth:\n>\n> If the calculation is implicitly parallel with the optimized BLAS,\n> that's the way to go. Easiest on RAM, fast, no whatsoever coding effort.\n> Just lean back and enjoy seeing all cores hard at work.\n> There are functions like %*% and (t)crossprod that use all 12 cores (or\n> whatever I restrict NUM_GOTO_THREADS to).\n>\n> Other functions, e.g. loess () seem never to use more than all 6 cores\n> of one CPU. For these, I'm better off with explicit parallelization with\n> 2 snow nodes and NUM_GOTO_THREADS = 6 (I have to execute taskset on each\n> node). However, snow (and multicore) need more RAM as the data must be\n> loaded in each node. That would mean e.g. NUM_GOTO_THREADS = 11 (to\n> leave an \"alibi-core\" for my colleague) in the main R session, and e.g.\n> 2 nodes with NUM_GOTO_THREADS = 6 or 3 nodes with NUM_GOTO_THREADS = 4.\n\nHow does this work?  I can imagine problems where I could use \nSys.setenv() within an R function, to speed up different parts of a \ncalculation in different ways,  but if goto is reading an environment \nvariable everytime it does a calculation, that would slow it down a \nwhole lot.\n\nThanks,\nPaul\n>\n> Multicore doesn't make use of the implicit parallelization of the BLAS.\n> But it is easier to use than snow: no cluster set up required, no hassle\n> with exporting all variables, etc.\n> So, if the function anyways doesn't have any implicit parallelization, I\n> just change lapply to mclapply, and that's it.\n>\n> Best,\n>\n> Claudia\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc",
+      "body_snippet": "On 12-03-14 10:47 AM, Claudia Beleites wrote:\n>>   On other machines, I might use a\n>> multithreaded BLAS like gotoblas so that I have some flexibility (though\n>> apparently unlike Claudia, I rarely c",
+      "thread_id": "thread-3feeb6dd512d",
+      "thread_depth": 5,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-9edf1d35f388",
+      "message_id": "<6D8103DA-33E0-436B-9E8F-95520086E73B@r-project.org>",
+      "from_name": "Simon Urbanek",
+      "from_email_hash": "4b8015e605c1e8a78e0fc166d7f94d0bc9cab6230366ee1dfdd8a0de17b4b371",
+      "date": "2012-03-14T13:24:57-04:00",
+      "subject": "[R-sig-hpc] Matrix multiplication",
+      "subject_clean": "Matrix multiplication",
+      "in_reply_to": "<4F60CD21.7030404@gmail.com>",
+      "references": [
+        "<4F5F2034020000F900008F64@gwia1.boku.ac.at>",
+        "<1331643285.28362.317.camel@brian-rcg>",
+        "<4F5F7890.10102@gmail.com>",
+        "<1331657448.28362.331.camel@brian-rcg>",
+        "<4F5F9A8E.5060509@gmail.com>",
+        "<668D1E28-EB98-4C1B-A19A-7AC854746321@r-project.org>",
+        "<4F60CD21.7030404@gmail.com>"
+      ],
+      "body_plain": "On Mar 14, 2012, at 12:53 PM, Paul Gilbert wrote:\n\n> \n> \n> On 12-03-13 09:59 PM, Simon Urbanek wrote:\n>> \n>> On Mar 13, 2012, at 3:05 PM, Paul Gilbert wrote:\n>> \n>>> \n>>> \n>>> On 12-03-13 12:50 PM, Brian G. Peterson wrote:\n>>>> On Tue, 2012-03-13 at 12:40 -0400, Paul Gilbert wrote:\n>>>>> Brian\n>>>>> \n>>>>> Thanks for spelling this out for those of us that are a bit slow.\n>>>>> (Newbie questions below)\n>>>> \n>>>> <... snip ...>\n>>>> \n>>>>>> So, if your BLAS does multithreaded matrix multiplication, it will use\n>>>>>> multiple threads 'implicitly', as Simon pointed out.\n>>>>> \n>>>>> Is there an easy way to know if the R I am using has been compiled with\n>>>>> multi-thread BLAS support?\n>>>> \n>>>> BLAS should be 'plug and play', as R is usually compiled to use a shared\n>>>> object BLAS.  As such, installing the BLAS on your machine (and\n>>>> appropriately configuring it) should 'just work' with te new BLAS when\n>>>> you restart R.\n>>>> \n>>>> Dirk et. al. wrote a paper, now a bit dated, that benchmarked some of\n>>>> the BLAS libraries, that should have some additional details.\n>>> \n>>> (I have a long history of getting things that should 'just work' to 'just not work'.) But I didn't really state my question very well. I'm really wondering about two related situations. How can I confirm after a change to underlying system that R is using the new configuration, and second, if I am  running benchmarks in R is there an easy way to record the underlying configuration that is being used.\n>>> \n>> \n>> You can check whether you're leveraging multiple cores simply via system.time:\n>> \n>>> m=matrix(rnorm(4e6),2000)\n>>> system.time(m %*% m)\n>>    user  system elapsed\n>>   6.860   0.020   0.584\n>> \n>> The above is clearly using threaded BLAS (here I'm using ATLAS), because\n>> the elapsed time is much smaller than the CPU time so it was computed in parallel.\n> \n> Perhaps I am misreading something. I don't see elapse < CPU,\n\n0.584 < 6.86\n\n\n> so it does not seem quite as obvious as you suggest, but I certainly see the difference with the single-thread below.\n> \n>> In contrast this is what you get using single-threaded R BLAS on the same machine:\n>> \n>>> system.time(m %*% m)\n>>    user  system elapsed\n>>  10.480   0.020  10.505\n>> \n>> It takes about 18x longer - this is a combination of the number of cores and the less optimized BLAS - and the elapsed time is greater or equal to the CPU time = single-threaded.\n>> \n>> As for recording the underlying configuration - that is not really possible in general - you have toknow what you enabled/compiled. In case of a shared BLAS implementation \n> you may be able to infer that from the library name, but for static BLAS it is close to impossible to figure it out.\n> \n> I was afraid this would be the case. It is often hard to keep track even when I'm compiling R myself, and I guess if you don't compile yourself there is not much hope of knowing what you really have.\n> (Food for thought when considering timing comparisons.)\n> \n\nIt is separate from R (at least as long as you have shared BLAS enabled which is the default for most distributions) -- so it's really about what you point your BLAS to.\n\nBut, yes, timing comparisons are pretty meaningless unless you specify everything you have (this is how some can post benchmarks against strawman installations and claim to be faster although there is in fact no difference).\n\nCheers,\nSimon\n\n\n> Thanks,\n> Paul\n> \n>> Cheers,\n>> Simon\n>> \n>> \n>> \n>>> Thanks again,\n>>> Paul\n>>>> \n>>>> <...snip...>\n>>>> \n>>>>>> Be aware that there can be unintended negative interactions between\n>>>>>> implicit and explicit parallelization.  On cluster nodes I tend to\n>>>>>> configure the BLAS to use only one thread to avoid resource contention\n>>>>>> when all cores are doing explicit parallelization.\n>>>>> \n>>>>> How do you do this? Does it need to be done when you are compiling R, or\n>>>>> can it be done on the fly while running R processes?\n>>>> \n>>>> Some BLAS, like gotoblas, support an environment variable to change the\n>>>> number of cores to be used.  This can be changed at run-time.  Others,\n>>>> like the mkl, are always multithreaded.  Others, like ATLAS, can be\n>>>> compiled in either single threaded or multi-threaded modes.\n>>>> \n>>>> So, for me, on my cluster nodes, I use a single threaded BLAS, assuming\n>>>> that *explicit* parallelization will be the primary driver of CPU load,\n>>>> and not wanting to over-commit the processor when 12 calculations each\n>>>> try to spawn 12 threads in the BLAS.  On other machines, I might use a\n>>>> multithreaded BLAS like gotoblas so that I have some flexibility (though\n>>>> apparently unlike Claudia, I rarely change it in practice).\n>>>> \n>>>> Regards,\n>>>> \n>>>>    - Brian\n>>>> \n>>> \n>>> _______________________________________________\n>>> R-sig-hpc mailing list\n>>> R-sig-hpc at r-project.org\n>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>>> \n>>> \n>> \n> \n>",
+      "body_snippet": "On Mar 14, 2012, at 12:53 PM, Paul Gilbert wrote:\n\n> \n> \n> On 12-03-13 09:59 PM, Simon Urbanek wrote:\n>> \n>> On Mar 13, 2012, at 3:05 PM, Paul Gilbert wrote:\n>> \n>>> \n>>> \n>>> On 12-03-13 12:50 PM, Br",
+      "thread_id": "thread-3feeb6dd512d",
+      "thread_depth": 7,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-a19321d28ac2",
+      "message_id": "<4F60EEA5.8000403@gmail.com>",
+      "from_name": "Paul Gilbert",
+      "from_email_hash": "aa7dbc26c3f15087b2ccda228b01f598ecfa2ae9d7fa19309941c01a2c4f0d2f",
+      "date": "2012-03-14T15:16:53-04:00",
+      "subject": "[R-sig-hpc] Matrix multiplication",
+      "subject_clean": "Matrix multiplication",
+      "in_reply_to": "<6D8103DA-33E0-436B-9E8F-95520086E73B@r-project.org>",
+      "references": [
+        "<4F5F2034020000F900008F64@gwia1.boku.ac.at>",
+        "<1331643285.28362.317.camel@brian-rcg>",
+        "<4F5F7890.10102@gmail.com>",
+        "<1331657448.28362.331.camel@brian-rcg>",
+        "<4F5F9A8E.5060509@gmail.com>",
+        "<668D1E28-EB98-4C1B-A19A-7AC854746321@r-project.org>",
+        "<4F60CD21.7030404@gmail.com>",
+        "<6D8103DA-33E0-436B-9E8F-95520086E73B@r-project.org>"
+      ],
+      "body_plain": "On 12-03-14 01:24 PM, Simon Urbanek wrote:\n>\n> On Mar 14, 2012, at 12:53 PM, Paul Gilbert wrote:\n>\n>>\n>>\n>> On 12-03-13 09:59 PM, Simon Urbanek wrote:\n>>>\n>>> On Mar 13, 2012, at 3:05 PM, Paul Gilbert wrote:\n>>>\n>>>>\n>>>>\n>>>> On 12-03-13 12:50 PM, Brian G. Peterson wrote:\n>>>>> On Tue, 2012-03-13 at 12:40 -0400, Paul Gilbert wrote:\n>>>>>> Brian\n>>>>>>\n>>>>>> Thanks for spelling this out for those of us that are a bit slow.\n>>>>>> (Newbie questions below)\n>>>>>\n>>>>> <... snip ...>\n>>>>>\n>>>>>>> So, if your BLAS does multithreaded matrix multiplication, it will use\n>>>>>>> multiple threads 'implicitly', as Simon pointed out.\n>>>>>>\n>>>>>> Is there an easy way to know if the R I am using has been compiled with\n>>>>>> multi-thread BLAS support?\n>>>>>\n>>>>> BLAS should be 'plug and play', as R is usually compiled to use a shared\n>>>>> object BLAS.  As such, installing the BLAS on your machine (and\n>>>>> appropriately configuring it) should 'just work' with te new BLAS when\n>>>>> you restart R.\n>>>>>\n>>>>> Dirk et. al. wrote a paper, now a bit dated, that benchmarked some of\n>>>>> the BLAS libraries, that should have some additional details.\n>>>>\n>>>> (I have a long history of getting things that should 'just work' to 'just not work'.) But I didn't really state my question very well. I'm really wondering about two related situations. How can I confirm after a change to underlying system that R is using the new configuration, and second, if I am  running benchmarks in R is there an easy way to record the underlying configuration that is being used.\n>>>>\n>>>\n>>> You can check whether you're leveraging multiple cores simply via system.time:\n>>>\n>>>> m=matrix(rnorm(4e6),2000)\n>>>> system.time(m %*% m)\n>>>     user  system elapsed\n>>>    6.860   0.020   0.584\n>>>\n>>> The above is clearly using threaded BLAS (here I'm using ATLAS), because\n>>> the elapsed time is much smaller than the CPU time so it was computed in parallel.\n>>\n>> Perhaps I am misreading something. I don't see elapse<  CPU,\n>\n> 0.584<  6.86\n\nOnce again I was reading system.time the wrong way. I should know by \nnow. Thanks,\nPaul\n>\n>\n>> so it does not seem quite as obvious as you suggest, but I certainly see the difference with the single-thread below.\n>>\n>>> In contrast this is what you get using single-threaded R BLAS on the same machine:\n>>>\n>>>> system.time(m %*% m)\n>>>     user  system elapsed\n>>>   10.480   0.020  10.505\n>>>\n>>> It takes about 18x longer - this is a combination of the number of cores and the less optimized BLAS - and the elapsed time is greater or equal to the CPU time = single-threaded.\n>>>\n>>> As for recording the underlying configuration - that is not really possible in general - you have toknow what you enabled/compiled. In case of a shared BLAS implementation\n>> you may be able to infer that from the library name, but for static BLAS it is close to impossible to figure it out.\n>>\n>> I was afraid this would be the case. It is often hard to keep track even when I'm compiling R myself, and I guess if you don't compile yourself there is not much hope of knowing what you really have.\n>> (Food for thought when considering timing comparisons.)\n>>\n>\n> It is separate from R (at least as long as you have shared BLAS enabled which is the default for most distributions) -- so it's really about what you point your BLAS to.\n>\n> But, yes, timing comparisons are pretty meaningless unless you specify everything you have (this is how some can post benchmarks against strawman installations and claim to be faster although there is in fact no difference).\n>\n> Cheers,\n> Simon\n>\n>\n>> Thanks,\n>> Paul\n>>\n>>> Cheers,\n>>> Simon\n>>>\n>>>\n>>>\n>>>> Thanks again,\n>>>> Paul\n>>>>>\n>>>>> <...snip...>\n>>>>>\n>>>>>>> Be aware that there can be unintended negative interactions between\n>>>>>>> implicit and explicit parallelization.  On cluster nodes I tend to\n>>>>>>> configure the BLAS to use only one thread to avoid resource contention\n>>>>>>> when all cores are doing explicit parallelization.\n>>>>>>\n>>>>>> How do you do this? Does it need to be done when you are compiling R, or\n>>>>>> can it be done on the fly while running R processes?\n>>>>>\n>>>>> Some BLAS, like gotoblas, support an environment variable to change the\n>>>>> number of cores to be used.  This can be changed at run-time.  Others,\n>>>>> like the mkl, are always multithreaded.  Others, like ATLAS, can be\n>>>>> compiled in either single threaded or multi-threaded modes.\n>>>>>\n>>>>> So, for me, on my cluster nodes, I use a single threaded BLAS, assuming\n>>>>> that *explicit* parallelization will be the primary driver of CPU load,\n>>>>> and not wanting to over-commit the processor when 12 calculations each\n>>>>> try to spawn 12 threads in the BLAS.  On other machines, I might use a\n>>>>> multithreaded BLAS like gotoblas so that I have some flexibility (though\n>>>>> apparently unlike Claudia, I rarely change it in practice).\n>>>>>\n>>>>> Regards,\n>>>>>\n>>>>>     - Brian\n>>>>>\n>>>>\n>>>> _______________________________________________\n>>>> R-sig-hpc mailing list\n>>>> R-sig-hpc at r-project.org\n>>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>>>>\n>>>>\n>>>\n>>\n>>\n>",
+      "body_snippet": "On 12-03-14 01:24 PM, Simon Urbanek wrote:\n>\n> On Mar 14, 2012, at 12:53 PM, Paul Gilbert wrote:\n>\n>>\n>>\n>> On 12-03-13 09:59 PM, Simon Urbanek wrote:\n>>>\n>>> On Mar 13, 2012, at 3:05 PM, Paul Gilbert",
+      "thread_id": "thread-3feeb6dd512d",
+      "thread_depth": 8,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-bc5fe548a014",
+      "message_id": "<52260A8C-2EA5-4B0D-B4E2-D628757D1790@r-project.org>",
+      "from_name": "Simon Urbanek",
+      "from_email_hash": "4b8015e605c1e8a78e0fc166d7f94d0bc9cab6230366ee1dfdd8a0de17b4b371",
+      "date": "2012-03-14T22:48:31-04:00",
+      "subject": "[R-sig-hpc] Matrix multiplication",
+      "subject_clean": "Matrix multiplication",
+      "in_reply_to": "<jjqbb5$jp8$1@dough.gmane.org>",
+      "references": [
+        "<4F5F2034020000F900008F64@gwia1.boku.ac.at>",
+        "<1331643285.28362.317.camel@brian-rcg>",
+        "<4F5F7890.10102@gmail.com>",
+        "<1331657448.28362.331.camel@brian-rcg>",
+        "<jjqbb5$jp8$1@dough.gmane.org>"
+      ],
+      "body_plain": "Claudia,\n\nOn Mar 14, 2012, at 10:47 AM, Claudia Beleites wrote:\n\n>> On other machines, I might use a\n>> multithreaded BLAS like gotoblas so that I have some flexibility (though\n>> apparently unlike Claudia, I rarely change it in practice).\n> \n> :-) Yes, I do change it in practice, because I have steps where I use\n> explicit parallelization via multicore or snow and I switch between the\n> 3 different parallel computation types. Our server has 2 hex-core CPUs\n> but only 8 GB RAM. The spectroscopic data analysis I use usually isn't\n> really hard computationally, but the data sets are often uncomfortably\n> large for the server. With explicit parallelization RAM often restricts\n> me to 2 or 3 threads.\n> \n> Here's what I observe and why I switch back and forth:\n> \n> If the calculation is implicitly parallel with the optimized BLAS,\n> that's the way to go. Easiest on RAM, fast, no whatsoever coding effort.\n> Just lean back and enjoy seeing all cores hard at work.\n> There are functions like %*% and (t)crossprod that use all 12 cores (or\n> whatever I restrict NUM_GOTO_THREADS to).\n> \n> Other functions, e.g. loess () seem never to use more than all 6 cores\n> of one CPU. For these, I'm better off with explicit parallelization with\n> 2 snow nodes and NUM_GOTO_THREADS = 6 (I have to execute taskset on each\n> node). However, snow (and multicore) need more RAM\n\nSnow does but not multicore - the benefit of multicore is that all data at the point of parallelization is shared and thus it doesn't use extra memory (at least on modern OSes that support COW fork). The only extra RAM will be whatever is allocated later for the computation that is run in parallel.\n\n\n> as the data must be\n> loaded in each node. That would mean e.g. NUM_GOTO_THREADS = 11 (to\n> leave an \"alibi-core\" for my colleague) in the main R session, and e.g.\n> 2 nodes with NUM_GOTO_THREADS = 6 or 3 nodes with NUM_GOTO_THREADS = 4.\n> \n> Multicore doesn't make use of the implicit parallelization of the BLAS.\n\nActually, it does:\n\n> system.time(mclapply(1:4, function(i) sum(tcrossprod(m^i))))\n   user  system elapsed \n 10.136   0.568   0.664 \n\nHowever, you really want to control the interplay of the explicit and implicit parallelization. This is where the parallel package comes into play (and why it includes multicore) so that for the explicit + R-implicit parallelization (not BLAS, though) we can control the maximal load (and RNG).\n\nCheers,\nSimon\n\n\n> But it is easier to use than snow: no cluster set up required, no hassle\n> with exporting all variables, etc.\n> So, if the function anyways doesn't have any implicit parallelization, I\n> just change lapply to mclapply, and that's it.\n> \n> Best,\n> \n> Claudia\n> \n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n> \n>",
+      "body_snippet": "Claudia,\n\nOn Mar 14, 2012, at 10:47 AM, Claudia Beleites wrote:\n\n>> On other machines, I might use a\n>> multithreaded BLAS like gotoblas so that I have some flexibility (though\n>> apparently unlike Cl",
+      "thread_id": "thread-3feeb6dd512d",
+      "thread_depth": 5,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-716b7d0c9781",
+      "message_id": "<369E2286-5A0A-4D6D-8890-2349E51D961F@r-project.org>",
+      "from_name": "Simon Urbanek",
+      "from_email_hash": "4b8015e605c1e8a78e0fc166d7f94d0bc9cab6230366ee1dfdd8a0de17b4b371",
+      "date": "2012-03-14T23:09:59-04:00",
+      "subject": "[R-sig-hpc] Debian/Ubuntu + threaded BLAS/ATLAS (solved)",
+      "subject_clean": "Debian/Ubuntu + threaded BLAS/ATLAS (solved)",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "I thought I'll post this here since I could not find an answer anywhere I searched: how to setup R with threaded BLAS on Debian/Ubuntu.\n\nFirst, neither Debian nor Ubuntu come with optimized ATLAS binaries, simply because by definition they need to be optimized for a particular machine. The good news: it is easy to build:\n\napt-get source atlas\ncd atlas-3.*\n# less debian/README.Debian # read the docs - it's short\n# sudo apt-get build-dep atlas # <- you may need this if you don't have all tools installed\nfakeroot debian/rules custom\n\nThat will give you (after a long while) a bunch of libatlas*.deb files that you can easily install with sudo dpkg -i \n\nNow if you simply configure R --with-blas --with-lapack it will work, and you'll get a nice and fast BLAS, but unfortunately it will be single-threaded:\n\n> m=matrix(rnorm(4e6),2e3)\n> system.time(tcrossprod(m))\n   user  system elapsed \n  0.684   0.012   0.697 \n\nThe problem is that all those nice libraries that are handled by update-alternatives are just the single-threaded part of ATLAS. If you want to use the parallelized part, you'll need to add the libpt* libraries by hand. This worked for me:\n\n--with-blas='/usr/lib/atlas-base/libptcblas.a /usr/lib/atlas-base/libptf77blas.a /usr/lib/atlas-base/libatlas.a -lpthread -lm' --with-lapack\n\nI opted for using the static version of ATLAS, but you can equally well use the shared one.\n\n> m=matrix(rnorm(4e6),2e3)\n> system.time(tcrossprod(m))\n   user  system elapsed \n  1.548   0.068   0.133 \n\nNote that by default it will use all cores. You can add \"-t N\" to the atlas configure flags in debian/rules if you want to change that (e.g. if you want to combine it with explicit parallelization).\n\nI'm simply sharing this in the hope that it will be helpful - please no flames ;).\n\nCheers,\nSimon",
+      "body_snippet": "I thought I'll post this here since I could not find an answer anywhere I searched: how to setup R with threaded BLAS on Debian/Ubuntu.\n\nFirst, neither Debian nor Ubuntu come with optimized ATLAS bina",
+      "thread_id": "thread-716b7d0c9781",
+      "thread_depth": 0,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-8f5157e4ee74",
+      "message_id": "<20321.26477.536037.880433@max.nulle.part>",
+      "from_name": "Dirk Eddelbuettel",
+      "from_email_hash": "447d8de83a7b9c5d61116890bacb6dc0c76aee31b3011a41fb7d3c62dac9042f",
+      "date": "2012-03-14T22:52:13-05:00",
+      "subject": "[R-sig-hpc] Debian/Ubuntu + threaded BLAS/ATLAS (solved)",
+      "subject_clean": "Debian/Ubuntu + threaded BLAS/ATLAS (solved)",
+      "in_reply_to": "<369E2286-5A0A-4D6D-8890-2349E51D961F@r-project.org>",
+      "references": [
+        "<369E2286-5A0A-4D6D-8890-2349E51D961F@r-project.org>"
+      ],
+      "body_plain": "On 14 March 2012 at 23:09, Simon Urbanek wrote:\n| I thought I'll post this here since I could not find an answer anywhere I searched: how to setup R with threaded BLAS on Debian/Ubuntu.\n| \n| First, neither Debian nor Ubuntu come with optimized ATLAS binaries, simply because by definition they need to be optimized for a particular machine. The good news: it is easy to build:\n| \n| apt-get source atlas\n\nYou could also go to newer Atlas sources at this point.\n\n| cd atlas-3.*\n| # less debian/README.Debian # read the docs - it's short\n| # sudo apt-get build-dep atlas # <- you may need this if you don't have all tools installed\n| fakeroot debian/rules custom\n\n\"Yes but.\"  \n\nSomeone should write an atlas-helper package that deals with this and ...\n \n| That will give you (after a long while) a bunch of libatlas*.deb files that you can easily install with sudo dpkg -i \n| \n| Now if you simply configure R --with-blas --with-lapack it will work, and you'll get a nice and fast BLAS, but unfortunately it will be single-threaded:\n| \n| > m=matrix(rnorm(4e6),2e3)\n| > system.time(tcrossprod(m))\n|    user  system elapsed \n|   0.684   0.012   0.697 \n| \n| The problem is that all those nice libraries that are handled by update-alternatives are just the single-threaded part of ATLAS. If you want to use the parallelized part, you'll need to add the libpt* libraries by hand. This worked for me:\n\n... also this.  Because if you do not deal well with update-alternatives, you\nloose the plug-and-play of installing and installing BLAS providing packages.\n\nFor the gcbd package/vignette/paper I hacked together a plugin-package,\nlocally built and hence optmised, but following the Atlas packaging:\n\nedd at max:~$ dpkg -f /var/spool/atlas39/libatlas39_3.9.25-1_amd64.deb \ndpkg -f /var/spool/atlas39/libatlas39_3.9.25-1_amd64.deb \nPackage: libatlas39\nSource: atlas39\nVersion: 3.9.25-1\nArchitecture: amd64\nMaintainer: Dirk Eddelbuettel <edd at debian.org>\nInstalled-Size: 22656\nDepends: libc6 (>= 2.4), libgcc1 (>= 1:4.1.1), libgfortran3 (>= 4.3)\nSuggests: libblas3gf, liblapack3gf\nProvides: libatlas.so.3gf, libblas.so.3gf, liblapack.so.3gf\nSection: libs\nPriority: optional\nHomepage: http://math-atlas.sourceforge.net/\nDescription: Automatically Tuned Linear Algebra Software, version 3.9.25\n ATLAS is an approach for the automatic generation and optimization of\n numerical software. Currently ATLAS supplies optimized versions for the\n complete set of linear algebra kernels known as the Basic Linear Algebra\n Subroutines (BLAS), and a subset of the linear algebra routines in the\n LAPACK library.\n .\n The libraries in this package are built without any processor extension\n instructions, and should run on all processors of this general\n architecture, albeit less than optimally.\n .\n This package is a local package meant for run-time, built in a somewhat\n non-standard way off the Atlas 3.9.25 sources.\nedd at max:~$ \n\nSomeone with interest and a little time should get together with Sylvestre\nand see ifwe could turn this into a helper package, or an experimental\npackage, or ...\n\n| \n| --with-blas='/usr/lib/atlas-base/libptcblas.a /usr/lib/atlas-base/libptf77blas.a /usr/lib/atlas-base/libatlas.a -lpthread -lm' --with-lapack\n| \n| I opted for using the static version of ATLAS, but you can equally well use the shared one.\n| \n| > m=matrix(rnorm(4e6),2e3)\n| > system.time(tcrossprod(m))\n|    user  system elapsed \n|   1.548   0.068   0.133 \n| \n| Note that by default it will use all cores. You can add \"-t N\" to the atlas configure flags in debian/rules if you want to change that (e.g. if you want to combine it with explicit parallelization).\n| \n| I'm simply sharing this in the hope that it will be helpful - please no flames ;).\n\nVery useful.  It all helps -- Claudia's post was very good, your's here is\ntoo and I am just trying to move the cart further along.\n\nDirk\n \n| Cheers,\n| Simon\n| \n| _______________________________________________\n| R-sig-hpc mailing list\n| R-sig-hpc at r-project.org\n| https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n\n-- \n\"Outside of a dog, a book is a man's best friend. Inside of a dog, it is too\ndark to read.\" -- Groucho Marx",
+      "body_snippet": "On 14 March 2012 at 23:09, Simon Urbanek wrote:\n| I thought I'll post this here since I could not find an answer anywhere I searched: how to setup R with threaded BLAS on Debian/Ubuntu.\n| \n| First, ne",
+      "thread_id": "thread-716b7d0c9781",
+      "thread_depth": 1,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-63a74c6930d7",
+      "message_id": "<F3EDD464-5CC5-4180-9AEB-7C92E5BA0CEE@r-project.org>",
+      "from_name": "Simon Urbanek",
+      "from_email_hash": "4b8015e605c1e8a78e0fc166d7f94d0bc9cab6230366ee1dfdd8a0de17b4b371",
+      "date": "2012-03-15T00:07:47-04:00",
+      "subject": "[R-sig-hpc] Debian/Ubuntu + threaded BLAS/ATLAS (solved)",
+      "subject_clean": "Debian/Ubuntu + threaded BLAS/ATLAS (solved)",
+      "in_reply_to": "<20321.26477.536037.880433@max.nulle.part>",
+      "references": [
+        "<369E2286-5A0A-4D6D-8890-2349E51D961F@r-project.org>",
+        "<20321.26477.536037.880433@max.nulle.part>"
+      ],
+      "body_plain": "On Mar 14, 2012, at 11:52 PM, Dirk Eddelbuettel wrote:\n\n> \n> On 14 March 2012 at 23:09, Simon Urbanek wrote:\n> | I thought I'll post this here since I could not find an answer anywhere I searched: how to setup R with threaded BLAS on Debian/Ubuntu.\n> | \n> | First, neither Debian nor Ubuntu come with optimized ATLAS binaries, simply because by definition they need to be optimized for a particular machine. The good news: it is easy to build:\n> | \n> | apt-get source atlas\n> \n> You could also go to newer Atlas sources at this point.\n> \n> | cd atlas-3.*\n> | # less debian/README.Debian # read the docs - it's short\n> | # sudo apt-get build-dep atlas # <- you may need this if you don't have all tools installed\n> | fakeroot debian/rules custom\n> \n> \"Yes but.\"  \n> \n> Someone should write an atlas-helper package that deals with this and ...\n> \n> | That will give you (after a long while) a bunch of libatlas*.deb files that you can easily install with sudo dpkg -i \n> | \n> | Now if you simply configure R --with-blas --with-lapack it will work, and you'll get a nice and fast BLAS, but unfortunately it will be single-threaded:\n> | \n> | > m=matrix(rnorm(4e6),2e3)\n> | > system.time(tcrossprod(m))\n> |    user  system elapsed \n> |   0.684   0.012   0.697 \n> | \n> | The problem is that all those nice libraries that are handled by update-alternatives are just the single-threaded part of ATLAS. If you want to use the parallelized part, you'll need to add the libpt* libraries by hand. This worked for me:\n> \n> ... also this.  Because if you do not deal well with update-alternatives, you\n> loose the plug-and-play of installing and installing BLAS providing packages.\n> \n\nBelieve me, I searched the net like a madman because I really didn't want to give this up. Half the reason I posted this here is to not forget it when I update R again ;). I really don't want to compile things manually on Debian - it defeats the point and makes upgrades a hell.\n\nI think the prober solution would be to simply include the shared libpt* version as well under the alternatives control - more precisely package libptatlas like we used to long time ago, so you could use it instead of libatlas. You could then switch blas to it. It is actually trivial to do, that's why I was searching so hard because I thought someone must have done it (also I found one thread that was hinting at this being present in some most recent packaging but I did not find it ...). I can easily hack up the building part to build libptatlas.so, but I don't know enough about how the alternatives system registers things...\n\n\n> For the gcbd package/vignette/paper I hacked together a plugin-package,\n> locally built and hence optmised, but following the Atlas packaging:\n> \n> edd at max:~$ dpkg -f /var/spool/atlas39/libatlas39_3.9.25-1_amd64.deb \n> dpkg -f /var/spool/atlas39/libatlas39_3.9.25-1_amd64.deb \n> Package: libatlas39\n> Source: atlas39\n> Version: 3.9.25-1\n> Architecture: amd64\n> Maintainer: Dirk Eddelbuettel <edd at debian.org>\n> Installed-Size: 22656\n> Depends: libc6 (>= 2.4), libgcc1 (>= 1:4.1.1), libgfortran3 (>= 4.3)\n> Suggests: libblas3gf, liblapack3gf\n> Provides: libatlas.so.3gf, libblas.so.3gf, liblapack.so.3gf\n> Section: libs\n> Priority: optional\n> Homepage: http://math-atlas.sourceforge.net/\n> Description: Automatically Tuned Linear Algebra Software, version 3.9.25\n> ATLAS is an approach for the automatic generation and optimization of\n> numerical software. Currently ATLAS supplies optimized versions for the\n> complete set of linear algebra kernels known as the Basic Linear Algebra\n> Subroutines (BLAS), and a subset of the linear algebra routines in the\n> LAPACK library.\n> .\n> The libraries in this package are built without any processor extension\n> instructions, and should run on all processors of this general\n> architecture, albeit less than optimally.\n> .\n> This package is a local package meant for run-time, built in a somewhat\n> non-standard way off the Atlas 3.9.25 sources.\n> edd at max:~$ \n> \n> Someone with interest and a little time should get together with Sylvestre\n> and see ifwe could turn this into a helper package, or an experimental\n> package, or ...\n> \n> | \n> | --with-blas='/usr/lib/atlas-base/libptcblas.a /usr/lib/atlas-base/libptf77blas.a /usr/lib/atlas-base/libatlas.a -lpthread -lm' --with-lapack\n> | \n> | I opted for using the static version of ATLAS, but you can equally well use the shared one.\n> | \n> | > m=matrix(rnorm(4e6),2e3)\n> | > system.time(tcrossprod(m))\n> |    user  system elapsed \n> |   1.548   0.068   0.133 \n> | \n> | Note that by default it will use all cores. You can add \"-t N\" to the atlas configure flags in debian/rules if you want to change that (e.g. if you want to combine it with explicit parallelization).\n> | \n> | I'm simply sharing this in the hope that it will be helpful - please no flames ;).\n> \n> Very useful.  It all helps -- Claudia's post was very good, your's here is\n> too and I am just trying to move the cart further along.\n> \n> Dirk\n> \n> | Cheers,\n> | Simon\n> | \n> | _______________________________________________\n> | R-sig-hpc mailing list\n> | R-sig-hpc at r-project.org\n> | https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n> \n> -- \n> \"Outside of a dog, a book is a man's best friend. Inside of a dog, it is too\n> dark to read.\" -- Groucho Marx\n> \n>",
+      "body_snippet": "On Mar 14, 2012, at 11:52 PM, Dirk Eddelbuettel wrote:\n\n> \n> On 14 March 2012 at 23:09, Simon Urbanek wrote:\n> | I thought I'll post this here since I could not find an answer anywhere I searched: how",
+      "thread_id": "thread-716b7d0c9781",
+      "thread_depth": 2,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-cc035ab38e90",
+      "message_id": "<1331829808.65686.YahooMailNeo@web120604.mail.ne1.yahoo.com>",
+      "from_name": "Scott Raynaud",
+      "from_email_hash": "3cd197fc08b7a6d3b4c739f9d0bc356f18208f8b876e112dc85e58629fbeff0f",
+      "date": "2012-03-15T09:43:28-07:00",
+      "subject": "[R-sig-hpc] Parallel loop",
+      "subject_clean": "Parallel loop",
+      "in_reply_to": "<A47EE59F-7945-4DB1-9C0A-1DEFBC888B9A@r-project.org>",
+      "references": [
+        "<1331068770.21935.YahooMailNeo@web120606.mail.ne1.yahoo.com>",
+        "<A43D9DA4-990A-46A6-8FA2-C49459048051@r-project.org>",
+        "<1331224641.49349.YahooMailNeo@web120606.mail.ne1.yahoo.com>",
+        "<A47EE59F-7945-4DB1-9C0A-1DEFBC888B9A@r-project.org>"
+      ],
+      "body_plain": "So what I meant by the latest version was that I think that I want to do would be \neasier in package parallel, but I'm a noob at this so I don't know for sure.? Anyway,\nI need 2.14.1 to get to that package.\n\nMy IS people insist that the latest version of R avaialble via apt-get is \n2.13.1.? Anything later they claim will have to be compiled.? True?\n\n----- Original Message -----\nFrom: Simon Urbanek <simon.urbanek at r-project.org>\nTo: Scott Raynaud <scott.raynaud at yahoo.com>\nCc: \"r-sig-hpc at r-project.org\" <r-sig-hpc at r-project.org>\nSent: Thursday, March 8, 2012 8:30 PM\nSubject: Re: [R-sig-hpc] Parallel loop\n\nScott,\n\nOn Mar 8, 2012, at 11:37 AM, Scott Raynaud wrote:\n\n> Thanks for the feedback.? Part of my problem is that I need the most recent copy of R. \n\nI don't quite understand how this is related to your question ... The version of R plays no role here ...\n\n\n> My IS team told me they can only get an earlier copy using apt-get, but I think there must be a way so I've tasked them with figuring it out.? \n> \n> My OS is Kubuntu. I just thought it odd that it could only detect the? number of CPUs rather than the number of cores.? I'm completely new to parallel processing but it seems that something is not right in the core detection.\n> \n\nThe core detection in multicore on Linux simply looks at /proc/cpuinfo so if it's not right, then your OS is reporting something odd. Note that the detection is just a fall-back if you don't specify anything, so it's really up to you how many parallel processes you want to use.\n\n\n> One quetion I still have regrds child processes. I understand they finish on their own, but what if I need to kill those processing because of an obvious problem.? How can I do that?\n> \n\nIf you interrupt the master process it automatically kills all child processes and cleans up - at least for all high-level functions like mclapply. If you use low-level functions, you can always use kill(children()); collect() \n\nCheers,\nSimon\n\n\n\n> ----- Original Message -----\n> From: Simon Urbanek <simon.urbanek at r-project.org>\n> To: Scott Raynaud <scott.raynaud at yahoo.com>\n> Cc: \"r-sig-hpc at r-project.org\" <r-sig-hpc at r-project.org>\n> Sent: Tuesday, March 6, 2012 8:27 PM\n> Subject: Re: [R-sig-hpc] Parallel loop\n> \n> Scott,\n> \n> On Mar 6, 2012, at 4:19 PM, Scott Raynaud wrote:\n> \n>> I'm trying to convert a loop in a simulation program to a parallel\n>> process using multicore.? It looks like this:\n>> \n>> simus=1000 \n>> set.seed(12345)\n>> for(iter in 1:simus){\n>>? \n>> #bunch of code setting up random draws from various \n>> #distributions for X matrix \n>>? \n>> #Computaion of Y\n>>? \n>> (fitmodel <- lmer(modelformula,data,family=binomial(link=logit),nAGQ=2))\n>>? \n>> estbeta<-fixef(fitmodel)\n>>? sdebeta<-sqrt(diag(vcov(fitmodel)))\n>>? for(l in 1:betasize)\n>>? {? \n>>? ? cibeta<-estbeta[l]-sgnbeta[l]*z1score*sdebeta[l]\n>>? ? if(beta[l]*cibeta>0)? ? ? ? ? ? ? powaprox[[l]]<-powaprox[[l]]+1\n>>? ? ? sdepower[l,iter]<-as.numeric(sdebeta[l])\n>>? }? \n>> ##------------------------------------------------------------------------##\n>>? ? ? ? ? ? ? ? ? ? ? ? ? } ##? iteration end here\n>>? \n>>? \n>> The variable fitmodel is defined elsewhere and consists of\n>> fixed and random parts.? Betasize is the length of the vector of\n>> fixed effects.? Looks like near the bottom there's a \n>> counter that increments if the slope estimate doesn't trap 0.? \n>> The next line records the standard deviation.? It's these two items\n>> that I need to recover.\n>>? \n>> So I'm thinking that I'm going to recode this way to run on\n>> a machine that has 4-Xeon CPUs:\n>>? \n>> library(multicore)\n>> options(cores=4)\n>> simus=1000\n>> sim.base.fun<-function(iter){? #replaces for(iter in 1:simus){\n>> \n>> #bunch of code setting up random draws from various \n>> #distributions for X matrix \n>>? \n>> #Computaion of Y\n>>? \n>> (fitmodel <- lmer(modelformula,data,family=binomial(link=logit),nAGQ=2))\n>>? \n>> estbeta<-fixef(fitmodel)\n>>? sdebeta<-sqrt(diag(vcov(fitmodel)))\n>>? for(l in 1:betasize)\n>>? {? \n>>? ? cibeta<-estbeta[l]-sgnbeta[l]*z1score*sdebeta[l]\n>>? ? if(beta[l]*cibeta>0)? ? \n>>? ? return(powaprox[[1]]<-powaprox[[1]]+1 #replaces powaprox[[l]]<-powaprox[[l]]+1\n>>? ? retunr(sedpower[1,iter]<-as.numeric(sdebeta[1]) #replaces sdepower[l,iter]<-as.numeric(sdebeta[l])\n>>? ? ? }\n>>? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? }#end of sim.base.fun\n>> sim.fun<_lapply(iter in 1:simus),sim.base.fun)\n>>? \n> \n> No, the above won't work (all typos aside) since you are still using assignments. Inherently the above is not parallelizable as-is because of\n> powaprox[[l]]<-powaprox[[l]]+1\n> but that is trivially removed. Also the inner for loop is entirely superfluous.\n> \n> Since your code was incomplete this is just a suggestion as we can't test anything (I'm not even checking if what you're doing makes any sense), but it should give you an idea of what to do:\n> \n> sim.base <- function(iter) { \n>? ## your unstated code goes here ...\n>? fitmodel <- lmer(modelformula,data,family=binomial(link=logit),nAGQ=2)\n>? estbeta <- fixef(fitmodel)\n>? sdebeta <- sqrt(diag(vcov(fitmodel)))\n>? list( powf = estbeta-sgnbeta*z1score*sdebeta*beta > 0,\n>? ? ? ? sdepower = sdebeta)\n>? )\n> }\n> \n> res <- lapply(seq.int(simus), sim.base)\n> powf <- sapply(res, function(x) x$powf)\n> sdepower <- sapply(res, function(x) x$sdepower)\n> powapprox <- apply(powf, 1, sum)\n> \n> \n> To parallelize, replace lapply above with mclapply. \n> \n> \n> \n>>? Do I need a collect statement? \n> \n> No, if you use mclapply it's all done for you.\n> \n> \n>> How do I kill the worker processes? \n> \n> No, they go away once they're done computing.\n> \n> \n>> One thing I'm not accounting for is the random\n>> number generating process.? I've seen a couple of ways of\n>> doing this, one using mclapply and another using rlecuyer,\n>> but I'm not sure how to make them work.? Suggestions?\n>> Is there a way to replicate the same random numbers used \n>> in the conventional loop in the parallel loop?\n> \n> There is but you may need read up on that - you have to use a generator that produces a streaming sequence such that you can skip forward (also see recent discussion here and R-devel). For the above you may get away without it by simply setting different seeds in each iteration.\n> \n> \n>>? My machine has 4-Intel? Xeon? Processor X5650 CPUs.\n>> When I type:\n>>? \n>> library(multicore)\n>> multicore:::detectCores()\n>>? \n>> it returns 4.? However, the Intel cutsheet says each of these proceesors\n>> has 6 cores.? How can I acces them? \n> \n> You can set any number of cores you want using mc.cores=... argument - the detected cores are just a default if you don't specify anything.\n> \n> What OS/distro is this? It is very unusual to see the number of cores reported wrongly by the system ...\n> \n> Cheers,\n> Simon\n> \n> \n> \n>> I know there's a point of diminishing\n>> returns but I can't figure out what it is unless I test it.\n>> \n>> _______________________________________________\n>> R-sig-hpc mailing list\n>> R-sig-hpc at r-project.org\n>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>> \n>> \n> \n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n> \n>",
+      "body_snippet": "So what I meant by the latest version was that I think that I want to do would be \neasier in package parallel, but I'm a noob at this so I don't know for sure.? Anyway,\nI need 2.14.1 to get to that pa",
+      "thread_id": "thread-12d232e00e71",
+      "thread_depth": 4,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-69f426d21040",
+      "message_id": "<20322.7996.910877.184923@max.nulle.part>",
+      "from_name": "Dirk Eddelbuettel",
+      "from_email_hash": "447d8de83a7b9c5d61116890bacb6dc0c76aee31b3011a41fb7d3c62dac9042f",
+      "date": "2012-03-15T11:56:28-05:00",
+      "subject": "[R-sig-hpc] Parallel loop",
+      "subject_clean": "Parallel loop",
+      "in_reply_to": "<1331829808.65686.YahooMailNeo@web120604.mail.ne1.yahoo.com>",
+      "references": [
+        "<1331068770.21935.YahooMailNeo@web120606.mail.ne1.yahoo.com>",
+        "<A43D9DA4-990A-46A6-8FA2-C49459048051@r-project.org>",
+        "<1331224641.49349.YahooMailNeo@web120606.mail.ne1.yahoo.com>",
+        "<A47EE59F-7945-4DB1-9C0A-1DEFBC888B9A@r-project.org>",
+        "<1331829808.65686.YahooMailNeo@web120604.mail.ne1.yahoo.com>"
+      ],
+      "body_plain": "On 15 March 2012 at 09:43, Scott Raynaud wrote:\n| So what I meant by the latest version was that I think that I want to do would be \n| easier in package parallel, but I'm a noob at this so I don't know for sure.? Anyway,\n| I need 2.14.1 to get to that package.\n| \n| My IS people insist that the latest version of R avaialble via apt-get is \n| 2.13.1.? Anything later they claim will have to be compiled.? True?\n\nFalse. See the R FAQ.\n\nDirk\n\n-- \n\"Outside of a dog, a book is a man's best friend. Inside of a dog, it is too\ndark to read.\" -- Groucho Marx",
+      "body_snippet": "On 15 March 2012 at 09:43, Scott Raynaud wrote:\n| So what I meant by the latest version was that I think that I want to do would be \n| easier in package parallel, but I'm a noob at this so I don't kno",
+      "thread_id": "thread-12d232e00e71",
+      "thread_depth": 5,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-2565628fe9a4",
+      "message_id": "<7539F2BB274A034C9FE4BE8E134DC5BE093ABC4F@MAIL-MBX2.ad.renci.org>",
+      "from_name": "Michael Spiegel",
+      "from_email_hash": "f71689289e5e08c11c0dbe967068f798858630a327f2bb308f6986c581eb1685",
+      "date": "2012-03-15T17:27:23Z",
+      "subject": "[R-sig-hpc] Parallel loop",
+      "subject_clean": "Parallel loop",
+      "in_reply_to": "<1331829808.65686.YahooMailNeo@web120604.mail.ne1.yahoo.com>",
+      "references": [
+        "<1331068770.21935.YahooMailNeo@web120606.mail.ne1.yahoo.com>",
+        "<A43D9DA4-990A-46A6-8FA2-C49459048051@r-project.org>",
+        "<1331224641.49349.YahooMailNeo@web120606.mail.ne1.yahoo.com>",
+        "<A47EE59F-7945-4DB1-9C0A-1DEFBC888B9A@r-project.org>",
+        "<1331829808.65686.YahooMailNeo@web120604.mail.ne1.yahoo.com>"
+      ],
+      "body_plain": "(Apologies if this has already been discussed) I've found it unexpectedly painless to compile R from source on a linux machine, if you'd rather not wait for your IS people. From memory, I believe the necessary commands are:\n\n./configure --without-X\nmake\n\n-----Original Message-----\nFrom: r-sig-hpc-bounces at r-project.org [mailto:r-sig-hpc-bounces at r-project.org] On Behalf Of Scott Raynaud\nSent: Thursday, March 15, 2012 12:43 PM\nTo: r-sig-hpc at r-project.org\nSubject: Re: [R-sig-hpc] Parallel loop\n\nMy IS people insist that the latest version of R avaialble via apt-get is 2.13.1.? Anything later they claim will have to be compiled.? True?",
+      "body_snippet": "(Apologies if this has already been discussed) I've found it unexpectedly painless to compile R from source on a linux machine, if you'd rather not wait for your IS people. From memory, I believe the ",
+      "thread_id": "thread-12d232e00e71",
+      "thread_depth": 5,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-cc971e6e8272",
+      "message_id": "<jjt9tt$u98$1@dough.gmane.org>",
+      "from_name": "Claudia Beleites",
+      "from_email_hash": "84f31892209c320dec87048b9b592f8173550a086b18936bcc901dd57f61bcf0",
+      "date": "2012-03-15T18:41:32+01:00",
+      "subject": "[R-sig-hpc] Matrix multiplication",
+      "subject_clean": "Matrix multiplication",
+      "in_reply_to": "<52260A8C-2EA5-4B0D-B4E2-D628757D1790@r-project.org>",
+      "references": [
+        "<4F5F2034020000F900008F64@gwia1.boku.ac.at>",
+        "<1331643285.28362.317.camel@brian-rcg>",
+        "<4F5F7890.10102@gmail.com>",
+        "<1331657448.28362.331.camel@brian-rcg>",
+        "<jjqbb5$jp8$1@dough.gmane.org>",
+        "<52260A8C-2EA5-4B0D-B4E2-D628757D1790@r-project.org>"
+      ],
+      "body_plain": "Simon and Paul,\n\nseems I have trouble with some part of the configuration on the server:\nI'm not able any longer to change the number of threads for the\ngotoblas, it always stays at 6 (which is fortunately a quite sensible\nnumber).\nSo, before believing what I wrote yesterday, please try yourself.\n\n>> node). However, snow (and multicore) need more RAM\n> \n> Snow does but not multicore - the benefit of multicore is that all\n> data at the point of parallelization is shared and thus it doesn't\n> use extra memory (at least on modern OSes that support COW fork). The\n> only extra RAM will be whatever is allocated later for the\n> computation that is run in parallel.\nYes, you are right: unlike snow multicore does not need copies of the\nsame data.\n\nHowever, in practice, the stuff I parallelize explicitly are often\nbootstrap or similar calculations, so I do need more RAM because each\nthread uses its own resampled data set. Which of course is not\n\n>> Multicore doesn't make use of the implicit parallelization of the\n>> BLAS.\n> \n> Actually, it does:\nI get\n\n> m <-matrix (1:9e6, 3e3)\n> system.time(lapply(1:4, function(i) sum(tcrossprod(m^i))))\n       User      System verstrichen\n     13.751       2.570       4.527\nand see 6 cores working.\n\nwith multicore:\n> multicore:::detectCores ()\n[1] 12\n\nFirt try: mc.cores = 2, as 2 x 6 = 12:\n> system.time(mclapply(1:4, function(i) sum(tcrossprod(m^i)), mc.cores = 2))\n\nTiming stopped at: 123.457 266.559 195.029\n\n\nwithout mc.cores, in case that screwed up something:\n> system.time(mclapply(1:4, function(i) sum(tcrossprod(m^i))))\n\nTiming stopped at: 2569.413 5758.595 2075.161\nI see 4 cores working at 100 %\n\n\nI do have the problem that I always need to execute\nsystem(sprintf('taskset -p 0xffffffff %d', Sys.getpid()))\nat the beginning of the R session. With snow, I execute that on the\nnodes as well, but with multicore I don't now how to do that.\n\nSo probably the configuration is really messed up...\n\n> user  system elapsed 10.136   0.568   0.664\n> \n> However, you really want to control the interplay of the explicit and\n> implicit parallelization. This is where the parallel package comes\n> into play (and why it includes multicore) so that for the explicit +\n> R-implicit parallelization (not BLAS, though) we can control the\n> maximal load (and RNG).\n\n\n> sessionInfo ()\nR version 2.14.1 (2011-12-22)\nPlatform: x86_64-redhat-linux-gnu (64-bit)\n\nlocale:\n [1] LC_CTYPE=de_DE.UTF-8       LC_NUMERIC=C\nLC_TIME=de_DE.UTF-8        LC_COLLATE=de_DE.UTF-8\n [5] LC_MONETARY=de_DE.UTF-8    LC_MESSAGES=de_DE.UTF-8    LC_PAPER=C\n              LC_NAME=C\n [9] LC_ADDRESS=C               LC_TELEPHONE=C\nLC_MEASUREMENT=de_DE.UTF-8 LC_IDENTIFICATION=C\n\nattached base packages:\n[1] stats     graphics  grDevices utils     datasets  methods   base\n\nother attached packages:\n[1] multicore_0.1-7\n\nloaded via a namespace (and not attached):\n[1] tools_2.14.1\n\n\nBest,\n\nClaudia\n> \n> Cheers, Simon\n> \n> \n>> But it is easier to use than snow: no cluster set up required, no\n>> hassle with exporting all variables, etc. So, if the function\n>> anyways doesn't have any implicit parallelization, I just change\n>> lapply to mclapply, and that's it.\n>> \n>> Best,\n>> \n>> Claudia\n>> \n>> _______________________________________________ R-sig-hpc mailing\n>> list R-sig-hpc at r-project.org \n>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>> \n>>",
+      "body_snippet": "Simon and Paul,\n\nseems I have trouble with some part of the configuration on the server:\nI'm not able any longer to change the number of threads for the\ngotoblas, it always stays at 6 (which is fortun",
+      "thread_id": "thread-3feeb6dd512d",
+      "thread_depth": 6,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-cfd656692203",
+      "message_id": "<20120315180223.GA14207@laura>",
+      "from_name": "Norm Matloff",
+      "from_email_hash": "4db7a9be8e09c28ffe81d430bd8de418df530a8cc929aef3c751368ba81d90dc",
+      "date": "2012-03-15T11:02:23-07:00",
+      "subject": "[R-sig-hpc] Parallel loop",
+      "subject_clean": "Parallel loop",
+      "in_reply_to": "<7539F2BB274A034C9FE4BE8E134DC5BE093ABC4F@MAIL-MBX2.ad.renci.org>",
+      "references": [
+        "<1331068770.21935.YahooMailNeo@web120606.mail.ne1.yahoo.com>",
+        "<A43D9DA4-990A-46A6-8FA2-C49459048051@r-project.org>",
+        "<1331224641.49349.YahooMailNeo@web120606.mail.ne1.yahoo.com>",
+        "<A47EE59F-7945-4DB1-9C0A-1DEFBC888B9A@r-project.org>",
+        "<1331829808.65686.YahooMailNeo@web120604.mail.ne1.yahoo.com>",
+        "<7539F2BB274A034C9FE4BE8E134DC5BE093ABC4F@MAIL-MBX2.ad.renci.org>"
+      ],
+      "body_plain": "On Thu, Mar 15, 2012 at 05:27:23PM +0000, Michael Spiegel wrote:\n\n> (Apologies if this has already been discussed) I've found it unexpectedly painless to compile R from source on a linux machine, if you'd rather not wait for your IS people. From memory, I believe the necessary commands are:\n> \n> ./configure --without-X\n> make\n\nOne must also have some sort of FORTRAN compiler available.  Many\nsystems don't.\n\nNorm Matloff",
+      "body_snippet": "On Thu, Mar 15, 2012 at 05:27:23PM +0000, Michael Spiegel wrote:\n\n> (Apologies if this has already been discussed) I've found it unexpectedly painless to compile R from source on a linux machine, if y",
+      "thread_id": "thread-12d232e00e71",
+      "thread_depth": 6,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-adfb9aa6d8df",
+      "message_id": "<4F62582F.1020707@gmail.com>",
+      "from_name": "Paul Gilbert",
+      "from_email_hash": "aa7dbc26c3f15087b2ccda228b01f598ecfa2ae9d7fa19309941c01a2c4f0d2f",
+      "date": "2012-03-15T16:59:27-04:00",
+      "subject": "[R-sig-hpc] Parallel loop",
+      "subject_clean": "Parallel loop",
+      "in_reply_to": "<20120315180223.GA14207@laura>",
+      "references": [
+        "<1331068770.21935.YahooMailNeo@web120606.mail.ne1.yahoo.com>",
+        "<A43D9DA4-990A-46A6-8FA2-C49459048051@r-project.org>",
+        "<1331224641.49349.YahooMailNeo@web120606.mail.ne1.yahoo.com>",
+        "<A47EE59F-7945-4DB1-9C0A-1DEFBC888B9A@r-project.org>",
+        "<1331829808.65686.YahooMailNeo@web120604.mail.ne1.yahoo.com>",
+        "<7539F2BB274A034C9FE4BE8E134DC5BE093ABC4F@MAIL-MBX2.ad.renci.org>",
+        "<20120315180223.GA14207@laura>"
+      ],
+      "body_plain": "On 12-03-15 02:02 PM, Norm Matloff wrote:\n> On Thu, Mar 15, 2012 at 05:27:23PM +0000, Michael Spiegel wrote:\n>\n>> (Apologies if this has already been discussed) I've found it unexpectedly painless to compile R from source on a linux machine, if you'd rather not wait for your IS people. From memory, I believe the necessary commands are:\n>>\n>> ./configure --without-X\n>> make\n>\n> One must also have some sort of FORTRAN compiler available.  Many\n> systems don't.\n>\n> Norm Matloff\n\nThis strikes me a a pretty severe constraint on a system that is for \nHPC.  Don't you find that limits the local tuning you might do, the \navailability of packages, etc.?  Is there a reason for not installing a \nfortran compiler?  Do you have a C compiler?  (I am still trying to \nunderstand the various piece of parallel computing, and the sorts of \nenvironments people use, but this caught me by surprise.)\n\nPaul\n\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc",
+      "body_snippet": "On 12-03-15 02:02 PM, Norm Matloff wrote:\n> On Thu, Mar 15, 2012 at 05:27:23PM +0000, Michael Spiegel wrote:\n>\n>> (Apologies if this has already been discussed) I've found it unexpectedly painless to ",
+      "thread_id": "thread-12d232e00e71",
+      "thread_depth": 7,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-3068e9222aa2",
+      "message_id": "<586A4828D7AAA04CA9B258C50A28DA200BF58F1D@BALI.uhd.campus>",
+      "from_name": "Hodgess, Erin",
+      "from_email_hash": "9a43d72d3c5a93c98a7b509fb8aef328797f49fac98830a099e885b965325eac",
+      "date": "2012-03-15T16:30:11-05:00",
+      "subject": "[R-sig-hpc] a CUDA question",
+      "subject_clean": "a CUDA question",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120315/136a2c79/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120315/136a2c79/attachment.pl>",
+      "thread_id": "thread-3068e9222aa2",
+      "thread_depth": 0,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-ca74cf5c3fb5",
+      "message_id": "<586A4828D7AAA04CA9B258C50A28DA200BF58F1F@BALI.uhd.campus>",
+      "from_name": "Hodgess, Erin",
+      "from_email_hash": "9a43d72d3c5a93c98a7b509fb8aef328797f49fac98830a099e885b965325eac",
+      "date": "2012-03-15T17:29:44-05:00",
+      "subject": "[R-sig-hpc] a CUDA question solved",
+      "subject_clean": "a CUDA question solved",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120315/765a6067/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120315/765a6067/attachment.pl>",
+      "thread_id": "thread-ca74cf5c3fb5",
+      "thread_depth": 0,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-0b404b48cdbb",
+      "message_id": "<CAAjXVjrAkYYZTqsP_2mFX_mYJ0nqGoaCGdE1WbWPXknxeHoBZA@mail.gmail.com>",
+      "from_name": "Libo Sun",
+      "from_email_hash": "90d69ce51f5234541e9091c90920b66d3440287fb9bc064261f750bbe13ad0c2",
+      "date": "2012-03-16T10:23:54-06:00",
+      "subject": "[R-sig-hpc] Question about output the objects on slave by SNOW",
+      "subject_clean": "Question about output the objects on slave by SNOW",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120316/e7e35b45/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120316/e7e35b45/attachment.pl>",
+      "thread_id": "thread-0b404b48cdbb",
+      "thread_depth": 0,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-023168693455",
+      "message_id": "<CALh21iKU_Ad11TfnPPDAHX9OcWtmrYSPVrOsqVCsTaCSWFerRw@mail.gmail.com>",
+      "from_name": "Stephen Weston",
+      "from_email_hash": "507fe1aedccd9cb1c2bba1715ac24f959abe255adeeb866f82b6c8a1896cbd15",
+      "date": "2012-03-16T12:45:42-04:00",
+      "subject": "[R-sig-hpc] Question about output the objects on slave by SNOW",
+      "subject_clean": "Question about output the objects on slave by SNOW",
+      "in_reply_to": "<CAAjXVjrAkYYZTqsP_2mFX_mYJ0nqGoaCGdE1WbWPXknxeHoBZA@mail.gmail.com>",
+      "references": [
+        "<CAAjXVjrAkYYZTqsP_2mFX_mYJ0nqGoaCGdE1WbWPXknxeHoBZA@mail.gmail.com>"
+      ],
+      "body_plain": "'cat' and 'print' work from the workers, but the\noutput is redirected to /dev/null (or NUL:) by\ndefault.  If you set the 'outfile' option to an\nempty string when creating the cluster object,\nthen output won't be redirected in the workers,\nand will generally be displayed in your session.\n\nFor example:\n\n> f <- function(iter,x) {\n+   y <- sin(x)\n+   cat('x=', x,'\\n')\n+   return(y)\n+ }\n> library(snow)\n> cl <- makeSOCKcluster(2, outfile=\"\")\nstarting worker for localhost:10187\nstarting worker for localhost:10187\n> clusterExport(cl, ls())\nType: EXEC\nType: EXEC\nType: EXEC\nType: EXEC\n>\n> parSapply(cl,1:2,f,1)\nType: EXEC\nx= 1\nType: EXEC\nx= 1\n[1] 0.841471 0.841471\n\n\nThe output can be a bit jumbled, and it includes\nother output generated by the workers, but I find it\nvery useful for debugging.\n\n- Steve\n\n\n\nOn Fri, Mar 16, 2012 at 12:23 PM, Libo Sun <libosun at rams.colostate.edu> wrote:\n> Hi all,\n>\n> I am using SNOW package on my multi-core Windows machine. I am wondering if\n> there is a way to output the objects on slave, as far as I know 'cat' or\n> 'print' doesn't work. One simple example:\n>\n>> f<-function(iter,x) {\n> + y=sin(x)\n> + cat('x=', x,'\\n')\n> + return(y)\n> + }\n>>\n>> library(snow)\n>> cl<-makeCluster(2)\n>> clusterExport(cl,ls())\n>>\n>> parSapply(cl,1:2,f,1)\n> [1] 0.841471 0.841471\n>>\n>\n> I would like to get the information about 'x', like this,\n>\n>> sapply(1:2,f,1)\n> x= 1\n> x= 1\n> [1] 0.841471 0.841471\n>>\n>\n> Thanks,\n> Libo\n>\n> ? ? ? ?[[alternative HTML version deleted]]\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc",
+      "body_snippet": "'cat' and 'print' work from the workers, but the\noutput is redirected to /dev/null (or NUL:) by\ndefault.  If you set the 'outfile' option to an\nempty string when creating the cluster object,\nthen outp",
+      "thread_id": "thread-0b404b48cdbb",
+      "thread_depth": 1,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-5a0623e6c831",
+      "message_id": "<7539F2BB274A034C9FE4BE8E134DC5BE093AC07A@MAIL-MBX2.ad.renci.org>",
+      "from_name": "Michael Spiegel",
+      "from_email_hash": "f71689289e5e08c11c0dbe967068f798858630a327f2bb308f6986c581eb1685",
+      "date": "2012-03-16T17:24:40Z",
+      "subject": "[R-sig-hpc] generate a DLL on 64-bit windows",
+      "subject_clean": "generate a DLL on 64-bit windows",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120316/e152ceb5/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120316/e152ceb5/attachment.pl>",
+      "thread_id": "thread-5a0623e6c831",
+      "thread_depth": 0,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-82e9097b7c69",
+      "message_id": "<CAPLrYESQMHyVTQui-vyhHur1hcvLDVDjSsR3Oz_p6uUOCV0J2Q@mail.gmail.com>",
+      "from_name": "Daniel Cegiełka",
+      "from_email_hash": "a53c7f1be3d7b89cbf62e91b70b96a3ed4a6d3306db4e0a96cdd8e340115b214",
+      "date": "2012-03-20T12:33:31+01:00",
+      "subject": "[R-sig-hpc] indexing/mmap database package",
+      "subject_clean": "indexing/mmap database package",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120320/c1fa12b6/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120320/c1fa12b6/attachment.pl>",
+      "thread_id": "thread-82e9097b7c69",
+      "thread_depth": 0,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-f7f18c23455f",
+      "message_id": "<4F6C5B20.1040208@mx.uni-saarland.de>",
+      "from_name": "Andreas Recktenwald",
+      "from_email_hash": "eed10f97572ac0c70386ff57a7bd3ea13977cfefbbc2fb1e05a1b1751ca4d1a0",
+      "date": "2012-03-23T12:14:40+01:00",
+      "subject": "[R-sig-hpc] New AMD Bulldozer for Parallel Computing with R",
+      "subject_clean": "New AMD Bulldozer for Parallel Computing with R",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Dear R enthusiasts,\n\ni`m planning to set up a new PC and consider to buy an AMD FX-8120. For \nmy estimations (with floating-point data) I use the genoud optimizer in \nthe package rgenoud which (at least I think) would be able to handle the \n8 cores. Is anybody using the AMD proc for computing with R and could \ntell about the performance? What scares me a bit to just buy it are the \nhuge amount of benchmarks on the net which tell that AMD has really bad \nperformance ( especially for single-threaded apps). Would the Intel I7 \n2600 be the better alternative? All the Intel 6-core processors are out \nof budget for me.\n\nBest regards,\n\nAndreas Recktenwald\n\n-- \nDipl.-Kfm. Andreas Recktenwald\n\n\n\nUniversit?t des Saarlandes ? Fakult?t f?r Rechts- und\nWirtschaftswissenschaften\n\nLehrstuhl f?r Statistik und ?konometrie\n\nCampus C3 1, Zimmer 206\n\n66123 Saarbr?cken\n\nTel.: ++49681 ? 302 3571",
+      "body_snippet": "Dear R enthusiasts,\n\ni`m planning to set up a new PC and consider to buy an AMD FX-8120. For \nmy estimations (with floating-point data) I use the genoud optimizer in \nthe package rgenoud which (at lea",
+      "thread_id": "thread-f7f18c23455f",
+      "thread_depth": 0,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-357b8bc02ebc",
+      "message_id": "<4F6C6C31020000F9000091E9@gwia1.boku.ac.at>",
+      "from_name": "Patrik Waldmann",
+      "from_email_hash": "5422de27106a441456dee56c7875899e9cf1a66baf324006c91c4e68a62851f0",
+      "date": "2012-03-23T12:27:29+01:00",
+      "subject": "[R-sig-hpc] New AMD Bulldozer for Parallel Computing with R",
+      "subject_clean": "New AMD Bulldozer for Parallel Computing with R",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120323/a5d65d9a/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120323/a5d65d9a/attachment.pl>",
+      "thread_id": "thread-357b8bc02ebc",
+      "thread_depth": 0,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-988c86b3350b",
+      "message_id": "<4F6C6B75.5060206@mx.uni-saarland.de>",
+      "from_name": "Andreas Recktenwald",
+      "from_email_hash": "eed10f97572ac0c70386ff57a7bd3ea13977cfefbbc2fb1e05a1b1751ca4d1a0",
+      "date": "2012-03-23T13:24:21+01:00",
+      "subject": "[R-sig-hpc] New AMD Bulldozer for Parallel Computing with R",
+      "subject_clean": "New AMD Bulldozer for Parallel Computing with R",
+      "in_reply_to": "<1332503446.2761.32.camel@brian-rcg>",
+      "references": [
+        "<4F6C5B20.1040208@mx.uni-saarland.de>",
+        "<1332503446.2761.32.camel@brian-rcg>"
+      ],
+      "body_plain": "Am 23.03.2012 12:50, schrieb Brian G. Peterson:\n> On Fri, 2012-03-23 at 12:14 +0100, Andreas Recktenwald wrote:\n>> Dear R enthusiasts,\n>>\n>> i`m planning to set up a new PC and consider to buy an AMD FX-8120. For\n>> my estimations (with floating-point data) I use the genoud optimizer in\n>> the package rgenoud which (at least I think) would be able to handle the\n>> 8 cores. Is anybody using the AMD proc for computing with R and could\n>> tell about the performance? What scares me a bit to just buy it are the\n>> huge amount of benchmarks on the net which tell that AMD has really bad\n>> performance ( especially for single-threaded apps). Would the Intel I7\n>> 2600 be the better alternative? All the Intel 6-core processors are out\n>> of budget for me.\n> Tests we've run here with multi-threaded R had horrible performance on\n> the Bulldozer processors.\n>\n> For 'budget' 6-core systems, we've stuck with the AMD Phenom II\n> processors and overclocked them. We have several running happily at\n> 4.2GHz.  For non-budget systems for now we're using i7's and Xeons.\n>\n> The Phenom II wins in performance per watt and performance per dollar at\n> this point, but the i7 and Xeon systems are faster by 10% or so.\n\nThanks for your replies,\nreally doesn't look too good for Bulldozer. Which OS where you running \nthe tests on? I'm using Lubuntu 11.10 (forgot the mention this in my \ninitial post) and I'm recently read that Bulldozer performance increase \nwhen using gcc with march=bdver1 or the AMD Open64 compiler.\nAt the moment only point for bulldozer are the price ( FX-8120: 150 ?, \nXeon E3 - 1230:  200 ?, i7 2600k: 250 ?).\n\nI think i should take the money get an i7-2600k and then overclock this \none.\n\nBest regards\n\n-- \nDipl.-Kfm. Andreas Recktenwald\n\n\n\nUniversit?t des Saarlandes ? Fakult?t f?r Rechts- und\nWirtschaftswissenschaften\n\nLehrstuhl f?r Statistik und ?konometrie\n\nCampus C3 1, Zimmer 206\n\n66123 Saarbr?cken\n\nTel.: ++49681 ? 302 3571",
+      "body_snippet": "Am 23.03.2012 12:50, schrieb Brian G. Peterson:\n> On Fri, 2012-03-23 at 12:14 +0100, Andreas Recktenwald wrote:\n>> Dear R enthusiasts,\n>>\n>> i`m planning to set up a new PC and consider to buy an AMD ",
+      "thread_id": "thread-988c86b3350b",
+      "thread_depth": 0,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-717d6955bee3",
+      "message_id": "<CAL=zwgerCiLZgLjenv49uMsf_AWnvWDr7qkKV4jXxvZT8QKBDg@mail.gmail.com>",
+      "from_name": "Y R",
+      "from_email_hash": "6be26067267f7340ce2bd7822a1e58629061ce8718d26767e5814030e4fa9130",
+      "date": "2012-03-29T06:31:10+01:00",
+      "subject": "[R-sig-hpc] spawning MPI workers through RDCOM on Windows 7",
+      "subject_clean": "spawning MPI workers through RDCOM on Windows 7",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120329/302555a0/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120329/302555a0/attachment.pl>",
+      "thread_id": "thread-717d6955bee3",
+      "thread_depth": 0,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-edbf79a6fc7d",
+      "message_id": "<CAC28k7TFLwkMiZLxGuFfG9fdW+0a4vKVdCjQ9RMi_zn7h-=RPg@mail.gmail.com>",
+      "from_name": "Ben Weinstein",
+      "from_email_hash": "bf2713fe03c20ec0961a254173c4f249e14b7341855e3b55308a3674e389d3fd",
+      "date": "2012-03-29T14:26:49-04:00",
+      "subject": "[R-sig-hpc] Rmpi spawning across nodes.",
+      "subject_clean": "Rmpi spawning across nodes.",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120329/38894a02/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120329/38894a02/attachment.pl>",
+      "thread_id": "thread-edbf79a6fc7d",
+      "thread_depth": 0,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-b12488819f36",
+      "message_id": "<1333046713.27217.167.camel@brian-rcg>",
+      "from_name": "Brian G. Peterson",
+      "from_email_hash": "2d44e89a02cb2a9eb2f2113de72098dcb74d077b13b61958f1336c3292aa0254",
+      "date": "2012-03-29T13:45:13-05:00",
+      "subject": "[R-sig-hpc] Rmpi spawning across nodes.",
+      "subject_clean": "Rmpi spawning across nodes.",
+      "in_reply_to": "<CAC28k7TFLwkMiZLxGuFfG9fdW+0a4vKVdCjQ9RMi_zn7h-=RPg@mail.gmail.com>",
+      "references": [
+        "<CAC28k7TFLwkMiZLxGuFfG9fdW+0a4vKVdCjQ9RMi_zn7h-=RPg@mail.gmail.com>"
+      ],
+      "body_plain": "On Thu, 2012-03-29 at 14:26 -0400, Ben Weinstein wrote:\n> Hello all,\n> \n> I've seen multiple posts on this subject, but haven't clearly been able to\n> understand the issue. There must be something small.\n> \n> I am trying to get Rmpi, foreach and snow working on a beowulf cluster,\n> using debian.\n> \n> I have succeeded in installing Rmpi, changing the paths, etc.\n> \n> However, i remain the with my original problem, when\n> \n> cl<-makeCluster(4,type=\"MPI\")\n> \n> spawns slaves, they are always on the same node!\n\n<... snip ...>\n\n> My dream scenerio is to use both processors on each node, and pass\n> information between nodes in separate workflows.\n> \n> I appreciate any suggestions\n> \n> There is nothing wrong with my R script in terms of code, it works great\n> using doMC and foreach, with 8 cores on my desktop. However, i have not\n> been able to register the correct cores when using the University Cluster.\n> \n> I am new at this, please forgive my lack of precise terms.\n\nI'll suggest a few things.\n\nFirst, if you want to use MPI, doMPI is less fragile than doSNOW for an\nMPI cluster.\n\nSecond, I recall that there was a config file that needed to be set to\ndefine the worker machines for our MPI cluster (I don't use MPI\nroutinely anymore).  This had some interaction that I don't recall in\ndetail that should be described in the doMPI vignette.\n\nThird, if you want to use foreach and parallelization in an interactive\nsession, as you can with doMC or doParallel, I recommend looking into\ndoRedis.\n\nRegards,\n\n   - Brian\n\n\n-- \nBrian G. Peterson\nhttp://braverock.com/brian/\nPh: 773-459-4973\nIM: bgpbraverock",
+      "body_snippet": "On Thu, 2012-03-29 at 14:26 -0400, Ben Weinstein wrote:\n> Hello all,\n> \n> I've seen multiple posts on this subject, but haven't clearly been able to\n> understand the issue. There must be something sma",
+      "thread_id": "thread-edbf79a6fc7d",
+      "thread_depth": 1,
+      "month": "2012-03"
+    },
+    {
+      "id": "msg-b65ab58a354a",
+      "message_id": "<CALh21iJ4w-sNcmWy-+gsR2nX4XWGMuGKcSR-MFhU2WwwU1c+Ww@mail.gmail.com>",
+      "from_name": "Stephen Weston",
+      "from_email_hash": "507fe1aedccd9cb1c2bba1715ac24f959abe255adeeb866f82b6c8a1896cbd15",
+      "date": "2012-03-29T14:56:55-04:00",
+      "subject": "[R-sig-hpc] Rmpi spawning across nodes.",
+      "subject_clean": "Rmpi spawning across nodes.",
+      "in_reply_to": "<CAC28k7TFLwkMiZLxGuFfG9fdW+0a4vKVdCjQ9RMi_zn7h-=RPg@mail.gmail.com>",
+      "references": [
+        "<CAC28k7TFLwkMiZLxGuFfG9fdW+0a4vKVdCjQ9RMi_zn7h-=RPg@mail.gmail.com>"
+      ],
+      "body_plain": "Hi Ben,\n\nYou have to run R via mpirun, otherwise all of the workers start\non the one node.\n\n> I have tried using mpirun -np 4 in front of the R - call, but this just\n> fails without message.\n\nYou have to use '-np 1', otherwise your script will be executed\nby mpirun four times, each trying to spawn four workers.\nI'm not sure if that explains failing without a message, however.\n\nTry something like this:\n\n#!/bin/bash\n#PBS -o 'qsub.out'\n#PBS -e 'qsub.err'\n#PBS -l nodes=4:ppn=1\n#PBS -m bea\ncat $PBS_NODEFILE\nhostname\n\ncd $PBS_O_WORKDIR\n\n# Run an R script\nmpirun -hostfile $PBS_NODEFILE -np 1 R --slave -f\n/nfs/user08/bw4sz/Files/Seawulf.R\n\nYou may not need to use '-hostfile $PBS_NODEFILE', depending on\nhow your Open MPI was built, but I don't think if ever hurts, and\nit may be required for your installation.\n\n- Steve",
+      "body_snippet": "Hi Ben,\n\nYou have to run R via mpirun, otherwise all of the workers start\non the one node.\n\n> I have tried using mpirun -np 4 in front of the R - call, but this just\n> fails without message.\n\nYou have",
+      "thread_id": "thread-edbf79a6fc7d",
+      "thread_depth": 1,
+      "month": "2012-03"
+    }
+  ],
+  "threads": [
+    {
+      "id": "thread-2ec26c21b37c",
+      "subject": "Rmpi - separate operations on data subsets or unique datasets?",
+      "message_count": 1,
+      "participants": [
+        "Zack Holden"
+      ],
+      "started": "2012-03-01T10:42:28-07:00",
+      "last_reply": "2012-03-01T10:42:28-07:00",
+      "root_message_id": "msg-2ec26c21b37c"
+    },
+    {
+      "id": "thread-bc67b7052716",
+      "subject": "Rmpi with open mpi 1.4.5 or 1.4.4?",
+      "message_count": 1,
+      "participants": [
+        "Barnet Wagman"
+      ],
+      "started": "2012-03-01T23:33:58-06:00",
+      "last_reply": "2012-03-01T23:33:58-06:00",
+      "root_message_id": "msg-bc67b7052716"
+    },
+    {
+      "id": "thread-12d232e00e71",
+      "subject": "Parallel loop",
+      "message_count": 10,
+      "participants": [
+        "Dirk Eddelbuettel",
+        "Michael Spiegel",
+        "Norm Matloff",
+        "Paul Gilbert",
+        "Rodney Sparapani",
+        "Scott Raynaud",
+        "Simon Urbanek"
+      ],
+      "started": "2012-03-06T13:19:30-08:00",
+      "last_reply": "2012-03-15T16:59:27-04:00",
+      "root_message_id": "msg-12d232e00e71"
+    },
+    {
+      "id": "thread-41f2e98fe215",
+      "subject": "Matrix multiplication",
+      "message_count": 3,
+      "participants": [
+        "Claudia Beleites",
+        "Patrik Waldmann",
+        "Simon Urbanek"
+      ],
+      "started": "2012-03-12T10:40:51+01:00",
+      "last_reply": "2012-03-13T02:26:41-04:00",
+      "root_message_id": "msg-41f2e98fe215"
+    },
+    {
+      "id": "thread-3feeb6dd512d",
+      "subject": "Matrix multiplication",
+      "message_count": 15,
+      "participants": [
+        "Brian G. Peterson",
+        "Claudia Beleites",
+        "Patrik Waldmann",
+        "Paul Gilbert",
+        "Sean O'Riordain",
+        "Simon Urbanek"
+      ],
+      "started": "2012-03-13T10:23:48+01:00",
+      "last_reply": "2012-03-15T18:41:32+01:00",
+      "root_message_id": "msg-3feeb6dd512d"
+    },
+    {
+      "id": "thread-e5533448d99e",
+      "subject": "Matrix multiplication",
+      "message_count": 1,
+      "participants": [
+        "Vicky Budhiraja"
+      ],
+      "started": "2012-03-13T18:07:11+05:30",
+      "last_reply": "2012-03-13T18:07:11+05:30",
+      "root_message_id": "msg-e5533448d99e"
+    },
+    {
+      "id": "thread-716b7d0c9781",
+      "subject": "Debian/Ubuntu + threaded BLAS/ATLAS (solved)",
+      "message_count": 3,
+      "participants": [
+        "Dirk Eddelbuettel",
+        "Simon Urbanek"
+      ],
+      "started": "2012-03-14T23:09:59-04:00",
+      "last_reply": "2012-03-15T00:07:47-04:00",
+      "root_message_id": "msg-716b7d0c9781"
+    },
+    {
+      "id": "thread-3068e9222aa2",
+      "subject": "a CUDA question",
+      "message_count": 1,
+      "participants": [
+        "Hodgess, Erin"
+      ],
+      "started": "2012-03-15T16:30:11-05:00",
+      "last_reply": "2012-03-15T16:30:11-05:00",
+      "root_message_id": "msg-3068e9222aa2"
+    },
+    {
+      "id": "thread-ca74cf5c3fb5",
+      "subject": "a CUDA question solved",
+      "message_count": 1,
+      "participants": [
+        "Hodgess, Erin"
+      ],
+      "started": "2012-03-15T17:29:44-05:00",
+      "last_reply": "2012-03-15T17:29:44-05:00",
+      "root_message_id": "msg-ca74cf5c3fb5"
+    },
+    {
+      "id": "thread-0b404b48cdbb",
+      "subject": "Question about output the objects on slave by SNOW",
+      "message_count": 2,
+      "participants": [
+        "Libo Sun",
+        "Stephen Weston"
+      ],
+      "started": "2012-03-16T10:23:54-06:00",
+      "last_reply": "2012-03-16T12:45:42-04:00",
+      "root_message_id": "msg-0b404b48cdbb"
+    },
+    {
+      "id": "thread-5a0623e6c831",
+      "subject": "generate a DLL on 64-bit windows",
+      "message_count": 1,
+      "participants": [
+        "Michael Spiegel"
+      ],
+      "started": "2012-03-16T17:24:40+00:00",
+      "last_reply": "2012-03-16T17:24:40+00:00",
+      "root_message_id": "msg-5a0623e6c831"
+    },
+    {
+      "id": "thread-82e9097b7c69",
+      "subject": "indexing/mmap database package",
+      "message_count": 1,
+      "participants": [
+        "Daniel Cegiełka"
+      ],
+      "started": "2012-03-20T12:33:31+01:00",
+      "last_reply": "2012-03-20T12:33:31+01:00",
+      "root_message_id": "msg-82e9097b7c69"
+    },
+    {
+      "id": "thread-f7f18c23455f",
+      "subject": "New AMD Bulldozer for Parallel Computing with R",
+      "message_count": 1,
+      "participants": [
+        "Andreas Recktenwald"
+      ],
+      "started": "2012-03-23T12:14:40+01:00",
+      "last_reply": "2012-03-23T12:14:40+01:00",
+      "root_message_id": "msg-f7f18c23455f"
+    },
+    {
+      "id": "thread-357b8bc02ebc",
+      "subject": "New AMD Bulldozer for Parallel Computing with R",
+      "message_count": 1,
+      "participants": [
+        "Patrik Waldmann"
+      ],
+      "started": "2012-03-23T12:27:29+01:00",
+      "last_reply": "2012-03-23T12:27:29+01:00",
+      "root_message_id": "msg-357b8bc02ebc"
+    },
+    {
+      "id": "thread-988c86b3350b",
+      "subject": "New AMD Bulldozer for Parallel Computing with R",
+      "message_count": 1,
+      "participants": [
+        "Andreas Recktenwald"
+      ],
+      "started": "2012-03-23T13:24:21+01:00",
+      "last_reply": "2012-03-23T13:24:21+01:00",
+      "root_message_id": "msg-988c86b3350b"
+    },
+    {
+      "id": "thread-717d6955bee3",
+      "subject": "spawning MPI workers through RDCOM on Windows 7",
+      "message_count": 1,
+      "participants": [
+        "Y R"
+      ],
+      "started": "2012-03-29T06:31:10+01:00",
+      "last_reply": "2012-03-29T06:31:10+01:00",
+      "root_message_id": "msg-717d6955bee3"
+    },
+    {
+      "id": "thread-edbf79a6fc7d",
+      "subject": "Rmpi spawning across nodes.",
+      "message_count": 3,
+      "participants": [
+        "Ben Weinstein",
+        "Brian G. Peterson",
+        "Stephen Weston"
+      ],
+      "started": "2012-03-29T14:26:49-04:00",
+      "last_reply": "2012-03-29T14:56:55-04:00",
+      "root_message_id": "msg-edbf79a6fc7d"
+    }
+  ]
+}

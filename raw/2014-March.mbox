@@ -1,0 +1,1188 @@
+From ross at biostat.ucsf.edu  Thu Mar  6 23:15:37 2014
+From: ross at biostat.ucsf.edu (Ross Boylan)
+Date: Thu, 06 Mar 2014 14:15:37 -0800
+Subject: [R-sig-hpc] apparent failure of mpi.isend.Robj (Rmpi)
+Message-ID: <1394144137.16878.43.camel@localhost>
+
+I have a distributed application that includes 2 simulators and 1
+assembler.  simulators send results to the assembler.
+
+Except that they don't.  Communication between these and other
+components mostly works, but not to the assembler (messages from master
+also don't reach the assembler).  Thinking the assembler had some
+problem, I replaced it with a stub that simply prints a message when it
+gets a message.
+
+Standard scenario: no messages received by assembler.
+
+Scenario 2: I replaced the send function in one simulator with a
+defective function (that caused the process to fail when it tried to
+send).  In this case, messages from the other simulator were received.
+(I didn't mean to have a broken function).
+
+Scenario 3: I captured the objects being sent (that was what the
+replacement send function was supposed to do) and then tried to send
+them manually.  First I used mpi.send; that worked.  Then I used
+mpi.isend; that failed.  Then I did mpi.send and 2 messages were receivd
+by the assembler (because of some double echoing it's hard to be sure
+there really were 2, but I think so.)  So it appeared as if mpi.send
+unstuck the previous message.
+
+Thinking there might be buffering going on, I did 20 isends.  Nothing
+was received.  Then I did a send, and I never got the command prompt
+back.  The objects being sent are a bit involved (lists of lists of
+reference class instances), but small (the entire log capture of sends
+was only about 70k on disk).
+
+I suspected I might have overwritten the standard mpi.isend.Robj, but
+can find no evidence of that (it's not in the global namespace, when I
+print it the display says in namespace:Rmpi, and no active code
+reassigns it).
+
+I have also tried to isolate components outside of the distributed
+system, but they behave properly when I do so.
+
+At this point I think I'll try building a current mpi library and see if
+that helps.
+
+If anyone has any thoughts, I'm all ears.
+
+R 3.0.2, Debian squeeze, openmpi-bin 1.4.2-4 (I think that's the
+standard one with squeeze), Rmpi 0.6.3 built in my personal directory.
+
+Transcript:
+# r is the object the simulator was trying to send
+> mpi.send.Robj(r, 1, 4)
+# ESS is echoing every command
+mpi.send.Robj(r, 1, 4)
+NULL
+# The "Fake Assembler" message is emited by the fake assembler
+# (at rank 1) when it receives a message.  It prints sender, tag, class of object
+> Fake Assembler: 0 4 list
+mpi.isend.Robj(r, 1, 4)
+mpi.isend.Robj(r, 1, 4)
+# nothing happened but I thought that might have been because
+# cursor was not on the command line.  So I tried again.
+> mpi.isend.Robj(r, 1, 4)
+mpi.isend.Robj(r, 1, 4)
+# still no sign message received
+# try to verify I'm using the real mpi.isend.Robj
+> mpi.isend.Robj
+mpi.isend.Robj
+function (obj, dest, tag, comm = 1, request = 0)
+mpi.isend(x = serialize(obj, NULL), type = 4, dest = dest, tag = tag,
+    comm = comm, request = request)
+<environment: namespace:Rmpi>
+# now back to send
+> mpi.send.Robj(r, 1, 4)
+mpi.send.Robj(r, 1, 4)
+Fake Assembler: 0 4 list
+NULL
+> Fake Assembler: 0 4 list
+Fake Assembler: 0 4 list
+
+# apparently 2 or 3 messages received
+# try to fill buffer and force transmission
+> for (i in 1:20) mpi.isend.Robj(r, 1, 4)
+for (i in 1:20) mpi.isend.Robj(r, 1, 4)
+# no joy.  Try send to flush it out
+> mpi.send.Robj(r, 1, 4)
+mpi.send.Robj(r, 1, 4)
+# never came back
+                                                                                                                                      
+  C-c C-corterun: killing job...
+
+
+The child processes are called by distributing the following function to
+them and then invoking it:
+
+stemcell is the startup function to intialize the child processes.
+Though it's far fromo self-contained, it might be illuminating.  In
+particular, there are some games with the sending and receiving
+functions the simulators use.  My guess/hope is that when the stemcell
+function is exported the "mpi.isend.Robj" becomes a reference to the
+function in the Rmpi namespace on the remote machine.
+                                                              
+# to the appropriate type                                                                                                             
+# rSim <integer> ranks of the simulator processes                                                                                     
+# rCoef <list>                                                                                                                        
+#    rCoef[[m]] is <integer> ranks of coefficient servers for model m <integer>                                                       
+# rAssembler <integer> rank of Assembler (singleton) (the one not getting messages)                                                                                 
+# iParams indices of parameter sets to analyze                                                                                        
+stemcell <- function(rSim, rCoef, rAssembler, iParams) {                                                                              
+    source("dbox-common.R")                                                                                                           
+    nSet <- length(iParams)                                                                                                           
+    nChunk <- nSet/dbox.option$chunk                                                                                                  
+    r <- mpi.comm.rank()                                                                                                              
+    #if (! r %in% unlist(rCoef)) return(0)  # hack for testing                                                                        
+    if (r %in% rSim) {                                                                                                                
+        source("dbox-sim.R")                                                                                                          
+        # temporary for debugging                                                                                                     
+        recvfn <- mpi.recv.Robj                                                                                                       
+        sendfn <- mpi.isend.Robj                                                                                                      
+        if (r == 3L) {                                                                                                                
+            recvfn <- makeLoggingReceive()                                                                                            
+            sendfn <- makeLoggingSend()                                                                                               
+        }                                                                                                                             
+        db <- dbox.sim(rCoef, rAssembler,                                                                                             
+                       list(b=sim.b5.3.gen3, c=sim.c1.gen3, d=sim.d1.gen3),                                                           
+                       totalEffect.b5.3,                                                                                              
+                       nInner=10L,                                                                                                    
+                       maxExpectedLog = ceiling((2*nChunk+3.2*nSet)/length(rSim) + 15),                                               
+                       fakeReceive=recvfn,                                                                                            
+                       fakeSend=sendfn)                                                                                               
+    } else if (r %in% rAssembler) {                                                                                                   
+        source("fake-assembler.R")                                                                                                    
+        # assume each result is communicated separately                                                                               
+        recvfn <- makeLoggingReceive("recv-assembler.rdata")                                                                          
+        db <- fake.assembler("/local/ross/KHC/sunbelt/testsim", ceiling(2.5*nSet),                                                    
+                             fakeReceive=recvfn)                                                                                      
+    } else {                                                                                                                          
+        nlog <- function(servers) {                                                                                                   
+            # return estimated log size for each coefficient server                                                                   
+            # current design asks for each coefficient set separately                                                                 
+            # since servers are allocated randomly to simulators                                                                      
+            # we allow (via length(servers)-2) for some unevenness                                                                    
+            ceiling(2.2*nSet/max(length(servers-2), 1) + 3)                                                                           
+        }                                                                                                                             
+        source("dbox-coef.R")                                                                                                         
+        if (r %in% rCoef[[1]])                                                                                                        
+            # args are class source file, data file, coefficients                                                                     
+            # we are now calling this b1 because that is the outcome variable                                                         
+            # but the files are called a1                                                                                             
+            db <- dbox.coef("simulator.b5.3.R", "s.b5.3", nlog(rCoef[[1]]))                                                           
+        else if (r %in% rCoef[[2]])                                                                                                   
+            db <- dbox.coef("simulator.multinomial.R", "s.multi", nlog(rCoef[[2]]))                                                   
+        else if (r %in% rCoef[[3]])                                                                                                   
+            db <- dbox.coef("simulator.d1.R", "s.d1", nlog(rCoef[[3]]))                                                               
+        else                                                                                                                          
+            stop(paste("Rank", r, "has no assigned task"))                                                                            
+                                                                                                                                      
+    }                                                                                                                                 
+    db$go()                                                                                                                           
+}            
+
+When dbox.master initializes it does
+  mpi.bcast.Robj2slave(stemcell)
+  mpi.bcast.cmd(stemcell, rSim=mySim, rCoef=myCoef, rAssembler=myAssembler, iParams=myParams)
+  
+Ross Boyla
+
+
+From ross at biostat.ucsf.edu  Thu Mar 13 20:16:08 2014
+From: ross at biostat.ucsf.edu (Ross Boylan)
+Date: Thu, 13 Mar 2014 12:16:08 -0700
+Subject: [R-sig-hpc] Rmpi loads 2 versions of the same library
+Message-ID: <1394738168.15874.83.camel@localhost>
+
+I've been trying to get Rmpi to work with my personal copy of MPI, which
+is newer than the system's.  Even when I set LD_LIBRARY_PATH
+appropriately, and build Rmpi with
+
+  export LD_LIBRARY_PATH=/home/ross/install/lib:$LD_LIBRARY_PATH
+  export PATH=/home/ross/install/bin:$PATH
+  # Not sure what I should use for --with-mpi
+  R CMD INSTALL Rmpi --configure-args='--with-Rmpi-include=/home/ross/install/include --with-Rmpi-libpath=/home/ross/install/lib --with\
+  -mpi=/home/ross/install --with-Rmpi-type=OPENMPI'
+
+I find that the R process opens both the system and personal copies of
+mpi-related libs (according to lsof and /proc/nnn/map).  ldd on my
+Rmpi.so shows only references to my local copies.  I think the paths
+show by ldd are simply advisory.
+
+I think the cause is this code in Rmpi.c:
+    if (!dlopen("libmpi.so.0", RTLD_GLOBAL | RTLD_LAZY)
+        && !dlopen("libmpi.so", RTLD_GLOBAL | RTLD_LAZY)){
+http://www.stats.uwo.ca/faculty/yu/Rmpi/changelogs.htm notes
+----------------------------------
+2007-10-24, version 0.5-5:
+
+dlopen has been used to load libmpi.so explicitly. This is mainly useful for Rmpi under OpenMPI where one might see many error messages:
+mca: base: component_find: unable to open osc pt2pt: file not found (ignored)
+if libmpi.so is not loaded with RTLD_GLOBAL flag.
+-------------------------------------
+
+I'm not sure which version of mpi ends up getting used.
+
+I also don't know why libmpi.so.0 is preferred to libmpi.so.1 in the
+explicit load above.
+
+Using LD_DEBUG shows
+24312:     file=libmpi.so.1 [0];  needed by /home/ross/Rlib-3.0.1/Rmpi/libs/Rmpi.so [0]
+24312:     find library=libmpi.so.1 [0]; searching
+24312:      search path=/usr/lib64/R/lib:/home/ross/install/lib            (LD_LIBRARY_PATH)
+24312:       trying file=/usr/lib64/R/lib/libmpi.so.1
+24312:       trying file=/home/ross/install/lib/libmpi.so.1
+
+and, later,
+     24312:     file=libmpi.so.0 [0];  needed by /home/ross/Rlib-3.0.1/Rmpi/libs/Rmpi.so [0]
+     24312:     find library=libmpi.so.0 [0]; searching
+     24312:      search path=/usr/lib64/R/lib:/home/ross/install/lib            (LD_LIBRARY_PATH)
+     24312:       trying file=/usr/lib64/R/lib/libmpi.so.0
+     24312:       trying file=/home/ross/install/lib/libmpi.so.0
+     24312:      search cache=/etc/ld.so.cache
+     24312:       trying file=/usr/lib/libmpi.so.0
+
+Does anyone know what's going on?
+
+Ross Boylan
+
+P.S. This might be relevant:
+     24300:     calling init: /home/ross/Rlib-3.0.1/Rmpi/libs/Rmpi.so
+     24300:
+     24300:     opening file=/home/ross/Rlib-3.0.1/Rmpi/libs/Rmpi.so [0]; direct_opencount=1
+     24300:
+     24300:     /home/ross/Rlib-3.0.1/Rmpi/libs/Rmpi.so: error: symbol lookup error: undefined symbol: R_init_Rmpi (fatal)
+     24300:     /home/ross/Rlib-3.0.1/Rmpi/libs/Rmpi.so: error: symbol lookup error: undefined symbol: R_init_Rmpi (fatal)
+
+
+From ross at biostat.ucsf.edu  Thu Mar 13 20:57:25 2014
+From: ross at biostat.ucsf.edu (Ross Boylan)
+Date: Thu, 13 Mar 2014 12:57:25 -0700
+Subject: [R-sig-hpc] Rmpi loads 2 versions of the same library [SOLVED,
+ BUT..]
+In-Reply-To: <1394738168.15874.83.camel@localhost>
+References: <1394738168.15874.83.camel@localhost>
+Message-ID: <1394740645.15874.96.camel@localhost>
+
+I'm happy to report that Rmpi now loads only my personal MPI libraries.
+I believe the critical change was to the dlopen code in Rmpi.c to be
+          //Ross Boylan changes order to search for mpi.so before mpi.so.1                                                            
+          // 2014-03-13                                                                                                               
+    if (!dlopen("libmpi.so", RTLD_GLOBAL | RTLD_LAZY)
+        && !dlopen("libmpi.so.0", RTLD_GLOBAL | RTLD_LAZY)){
+but I changed a lot of other things too: rebuilt MPI with special
+options, rebuilt local copy of R set for local MPI; rebuilt Rmpi against
+both.  I followed the advice from Bennet Fauber here:
+http://www.open-mpi.org/community/lists/users/2014/03/23823.php
+(though I didn't do precisely what he said).
+
+I'm not so happy to report that the original problem that motivated the
+whole exercise remains; in fact it's gotten slightly worse.
+mpi.isend.Robj does not seem to be working properly.  I am sending to a
+fake receiver (at rank 1) that does nothing but print a message when it
+gets a message.  r is a list with
+> length(serialize(r, NULL))
+length(serialize(r, NULL))
+[1] 599499
+> mpi.send.Robj(1, 1, 4)
+Fake Assembler: 0 4 numeric
+> mpi.send.Robj(r, 1, 4)  # send of r works
+NULL
+> Fake Assembler: 0 4 list
+mpi.isend.Robj(1, 1, 4)  # isend of number works
+> Fake Assembler: 0 4 numeric
+mpi.isend.Robj(r, 1, 4)  # sometimes this used to work the first time
+mpi.isend.Robj(r, 1, 4)
+> mpi.send.Robj(r, 1, 4) # sometimes used to get previous message unstuck
+# never get the command prompt back
+
+Ross
+
+
+
+On Thu, 2014-03-13 at 12:16 -0700, Ross Boylan wrote:
+> I've been trying to get Rmpi to work with my personal copy of MPI, which
+> is newer than the system's.  Even when I set LD_LIBRARY_PATH
+> appropriately, and build Rmpi with
+> 
+>   export LD_LIBRARY_PATH=/home/ross/install/lib:$LD_LIBRARY_PATH
+>   export PATH=/home/ross/install/bin:$PATH
+>   # Not sure what I should use for --with-mpi
+>   R CMD INSTALL Rmpi --configure-args='--with-Rmpi-include=/home/ross/install/include --with-Rmpi-libpath=/home/ross/install/lib --with\
+>   -mpi=/home/ross/install --with-Rmpi-type=OPENMPI'
+> 
+> I find that the R process opens both the system and personal copies of
+> mpi-related libs (according to lsof and /proc/nnn/map).  ldd on my
+> Rmpi.so shows only references to my local copies.  I think the paths
+> show by ldd are simply advisory.
+> 
+> I think the cause is this code in Rmpi.c:
+>     if (!dlopen("libmpi.so.0", RTLD_GLOBAL | RTLD_LAZY)
+>         && !dlopen("libmpi.so", RTLD_GLOBAL | RTLD_LAZY)){
+> http://www.stats.uwo.ca/faculty/yu/Rmpi/changelogs.htm notes
+> ----------------------------------
+> 2007-10-24, version 0.5-5:
+> 
+> dlopen has been used to load libmpi.so explicitly. This is mainly useful for Rmpi under OpenMPI where one might see many error messages:
+> mca: base: component_find: unable to open osc pt2pt: file not found (ignored)
+> if libmpi.so is not loaded with RTLD_GLOBAL flag.
+> -------------------------------------
+> 
+> I'm not sure which version of mpi ends up getting used.
+> 
+> I also don't know why libmpi.so.0 is preferred to libmpi.so.1 in the
+> explicit load above.
+> 
+> Using LD_DEBUG shows
+> 24312:     file=libmpi.so.1 [0];  needed by /home/ross/Rlib-3.0.1/Rmpi/libs/Rmpi.so [0]
+> 24312:     find library=libmpi.so.1 [0]; searching
+> 24312:      search path=/usr/lib64/R/lib:/home/ross/install/lib            (LD_LIBRARY_PATH)
+> 24312:       trying file=/usr/lib64/R/lib/libmpi.so.1
+> 24312:       trying file=/home/ross/install/lib/libmpi.so.1
+> 
+> and, later,
+>      24312:     file=libmpi.so.0 [0];  needed by /home/ross/Rlib-3.0.1/Rmpi/libs/Rmpi.so [0]
+>      24312:     find library=libmpi.so.0 [0]; searching
+>      24312:      search path=/usr/lib64/R/lib:/home/ross/install/lib            (LD_LIBRARY_PATH)
+>      24312:       trying file=/usr/lib64/R/lib/libmpi.so.0
+>      24312:       trying file=/home/ross/install/lib/libmpi.so.0
+>      24312:      search cache=/etc/ld.so.cache
+>      24312:       trying file=/usr/lib/libmpi.so.0
+> 
+> Does anyone know what's going on?
+> 
+> Ross Boylan
+> 
+> P.S. This might be relevant:
+>      24300:     calling init: /home/ross/Rlib-3.0.1/Rmpi/libs/Rmpi.so
+>      24300:
+>      24300:     opening file=/home/ross/Rlib-3.0.1/Rmpi/libs/Rmpi.so [0]; direct_opencount=1
+>      24300:
+>      24300:     /home/ross/Rlib-3.0.1/Rmpi/libs/Rmpi.so: error: symbol lookup error: undefined symbol: R_init_Rmpi (fatal)
+>      24300:     /home/ross/Rlib-3.0.1/Rmpi/libs/Rmpi.so: error: symbol lookup error: undefined symbol: R_init_Rmpi (fatal)
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From nakama at ki.rim.or.jp  Fri Mar 14 03:51:46 2014
+From: nakama at ki.rim.or.jp (Ei-ji Nakama)
+Date: Fri, 14 Mar 2014 11:51:46 +0900
+Subject: [R-sig-hpc] Rmpi loads 2 versions of the same library
+In-Reply-To: <1394738168.15874.83.camel@localhost>
+References: <1394738168.15874.83.camel@localhost>
+Message-ID: <CAJqeyYa_eL5=yKcci8O9QAf0r3RO2JUidFqKiw8NBy3AieG87A@mail.gmail.com>
+
+hi,
+
+2014-03-14 4:16 GMT+09:00 Ross Boylan <ross at biostat.ucsf.edu>:
+> I also don't know why libmpi.so.0 is preferred to libmpi.so.1 in the
+> explicit load above.
+
+I also had the sense of incompatibility of this problem.
+Did anyone try in other platforms?(exclude mac and linux)
+The following corrections might be preferable for the time being.
+
+--- Rmpi.orig/src/Rmpi.c    2013-03-27 02:21:49.000000000 +0900
++++ Rmpi/src/Rmpi.c    2014-03-14 11:36:43.000000000 +0900
+@@ -18,6 +18,7 @@
+ #include "Rmpi.h"
+
+ #ifdef OPENMPI
++#define __USE_GNU
+ #include <dlfcn.h>
+ #endif
+
+@@ -69,13 +70,19 @@
+
+ #ifndef MAC
+ #ifdef OPENMPI
+-    if (!dlopen("libmpi.so.0", RTLD_GLOBAL | RTLD_LAZY)
+-    && !dlopen("libmpi.so", RTLD_GLOBAL | RTLD_LAZY)){
+-    //&& !dlopen("libmpi.dylib", RTLD_GLOBAL | RTLD_LAZY)
+-     //&& !dlopen("libmpi.1.dylib", RTLD_GLOBAL | RTLD_LAZY)) {
+-       Rprintf("%s\n",dlerror());
+-        return AsInt(0);
+-    }
++      { /* ifndef from MAC to __linux__ ? if only problem on linux */
++        Dl_info info_MPI_Init;
++        int rc = dladdr((void *)MPI_Init, &info_MPI_Init);
++        if(rc){
++          if (!dlopen(info_MPI_Init.dli_fname, RTLD_GLOBAL | RTLD_LAZY)){
++        Rprintf("%s\n",dlerror());
++        return AsInt(0);
++          }
++        }else{
++          Rprintf("%s\n",dlerror());
++          return AsInt(0);
++        }
++    }
+ #endif
+ #endif
+
+
+>
+> Using LD_DEBUG shows
+> 24312:     file=libmpi.so.1 [0];  needed by /home/ross/Rlib-3.0.1/Rmpi/libs/Rmpi.so [0]
+> 24312:     find library=libmpi.so.1 [0]; searching
+> 24312:      search path=/usr/lib64/R/lib:/home/ross/install/lib            (LD_LIBRARY_PATH)
+> 24312:       trying file=/usr/lib64/R/lib/libmpi.so.1
+> 24312:       trying file=/home/ross/install/lib/libmpi.so.1
+>
+> and, later,
+>      24312:     file=libmpi.so.0 [0];  needed by /home/ross/Rlib-3.0.1/Rmpi/libs/Rmpi.so [0]
+>      24312:     find library=libmpi.so.0 [0]; searching
+>      24312:      search path=/usr/lib64/R/lib:/home/ross/install/lib            (LD_LIBRARY_PATH)
+>      24312:       trying file=/usr/lib64/R/lib/libmpi.so.0
+>      24312:       trying file=/home/ross/install/lib/libmpi.so.0
+>      24312:      search cache=/etc/ld.so.cache
+>      24312:       trying file=/usr/lib/libmpi.so.0
+>
+> Does anyone know what's going on?
+>
+> Ross Boylan
+>
+> P.S. This might be relevant:
+>      24300:     calling init: /home/ross/Rlib-3.0.1/Rmpi/libs/Rmpi.so
+>      24300:
+>      24300:     opening file=/home/ross/Rlib-3.0.1/Rmpi/libs/Rmpi.so [0]; direct_opencount=1
+>      24300:
+>      24300:     /home/ross/Rlib-3.0.1/Rmpi/libs/Rmpi.so: error: symbol lookup error: undefined symbol: R_init_Rmpi (fatal)
+>      24300:     /home/ross/Rlib-3.0.1/Rmpi/libs/Rmpi.so: error: symbol lookup error: undefined symbol: R_init_Rmpi (fatal)
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+
+-- 
+Best Regards,
+--
+EI-JI Nakama  <nakama (a) ki.rim.or.jp>
+"\u4e2d\u9593\u6804\u6cbb"  <nakama (a) ki.rim.or.jp>
+
+
+From ross at biostat.ucsf.edu  Fri Mar 14 04:50:10 2014
+From: ross at biostat.ucsf.edu (Ross Boylan)
+Date: Thu, 13 Mar 2014 20:50:10 -0700
+Subject: [R-sig-hpc] Rmpi loads 2 versions of the same library [possible
+ cause]
+In-Reply-To: <1394740645.15874.96.camel@localhost>
+References: <1394738168.15874.83.camel@localhost>
+	<1394740645.15874.96.camel@localhost>
+Message-ID: <1394769010.15874.151.camel@localhost>
+
+On Thu, 2014-03-13 at 12:57 -0700, Ross Boylan wrote:
+> I'm not so happy to report that the original problem that motivated
+> the
+> whole exercise remains; in fact it's gotten slightly worse.
+> mpi.isend.Robj does not seem to be working properly.  I am sending to
+> a
+> fake receiver (at rank 1) that does nothing but print a message when
+> it
+> gets a message.  r is a list with 
+
+Switching to mpi.send.Robj allowed everything to work.  I speculate that
+R was garbage collecting the bytes to be sent before MPI_send had
+finished transmitting them.
+
+1.  Messages from mpi.isend were arriving at the MPI level.  The problem
+was that they were corrupt, and when the receiver (in Rmpi code R code)
+tried to unserialize them it threw an error and stopped the process.
+
+2. I tried to compare the bytes sent to the bytes received, and they
+don't entirely fit the garbage collection theory since the first
+difference was at the 10th byte, though most differences were later. I
+would expect at least the first part of the buffer to go out correctly.
+However, I'm not sure if I had the correct  before bytes.  (When I tried
+to save the object being sent everything worked, and so I had to compare
+different runs).
+
+It is also  possible fuller use will disprove the theory that mpi.send
+solves the problem.
+
+Ross
+
+
+From edd at debian.org  Fri Mar 14 15:12:40 2014
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Fri, 14 Mar 2014 09:12:40 -0500
+Subject: [R-sig-hpc] Rmpi loads 2 versions of the same library
+In-Reply-To: <CAJqeyYa_eL5=yKcci8O9QAf0r3RO2JUidFqKiw8NBy3AieG87A@mail.gmail.com>
+References: <1394738168.15874.83.camel@localhost>
+	<CAJqeyYa_eL5=yKcci8O9QAf0r3RO2JUidFqKiw8NBy3AieG87A@mail.gmail.com>
+Message-ID: <21283.3672.213005.349813@max.nulle.part>
+
+
+Hi Ei-ji,
+
+On 14 March 2014 at 11:51, Ei-ji Nakama wrote:
+| hi,
+| 
+| 2014-03-14 4:16 GMT+09:00 Ross Boylan <ross at biostat.ucsf.edu>:
+| > I also don't know why libmpi.so.0 is preferred to libmpi.so.1 in the
+| > explicit load above.
+| 
+| I also had the sense of incompatibility of this problem.
+| Did anyone try in other platforms?(exclude mac and linux)
+| The following corrections might be preferable for the time being.
+
+My memory is really foggy as this issue affected me many years ago when I was
+both using Open MPI much more and also looking after the Debian packages for
+it.  There was an issue with symbols not being found across the various
+shared libraries uses by Open MPI.  And now I can't recall if RTLD_GLOBAL
+helped, hurt or was required.  These days you know so much more about this
+than I do.
+
+On a Debian-based system, I would recommend getting in touch with the current
+maintainers. Sylvestre and Manuel know a lot of this.  And of course with
+Hao, the Rmpi author. He just responded almost immediately to a recent
+(Debian) bug report regarding which file to try dlopen on, and that (I think)
+was the same code segment as below.
+
+Lastly, if were in Ross's shoes, I'd simply create a newer, local package
+which will avoid the issue of a conflict between which lib to pick...
+
+Dirk
+
+ 
+| --- Rmpi.orig/src/Rmpi.c    2013-03-27 02:21:49.000000000 +0900
+| +++ Rmpi/src/Rmpi.c    2014-03-14 11:36:43.000000000 +0900
+| @@ -18,6 +18,7 @@
+|  #include "Rmpi.h"
+| 
+|  #ifdef OPENMPI
+| +#define __USE_GNU
+|  #include <dlfcn.h>
+|  #endif
+| 
+| @@ -69,13 +70,19 @@
+| 
+|  #ifndef MAC
+|  #ifdef OPENMPI
+| -    if (!dlopen("libmpi.so.0", RTLD_GLOBAL | RTLD_LAZY)
+| -    && !dlopen("libmpi.so", RTLD_GLOBAL | RTLD_LAZY)){
+| -    //&& !dlopen("libmpi.dylib", RTLD_GLOBAL | RTLD_LAZY)
+| -     //&& !dlopen("libmpi.1.dylib", RTLD_GLOBAL | RTLD_LAZY)) {
+| -       Rprintf("%s\n",dlerror());
+| -        return AsInt(0);
+| -    }
+| +      { /* ifndef from MAC to __linux__ ? if only problem on linux */
+| +        Dl_info info_MPI_Init;
+| +        int rc = dladdr((void *)MPI_Init, &info_MPI_Init);
+| +        if(rc){
+| +          if (!dlopen(info_MPI_Init.dli_fname, RTLD_GLOBAL | RTLD_LAZY)){
+| +        Rprintf("%s\n",dlerror());
+| +        return AsInt(0);
+| +          }
+| +        }else{
+| +          Rprintf("%s\n",dlerror());
+| +          return AsInt(0);
+| +        }
+| +    }
+|  #endif
+|  #endif
+| 
+| 
+| >
+| > Using LD_DEBUG shows
+| > 24312:     file=libmpi.so.1 [0];  needed by /home/ross/Rlib-3.0.1/Rmpi/libs/Rmpi.so [0]
+| > 24312:     find library=libmpi.so.1 [0]; searching
+| > 24312:      search path=/usr/lib64/R/lib:/home/ross/install/lib            (LD_LIBRARY_PATH)
+| > 24312:       trying file=/usr/lib64/R/lib/libmpi.so.1
+| > 24312:       trying file=/home/ross/install/lib/libmpi.so.1
+| >
+| > and, later,
+| >      24312:     file=libmpi.so.0 [0];  needed by /home/ross/Rlib-3.0.1/Rmpi/libs/Rmpi.so [0]
+| >      24312:     find library=libmpi.so.0 [0]; searching
+| >      24312:      search path=/usr/lib64/R/lib:/home/ross/install/lib            (LD_LIBRARY_PATH)
+| >      24312:       trying file=/usr/lib64/R/lib/libmpi.so.0
+| >      24312:       trying file=/home/ross/install/lib/libmpi.so.0
+| >      24312:      search cache=/etc/ld.so.cache
+| >      24312:       trying file=/usr/lib/libmpi.so.0
+| >
+| > Does anyone know what's going on?
+| >
+| > Ross Boylan
+| >
+| > P.S. This might be relevant:
+| >      24300:     calling init: /home/ross/Rlib-3.0.1/Rmpi/libs/Rmpi.so
+| >      24300:
+| >      24300:     opening file=/home/ross/Rlib-3.0.1/Rmpi/libs/Rmpi.so [0]; direct_opencount=1
+| >      24300:
+| >      24300:     /home/ross/Rlib-3.0.1/Rmpi/libs/Rmpi.so: error: symbol lookup error: undefined symbol: R_init_Rmpi (fatal)
+| >      24300:     /home/ross/Rlib-3.0.1/Rmpi/libs/Rmpi.so: error: symbol lookup error: undefined symbol: R_init_Rmpi (fatal)
+| >
+| > _______________________________________________
+| > R-sig-hpc mailing list
+| > R-sig-hpc at r-project.org
+| > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+| 
+| 
+| 
+| -- 
+| Best Regards,
+| --
+| EI-JI Nakama  <nakama (a) ki.rim.or.jp>
+| "\u4e2d\u9593\u6804\u6cbb"  <nakama (a) ki.rim.or.jp>
+| 
+| _______________________________________________
+| R-sig-hpc mailing list
+| R-sig-hpc at r-project.org
+| https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+-- 
+Dirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com
+
+
+From ross at biostat.ucsf.edu  Fri Mar 14 18:06:47 2014
+From: ross at biostat.ucsf.edu (Ross Boylan)
+Date: Fri, 14 Mar 2014 10:06:47 -0700
+Subject: [R-sig-hpc] Rmpi loads 2 versions of the same library
+In-Reply-To: <21283.3672.213005.349813@max.nulle.part>
+References: <1394738168.15874.83.camel@localhost>
+	<CAJqeyYa_eL5=yKcci8O9QAf0r3RO2JUidFqKiw8NBy3AieG87A@mail.gmail.com>
+	<21283.3672.213005.349813@max.nulle.part>
+Message-ID: <1394816807.15874.165.camel@localhost>
+
+On Fri, 2014-03-14 at 09:12 -0500, Dirk Eddelbuettel wrote:
+> Hi Ei-ji,
+> 
+> On 14 March 2014 at 11:51, Ei-ji Nakama wrote:
+> | hi,
+> | 
+> | 2014-03-14 4:16 GMT+09:00 Ross Boylan <ross at biostat.ucsf.edu>:
+> | > I also don't know why libmpi.so.0 is preferred to libmpi.so.1 in the
+> | > explicit load above.
+> | 
+> | I also had the sense of incompatibility of this problem.
+> | Did anyone try in other platforms?(exclude mac and linux)
+> | The following corrections might be preferable for the time being.
+> 
+> My memory is really foggy as this issue affected me many years ago when I was
+> both using Open MPI much more and also looking after the Debian packages for
+> it.  There was an issue with symbols not being found across the various
+> shared libraries uses by Open MPI.  And now I can't recall if RTLD_GLOBAL
+> helped, hurt or was required.  These days you know so much more about this
+> than I do.
+FWIW I seemed to get the same results with and without the dlopen
+statement, provided I changed it to try the right version of libmpi
+first.  However, this was using MPI configured with --disable-dlopen
+--enable-static.  The Rmpi changelog noted that --disable-dlopen was no
+longer necessary, at least on Debian, but it might still matter if the
+programmatic dlopen is removed.
+
+At any rate, I'm running with the dlopen enabled now.
+> 
+> On a Debian-based system, I would recommend getting in touch with the current
+> maintainers. Sylvestre and Manuel know a lot of this.  And of course with
+> Hao, the Rmpi author. He just responded almost immediately to a recent
+> (Debian) bug report regarding which file to try dlopen on, and that (I think)
+> was the same code segment as below.
+
+I've been in touch with Hao.
+> 
+> Lastly, if were in Ross's shoes, I'd simply create a newer, local package
+> which will avoid the issue of a conflict between which lib to pick...
+Do you mean updating the system's mpi?  That would be a very radical
+step.
+
+It seems to be working on one machine now, though MPI won't launch on
+any other nodes now.  I have to investigate whether the issue is that
+the remote nodes are using the system MPI, or if it is that they lack
+some of the libraries on the node I've been using to build (on which we
+installed a bunch of packaged to support the build).
+
+Ross
+> 
+> Dirk
+> 
+>  
+> | --- Rmpi.orig/src/Rmpi.c    2013-03-27 02:21:49.000000000 +0900
+> | +++ Rmpi/src/Rmpi.c    2014-03-14 11:36:43.000000000 +0900
+> | @@ -18,6 +18,7 @@
+> |  #include "Rmpi.h"
+> | 
+> |  #ifdef OPENMPI
+> | +#define __USE_GNU
+> |  #include <dlfcn.h>
+> |  #endif
+> | 
+> | @@ -69,13 +70,19 @@
+> | 
+> |  #ifndef MAC
+> |  #ifdef OPENMPI
+> | -    if (!dlopen("libmpi.so.0", RTLD_GLOBAL | RTLD_LAZY)
+> | -    && !dlopen("libmpi.so", RTLD_GLOBAL | RTLD_LAZY)){
+> | -    //&& !dlopen("libmpi.dylib", RTLD_GLOBAL | RTLD_LAZY)
+> | -     //&& !dlopen("libmpi.1.dylib", RTLD_GLOBAL | RTLD_LAZY)) {
+> | -       Rprintf("%s\n",dlerror());
+> | -        return AsInt(0);
+> | -    }
+> | +      { /* ifndef from MAC to __linux__ ? if only problem on linux */
+> | +        Dl_info info_MPI_Init;
+> | +        int rc = dladdr((void *)MPI_Init, &info_MPI_Init);
+> | +        if(rc){
+> | +          if (!dlopen(info_MPI_Init.dli_fname, RTLD_GLOBAL | RTLD_LAZY)){
+> | +        Rprintf("%s\n",dlerror());
+> | +        return AsInt(0);
+> | +          }
+> | +        }else{
+> | +          Rprintf("%s\n",dlerror());
+> | +          return AsInt(0);
+> | +        }
+> | +    }
+> |  #endif
+> |  #endif
+> | 
+> | 
+> | >
+> | > Using LD_DEBUG shows
+> | > 24312:     file=libmpi.so.1 [0];  needed by /home/ross/Rlib-3.0.1/Rmpi/libs/Rmpi.so [0]
+> | > 24312:     find library=libmpi.so.1 [0]; searching
+> | > 24312:      search path=/usr/lib64/R/lib:/home/ross/install/lib            (LD_LIBRARY_PATH)
+> | > 24312:       trying file=/usr/lib64/R/lib/libmpi.so.1
+> | > 24312:       trying file=/home/ross/install/lib/libmpi.so.1
+> | >
+> | > and, later,
+> | >      24312:     file=libmpi.so.0 [0];  needed by /home/ross/Rlib-3.0.1/Rmpi/libs/Rmpi.so [0]
+> | >      24312:     find library=libmpi.so.0 [0]; searching
+> | >      24312:      search path=/usr/lib64/R/lib:/home/ross/install/lib            (LD_LIBRARY_PATH)
+> | >      24312:       trying file=/usr/lib64/R/lib/libmpi.so.0
+> | >      24312:       trying file=/home/ross/install/lib/libmpi.so.0
+> | >      24312:      search cache=/etc/ld.so.cache
+> | >      24312:       trying file=/usr/lib/libmpi.so.0
+> | >
+> | > Does anyone know what's going on?
+> | >
+> | > Ross Boylan
+> | >
+> | > P.S. This might be relevant:
+> | >      24300:     calling init: /home/ross/Rlib-3.0.1/Rmpi/libs/Rmpi.so
+> | >      24300:
+> | >      24300:     opening file=/home/ross/Rlib-3.0.1/Rmpi/libs/Rmpi.so [0]; direct_opencount=1
+> | >      24300:
+> | >      24300:     /home/ross/Rlib-3.0.1/Rmpi/libs/Rmpi.so: error: symbol lookup error: undefined symbol: R_init_Rmpi (fatal)
+> | >      24300:     /home/ross/Rlib-3.0.1/Rmpi/libs/Rmpi.so: error: symbol lookup error: undefined symbol: R_init_Rmpi (fatal)
+> | >
+> | > _______________________________________________
+> | > R-sig-hpc mailing list
+> | > R-sig-hpc at r-project.org
+> | > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> | 
+> | 
+> | 
+> | -- 
+> | Best Regards,
+> | --
+> | EI-JI Nakama  <nakama (a) ki.rim.or.jp>
+> | "\u4e2d\u9593\u6804\u6cbb"  <nakama (a) ki.rim.or.jp>
+> | 
+> | _______________________________________________
+> | R-sig-hpc mailing list
+> | R-sig-hpc at r-project.org
+> | https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From mailinglist at ltsai.com  Sat Mar 22 02:51:40 2014
+From: mailinglist at ltsai.com (Tsai Li Ming)
+Date: Sat, 22 Mar 2014 09:51:40 +0800
+Subject: [R-sig-hpc] Running Rmpi/OpenMPI issues
+Message-ID: <BLU0-SMTP8756437658A7FC4730885FBD780@phx.gbl>
+
+Hi,
+
+I have R 3.0.3 and OpenMPI 1.6.5.
+Snow: 0.3-13
+Rmpi: 0.6-3
+
+Here?s my test script:
+library(snow)
+
+nbNodes <- 4
+cl <- makeCluster(nbNodes, "MPI")
+clusterCall(cl, function() Sys.info()[c("nodename","machine")])
+mpi.quit()
+
+And the mpirun command:
+/opt/openmpi-1.6.5-intel/bin/mpirun -np 1 -H host1,host2,host3,host4 R --no-save < ~/test_mpi.R
+
+Here?s the output:
+> cl <- makeCluster(nbNodes, "MPI")
+Loading required package: Rmpi
+	4 slaves are spawned successfully. 0 failed.
+> clusterCall(cl, function() Sys.info()[c("nodename","machine")])
+[[1]]
+   nodename      machine 
+?host1"     "x86_64" 
+
+[[2]]
+   nodename      machine 
+?host1"     "x86_64" 
+
+[[3]]
+   nodename      machine 
+?host1"     "x86_64" 
+
+[[4]]
+   nodename      machine 
+?host1"     "x86_64" 
+
+> 
+> mpi.quit()
+
+I followed the instructions from:
+http://www.statistik.uni-dortmund.de/useR-2008/tutorials/useR2008introhighperfR.pdf
+, specifically to use -np 1
+
+1. Why is it not running on the rest of the nodes? I can see all 4 processes on host1 and no orted daemon running.
+
+What should be the correct way to run this? 
+
+I have also tested a working CPI using openmpi and is working.
+
+2. mpi.quit() just hangs there.
+
+=================
+
+I have tried a rmpi example:
+library(Rmpi) 
+rk <- mpi.comm.rank(0)
+sz <- mpi.comm.size(0)
+name <- mpi.get.processor.name()
+cat("Hello, rank", rk, "size", sz, "on", name, "\n")
+mpi.quit()
+
+$ /opt/openmpi-1.6.5-intel/bin/mpirun -np 4 -H host1,host2,host3,host4 R --no-save < ~/test_rmpi.r 
+
+It hangs here:
+> library(Rmpi) # calls MPI_Init
+
+1. Running with -np 2, hangs at the library(Rmpi), similar to -np 4
+
+2. Running with -np 1, I can get a successful run
+
+3. Running with -np 8 , I get an error:
+> library(Rmpi) # calls MPI_Init
+--------------------------------------------------------------------------
+mpirun has exited due to process rank 4 with PID 38992 on
+node numaq1.1dn exiting improperly. There are two reasons this could occur:
+
+1. this process did not call "init" before exiting, but others in
+the job did. This can cause a job to hang indefinitely while it waits
+for all processes to call "init". By rule, if one process calls "init",
+then ALL processes must call "init" prior to termination.
+
+2. this process called "init", but exited without calling "finalize".
+By rule, all processes that call "init" MUST call "finalize" prior to
+exiting or it will be considered an "abnormal termination"
+
+This may have caused other processes in the application to be
+terminated by signals sent by mpirun (as reported here).
+--------------------------------------------------------------------------
+
+
+Thanks!
+
+
+From ross at biostat.ucsf.edu  Wed Mar 26 04:14:36 2014
+From: ross at biostat.ucsf.edu (Ross Boylan)
+Date: Tue, 25 Mar 2014 20:14:36 -0700
+Subject: [R-sig-hpc] Running Rmpi/OpenMPI issues
+In-Reply-To: <BLU0-SMTP8756437658A7FC4730885FBD780@phx.gbl>
+References: <BLU0-SMTP8756437658A7FC4730885FBD780@phx.gbl>
+Message-ID: <1395803676.27857.136.camel@localhost>
+
+On Sat, 2014-03-22 at 09:51 +0800, Tsai Li Ming wrote:
+> Hi,
+> 
+> I have R 3.0.3 and OpenMPI 1.6.5.
+> Snow: 0.3-13
+> Rmpi: 0.6-3
+> 
+> Here?s my test script:
+> library(snow)
+> 
+> nbNodes <- 4
+> cl <- makeCluster(nbNodes, "MPI")
+> clusterCall(cl, function() Sys.info()[c("nodename","machine")])
+> mpi.quit()
+> 
+> And the mpirun command:
+> /opt/openmpi-1.6.5-intel/bin/mpirun -np 1 -H host1,host2,host3,host4 R --no-save < ~/test_mpi.R
+
+Maybe this will help; my script to launch Rmpi is (originally all 1
+line):
+R_PROFILE_USER=~/KHC/sunbelt/Rmpiprofile
+LD_LIBRARY_PATH=/home/ross/install/lib:$LD_LIBRARY_PATH
+PATH=/home/ross/install/bin:/home/ross/install/lib64/R/bin:$PATH orterun
+-x R_PROFILE_USER -x LD_LIBRARY_PATH -x PATH -hostfile
+~/KHC/sunbelt/hosts --prefix /home/ross/install R --no-save -q
+
+Observations:
+1. If mpirun is not on the regular path, one must use --prefix to tell
+it where to look.  Otherwise MPI won't find the program and won't be
+able to launch remotely.
+
+2. For running within those remote sessions you may need to set PATH and
+LD_LIBRARY_PATH so stuff gets found.
+
+3. I left out -np; when I used it I always set it to the actual number
+of processes (my hosts file looks like host1 slots=4).  I thought np 1
+would limit you to one process; evidently it doesn't.
+
+4. Rmpi, and possibly snow, requires a special startup script that is
+distributed with the package.  I used a modified version and set
+R_PROFILE_USER and exported that variable with -x.
+
+Ross Boylan
+
+> 
+> Here?s the output:
+> > cl <- makeCluster(nbNodes, "MPI")
+> Loading required package: Rmpi
+> 	4 slaves are spawned successfully. 0 failed.
+> > clusterCall(cl, function() Sys.info()[c("nodename","machine")])
+> [[1]]
+>    nodename      machine 
+> ?host1"     "x86_64" 
+> 
+> [[2]]
+>    nodename      machine 
+> ?host1"     "x86_64" 
+> 
+> [[3]]
+>    nodename      machine 
+> ?host1"     "x86_64" 
+> 
+> [[4]]
+>    nodename      machine 
+> ?host1"     "x86_64" 
+> 
+> > 
+> > mpi.quit()
+> 
+> I followed the instructions from:
+> http://www.statistik.uni-dortmund.de/useR-2008/tutorials/useR2008introhighperfR.pdf
+> , specifically to use -np 1
+> 
+> 1. Why is it not running on the rest of the nodes? I can see all 4 processes on host1 and no orted daemon running.
+> 
+> What should be the correct way to run this? 
+> 
+> I have also tested a working CPI using openmpi and is working.
+> 
+> 2. mpi.quit() just hangs there.
+> 
+> =================
+> 
+> I have tried a rmpi example:
+> library(Rmpi) 
+> rk <- mpi.comm.rank(0)
+> sz <- mpi.comm.size(0)
+> name <- mpi.get.processor.name()
+> cat("Hello, rank", rk, "size", sz, "on", name, "\n")
+> mpi.quit()
+> 
+> $ /opt/openmpi-1.6.5-intel/bin/mpirun -np 4 -H host1,host2,host3,host4 R --no-save < ~/test_rmpi.r 
+> 
+> It hangs here:
+> > library(Rmpi) # calls MPI_Init
+> 
+> 1. Running with -np 2, hangs at the library(Rmpi), similar to -np 4
+> 
+> 2. Running with -np 1, I can get a successful run
+> 
+> 3. Running with -np 8 , I get an error:
+> > library(Rmpi) # calls MPI_Init
+> --------------------------------------------------------------------------
+> mpirun has exited due to process rank 4 with PID 38992 on
+> node numaq1.1dn exiting improperly. There are two reasons this could occur:
+> 
+> 1. this process did not call "init" before exiting, but others in
+> the job did. This can cause a job to hang indefinitely while it waits
+> for all processes to call "init". By rule, if one process calls "init",
+> then ALL processes must call "init" prior to termination.
+> 
+> 2. this process called "init", but exited without calling "finalize".
+> By rule, all processes that call "init" MUST call "finalize" prior to
+> exiting or it will be considered an "abnormal termination"
+> 
+> This may have caused other processes in the application to be
+> terminated by signals sent by mpirun (as reported here).
+> --------------------------------------------------------------------------
+> 
+> 
+> Thanks!
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From mailinglist at ltsai.com  Wed Mar 26 04:32:45 2014
+From: mailinglist at ltsai.com (Tsai Li Ming)
+Date: Wed, 26 Mar 2014 11:32:45 +0800
+Subject: [R-sig-hpc] Running Rmpi/OpenMPI issues
+In-Reply-To: <1395803676.27857.136.camel@localhost>
+References: <BLU0-SMTP8756437658A7FC4730885FBD780@phx.gbl>
+	<1395803676.27857.136.camel@localhost>
+Message-ID: <BLU0-SMTP184F141A0B38744D0B43B05BD640@phx.gbl>
+
+
+On 26 Mar, 2014, at 11:14 am, Ross Boylan <ross at biostat.ucsf.edu> wrote:
+
+> On Sat, 2014-03-22 at 09:51 +0800, Tsai Li Ming wrote:
+>> Hi,
+>> 
+>> I have R 3.0.3 and OpenMPI 1.6.5.
+>> Snow: 0.3-13
+>> Rmpi: 0.6-3
+>> 
+>> Here?s my test script:
+>> library(snow)
+>> 
+>> nbNodes <- 4
+>> cl <- makeCluster(nbNodes, "MPI")
+>> clusterCall(cl, function() Sys.info()[c("nodename","machine")])
+>> mpi.quit()
+>> 
+>> And the mpirun command:
+>> /opt/openmpi-1.6.5-intel/bin/mpirun -np 1 -H host1,host2,host3,host4 R --no-save < ~/test_mpi.R
+> 
+> Maybe this will help; my script to launch Rmpi is (originally all 1
+> line):
+> R_PROFILE_USER=~/KHC/sunbelt/Rmpiprofile
+> LD_LIBRARY_PATH=/home/ross/install/lib:$LD_LIBRARY_PATH
+> PATH=/home/ross/install/bin:/home/ross/install/lib64/R/bin:$PATH orterun
+> -x R_PROFILE_USER -x LD_LIBRARY_PATH -x PATH -hostfile
+> ~/KHC/sunbelt/hosts --prefix /home/ross/install R --no-save -q
+> 
+> Observations:
+> 1. If mpirun is not on the regular path, one must use --prefix to tell
+> it where to look.  Otherwise MPI won't find the program and won't be
+> able to launch remotely.
+> 
+> 2. For running within those remote sessions you may need to set PATH and
+> LD_LIBRARY_PATH so stuff gets found.
+> 
+> 3. I left out -np; when I used it I always set it to the actual number
+> of processes (my hosts file looks like host1 slots=4).  I thought np 1
+> would limit you to one process; evidently it doesn't.
+> 
+> 4. Rmpi, and possibly snow, requires a special startup script that is
+> distributed with the package.  I used a modified version and set
+> R_PROFILE_USER and exported that variable with -x.
+> 
+> Ross Boylan
+
+Thanks Ross,
+
+I managed to get it up running by copying the Rprofile from the Rmpi package into ~/.Rprofile and by calling:
+$ mpirun -np4 -H host1,host2,host3,host4 R ?-no-save < ~/test_rmpi.R
+
+Here?s my R script:
+library(Rmpi)
+library(boot)
+
+mpi.remote.exec(mpi.get.processor.name())
+mpi.close.Rslaves()
+mpi.quit()
+
+But I didn?t try with Snow. 
+
+
+
+> 
+>> 
+>> Here?s the output:
+>>> cl <- makeCluster(nbNodes, "MPI")
+>> Loading required package: Rmpi
+>> 	4 slaves are spawned successfully. 0 failed.
+>>> clusterCall(cl, function() Sys.info()[c("nodename","machine")])
+>> [[1]]
+>>   nodename      machine 
+>> ?host1"     "x86_64" 
+>> 
+>> [[2]]
+>>   nodename      machine 
+>> ?host1"     "x86_64" 
+>> 
+>> [[3]]
+>>   nodename      machine 
+>> ?host1"     "x86_64" 
+>> 
+>> [[4]]
+>>   nodename      machine 
+>> ?host1"     "x86_64" 
+>> 
+>>> 
+>>> mpi.quit()
+>> 
+>> I followed the instructions from:
+>> http://www.statistik.uni-dortmund.de/useR-2008/tutorials/useR2008introhighperfR.pdf
+>> , specifically to use -np 1
+>> 
+>> 1. Why is it not running on the rest of the nodes? I can see all 4 processes on host1 and no orted daemon running.
+>> 
+>> What should be the correct way to run this? 
+>> 
+>> I have also tested a working CPI using openmpi and is working.
+>> 
+>> 2. mpi.quit() just hangs there.
+>> 
+>> =================
+>> 
+>> I have tried a rmpi example:
+>> library(Rmpi) 
+>> rk <- mpi.comm.rank(0)
+>> sz <- mpi.comm.size(0)
+>> name <- mpi.get.processor.name()
+>> cat("Hello, rank", rk, "size", sz, "on", name, "\n")
+>> mpi.quit()
+>> 
+>> $ /opt/openmpi-1.6.5-intel/bin/mpirun -np 4 -H host1,host2,host3,host4 R --no-save < ~/test_rmpi.r 
+>> 
+>> It hangs here:
+>>> library(Rmpi) # calls MPI_Init
+>> 
+>> 1. Running with -np 2, hangs at the library(Rmpi), similar to -np 4
+>> 
+>> 2. Running with -np 1, I can get a successful run
+>> 
+>> 3. Running with -np 8 , I get an error:
+>>> library(Rmpi) # calls MPI_Init
+>> --------------------------------------------------------------------------
+>> mpirun has exited due to process rank 4 with PID 38992 on
+>> node numaq1.1dn exiting improperly. There are two reasons this could occur:
+>> 
+>> 1. this process did not call "init" before exiting, but others in
+>> the job did. This can cause a job to hang indefinitely while it waits
+>> for all processes to call "init". By rule, if one process calls "init",
+>> then ALL processes must call "init" prior to termination.
+>> 
+>> 2. this process called "init", but exited without calling "finalize".
+>> By rule, all processes that call "init" MUST call "finalize" prior to
+>> exiting or it will be considered an "abnormal termination"
+>> 
+>> This may have caused other processes in the application to be
+>> terminated by signals sent by mpirun (as reported here).
+>> --------------------------------------------------------------------------
+>> 
+>> 
+>> Thanks!
+>> 
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+> 
+
+
+From ross at biostat.ucsf.edu  Wed Mar 26 04:36:46 2014
+From: ross at biostat.ucsf.edu (Ross Boylan)
+Date: Tue, 25 Mar 2014 20:36:46 -0700
+Subject: [R-sig-hpc] Running Rmpi/OpenMPI issues
+In-Reply-To: <BLU0-SMTP184F141A0B38744D0B43B05BD640@phx.gbl>
+References: <BLU0-SMTP8756437658A7FC4730885FBD780@phx.gbl>
+	<1395803676.27857.136.camel@localhost>
+	<BLU0-SMTP184F141A0B38744D0B43B05BD640@phx.gbl>
+Message-ID: <1395805006.27857.145.camel@localhost>
+
+On Wed, 2014-03-26 at 11:32 +0800, Tsai Li Ming wrote:
+> Here?s my R script:
+> library(Rmpi)
+> library(boot) 
+You don't need to load Rmpi; the startup will already have done so.
+
+Ross
+
+

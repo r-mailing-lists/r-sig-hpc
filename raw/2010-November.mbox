@@ -1,0 +1,2415 @@
+From kapatp at gmail.com  Thu Nov  4 17:06:32 2010
+From: kapatp at gmail.com (Prasenjit Kapat)
+Date: Thu, 4 Nov 2010 12:06:32 -0400
+Subject: [R-sig-hpc] run parallel R sessions
+Message-ID: <AANLkTikEm=vY3h1Xhh7DDoKx37S-FMV-3EYhAQH=vZhk@mail.gmail.com>
+
+Hi,
+
+Looking for suggestions to run parallel R sessions. Consider the
+following setup:
+
+params.R: this file sets up a few simulation parameters which I
+generally modify manually
+funs.R: collection of functions needed for the simulation
+script.R: runs the main simulation using the parameters defined in
+params.R and the functions in funs.R
+
+There are two parameters, say, a, b (defined in params.R) for which I
+want to run (in parallel) the simulation over a large number of
+possible values. Suppose the simulation code (script.R) produces a
+list. I would like to collect all these lists and then do some more
+investigation of some of the simulation output over the grid of a x b
+values.
+
+How, do you suggest, should I go about implementing this? I would
+prefer that the R thread/process for (a_i, b_j) NOT interact (ie not
+share any data) with that for (a_m, b_n).
+
+Thanks for any help,
+-- 
+Prasenjit
+
+PS:
+The compute servers are 64bit RedHat EL 5.5 running R 2.11.1 (8 cores)
+
+
+From matloff at cs.ucdavis.edu  Thu Nov  4 17:37:09 2010
+From: matloff at cs.ucdavis.edu (Norm Matloff)
+Date: Thu, 4 Nov 2010 09:37:09 -0700
+Subject: [R-sig-hpc] run parallel R sessions
+In-Reply-To: <AANLkTikEm=vY3h1Xhh7DDoKx37S-FMV-3EYhAQH=vZhk@mail.gmail.com>
+References: <AANLkTikEm=vY3h1Xhh7DDoKx37S-FMV-3EYhAQH=vZhk@mail.gmail.com>
+Message-ID: <20101104163709.GB16816@laura>
+
+I'm not sure what you mean by not sharing data on the a,b values, but
+the rest of your remarks suggest some sharing.  If so, my packge Rdsm on
+CRAN might be helpful.  It enables separate R invocations to share data
+with each other, including lists.
+
+Norm Matloff
+
+On Thu, Nov 04, 2010 at 12:06:32PM -0400, Prasenjit Kapat wrote:
+> Hi,
+> 
+> Looking for suggestions to run parallel R sessions. Consider the
+> following setup:
+> 
+> params.R: this file sets up a few simulation parameters which I
+> generally modify manually
+> funs.R: collection of functions needed for the simulation
+> script.R: runs the main simulation using the parameters defined in
+> params.R and the functions in funs.R
+> 
+> There are two parameters, say, a, b (defined in params.R) for which I
+> want to run (in parallel) the simulation over a large number of
+> possible values. Suppose the simulation code (script.R) produces a
+> list. I would like to collect all these lists and then do some more
+> investigation of some of the simulation output over the grid of a x b
+> values.
+> 
+> How, do you suggest, should I go about implementing this? I would
+> prefer that the R thread/process for (a_i, b_j) NOT interact (ie not
+> share any data) with that for (a_m, b_n).
+> 
+> Thanks for any help,
+> -- 
+> Prasenjit
+> 
+> PS:
+> The compute servers are 64bit RedHat EL 5.5 running R 2.11.1 (8 cores)
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From sdavis2 at mail.nih.gov  Fri Nov  5 11:16:12 2010
+From: sdavis2 at mail.nih.gov (Sean Davis)
+Date: Fri, 5 Nov 2010 06:16:12 -0400
+Subject: [R-sig-hpc] run parallel R sessions
+In-Reply-To: <AANLkTikEm=vY3h1Xhh7DDoKx37S-FMV-3EYhAQH=vZhk@mail.gmail.com>
+References: <AANLkTikEm=vY3h1Xhh7DDoKx37S-FMV-3EYhAQH=vZhk@mail.gmail.com>
+Message-ID: <AANLkTim5VqpjD7KsJB+vFXWBZKqxmiAB_4ku222K8ns+@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101105/42d8d6f4/attachment.pl>
+
+From hesen.peng at gmail.com  Mon Nov  8 20:53:44 2010
+From: hesen.peng at gmail.com (Hesen Peng)
+Date: Mon, 8 Nov 2010 14:53:44 -0500
+Subject: [R-sig-hpc] Loading Fortran subroutine in Rsge?
+Message-ID: <AANLkTimV0NQcn_7A705sZyhf1dgjnz797Cqa+8JZaET5@mail.gmail.com>
+
+Hello HPC,
+
+I have a function called "haha" which uses an external fortran
+subroutine "xixi.so". And I'm trying to use Rsge to parallelize the
+execution of some data with haha. Then I run into some problems. I was
+using:
+
+
+dyn.load("xixi.so")
+haha <- function(x){
+  .Fortran("xixi",x)[[1]]
+}
+
+sge.options(sge.save.global=TRUE)
+out <- sge.parSapply(1:10, haha,njobs=10)
+
+But the return from each node shows that xixi.so was not included in
+the information passed to each node. So I had to include the
+dyn.load("xixi.r") in the haha function definition and had it executed
+again and again and again (probably millions of times). Is there a
+better way than that? Thanks a lot.
+
+Best wishes,
+
+-- 
+Hesen Peng
+
+
+From Roger.Bivand at nhh.no  Tue Nov  9 21:50:11 2010
+From: Roger.Bivand at nhh.no (Roger Bivand)
+Date: Tue, 9 Nov 2010 20:50:11 +0000 (UTC)
+Subject: [R-sig-hpc] Serializing global state from within a namespace to
+	distribute to other workers
+References: <AANLkTi=1JQewn47fNqPQA0SvQ7vjW6SUzyY4OC1U5eTH@mail.gmail.com>
+Message-ID: <loom.20101109T214248-990@post.gmane.org>
+
+Murray Stokely <murray at ...> writes:
+
+> 
+> I have a package which implements a parallelapply function for my
+> environment but I'm having trouble moving the package into a NAMESPACE
+> because of how the function is serialized by save() including the
+> NAMESPACESXP of the package.
+> 
+...
+
+This is only an oblique follow-up - are there any tools for finding out whether
+the serialisation of an object will cause the serialisation of its environment?
+I've looked around, for example in the codetools package, but do not see
+anything obvious. I've also been hit by objects being serialised (both for snow
+and even just for save() - which I think is the underlying mechanism here)
+ending up about two orders of magnitude larger than the object.size() reported.
+
+Roger
+
+
+> 
+> Is it possible to fully strip the namespace out of the .GLOBAL.FUN
+> before I save() it such that it can be loaded into other R instances
+> without trying to load the namespace?
+> 
+> Thanks for any pointers ..
+> 
+> ? ? ? ? ? ? - Murray
+>
+
+
+From murray at stokely.org  Tue Nov  9 22:50:25 2010
+From: murray at stokely.org (Murray Stokely)
+Date: Tue, 9 Nov 2010 13:50:25 -0800
+Subject: [R-sig-hpc] Serializing global state from within a namespace to
+ distribute to other workers
+In-Reply-To: <loom.20101109T214248-990@post.gmane.org>
+References: <AANLkTi=1JQewn47fNqPQA0SvQ7vjW6SUzyY4OC1U5eTH@mail.gmail.com>
+	<loom.20101109T214248-990@post.gmane.org>
+Message-ID: <AANLkTim381Eico4=kS0CVsF-m9Hk6K64DhBuBVQ6QHfr@mail.gmail.com>
+
+On Tue, Nov 9, 2010 at 12:50 PM, Roger Bivand <Roger.Bivand at nhh.no> wrote:
+> This is only an oblique follow-up - are there any tools for finding out whether
+> the serialisation of an object will cause the serialisation of its environment?
+> I've looked around, for example in the codetools package, but do not see
+> anything obvious. I've also been hit by objects being serialised (both for snow
+> and even just for save() - which I think is the underlying mechanism here)
+> ending up about two orders of magnitude larger than the object.size() reported.
+
+The print() statement for functions will tell you if an environment is
+associated with the function that will need to be serialized.
+
+I ended up in gdb and sprinkling Rprintf's around serialize.c and
+loadsave.c to try to understand this better.  In the end I changed the
+assign statement to use substitute to get around the fact that a
+NAMESPACE is associated with FUN no matter how hard I try to strip it
+off :
+
+parallelapply <- function(x, FUN, ...) {
+ environment(FUN) <- .GlobalEnv   # does not have intended effect
+ assign(".GLOBAL.FUN",
+              eval.parent(substitute(function(y) { FUN(y, ...) })),
+              env=.GlobalEnv)
+ environment(.GLOBAL.FUN) <- .GlobalEnv   # does not have intended effect
+ save(list = ls(envir = .GlobalEnv, all.names = TRUE),
+      file = "/tmp/.Rdata",
+ # Here we distribute the .Rdata file to other workers that load it
+and then run .GLOBAL.FUN(n)
+ # this works great if parallelapply is in a package without a
+NAMESPACE, but fails on loadNamespace otherwise.
+}
+
+              - Murray
+
+
+From jens.oehlschlaegel at truecluster.com  Wed Nov 10 17:23:35 2010
+From: jens.oehlschlaegel at truecluster.com (=?UTF-8?Q? Jens_Oehlschl=C3=A4gel ?=)
+Date: Wed, 10 Nov 2010 17:23:35 +0100 (CET)
+Subject: [R-sig-hpc] [R] ff objects saving problem
+Message-ID: <874901007.5009321.1289406215945.JavaMail.fmail@mwmweb020>
+
+Xiaobo,
+
+You indeed need external 'zip' and 'unzip' utlities in the path, citing from ffsave's help: "using an external zip utility, e.g. for windows in Rtools on [http://www.murdoch-sutherland.com/Rtools/]".
+
+Please note that the mentioned utilities have a 4 GB limit for the zip file, AFAIK. I will for the next release check for a way to get rid of this limit and also to get rid of inconsistencies in upper/lower-case spelling of drive letters which can cause ffsave to fail. Note that - even without fffsave - ff objects can be made permanent simply by creating them with 'filename' resp. 'pattern' outside of fftempdir and saving the R-side ff-object with the usual 'save' or 'save.image' function. 
+
+In a new R session, after 'library(ff)' and 'load' you again have access, assumed your ff files are still in the same location.
+And yes, each column of a ffdf dataframe is stored as a separate ff file. 
+
+Jens Oehlschl?gel
+
+
+From dreiss at systemsbiology.org  Thu Nov 11 02:05:47 2010
+From: dreiss at systemsbiology.org (David Reiss)
+Date: Wed, 10 Nov 2010 17:05:47 -0800
+Subject: [R-sig-hpc] logical (boolean) indexing of out-of-memory (ff)
+	matrices?
+In-Reply-To: <AANLkTikg+YGjmRteX8AMthBfSbNvWUvyO=twwDb=9kAg@mail.gmail.com>
+References: <AANLkTikg+YGjmRteX8AMthBfSbNvWUvyO=twwDb=9kAg@mail.gmail.com>
+Message-ID: <AANLkTikTaUa4AH8HiA3DjReSe4geH=Qj9+GqJ35OivbT@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101110/78a4b7ee/attachment.pl>
+
+From laurence.baldwin at gmail.com  Thu Nov 11 11:18:21 2010
+From: laurence.baldwin at gmail.com (Laurence Baldwin)
+Date: Thu, 11 Nov 2010 10:18:21 +0000
+Subject: [R-sig-hpc] parallel version of boot for bootstrapping
+Message-ID: <AANLkTimLtkT4uNi8C+GdG0F16DDAUNA=CSLM7vrgeHJ5@mail.gmail.com>
+
+Hi,
+I am working on a parallel version of the boot function from the boot
+package. The pboot version I developed uses the SPRINT framework
+(http://www.r-sprint.org/) for communication.
+
+My initial results based on the examples from the boot manual
+(http://stat.ethz.ch/R-manual/R-devel/library/boot/html/boot.html)
+with the number of replications increased show decent speedup on 6
+cores. I do not think that these examples are typical of the large
+problems bootstrapping is used for.
+
+$ mpiexec -n 6 R --slave -f pboot-Speedup-Benchmark.R
+             boot pboot  speedup
+weight     42.140 24.392 1.727616
+freq       43.065  8.401 5.126175
+ordinary   41.654  7.502 5.552386
+parametric 36.993 12.975 2.851098
+
+
+From laurence.baldwin at gmail.com  Thu Nov 11 12:35:57 2010
+From: laurence.baldwin at gmail.com (Laurence Baldwin)
+Date: Thu, 11 Nov 2010 11:35:57 +0000
+Subject: [R-sig-hpc] parallel version of the bootstrapping boot function
+Message-ID: <AANLkTikc9HR-Py-+rQK1xnUECr=2a6ma4eiX_CDP6sAO@mail.gmail.com>
+
+Hi,
+I am busy developing a parallel version of the boot function from the
+boot package, at present it is fully functional and passes all the
+RUnit tests I have written for it. The parallel version named "pboot"
+was developed using the SPRINT framework (http://www.r-sprint.org/)
+for communication.
+
+The speedup has been benchmarked using the 4 different bootstrapping
+examples from the boot manual
+(http://stat.ethz.ch/R-manual/R-devel/library/boot/html/boot.html)
+with the number of replications increased to give longer run times.
+These results show decent speedup depending on the problem. However I
+do not think these examples are typical of large bootstrapping
+problems with long execution times (Hopefully bigger problems will
+give better speedup).
+
+Before I look at improving the speedup and refactoring the code,  I
+would like to get some real world examples of bootstrapping problems
+that people are trying to speedup. This would also help me test if my
+version is 100% compatible and bug free.
+
+$ mpiexec -n 6 R --slave -f pboot-Speedup-Benchmark.R
+? ? ? ? ? ? ?	boot ?		pboot		 ?speedup
+weight ? ? 42.140 		24.392	 	1.727616
+freq ? ? ? 	43.065	 	8.401		 5.126175
+ordinary 	? 41.654 	?	7.502 		5.552386
+parametric 36.993	12.975 		2.851098
+
+Further benchmarks are on the project site
+http://code.google.com/p/baldy/ along with source code in SVN
+http://code.google.com/p/baldy/source/checkout. All the code is in
+beta but passes all the RUnit tests I have written so far and the
+results can easily be verified against the standard version of boot.
+
+If you are using the boot function and would like to speed it up on
+HPC or SMP systems please contact me with examples.
+
+Regards
+ Laurence
+
+
+From rosenbat at gmail.com  Sun Nov 14 17:11:02 2010
+From: rosenbat at gmail.com (Ted Rosenbaum)
+Date: Sun, 14 Nov 2010 11:11:02 -0500
+Subject: [R-sig-hpc] gputools installation
+In-Reply-To: <AANLkTinVbnX1ckO=8MwC0Kk_TWyd1w-p0PKtVxxXr_v8@mail.gmail.com>
+References: <AANLkTinVbnX1ckO=8MwC0Kk_TWyd1w-p0PKtVxxXr_v8@mail.gmail.com>
+Message-ID: <AANLkTimq63pXFJZLJ9ALe6g_0z9ee6zf2ja6CpTEZdbr@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101114/1f5bbc81/attachment.pl>
+
+From cubranic at stat.ubc.ca  Sun Nov 14 22:24:13 2010
+From: cubranic at stat.ubc.ca (Davor Cubranic)
+Date: Sun, 14 Nov 2010 13:24:13 -0800
+Subject: [R-sig-hpc] gputools installation
+In-Reply-To: <AANLkTimq63pXFJZLJ9ALe6g_0z9ee6zf2ja6CpTEZdbr@mail.gmail.com>
+References: <AANLkTinVbnX1ckO=8MwC0Kk_TWyd1w-p0PKtVxxXr_v8@mail.gmail.com>
+	<AANLkTimq63pXFJZLJ9ALe6g_0z9ee6zf2ja6CpTEZdbr@mail.gmail.com>
+Message-ID: <201011141324.13848.cubranic@stat.ubc.ca>
+
+On November 14, 2010 08:11:02 am Ted Rosenbaum wrote:
+> Hi,
+> When trying to install gputools on Ubuntu 10.10 I obtain the
+> following error message.
+> 
+> classification.cu(735): error: argument of type "unsigned int *" is
+> incompatible with parameter of type "size_t *"
+[...]
+> 4 errors detected in the compilation of
+> "/tmp/tmpxft_0000626b_00000000-12_classification.compute_12.cpp1.ii".
+
+Can you provide details of your compiler and R version?
+
+Davor
+
+
+From rosenbat at gmail.com  Sun Nov 14 23:23:26 2010
+From: rosenbat at gmail.com (Ted Rosenbaum)
+Date: Sun, 14 Nov 2010 17:23:26 -0500
+Subject: [R-sig-hpc] gputools installation
+In-Reply-To: <201011141324.13848.cubranic@stat.ubc.ca>
+References: <AANLkTinVbnX1ckO=8MwC0Kk_TWyd1w-p0PKtVxxXr_v8@mail.gmail.com>
+	<AANLkTimq63pXFJZLJ9ALe6g_0z9ee6zf2ja6CpTEZdbr@mail.gmail.com>
+	<201011141324.13848.cubranic@stat.ubc.ca>
+Message-ID: <AANLkTikC0_T0Hapvtwesk3uAYZgO1e7kpZb+YwXvbJ7+@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101114/bc70ed5b/attachment.pl>
+
+From cubranic at stat.ubc.ca  Mon Nov 15 00:52:12 2010
+From: cubranic at stat.ubc.ca (Davor Cubranic)
+Date: Sun, 14 Nov 2010 15:52:12 -0800
+Subject: [R-sig-hpc] gputools installation
+In-Reply-To: <AANLkTikC0_T0Hapvtwesk3uAYZgO1e7kpZb+YwXvbJ7+@mail.gmail.com>
+References: <AANLkTinVbnX1ckO=8MwC0Kk_TWyd1w-p0PKtVxxXr_v8@mail.gmail.com>
+	<201011141324.13848.cubranic@stat.ubc.ca>
+	<AANLkTikC0_T0Hapvtwesk3uAYZgO1e7kpZb+YwXvbJ7+@mail.gmail.com>
+Message-ID: <201011141552.12507.cubranic@stat.ubc.ca>
+
+On November 14, 2010 02:23:26 pm Ted Rosenbaum wrote:
+> Sure --
+> Sorry I should have done that initially.
+> gcc 4.4.5 and R version 2.11.1 .
+> I'm on 64 bit Ubuntu 10.10.
+
+No wories. And do you have NVidia's CUDA toolkit?
+
+Davor
+
+> > On November 14, 2010 08:11:02 am Ted Rosenbaum wrote:
+> > > Hi,
+> > > When trying to install gputools on Ubuntu 10.10 I obtain the
+> > > following error message.
+> > > 
+> > > classification.cu(735): error: argument of type "unsigned int *"
+> > > is incompatible with parameter of type "size_t *"
+> > 
+> > [...]
+> > 
+> > > 4 errors detected in the compilation of
+> > > "/tmp/tmpxft_0000626b_00000000-12_classification.compute_12.cpp1.
+> > > ii".
+
+
+From rosenbat at gmail.com  Mon Nov 15 05:16:48 2010
+From: rosenbat at gmail.com (Ted Rosenbaum)
+Date: Sun, 14 Nov 2010 23:16:48 -0500
+Subject: [R-sig-hpc] gputools installation
+In-Reply-To: <201011141552.12507.cubranic@stat.ubc.ca>
+References: <AANLkTinVbnX1ckO=8MwC0Kk_TWyd1w-p0PKtVxxXr_v8@mail.gmail.com>
+	<201011141324.13848.cubranic@stat.ubc.ca>
+	<AANLkTikC0_T0Hapvtwesk3uAYZgO1e7kpZb+YwXvbJ7+@mail.gmail.com>
+	<201011141552.12507.cubranic@stat.ubc.ca>
+Message-ID: <AANLkTinwUqSwUG5EV4q1VHZQa5BrOHjm2cM=bBnU0r2K@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101114/c91a92bf/attachment.pl>
+
+From rosenbat at gmail.com  Mon Nov 15 05:30:01 2010
+From: rosenbat at gmail.com (Ted Rosenbaum)
+Date: Sun, 14 Nov 2010 23:30:01 -0500
+Subject: [R-sig-hpc] gputools installation
+In-Reply-To: <AANLkTinwUqSwUG5EV4q1VHZQa5BrOHjm2cM=bBnU0r2K@mail.gmail.com>
+References: <AANLkTinVbnX1ckO=8MwC0Kk_TWyd1w-p0PKtVxxXr_v8@mail.gmail.com>
+	<201011141324.13848.cubranic@stat.ubc.ca>
+	<AANLkTikC0_T0Hapvtwesk3uAYZgO1e7kpZb+YwXvbJ7+@mail.gmail.com>
+	<201011141552.12507.cubranic@stat.ubc.ca>
+	<AANLkTinwUqSwUG5EV4q1VHZQa5BrOHjm2cM=bBnU0r2K@mail.gmail.com>
+Message-ID: <AANLkTinUMUyQf4QvtQEsAXZ-_W6gbSrqDJPzvXMgTZ5i@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101114/46130284/attachment.pl>
+
+From John.Joseph at utsa.edu  Thu Nov 18 21:48:30 2010
+From: John.Joseph at utsa.edu (John Joseph)
+Date: Thu, 18 Nov 2010 14:48:30 -0600
+Subject: [R-sig-hpc] trouble installing Rmpi
+Message-ID: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3CA@granite1604>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101118/2870ba84/attachment.pl>
+
+From edd at debian.org  Thu Nov 18 22:09:23 2010
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Thu, 18 Nov 2010 15:09:23 -0600
+Subject: [R-sig-hpc] trouble installing Rmpi
+In-Reply-To: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3CA@granite1604>
+References: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3CA@granite1604>
+Message-ID: <19685.38403.997886.560304@max.nulle.part>
+
+
+On 18 November 2010 at 14:48, John Joseph wrote:
+| I am new to Linux and parallel processing, and am having trouble installing Rmpi.
+[...]
+| I am using Ubuntu 10.04.
+| 
+| I would greatly appreciate any help you can give.
+
+Try
+
+	sudo apt-get install r-cran-rmpi
+
+which should also install Open MPI. LAM is deprecated in favour of Open MPI.
+
+Dirk
+
+-- 
+Dirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com
+
+
+From John.Joseph at utsa.edu  Fri Nov 19 14:07:49 2010
+From: John.Joseph at utsa.edu (John Joseph)
+Date: Fri, 19 Nov 2010 07:07:49 -0600
+Subject: [R-sig-hpc] trouble installing Rmpi
+References: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3CA@granite1604>
+	<19685.38403.997886.560304@max.nulle.part>
+Message-ID: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3CE@granite1604>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101119/0798b017/attachment.pl>
+
+From edd at debian.org  Fri Nov 19 14:42:10 2010
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Fri, 19 Nov 2010 07:42:10 -0600
+Subject: [R-sig-hpc] trouble installing Rmpi
+In-Reply-To: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3CE@granite1604>
+References: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3CA@granite1604>
+	<19685.38403.997886.560304@max.nulle.part>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3CE@granite1604>
+Message-ID: <19686.32434.58703.328828@max.nulle.part>
+
+
+On 19 November 2010 at 07:07, John Joseph wrote:
+| 
+| Thanks, Dirk.
+| 
+| I appreciate this advice.  I didn't even know R packages could be loaded that
+| way,
+| so that's a good lesson for me.  I'm such a newbie.  Anyway, when I tried it,
+
+Maybe you should do a little more reading rather than random compiling.
+We are here (and on r-sig-debian) to help.  There are list archives. There
+are HOWTO. There are even (excellent) manuals for R (though they do not cover
+dpkg and apt-get).
+
+| Rmpi seemed to get installed propoerly (no warnings or error messages).  But,
+| then
+| when I went into R, and typed library(Rmpi), this is what I get:
+| 
+| > library(Rmpi)
+| Error in dyn.load(file, DLLpath = DLLpath, ...) :
+|   unable to load shared library '/home/john/R/i486-pc-linux-gnu-library/2.11/
+| Rmpi/libs/Rmpi.so':
+|   liblam.so.4: cannot open shared object file: No such file or directory
+| Error in library(Rmpi) : .First.lib failed for 'Rmpi'
+
+Your local Rmpi shadows and hides the one I suggested.
+
+In short, *I* would uninstall all the local packages and do (as per my last
+email)
+
+	sudo apt-get install r-cran-rmpi
+
+| > q()
+| Save workspace image? [y/n/c]: n
+| Warning message:
+| .Last.lib failed in detach() for 'Rmpi', details:
+|   call: dyn.unload(file.path(libpath, "libs", paste("Rmpi",
+| .Platform$dynlib.ext,
+|   error: dynamic/shared library '/home/john/R/i486-pc-linux-gnu-library/2.11/
+| Rmpi/libs/Rmpi.so' was not loaded
+| john at john-desktop:~$
+| 
+| 
+| Prior to that I had tried several other times without success.  I learned that
+| I probably shouldn't have
+| installed openMPI 1.4.3 over the earlier version, 1.4.2, that came with my
+| Ubuntu 10.04.  So, after some
+
+For Pete's sake, why do you think you need to *build* Open MPI?  
+
+I suggested to install a pre-built, tested, working binary.
+
+| research, I think I correctly uninstalled it with "make uninstall" command at
+| the build tree.  Didn't seem to
+| help.  I tried a few other things with no luck.  Do you think there's some
+| simple solution?  Thanks for your help.
+
+There is a simple solution.  Use the *package* via the *package management
+system* of your *Linux distribution*.  
+
+You don't have to use those. If and when you know better you can always
+replace those, but currently I believe you are better served with the
+prebuilt ones. 
+
+Hope this helps,  Dirk
+
+
+| 
+| John Joseph
+| 
+| -----Original Message-----
+| From: Dirk Eddelbuettel [mailto:edd at debian.org]
+| Sent: Thu 11/18/2010 3:09 PM
+| To: John Joseph
+| Cc: r-sig-hpc at r-project.org
+| Subject: Re: [R-sig-hpc] trouble installing Rmpi
+| 
+| 
+| On 18 November 2010 at 14:48, John Joseph wrote:
+| | I am new to Linux and parallel processing, and am having trouble installing
+| Rmpi.
+| [...]
+| | I am using Ubuntu 10.04.
+| |
+| | I would greatly appreciate any help you can give.
+| 
+| Try
+| 
+|         sudo apt-get install r-cran-rmpi
+| 
+| which should also install Open MPI. LAM is deprecated in favour of Open MPI.
+| 
+| Dirk
+| 
+| --
+| Dirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com
+| 
+| 
+| 
+
+-- 
+Dirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com
+
+
+From cubranic at stat.ubc.ca  Fri Nov 19 22:41:48 2010
+From: cubranic at stat.ubc.ca (Davor Cubranic)
+Date: Fri, 19 Nov 2010 13:41:48 -0800
+Subject: [R-sig-hpc] Managing R CPU/memory usage on Linux
+Message-ID: <201011191341.48485.cubranic@stat.ubc.ca>
+
+We have some Linux compute servers that our users occasionally overwhelm 
+with their R batch jobs to the point where the machines are completely 
+unresponsive and have to be rebooted. This seems to be happening more 
+often recently, and got me wondering what other people do to manage the 
+CPU/memory resources used by R on their servers.
+
+We 'nice -19' the R process, but that doesn't seem to help. Are there 
+any other R options or OS settings that would be useful? Or should I 
+consider installing a queuing manager and closing the servers to 
+interactive logins? As far as I can tell, out users just run existing R 
+packages from CRAN, and there is no parallelization or distributed 
+computing going on.
+
+The machines are dual-CPU 64-bit Intels with 4GB of RAM and running 
+Ubuntu 8.04. So they won't be making the TOP500 list any time soon, but 
+I would have hoped the kernel would be a litter better at squelching 
+down CPU and memory hogs.
+
+Thanks,
+
+Davor
+
+
+From etiennebr at gmail.com  Fri Nov 19 22:57:30 2010
+From: etiennebr at gmail.com (Etienne Bellemare Racine)
+Date: Fri, 19 Nov 2010 16:57:30 -0500
+Subject: [R-sig-hpc] Managing R CPU/memory usage on Linux
+In-Reply-To: <201011191341.48485.cubranic@stat.ubc.ca>
+References: <201011191341.48485.cubranic@stat.ubc.ca>
+Message-ID: <4CE6F2CA.4060201@gmail.com>
+
+Hi Davor,
+
+Have you taken a look at the new linux kernel patch to improve 
+responsiveness and its workaround [1]. I guess everything is a little 
+slower, but more responsive. I don't know if its doable on ubuntu 8.04, 
+but I can't see why not.
+
+[1] 
+http://www.webupd8.org/2010/11/alternative-to-200-lines-kernel-patch.html
+
+Hope this helps,
+Etienne
+
+
+Le 2010-11-19 16:41, Davor Cubranic a ?crit :
+> We have some Linux compute servers that our users occasionally overwhelm
+> with their R batch jobs to the point where the machines are completely
+> unresponsive and have to be rebooted. This seems to be happening more
+> often recently, and got me wondering what other people do to manage the
+> CPU/memory resources used by R on their servers.
+>
+> We 'nice -19' the R process, but that doesn't seem to help. Are there
+> any other R options or OS settings that would be useful? Or should I
+> consider installing a queuing manager and closing the servers to
+> interactive logins? As far as I can tell, out users just run existing R
+> packages from CRAN, and there is no parallelization or distributed
+> computing going on.
+>
+> The machines are dual-CPU 64-bit Intels with 4GB of RAM and running
+> Ubuntu 8.04. So they won't be making the TOP500 list any time soon, but
+> I would have hoped the kernel would be a litter better at squelching
+> down CPU and memory hogs.
+>
+> Thanks,
+>
+> Davor
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From Kevin.Buckley at ecs.vuw.ac.nz  Sun Nov 21 23:11:27 2010
+From: Kevin.Buckley at ecs.vuw.ac.nz (Kevin.Buckley at ecs.vuw.ac.nz)
+Date: Mon, 22 Nov 2010 11:11:27 +1300
+Subject: [R-sig-hpc] trouble installing Rmpi
+In-Reply-To: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3CF@granite1604>
+References: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3CA@granite1604>
+	<978d4aae61e5a9aa1718eba7a84b57ee.squirrel@mail.ecs.vuw.ac.nz>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3CF@granite1604>
+Message-ID: <4582bd03f7e9e70d29a6f9ccc6300158.squirrel@mail.ecs.vuw.ac.nz>
+
+>
+> Thanks for your help, Kevin.
+>
+> These instructions look very helpful, and I've begun studying them.
+> I'm such a newbie that I understand little of it.  I'm learning a
+> little by reading the documentation, but I'm just not getting all of
+> it.  It seems that the idea is to make a file called "Makevars" that
+> is stored in certain directories.  I did the first three lines, but
+> can't find where Makevars went...Well, I did find a Makevars and
+> Makevars.win file several directories deep into the R directory that
+> was already there, but I don't know if these two files were created
+> by the 3 lines I wrote or were already there...Anyway, as you can
+> see, I'm struggling with the basics.
+>
+> Another thing is that when I go to etc/profile.d I do not find
+> openmpi.sh within it.
+>
+> In any case, I appreciate this help you gave.
+>
+> John Joseph
+
+hey John,
+
+it seems as though I forgot to copy the list into my "advice/experience"
+so am now doing so (see below for original)
+
+In respect of the issues you raise, the /etc/profile.d/openmpi.sh
+is a LOCAL thing, which merely gives the users, at login time, the
+correct environment (paths, etch) for OpenMPI.
+
+Chances are that that's being handled for you in some way because
+you installed OpenMPI from a package.
+
+The inclusion of that line there was just me running things explicitly
+as a "hedge" against a user who might not have had such an environment
+set up. Apologies, I should have tailored the commands to remove the
+"local" bits.
+
+As to the R Makevars file I referred to, again the syntax of my
+suggestions is creating it as though it was not there (I should
+have, of course, suggested checking to see if the user account
+being used for the installation already had such a file as my
+"instructions" trample all over it).
+
+That ties in with the note about removing the Makevars file
+afterwards: if you already had one and moved it out of the
+way, or otherwise appended the variables that Rmpi seemed to
+need, you'ld want to simply remove them or replace the old file,
+rather than bin it.
+
+But basically, you won't see that file ~/.R/Makevars (you might
+not even see the directory ~/.R) unless it had already been created
+beneath the home directory of the user doing the installtion.
+
+Kevin
+
+PS
+
+Just in case it is something you have not seen before, the ~ (tilde)
+character at the start of the path to the Makevears referred to
+is a shorthand for the home directory of the user, in case the user
+doing the install.
+
+
+> -----Original Message-----
+> From: Kevin.Buckley at ecs.vuw.ac.nz
+> Sent: Thu 11/18/2010 3:35 PM
+> To: John Joseph
+> Subject: Re: [R-sig-hpc] trouble installing Rmpi
+>
+>
+> Not directly addressing your install methodology issues, John, but
+>
+>  "the way it worked for me"
+>
+> was to install from outside of R itself, but still using R, so as
+> to have some control over the paths to our OpenMPI installtion.
+>
+> Note the use of the R "Makevars" file to override some
+> of the defaults R might be picking up if left to its own
+> devices:
+>
+> The "mpicc" is the OpenMPI-aware C compiler wrapper
+>
+> You might need to tweak the paths for Ubuntu's OpenMPI package
+> setup.
+>
+> This was for Rmpi_0.5-8.tar.bz2
+>
+> mkdir ~/.R
+> echo CC=mpicc > ~/.R/Makevars
+> echo SHLIB_LD=mpicc >> ~/.R/Makevars
+> . /etc/profile.d/openmpi.sh
+>
+> /opt/R/bin/R CMD INSTALL \
+>  --library=/opt/Rlibs \
+>  /path/to/Rmpi_0.5-8.tar.bz2 \
+>  --configure-args=--with-Rmpi-type=OPENMPI  \
+>  --configure-args=--with-Rmpi-libpath=/opt/openmpi/1.4.2/lib \
+>  --configure-args=--with-Rmpi-include=/opt/openmpi/1.4.2/include
+>
+> Oh yeah, once you have built the package, (assuming you do!),
+> remove the file
+>
+>  ~/.R/Makevars
+>
+> unless you want all future R packages you build by hand, to be built
+> against OpenMPI that is !
+>
+> Kevin
+
+-- 
+Kevin M. Buckley                                  Room:  CO327
+School of Engineering and                         Phone: +64 4 463 5971
+ Computer Science
+Victoria University of Wellington
+New Zealand
+
+
+From John.Joseph at utsa.edu  Mon Nov 22 18:23:38 2010
+From: John.Joseph at utsa.edu (John Joseph)
+Date: Mon, 22 Nov 2010 11:23:38 -0600
+Subject: [R-sig-hpc] trouble installing Rmpi
+References: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3CA@granite1604><19685.38403.997886.560304@max.nulle.part><8AFB4A1479ECD246A26FAA98CC48A93C018FE3CE@granite1604>
+	<19686.32434.58703.328828@max.nulle.part>
+Message-ID: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3D6@granite1604>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101122/5978ca3c/attachment.pl>
+
+From gartim at genepi.berkeley.edu  Mon Nov 22 18:46:31 2010
+From: gartim at genepi.berkeley.edu (Gary Artim)
+Date: Mon, 22 Nov 2010 09:46:31 -0800
+Subject: [R-sig-hpc] Managing R CPU/memory usage on Linux
+In-Reply-To: <201011191341.48485.cubranic@stat.ubc.ca>
+References: <201011191341.48485.cubranic@stat.ubc.ca>
+Message-ID: <20101122174631.GB2163@genepi.berkeley.edu>
+
+
+there is always /etc/security/limits.conf (fedora's cntl file, ubuntu is
+the same) . It could be set up to warn or
+kill off overconsumers. You seem a bit light on memory. I would
+definitely expand that. I ended up creating a small cluster and have the
+head node control the allocation / number of compute nodes. Another
+option is to virtualize, that has it limits too, but seem you don't yet
+have the hardware for that (memory). 
+
+
+On Fri, Nov 19, 2010 at 01:41:48PM -0800, Davor Cubranic wrote:
+>We have some Linux compute servers that our users occasionally overwhelm 
+>with their R batch jobs to the point where the machines are completely 
+>unresponsive and have to be rebooted. This seems to be happening more 
+>often recently, and got me wondering what other people do to manage the 
+>CPU/memory resources used by R on their servers.
+>
+>We 'nice -19' the R process, but that doesn't seem to help. Are there 
+>any other R options or OS settings that would be useful? Or should I 
+>consider installing a queuing manager and closing the servers to 
+>interactive logins? As far as I can tell, out users just run existing R 
+>packages from CRAN, and there is no parallelization or distributed 
+>computing going on.
+>
+>The machines are dual-CPU 64-bit Intels with 4GB of RAM and running 
+>Ubuntu 8.04. So they won't be making the TOP500 list any time soon, but 
+>I would have hoped the kernel would be a litter better at squelching 
+>down CPU and memory hogs.
+>
+>Thanks,
+>
+>Davor
+>
+>_______________________________________________
+>R-sig-hpc mailing list
+>R-sig-hpc at r-project.org
+>https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From Kevin.Buckley at ecs.vuw.ac.nz  Tue Nov 23 02:19:17 2010
+From: Kevin.Buckley at ecs.vuw.ac.nz (Kevin.Buckley at ecs.vuw.ac.nz)
+Date: Tue, 23 Nov 2010 14:19:17 +1300
+Subject: [R-sig-hpc] trouble installing Rmpi
+In-Reply-To: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3D6@granite1604>
+References: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3CA@granite1604><19685.38403.997886.560304@max.nulle.part><8AFB4A1479ECD246A26FAA98CC48A93C018FE3CE@granite1604>
+	<19686.32434.58703.328828@max.nulle.part>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3D6@granite1604>
+Message-ID: <072758d509140b2c75a5c88374fa92ed.squirrel@mail.ecs.vuw.ac.nz>
+
+> Well, I discovered MPICH2 can be used to run Rmpi in Windows.  So I
+> switched back to Windows and now have Rmpi running fine in Windows,
+> and so I'll probably stay with Windows for my present project to
+> avoid further delays.
+>
+> But, again, thanks for your help.
+>
+> John Joseph
+
+Hey John,
+
+a brief note explaining what you had to do to get that
+windows/MPICH2/R/Rmpi stack going would be worth posting
+here for those who come afterwards.
+
+Even if your experience is: installed R, installed ,MPICH2
+and Rmpi just reconciled the bits it needed, it is as least
+a confirmation of that process from someone who has actually
+got it going.
+
+-- 
+Kevin M. Buckley                                  Room:  CO327
+School of Engineering and                         Phone: +64 4 463 5971
+ Computer Science
+Victoria University of Wellington
+New Zealand
+
+
+From John.Joseph at utsa.edu  Tue Nov 23 06:03:38 2010
+From: John.Joseph at utsa.edu (John Joseph)
+Date: Mon, 22 Nov 2010 23:03:38 -0600
+Subject: [R-sig-hpc] trouble installing Rmpi
+References: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3CA@granite1604><19685.38403.997886.560304@max.nulle.part><8AFB4A1479ECD246A26FAA98CC48A93C018FE3CE@granite1604>
+	<19686.32434.58703.328828@max.nulle.part>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3D6@granite1604>
+	<072758d509140b2c75a5c88374fa92ed.squirrel@mail.ecs.vuw.ac.nz>
+Message-ID: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3DA@granite1604>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101122/f1c2dacf/attachment.pl>
+
+From John.Joseph at utsa.edu  Tue Nov 23 06:03:03 2010
+From: John.Joseph at utsa.edu (John Joseph)
+Date: Mon, 22 Nov 2010 23:03:03 -0600
+Subject: [R-sig-hpc] Rmpi in Windows
+Message-ID: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3D9@granite1604>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101122/92062a77/attachment.pl>
+
+From win at comets.de  Tue Nov 23 11:26:51 2010
+From: win at comets.de (Melwin)
+Date: Tue, 23 Nov 2010 11:26:51 +0100
+Subject: [R-sig-hpc] Error message "not installed for 'arch=xx'" when
+ installing Rmpi in R-2.12.0
+Message-ID: <op.vmmcm1r5yqqyib@mueggelsee-neu.ad.geoecology.uni-potsdam.de>
+
+Dear all,
+I tried to install Rmpi 0.5.9 (MPICH-version) for R-2.12.0 under Windows  
+7, 64bit.
+In both R-variants (32/64 bit) I get the following error message:
+
+R 32 bit:
+> install.packages(pkgs="e:/download/Rmpi_0.5-9.zip", repos = NULL, type =  
+> "win.binary")
+> library(Rmpi)
+Error: package 'Rmpi' is not installed for 'arch=i386'
+
+R 64 bit:
+> install.packages(pkgs="e:/download/Rmpi_0.5-9.zip", repos = NULL, type =  
+> "win64.binary")
+> library(Rmpi)
+Error: package 'Rmpi' is not installed for 'arch=x64'
+
+There are no other R-versions on this computer.
+I tried both versions of MPICH (32 and 64 bit) - same results.
+I tried installing both R and MPICH in 32 bit only - same results.
+
+Thanks in advance for any advice.
+
+Melwin
+
+
+sessionInfo()
+R version 2.12.0 (2010-10-15)
+Platform: i386-pc-mingw32/i386 (32-bit)
+
+locale:
+[1] LC_COLLATE=German_Germany.1252  LC_CTYPE=German_Germany.1252
+[3] LC_MONETARY=German_Germany.1252 LC_NUMERIC=C
+[5] LC_TIME=German_Germany.1252
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base
+
+loaded via a namespace (and not attached):
+[1] tools_2.12.0
+
+
+From hyu at stats.uwo.ca  Tue Nov 23 15:49:24 2010
+From: hyu at stats.uwo.ca (Hao Yu)
+Date: Tue, 23 Nov 2010 09:49:24 -0500
+Subject: [R-sig-hpc] Error message "not installed for 'arch=xx'" when
+ installing Rmpi in R-2.12.0
+In-Reply-To: <op.vmmcm1r5yqqyib@mueggelsee-neu.ad.geoecology.uni-potsdam.de>
+References: <op.vmmcm1r5yqqyib@mueggelsee-neu.ad.geoecology.uni-potsdam.de>
+Message-ID: <cc0ea97253983dff6f29038c6ae2472d.squirrel@www.stats.uwo.ca>
+
+So far Rmpi only works under 32bit R as indicated in
+http://www.stats.uwo.ca/faculty/yu/Rmpi/windows.htm. I am still working on
+R 64bit/Rmpi/MPICH 64bit version.
+
+Hao
+
+Melwin wrote:
+> Dear all,
+> I tried to install Rmpi 0.5.9 (MPICH-version) for R-2.12.0 under Windows
+> 7, 64bit.
+> In both R-variants (32/64 bit) I get the following error message:
+>
+> R 32 bit:
+>> install.packages(pkgs="e:/download/Rmpi_0.5-9.zip", repos = NULL, type =
+>> "win.binary")
+>> library(Rmpi)
+> Error: package 'Rmpi' is not installed for 'arch=i386'
+>
+> R 64 bit:
+>> install.packages(pkgs="e:/download/Rmpi_0.5-9.zip", repos = NULL, type =
+>> "win64.binary")
+>> library(Rmpi)
+> Error: package 'Rmpi' is not installed for 'arch=x64'
+>
+> There are no other R-versions on this computer.
+> I tried both versions of MPICH (32 and 64 bit) - same results.
+> I tried installing both R and MPICH in 32 bit only - same results.
+>
+> Thanks in advance for any advice.
+>
+> Melwin
+>
+>
+> sessionInfo()
+> R version 2.12.0 (2010-10-15)
+> Platform: i386-pc-mingw32/i386 (32-bit)
+>
+> locale:
+> [1] LC_COLLATE=German_Germany.1252  LC_CTYPE=German_Germany.1252
+> [3] LC_MONETARY=German_Germany.1252 LC_NUMERIC=C
+> [5] LC_TIME=German_Germany.1252
+>
+> attached base packages:
+> [1] stats     graphics  grDevices utils     datasets  methods   base
+>
+> loaded via a namespace (and not attached):
+> [1] tools_2.12.0
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+-- 
+Department of Statistics & Actuarial Sciences
+Fax Phone#:(519)-661-3813
+The University of Western Ontario
+Office Phone#:(519)-661-3622
+London, Ontario N6A 5B7
+http://www.stats.uwo.ca/faculty/yu
+
+
+From win at comets.de  Wed Nov 24 08:31:02 2010
+From: win at comets.de (Melwin)
+Date: Wed, 24 Nov 2010 08:31:02 +0100
+Subject: [R-sig-hpc] Error message "not installed for 'arch=xx'" when
+ installing Rmpi in R-2.12.0
+In-Reply-To: <cc0ea97253983dff6f29038c6ae2472d.squirrel@www.stats.uwo.ca>
+References: <op.vmmcm1r5yqqyib@mueggelsee-neu.ad.geoecology.uni-potsdam.de>
+	<cc0ea97253983dff6f29038c6ae2472d.squirrel@www.stats.uwo.ca>
+Message-ID: <op.vmny50eryqqyib@mueggelsee-neu.ad.geoecology.uni-potsdam.de>
+
+Thanks Hao, for the swift reply and for your efforts on the 64bit version  
+of Rmpi.
+I have read the note you indicated, however, as even 32-bit R produces the  
+message (see below) I figured I might as well try the other combinations.
+So it's back to the question:
+Why does 32-bit R say "package 'Rmpi' is not installed for 'arch=i386'"?
+Anyone out there who runs Rmpi+MPICH in Windows-7(64bit)?
+
+Thanks in advance,
+
+Melwin
+
+
+Am 23.11.2010, 15:49 Uhr, schrieb Hao Yu <hyu at stats.uwo.ca>:
+
+> So far Rmpi only works under 32bit R as indicated in
+> http://www.stats.uwo.ca/faculty/yu/Rmpi/windows.htm. I am still working  
+> on
+> R 64bit/Rmpi/MPICH 64bit version.
+>
+> Hao
+>
+> Melwin wrote:
+>> Dear all,
+>> I tried to install Rmpi 0.5.9 (MPICH-version) for R-2.12.0 under Windows
+>> 7, 64bit.
+>> In both R-variants (32/64 bit) I get the following error message:
+>>
+>> R 32 bit:
+>>> install.packages(pkgs="e:/download/Rmpi_0.5-9.zip", repos = NULL, type  
+>>> =
+>>> "win.binary")
+>>> library(Rmpi)
+>> Error: package 'Rmpi' is not installed for 'arch=i386'
+>>
+>> R 64 bit:
+>>> install.packages(pkgs="e:/download/Rmpi_0.5-9.zip", repos = NULL, type  
+>>> =
+>>> "win64.binary")
+>>> library(Rmpi)
+>> Error: package 'Rmpi' is not installed for 'arch=x64'
+>>
+>> There are no other R-versions on this computer.
+>> I tried both versions of MPICH (32 and 64 bit) - same results.
+>> I tried installing both R and MPICH in 32 bit only - same results.
+>>
+>> Thanks in advance for any advice.
+>>
+>> Melwin
+>>
+>>
+>> sessionInfo()
+>> R version 2.12.0 (2010-10-15)
+>> Platform: i386-pc-mingw32/i386 (32-bit)
+>>
+>> locale:
+>> [1] LC_COLLATE=German_Germany.1252  LC_CTYPE=German_Germany.1252
+>> [3] LC_MONETARY=German_Germany.1252 LC_NUMERIC=C
+>> [5] LC_TIME=German_Germany.1252
+>>
+>> attached base packages:
+>> [1] stats     graphics  grDevices utils     datasets  methods   base
+>>
+>> loaded via a namespace (and not attached):
+>> [1] tools_2.12.0
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>
+>
+
+
+--
+
+
+From hyu at stats.uwo.ca  Wed Nov 24 15:34:39 2010
+From: hyu at stats.uwo.ca (Hao Yu)
+Date: Wed, 24 Nov 2010 09:34:39 -0500
+Subject: [R-sig-hpc] Error message "not installed for 'arch=xx'" when
+ installing Rmpi in R-2.12.0
+In-Reply-To: <op.vmny50eryqqyib@mueggelsee-neu.ad.geoecology.uni-potsdam.de>
+References: <op.vmmcm1r5yqqyib@mueggelsee-neu.ad.geoecology.uni-potsdam.de>
+	<cc0ea97253983dff6f29038c6ae2472d.squirrel@www.stats.uwo.ca>
+	<op.vmny50eryqqyib@mueggelsee-neu.ad.geoecology.uni-potsdam.de>
+Message-ID: <159dc97ea771a7e29f5cbde214e0e477.squirrel@www.stats.uwo.ca>
+
+Melwin,
+
+Rmpi needs to be recompiled for R 2.12.0. I have put a 32bit binary
+version of Rmpi for R 2.12.0 on my site. So far I have no luck with 64bit
+Rmpi. Compiling is ok but during loading there is access violation error.
+In addition there are some issues of MPICH2 compiled with MS C and R/Rmpi
+with Mingw64.
+
+Hao
+
+Melwin wrote:
+> Thanks Hao, for the swift reply and for your efforts on the 64bit version
+> of Rmpi.
+> I have read the note you indicated, however, as even 32-bit R produces the
+> message (see below) I figured I might as well try the other combinations.
+> So it's back to the question:
+> Why does 32-bit R say "package 'Rmpi' is not installed for 'arch=i386'"?
+> Anyone out there who runs Rmpi+MPICH in Windows-7(64bit)?
+>
+> Thanks in advance,
+>
+> Melwin
+>
+>
+> Am 23.11.2010, 15:49 Uhr, schrieb Hao Yu <hyu at stats.uwo.ca>:
+>
+>> So far Rmpi only works under 32bit R as indicated in
+>> http://www.stats.uwo.ca/faculty/yu/Rmpi/windows.htm. I am still working
+>> on
+>> R 64bit/Rmpi/MPICH 64bit version.
+>>
+>> Hao
+>>
+>> Melwin wrote:
+>>> Dear all,
+>>> I tried to install Rmpi 0.5.9 (MPICH-version) for R-2.12.0 under
+>>> Windows
+>>> 7, 64bit.
+>>> In both R-variants (32/64 bit) I get the following error message:
+>>>
+>>> R 32 bit:
+>>>> install.packages(pkgs="e:/download/Rmpi_0.5-9.zip", repos = NULL, type
+>>>> =
+>>>> "win.binary")
+>>>> library(Rmpi)
+>>> Error: package 'Rmpi' is not installed for 'arch=i386'
+>>>
+>>> R 64 bit:
+>>>> install.packages(pkgs="e:/download/Rmpi_0.5-9.zip", repos = NULL, type
+>>>> =
+>>>> "win64.binary")
+>>>> library(Rmpi)
+>>> Error: package 'Rmpi' is not installed for 'arch=x64'
+>>>
+>>> There are no other R-versions on this computer.
+>>> I tried both versions of MPICH (32 and 64 bit) - same results.
+>>> I tried installing both R and MPICH in 32 bit only - same results.
+>>>
+>>> Thanks in advance for any advice.
+>>>
+>>> Melwin
+>>>
+>>>
+>>> sessionInfo()
+>>> R version 2.12.0 (2010-10-15)
+>>> Platform: i386-pc-mingw32/i386 (32-bit)
+>>>
+>>> locale:
+>>> [1] LC_COLLATE=German_Germany.1252  LC_CTYPE=German_Germany.1252
+>>> [3] LC_MONETARY=German_Germany.1252 LC_NUMERIC=C
+>>> [5] LC_TIME=German_Germany.1252
+>>>
+>>> attached base packages:
+>>> [1] stats     graphics  grDevices utils     datasets  methods   base
+>>>
+>>> loaded via a namespace (and not attached):
+>>> [1] tools_2.12.0
+>>>
+>>> _______________________________________________
+>>> R-sig-hpc mailing list
+>>> R-sig-hpc at r-project.org
+>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>
+>>
+>>
+>
+>
+> --
+> Erstellt mit Operas revolution?rem E-Mail-Modul:
+> http://www.opera.com/mail/
+>
+
+
+-- 
+Department of Statistics & Actuarial Sciences
+Fax Phone#:(519)-661-3813
+The University of Western Ontario
+Office Phone#:(519)-661-3622
+London, Ontario N6A 5B7
+http://www.stats.uwo.ca/faculty/yu
+
+
+From John.Joseph at utsa.edu  Wed Nov 24 16:47:44 2010
+From: John.Joseph at utsa.edu (John Joseph)
+Date: Wed, 24 Nov 2010 09:47:44 -0600
+Subject: [R-sig-hpc] Error message "not installed for 'arch=xx'" when
+	installing Rmpi in R-2.12.0
+References: <op.vmmcm1r5yqqyib@mueggelsee-neu.ad.geoecology.uni-potsdam.de><cc0ea97253983dff6f29038c6ae2472d.squirrel@www.stats.uwo.ca>
+	<op.vmny50eryqqyib@mueggelsee-neu.ad.geoecology.uni-potsdam.de>
+Message-ID: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3DE@granite1604>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101124/a679e057/attachment.pl>
+
+From Kevin.Buckley at ecs.vuw.ac.nz  Wed Nov 24 22:39:48 2010
+From: Kevin.Buckley at ecs.vuw.ac.nz (Kevin.Buckley at ecs.vuw.ac.nz)
+Date: Thu, 25 Nov 2010 10:39:48 +1300
+Subject: [R-sig-hpc] Help request for Rmpi
+Message-ID: <fd3038be2fe3343fe2ad126ecb6a841d.squirrel@mail.ecs.vuw.ac.nz>
+
+
+Forwarding to the list a request made direct to me from
+
+jayraj.shah33 at gmail.com
+
+> I am working on R and Rmpi installation on SUSE linux. I installed
+> R 2.12.0 and and Rmpi0.5-8. When I load it I got following error
+> message. I read you suggestion to change in zzz.R (
+http://answerpot.com/showthread.php?282309-Rmpi%20On%20NetBSD%20With%20OpenMPI).
+> I also did that change but, still I could not able load Rmpi.
+>
+> Please let me know, if you have some suggestions about this error
+> messages. Please reply me. Thank you in advance.
+
+Jayraj,
+
+The correct link to the archived version of that thread is here
+
+  https://stat.ethz.ch/pipermail/r-sig-hpc/2010-May/000641.html
+
+quoting that as opposed to the answer pot link is probably better
+in allowing interested parties to get to the original info.
+
+The thread itself relates to NetBSD and the patch is thus
+NetBSD-specific. I have doubts that it would work anywhere
+else.
+
+Now that your issue with R upon SUSE has been posted to the
+I am sure that someout with that system will see it.
+
+
+From r.m.krug at gmail.com  Thu Nov 25 09:47:48 2010
+From: r.m.krug at gmail.com (Rainer M Krug)
+Date: Thu, 25 Nov 2010 09:47:48 +0100
+Subject: [R-sig-hpc] Problem installing Rmpi on SuSE 64 bit system: does
+ compile but does not load
+Message-ID: <4CEE22B4.5010000@gmail.com>
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+Hi
+
+I am having problems installing Rmpi on a 64 bit system running SuSE
+(version not known to me at the moment).
+
+R is compiled from source in my home directory, and everything works fine.
+
+I do the following:
+
+#Make sure that R-12.2.0 is used
+> export PATH=/home/rkrug/R/R/R-2.12.0/bin/:$PATH
+
+# load module for openmpi-1.4.2
+> module load  openmpi-1.4.2
+
+# Check that it is loaded
+> mpirun --version
+mpirun (Open MPI) 1.4.2r22761-ct8.2.1c-b11a-r31
+
+Report bugs to http://www.open-mpi.org/community/help/
+
+# OK - fine
+
+# Try to install Rmpi
+> R  CMD INSTALL --configure.args="--with-mpi=/usr/src/openmpi-1.4.2"
+R/packages/Rmpi_0.5-8.tar.gz
+Warning: unknown option ?--configure.args=--with-mpi=/usr/src/openmpi-1.4.2?
+* installing to library ?/home/rkrug/R/R/R-2.12.0/library?
+* installing *source* package ?Rmpi? ...
+checking for gcc... gcc -std=gnu99
+checking for C compiler default output file name... a.out
+checking whether the C compiler works... yes
+checking whether we are cross compiling... no
+checking for suffix of executables...
+checking for suffix of object files... o
+checking whether we are using the GNU C compiler... yes
+checking whether gcc -std=gnu99 accepts -g... yes
+checking for gcc -std=gnu99 option to accept ISO C89... none needed
+I am here /usr
+Trying to find mpi.h ...
+Found in /usr/include
+Trying to find libmpi.so or libmpich.a ...
+checking for main in -lmpi... yes
+checking for openpty in -lutil... yes
+checking for main in -lpthread... yes
+configure: creating ./config.status
+config.status: creating src/Makevars
+** libs
+gcc -std=gnu99 -I/home/rkrug/R/R/R-2.12.0/include -DPACKAGE_NAME=\"\"
+- -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+- -DPACKAGE_BUGREPORT=\"\" -I/usr/include  -DMPI2 -DOPENMPI
+- -I/usr/local/include    -fpic  -march=core2 -O3 -c RegQuery.c -o
+RegQuery.o
+gcc -std=gnu99 -I/home/rkrug/R/R/R-2.12.0/include -DPACKAGE_NAME=\"\"
+- -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+- -DPACKAGE_BUGREPORT=\"\" -I/usr/include  -DMPI2 -DOPENMPI
+- -I/usr/local/include    -fpic  -march=core2 -O3 -c Rmpi.c -o Rmpi.o
+gcc -std=gnu99 -I/home/rkrug/R/R/R-2.12.0/include -DPACKAGE_NAME=\"\"
+- -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+- -DPACKAGE_BUGREPORT=\"\" -I/usr/include  -DMPI2 -DOPENMPI
+- -I/usr/local/include    -fpic  -march=core2 -O3 -c conversion.c -o
+conversion.o
+gcc -std=gnu99 -I/home/rkrug/R/R/R-2.12.0/include -DPACKAGE_NAME=\"\"
+- -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+- -DPACKAGE_BUGREPORT=\"\" -I/usr/include  -DMPI2 -DOPENMPI
+- -I/usr/local/include    -fpic  -march=core2 -O3 -c internal.c -o
+internal.o
+gcc -std=gnu99 -lpthread -shared -Bdirect,--hash-style=both,-Wl,-O1 -o
+Rmpi.so RegQuery.o Rmpi.o conversion.o internal.o -L/usr/lib -lmpi
+- -lutil -lpthread -L/home/rkrug/R/R/R-2.12.0/lib -lR
+/usr/lib64/gcc/x86_64-suse-linux/4.3/../../../../x86_64-suse-linux/bin/ld:
+skipping incompatible /usr/lib/libpthread.so when searching for -lpthread
+/usr/lib64/gcc/x86_64-suse-linux/4.3/../../../../x86_64-suse-linux/bin/ld:
+skipping incompatible /usr/lib/libpthread.a when searching for -lpthread
+/usr/lib64/gcc/x86_64-suse-linux/4.3/../../../../x86_64-suse-linux/bin/ld:
+skipping incompatible /usr/lib/libutil.so when searching for -lutil
+/usr/lib64/gcc/x86_64-suse-linux/4.3/../../../../x86_64-suse-linux/bin/ld:
+skipping incompatible /usr/lib/libutil.a when searching for -lutil
+/usr/lib64/gcc/x86_64-suse-linux/4.3/../../../../x86_64-suse-linux/bin/ld:
+skipping incompatible /usr/lib/libpthread.so when searching for -lpthread
+/usr/lib64/gcc/x86_64-suse-linux/4.3/../../../../x86_64-suse-linux/bin/ld:
+skipping incompatible /usr/lib/libpthread.a when searching for -lpthread
+/usr/lib64/gcc/x86_64-suse-linux/4.3/../../../../x86_64-suse-linux/bin/ld:
+skipping incompatible /usr/lib/libc.so when searching for -lc
+/usr/lib64/gcc/x86_64-suse-linux/4.3/../../../../x86_64-suse-linux/bin/ld:
+skipping incompatible /usr/lib/libc.a when searching for -lc
+installing to /home/rkrug/R/R/R-2.12.0/library/Rmpi/libs
+** R
+** demo
+** inst
+** preparing package for lazy loading
+** help
+*** installing help indices
+** building package indices ...
+** testing if installed package can be loaded
+/home/rkrug/R/R/R-2.12.0/bin/exec/R: symbol lookup error:
+/usr/lib64/openmpi/mca_paffinity_linux.so: undefined symbol:
+mca_base_param_reg_int
+
+
+So - what is happening here? As I understand it, it is compiling, but
+can not be loaded, as "undefined symbol".
+
+Could anyone please shed some light on this issue, as I am stuck.
+
+Thanks,
+
+Rainer
+
+
+- -- 
+Rainer M. Krug, PhD (Conservation Ecology, SUN), MSc (Conservation
+Biology, UCT), Dipl. Phys. (Germany)
+
+Centre of Excellence for Invasion Biology
+Natural Sciences Building
+Office Suite 2039
+Stellenbosch University
+Main Campus, Merriman Avenue
+Stellenbosch
+South Africa
+
+Tel:        +33 - (0)9 53 10 27 44
+Cell:       +27 - (0)8 39 47 90 42
+Fax (SA):   +27 - (0)8 65 16 27 82
+Fax (D) :   +49 - (0)3 21 21 25 22 44
+Fax (FR):   +33 - (0)9 58 10 27 44
+email:      Rainer at krugs.de
+
+Skype:      RMkrug
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+Comment: Using GnuPG with Mozilla - http://enigmail.mozdev.org/
+
+iEYEARECAAYFAkzuIrQACgkQoYgNqgF2egpT1QCfYP4cz/mYppZqDQpDJ/EW37dr
+9pIAn35Crcb9hwVRFZLtByzccYtu8IX9
+=dZ5j
+-----END PGP SIGNATURE-----
+
+
+From cubranic at stat.ubc.ca  Thu Nov 25 20:14:59 2010
+From: cubranic at stat.ubc.ca (Davor Cubranic)
+Date: Thu, 25 Nov 2010 11:14:59 -0800
+Subject: [R-sig-hpc] Problem installing Rmpi on SuSE 64 bit system: does
+	compile but does not load
+In-Reply-To: <4CEE22B4.5010000@gmail.com>
+References: <4CEE22B4.5010000@gmail.com>
+Message-ID: <201011251114.59598.cubranic@stat.ubc.ca>
+
+On November 25, 2010 12:47:48 am Rainer M Krug wrote:
+> installing to /home/rkrug/R/R/R-2.12.0/library/Rmpi/libs
+[...]
+> ** testing if installed package can be loaded
+> /home/rkrug/R/R/R-2.12.0/bin/exec/R: symbol lookup error:
+> /usr/lib64/openmpi/mca_paffinity_linux.so: undefined symbol:
+> mca_base_param_reg_int
+> 
+> So - what is happening here? As I understand it, it is compiling, but
+> can not be loaded, as "undefined symbol".
+
+You may have to add '/home/rkrug/R/R/R-2.12.0/library/Rmpi/libs' to your 
+LD_LIBRARY_PATH environment variable.
+
+Davor
+
+
+From Kevin.Buckley at ecs.vuw.ac.nz  Thu Nov 25 22:38:58 2010
+From: Kevin.Buckley at ecs.vuw.ac.nz (Kevin.Buckley at ecs.vuw.ac.nz)
+Date: Fri, 26 Nov 2010 10:38:58 +1300
+Subject: [R-sig-hpc] Problem installing Rmpi on SuSE 64 bit system: does
+ compile but does not load
+In-Reply-To: <4CEE22B4.5010000@gmail.com>
+References: <4CEE22B4.5010000@gmail.com>
+Message-ID: <179317ac53ab20f7af3a06437d1cedfa.squirrel@mail.ecs.vuw.ac.nz>
+
+
+
+> # Check that it is loaded
+>> mpirun --version
+> mpirun (Open MPI) 1.4.2r22761-ct8.2.1c-b11a-r31
+>
+> Report bugs to http://www.open-mpi.org/community/help/
+>
+
+> ** building package indices ...
+> ** testing if installed package can be loaded
+> /home/rkrug/R/R/R-2.12.0/bin/exec/R: symbol lookup error:
+> /usr/lib64/openmpi/mca_paffinity_linux.so: undefined symbol:
+> mca_base_param_reg_int
+
+
+The undefined symbol you are seeing should be being found within
+the OpenMPI libraries.
+
+It is possible that the shell(s) that get invoked for the testing
+are not getting the full OpenMPI environment set when running Rmpi.
+
+Kevin
+
+
+-- 
+Kevin M. Buckley                                  Room:  CO327
+School of Engineering and                         Phone: +64 4 463 5971
+ Computer Science
+Victoria University of Wellington
+New Zealand
+
+
+From Rob.Musk at forestrytas.com.au  Fri Nov 26 01:18:24 2010
+From: Rob.Musk at forestrytas.com.au (Rob Musk)
+Date: Fri, 26 Nov 2010 11:18:24 +1100
+Subject: [R-sig-hpc] correct syntax running doMPI on a cluster
+Message-ID: <4CEF9780.22DC.0033.1@forestrytas.com.au>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101126/c93e8a50/attachment.pl>
+
+From nakama at ki.rim.or.jp  Fri Nov 26 17:32:19 2010
+From: nakama at ki.rim.or.jp (Ei-ji Nakama)
+Date: Sat, 27 Nov 2010 01:32:19 +0900
+Subject: [R-sig-hpc] License of GotoBLAS was changed to BSD
+Message-ID: <AANLkTikhewTjCMfWsGCuuKa0ZBZAf+Y3vN1rD4iQj3gO@mail.gmail.com>
+
+Hi,
+
+Please look at the following.
+http://www.tacc.utexas.edu/tacc-projects/gotoblas2/
+
+comparatively new CPU should force it with `make TARGET=NEHALEM'
+
+-- 
+EI-JI Nakama? <nakama (a) ki.rim.or.jp>
+"\u4e2d\u9593\u6804\u6cbb"? <nakama (a) ki.rim.or.jp>
+
+
+From John.Joseph at utsa.edu  Tue Nov 30 02:46:44 2010
+From: John.Joseph at utsa.edu (John Joseph)
+Date: Mon, 29 Nov 2010 19:46:44 -0600
+Subject: [R-sig-hpc] trouble installing Rmpi
+References: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3CA@granite1604><978d4aae61e5a9aa1718eba7a84b57ee.squirrel@mail.ecs.vuw.ac.nz><8AFB4A1479ECD246A26FAA98CC48A93C018FE3CF@granite1604>
+	<4582bd03f7e9e70d29a6f9ccc6300158.squirrel@mail.ecs.vuw.ac.nz>
+Message-ID: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3E0@granite1604>
+
+
+Thanks, Kevin and Dirk, for the help you've given me.  I uninstalled (COMPLETELY unistalled) all of R, and then re-installed Rmpi, using the simple command Dirk had recommended: sudo apt-get install r-cran-rmpi.I am no longer getting errors when entering the script "library(Rmpi)", but I'm still having trouble associated with dyn.load().  I haven't found clarity by reading the documentation.  Maybe someone can at least help me focus my search among what I've looked at already: makefile flags/options, installation of the fortran compiler software (Intel Composer, latest edition), R manuals.
+Here's the problem I'm having:
+
+> library(Rmpi)
+> library(snow)
+> setwd("/home/john/LREWI15_TIO")
+> dyn.load("./swat2009_i64_calibrate.so")
+Error in dyn.load("./swat2009_i64_calibrate.so") : 
+  unable to load shared library '/home/john/LREWI15_TIO/./swat2009_i64_calibrate.so':
+  libifport.so.5: cannot open shared object file: No such file or directory
+> 
+
+I've also attached the makefile I used to generate swat2009_i64_calibrate.so, if it helps.
+
+Any guidance would be much appreciated.  
+
+John Joseph
+
+P.S.  Thanks for the added clarity regarding what worked for you for Rmpi.  If you think the instructions are still relevant to my new situation, I would be happy to still try to work them out.  But I have a little fear of digging myself into a deeper hole, so I'll need to ask you a couple of things first.
+
+-----Original Message-----
+From: r-sig-hpc-bounces at r-project.org on behalf of Kevin.Buckley at ecs.vuw.ac.nz
+Sent: Sun 11/21/2010 4:11 PM
+To: r-sig-hpc at r-project.org
+Subject: Re: [R-sig-hpc] trouble installing Rmpi
+ 
+>
+> Thanks for your help, Kevin.
+>
+> These instructions look very helpful, and I've begun studying them.
+> I'm such a newbie that I understand little of it.  I'm learning a
+> little by reading the documentation, but I'm just not getting all of
+> it.  It seems that the idea is to make a file called "Makevars" that
+> is stored in certain directories.  I did the first three lines, but
+> can't find where Makevars went...Well, I did find a Makevars and
+> Makevars.win file several directories deep into the R directory that
+> was already there, but I don't know if these two files were created
+> by the 3 lines I wrote or were already there...Anyway, as you can
+> see, I'm struggling with the basics.
+>
+> Another thing is that when I go to etc/profile.d I do not find
+> openmpi.sh within it.
+>
+> In any case, I appreciate this help you gave.
+>
+> John Joseph
+
+hey John,
+
+it seems as though I forgot to copy the list into my "advice/experience"
+so am now doing so (see below for original)
+
+In respect of the issues you raise, the /etc/profile.d/openmpi.sh
+is a LOCAL thing, which merely gives the users, at login time, the
+correct environment (paths, etch) for OpenMPI.
+
+Chances are that that's being handled for you in some way because
+you installed OpenMPI from a package.
+
+The inclusion of that line there was just me running things explicitly
+as a "hedge" against a user who might not have had such an environment
+set up. Apologies, I should have tailored the commands to remove the
+"local" bits.
+
+As to the R Makevars file I referred to, again the syntax of my
+suggestions is creating it as though it was not there (I should
+have, of course, suggested checking to see if the user account
+being used for the installation already had such a file as my
+"instructions" trample all over it).
+
+That ties in with the note about removing the Makevars file
+afterwards: if you already had one and moved it out of the
+way, or otherwise appended the variables that Rmpi seemed to
+need, you'ld want to simply remove them or replace the old file,
+rather than bin it.
+
+But basically, you won't see that file ~/.R/Makevars (you might
+not even see the directory ~/.R) unless it had already been created
+beneath the home directory of the user doing the installtion.
+
+Kevin
+
+PS
+
+Just in case it is something you have not seen before, the ~ (tilde)
+character at the start of the path to the Makevears referred to
+is a shorthand for the home directory of the user, in case the user
+doing the install.
+
+
+> -----Original Message-----
+> From: Kevin.Buckley at ecs.vuw.ac.nz
+> Sent: Thu 11/18/2010 3:35 PM
+> To: John Joseph
+> Subject: Re: [R-sig-hpc] trouble installing Rmpi
+>
+>
+> Not directly addressing your install methodology issues, John, but
+>
+>  "the way it worked for me"
+>
+> was to install from outside of R itself, but still using R, so as
+> to have some control over the paths to our OpenMPI installtion.
+>
+> Note the use of the R "Makevars" file to override some
+> of the defaults R might be picking up if left to its own
+> devices:
+>
+> The "mpicc" is the OpenMPI-aware C compiler wrapper
+>
+> You might need to tweak the paths for Ubuntu's OpenMPI package
+> setup.
+>
+> This was for Rmpi_0.5-8.tar.bz2
+>
+> mkdir ~/.R
+> echo CC=mpicc > ~/.R/Makevars
+> echo SHLIB_LD=mpicc >> ~/.R/Makevars
+> . /etc/profile.d/openmpi.sh
+>
+> /opt/R/bin/R CMD INSTALL \
+>  --library=/opt/Rlibs \
+>  /path/to/Rmpi_0.5-8.tar.bz2 \
+>  --configure-args=--with-Rmpi-type=OPENMPI  \
+>  --configure-args=--with-Rmpi-libpath=/opt/openmpi/1.4.2/lib \
+>  --configure-args=--with-Rmpi-include=/opt/openmpi/1.4.2/include
+>
+> Oh yeah, once you have built the package, (assuming you do!),
+> remove the file
+>
+>  ~/.R/Makevars
+>
+> unless you want all future R packages you build by hand, to be built
+> against OpenMPI that is !
+>
+> Kevin
+
+-- 
+Kevin M. Buckley                                  Room:  CO327
+School of Engineering and                         Phone: +64 4 463 5971
+ Computer Science
+Victoria University of Wellington
+New Zealand
+
+_______________________________________________
+R-sig-hpc mailing list
+R-sig-hpc at r-project.org
+https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+
+
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101129/9b43fab8/attachment.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: Makefile.calibrate.gmk
+Type: application/octet-stream
+Size: 6435 bytes
+Desc: Makefile.calibrate.gmk
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101129/9b43fab8/attachment.obj>
+
+From edd at debian.org  Tue Nov 30 03:14:33 2010
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Mon, 29 Nov 2010 20:14:33 -0600
+Subject: [R-sig-hpc] trouble installing Rmpi
+In-Reply-To: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3E0@granite1604>
+References: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3CA@granite1604>
+	<978d4aae61e5a9aa1718eba7a84b57ee.squirrel@mail.ecs.vuw.ac.nz>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3CF@granite1604>
+	<4582bd03f7e9e70d29a6f9ccc6300158.squirrel@mail.ecs.vuw.ac.nz>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3E0@granite1604>
+Message-ID: <19700.24073.333480.425665@max.nulle.part>
+
+
+On 29 November 2010 at 19:46, John Joseph wrote:
+| 
+| Thanks, Kevin and Dirk, for the help you've given me.  I uninstalled
+| (COMPLETELY unistalled) all of R, and then re-installed Rmpi, using the simple
+| command Dirk had recommended: sudo apt-get install r-cran-rmpi.I am no longer
+| getting errors when entering the script "library(Rmpi)", but I'm still having
+
+At this point I strongly recommend two things:
+
+  a) Ascertain that Open MPI works, either just on localhost or between two
+     or more machines.
+
+     There are numerous 'hello World' example for C and/or C++ floating
+     around, try those.  [ This assumes some familiarity with compilers etc;
+     if unsure skip the step. ]
+
+  b) Ascertain that Rmpi work by running a helloWorld example in R.
+
+Example for a) and b) are for example in the 'Intro to HPC with R' slides
+from the different tutorials I have given on this.
+
+| trouble associated with dyn.load().  I haven't found clarity by reading the
+| documentation.  Maybe someone can at least help me focus my search among what
+| I've looked at already: makefile flags/options, installation of the fortran
+| compiler software (Intel Composer, latest edition), R manuals.
+| Here's the problem I'm having:
+| 
+| > library(Rmpi)
+| > library(snow)
+| > setwd("/home/john/LREWI15_TIO")
+| > dyn.load("./swat2009_i64_calibrate.so")
+| Error in dyn.load("./swat2009_i64_calibrate.so") :
+|   unable to load shared library '/home/john/LREWI15_TIO/./
+| swat2009_i64_calibrate.so':
+|   libifport.so.5: cannot open shared object file: No such file or directory
+| >
+
+I am confused:
+
+   c) What is this program?  
+
+   d) Why do you load Rmpi and then compile code? The idea of Rmpi is to give
+      you MPI idioms _in R_ without the need to compile anything more.
+
+   e) What is libifport ?
+ 
+| I've also attached the makefile I used to generate swat2009_i64_calibrate.so,
+| if it helps.
+
+I saw no attachment.
+
+Good luck,  Dirk
+
+ 
+| Any guidance would be much appreciated. 
+| 
+| John Joseph
+| 
+| P.S.  Thanks for the added clarity regarding what worked for you for Rmpi.  If
+| you think the instructions are still relevant to my new situation, I would be
+| happy to still try to work them out.  But I have a little fear of digging
+| myself into a deeper hole, so I'll need to ask you a couple of things first.
+| 
+| -----Original Message-----
+| From: r-sig-hpc-bounces at r-project.org on behalf of Kevin.Buckley at ecs.vuw.ac.nz
+| Sent: Sun 11/21/2010 4:11 PM
+| To: r-sig-hpc at r-project.org
+| Subject: Re: [R-sig-hpc] trouble installing Rmpi
+| 
+| >
+| > Thanks for your help, Kevin.
+| >
+| > These instructions look very helpful, and I've begun studying them.
+| > I'm such a newbie that I understand little of it.  I'm learning a
+| > little by reading the documentation, but I'm just not getting all of
+| > it.  It seems that the idea is to make a file called "Makevars" that
+| > is stored in certain directories.  I did the first three lines, but
+| > can't find where Makevars went...Well, I did find a Makevars and
+| > Makevars.win file several directories deep into the R directory that
+| > was already there, but I don't know if these two files were created
+| > by the 3 lines I wrote or were already there...Anyway, as you can
+| > see, I'm struggling with the basics.
+| >
+| > Another thing is that when I go to etc/profile.d I do not find
+| > openmpi.sh within it.
+| >
+| > In any case, I appreciate this help you gave.
+| >
+| > John Joseph
+| 
+| hey John,
+| 
+| it seems as though I forgot to copy the list into my "advice/experience"
+| so am now doing so (see below for original)
+| 
+| In respect of the issues you raise, the /etc/profile.d/openmpi.sh
+| is a LOCAL thing, which merely gives the users, at login time, the
+| correct environment (paths, etch) for OpenMPI.
+| 
+| Chances are that that's being handled for you in some way because
+| you installed OpenMPI from a package.
+| 
+| The inclusion of that line there was just me running things explicitly
+| as a "hedge" against a user who might not have had such an environment
+| set up. Apologies, I should have tailored the commands to remove the
+| "local" bits.
+| 
+| As to the R Makevars file I referred to, again the syntax of my
+| suggestions is creating it as though it was not there (I should
+| have, of course, suggested checking to see if the user account
+| being used for the installation already had such a file as my
+| "instructions" trample all over it).
+| 
+| That ties in with the note about removing the Makevars file
+| afterwards: if you already had one and moved it out of the
+| way, or otherwise appended the variables that Rmpi seemed to
+| need, you'ld want to simply remove them or replace the old file,
+| rather than bin it.
+| 
+| But basically, you won't see that file ~/.R/Makevars (you might
+| not even see the directory ~/.R) unless it had already been created
+| beneath the home directory of the user doing the installtion.
+| 
+| Kevin
+| 
+| PS
+| 
+| Just in case it is something you have not seen before, the ~ (tilde)
+| character at the start of the path to the Makevears referred to
+| is a shorthand for the home directory of the user, in case the user
+| doing the install.
+| 
+| 
+| > -----Original Message-----
+| > From: Kevin.Buckley at ecs.vuw.ac.nz
+| > Sent: Thu 11/18/2010 3:35 PM
+| > To: John Joseph
+| > Subject: Re: [R-sig-hpc] trouble installing Rmpi
+| >
+| >
+| > Not directly addressing your install methodology issues, John, but
+| >
+| >  "the way it worked for me"
+| >
+| > was to install from outside of R itself, but still using R, so as
+| > to have some control over the paths to our OpenMPI installtion.
+| >
+| > Note the use of the R "Makevars" file to override some
+| > of the defaults R might be picking up if left to its own
+| > devices:
+| >
+| > The "mpicc" is the OpenMPI-aware C compiler wrapper
+| >
+| > You might need to tweak the paths for Ubuntu's OpenMPI package
+| > setup.
+| >
+| > This was for Rmpi_0.5-8.tar.bz2
+| >
+| > mkdir ~/.R
+| > echo CC=mpicc > ~/.R/Makevars
+| > echo SHLIB_LD=mpicc >> ~/.R/Makevars
+| > . /etc/profile.d/openmpi.sh
+| >
+| > /opt/R/bin/R CMD INSTALL \
+| >  --library=/opt/Rlibs \
+| >  /path/to/Rmpi_0.5-8.tar.bz2 \
+| >  --configure-args=--with-Rmpi-type=OPENMPI  \
+| >  --configure-args=--with-Rmpi-libpath=/opt/openmpi/1.4.2/lib \
+| >  --configure-args=--with-Rmpi-include=/opt/openmpi/1.4.2/include
+| >
+| > Oh yeah, once you have built the package, (assuming you do!),
+| > remove the file
+| >
+| >  ~/.R/Makevars
+| >
+| > unless you want all future R packages you build by hand, to be built
+| > against OpenMPI that is !
+| >
+| > Kevin
+| 
+| --
+| Kevin M. Buckley                                  Room:  CO327
+| School of Engineering and                         Phone: +64 4 463 5971
+|  Computer Science
+| Victoria University of Wellington
+| New Zealand
+| 
+| _______________________________________________
+| R-sig-hpc mailing list
+| R-sig-hpc at r-project.org
+| https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+| 
+| 
+| 
+| 
+| 
+| 
+| xMakefile.calibrate.gmk, Makefile.ca [Click mouse-2 to save to a file]
+| _______________________________________________
+| R-sig-hpc mailing list
+| R-sig-hpc at r-project.org
+| https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+-- 
+Dirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com
+
+
+From Kevin.Buckley at ecs.vuw.ac.nz  Tue Nov 30 05:48:58 2010
+From: Kevin.Buckley at ecs.vuw.ac.nz (Kevin.Buckley at ecs.vuw.ac.nz)
+Date: Tue, 30 Nov 2010 17:48:58 +1300
+Subject: [R-sig-hpc] trouble installing Rmpi
+In-Reply-To: <19700.24073.333480.425665@max.nulle.part>
+References: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3CA@granite1604>
+	<978d4aae61e5a9aa1718eba7a84b57ee.squirrel@mail.ecs.vuw.ac.nz>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3CF@granite1604>
+	<4582bd03f7e9e70d29a6f9ccc6300158.squirrel@mail.ecs.vuw.ac.nz>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3E0@granite1604>
+	<19700.24073.333480.425665@max.nulle.part>
+Message-ID: <20d6b8f602718d120ed10d642f8bcab4.squirrel@mail.ecs.vuw.ac.nz>
+
+John,
+
+> | trouble associated with dyn.load().  I haven't found clarity by
+> | reading the documentation.  Maybe someone can at least help me
+> |  focus my search among what I've looked at already: makefile
+> | flags/options, installation of the fortran
+> | compiler software (Intel Composer, latest edition), R manuals.
+> | Here's the problem I'm having:
+> |
+> | > library(Rmpi)
+> | > library(snow)
+> | > setwd("/home/john/LREWI15_TIO")
+> | > dyn.load("./swat2009_i64_calibrate.so")
+> | Error in dyn.load("./swat2009_i64_calibrate.so") :
+> |   unable to load shared library '/home/john/LREWI15_TIO/./
+> | swat2009_i64_calibrate.so':
+> |   libifport.so.5: cannot open shared object file: No such file or
+> directory
+> | >
+>
+> I am confused:
+>
+>    c) What is this program?
+>
+>    d) Why do you load Rmpi and then compile code? The idea of Rmpi is to
+> give
+>       you MPI idioms _in R_ without the need to compile anything more.
+>
+>    e) What is libifport ?
+>
+
+Just to say that I have not replied to this as it, the dyn.load()
+issue, seems more to be with setting up R itself, than with the
+setting up of Rmpi which is where I have some experience. I am
+not really an R user, more an implementer of R and Rmpi for
+others to use.
+
+-- 
+Kevin M. Buckley                                  Room:  CO327
+School of Engineering and                         Phone: +64 4 463 5971
+ Computer Science
+Victoria University of Wellington
+New Zealand
+
+
+From John.Joseph at utsa.edu  Tue Nov 30 08:25:11 2010
+From: John.Joseph at utsa.edu (John Joseph)
+Date: Tue, 30 Nov 2010 01:25:11 -0600
+Subject: [R-sig-hpc] trouble installing Rmpi
+References: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3CA@granite1604><978d4aae61e5a9aa1718eba7a84b57ee.squirrel@mail.ecs.vuw.ac.nz><8AFB4A1479ECD246A26FAA98CC48A93C018FE3CF@granite1604><4582bd03f7e9e70d29a6f9ccc6300158.squirrel@mail.ecs.vuw.ac.nz><8AFB4A1479ECD246A26FAA98CC48A93C018FE3E0@granite1604>
+	<19700.24073.333480.425665@max.nulle.part>
+Message-ID: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3E1@granite1604>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101130/8cc8c3f2/attachment.pl>
+
+From edd at debian.org  Tue Nov 30 14:16:20 2010
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Tue, 30 Nov 2010 07:16:20 -0600
+Subject: [R-sig-hpc] trouble installing Rmpi
+In-Reply-To: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3E1@granite1604>
+References: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3CA@granite1604>
+	<978d4aae61e5a9aa1718eba7a84b57ee.squirrel@mail.ecs.vuw.ac.nz>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3CF@granite1604>
+	<4582bd03f7e9e70d29a6f9ccc6300158.squirrel@mail.ecs.vuw.ac.nz>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3E0@granite1604>
+	<19700.24073.333480.425665@max.nulle.part>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3E1@granite1604>
+Message-ID: <19700.63780.315713.692602@max.nulle.part>
+
+
+On 30 November 2010 at 01:25, John Joseph wrote:
+| 
+| Thanks for your guidance, Dirk.
+| 
+| In regard to a) and b), I am shaky on using compilers, but it seems that Rmpi
+| is working based on a Hello World script I used.
+| 
+| > mpi.spawn.Rslaves(nslaves=8)
+|         8 slaves are spawned successfully. 0 failed.
+| master (rank 0, comm 1) of size 9 is running on: john-desktop
+| slave1 (rank 1, comm 1) of size 9 is running on: john-desktop
+| slave2 (rank 2, comm 1) of size 9 is running on: john-desktop
+| slave3 (rank 3, comm 1) of size 9 is running on: john-desktop
+| slave4 (rank 4, comm 1) of size 9 is running on: john-desktop
+| slave5 (rank 5, comm 1) of size 9 is running on: john-desktop
+| slave6 (rank 6, comm 1) of size 9 is running on: john-desktop
+| slave7 (rank 7, comm 1) of size 9 is running on: john-desktop
+| slave8 (rank 8, comm 1) of size 9 is running on: john-desktop
+| > mpi.remote.exec(paste("I am",mpi.comm.rank(),"of",mpi.comm.size()))
+| $slave1
+| [1] "I am 1 of 9"
+| 
+| $slave2
+| [1] "I am 2 of 9"
+| 
+| $slave3
+| [1] "I am 3 of 9"
+
+Yes, that looks good.
+ 
+| and so on, all the way through "I am 8 of 9".  I am using only my own desktop,
+| which is a Cori-i7, and not networking.  When I script mpi.spawn.Rslaves(), I
+| get only 1 slave.
+| 
+| In regard to c: OK, I'll try to give the big picture, but I hope you can read
+| through my weak computer vocabulary.  SWAT, the Soil and Water Assessment Tool,
+| is a hydrologic model that simulates streamflow based on parameters such as
+| soil permeability, type of vegetative cover, etc.  The SWAT executable consists
+| of a compilation of over 300 Fortran source code files, and normally reads
+| parameter values from ASCII files.  As the parameter values represent data
+| obtained through geographic information systems, there may be hundreds to tens
+| of thousands of such files, depending on the resolution of the information and
+| the size of the basin.  If we want to change the parameter values thousands of
+| times as part of an uncertainty analysis, then it becomes very advantageous to
+| avoid rewriting all these files repeatedly, and to directly feed the parameter
+| values to SWAT through R.  We modified the SWAT code so that it can receive
+| these changes "externally" rather than look to the ASCII files.  Now, the file
+
+Cool. Sounds like a serious research endeavour.
+
+So R as front-end to SWAT.  You haven't explained where MPI comes. Do you
+want to launch many independendent SWAT runs?  Is MPI already part of SWAT
+via the Fortran code?
+
+| "swat2009_i64_calibrate.so" is meant to be the "interface" between the
+| parameter values in R and the SWAT executable.  This has actually been done
+| before by others with SWAT with CentOS as the operating system, and it is from
+| them that I obtained makefiles.  (I'm using Ubuntu 10.04 because it was
+| recommended to me as being more compatible with my Core-i7.)
+
+I should not dignify those last two lines with a comment but let's just say
+that "compatible" is utter BS. Every linux distro will run on your cpu. Some
+are more complete with tools and easier to install and in that latter sense
+Ubuntu has a leg up on CentOS in my book -- but that is a personal view.
+
+Yet if everybody around uses CentOS, consider using CentOS.
+ 
+| In regard to d: My intention is to use dyn.load() to link
+| swat2009_i64_calibrate.so to R.  To me, it does seem that I should not have to
+| load Rmpi in order to use dyn.load(), since dyn.load() is part of the base
+| package.  But...well, I guess I'm unclear on how Rmpi and dyn.load() are
+| related.
+
+You really, really want to learn about packages.  And yes, compilers.
+
+You have a real big task to do here, don't plan on doing it on the back of a napkin.
+
+I would recommend looking at other CRAN packages that employ MPI in the way
+you plan to.
+
+| In regard to e: libifport.so.5 is part of or at least closely associated with
+| the Intel Fortran compiler I am using.  I find it in opt/intel/lib/ia32/, but
+| when I click to try to open it I get "Could not create the archive.  Archive
+| type not supported."
+
+As a first instance, and similar to what I have explained in the last email:
+simplify by reducing the number of moving parts,  
+
+R works perfectly well with GNU Fortran. Use that.  If and when it works, optimise.
+ 
+| In regard to your not getting the attachment:  I'm not sure why it got clipped,
+| but below is copying and pasting of the file, less most of the lengthy list of
+| source code files.  (This is the makefile I used to generate
+| swat2009_i64_calibrate.so.)
+
+Sorry, I won't have time to dig through a non-standard Makefile using a
+non-standard compiler.
+
+Good luck,  Dirk
+ 
+| # SWAT MAKEFILE FOR INTEL COMPILER
+| #
+| F95=ifort
+| FFLAGS= -c -g -fpe:0 -align sequence -fPIC -threads -fltconsistency -real-size
+| 64 -debug all
+| LDFLAGS= -g -shared -fPIC -shared-intel -heap-arrays
+| 
+| SRC= main.autocal.calibrate.f\
+|      freearray_09.f\
+|      addh.f\
+| 
+|  (many source file names omitted for brevity in this e-mail)
+| 
+|      zero2.f\
+|      zeroini.f
+| MOD=parm.mod
+| EXE=swat2009
+| OBJ=$(SRC:.f=.o)
+| all: $(OBJ)
+| ifort $(LDFLAGS) -g -o swat2009_i64_calibrate.so $(OBJ)
+| clean:
+|         rm -f *.o parm.mod swat2009
+| $(MOD): modparm.f
+|         $(F95) $(FFLAGS) $<
+| $(OBJ): $(MOD)
+| $(EXE): $(OBJ) modparm.o
+|         $(F95) $(LDFLAGS) $(OBJ) -o $@
+|         ## debug
+|         #$(F95) $(LDFLAGS) $(OBJ) $@
+| .f.o: modparm.f
+|         $(F95) $(FFLAGS) $< -o $@
+| 
+| 
+| Thank you, Dirk, and to anyone else who has read this far.  I much appreciate
+| any help, as I have been struggling with this off and on for a couple of months
+| now.
+| 
+| John Joseph
+| 
+| 
+| -----Original Message-----
+| From: Dirk Eddelbuettel [mailto:edd at debian.org]
+| Sent: Mon 11/29/2010 8:14 PM
+| To: John Joseph
+| Cc: Kevin.Buckley at ecs.vuw.ac.nz; r-sig-hpc at r-project.org
+| Subject: Re: [R-sig-hpc] trouble installing Rmpi
+| 
+| 
+| On 29 November 2010 at 19:46, John Joseph wrote:
+| |
+| | Thanks, Kevin and Dirk, for the help you've given me.  I uninstalled
+| | (COMPLETELY unistalled) all of R, and then re-installed Rmpi, using the
+| simple
+| | command Dirk had recommended: sudo apt-get install r-cran-rmpi.I am no longer
+| | getting errors when entering the script "library(Rmpi)", but I'm still having
+| 
+| At this point I strongly recommend two things:
+| 
+|   a) Ascertain that Open MPI works, either just on localhost or between two
+|      or more machines.
+| 
+|      There are numerous 'hello World' example for C and/or C++ floating
+|      around, try those.  [ This assumes some familiarity with compilers etc;
+|      if unsure skip the step. ]
+| 
+|   b) Ascertain that Rmpi work by running a helloWorld example in R.
+| 
+| Example for a) and b) are for example in the 'Intro to HPC with R' slides
+| from the different tutorials I have given on this.
+| 
+| | trouble associated with dyn.load().  I haven't found clarity by reading the
+| | documentation.  Maybe someone can at least help me focus my search among what
+| | I've looked at already: makefile flags/options, installation of the fortran
+| | compiler software (Intel Composer, latest edition), R manuals.
+| | Here's the problem I'm having:
+| |
+| | > library(Rmpi)
+| | > library(snow)
+| | > setwd("/home/john/LREWI15_TIO")
+| | > dyn.load("./swat2009_i64_calibrate.so")
+| | Error in dyn.load("./swat2009_i64_calibrate.so") :
+| |   unable to load shared library '/home/john/LREWI15_TIO/./
+| | swat2009_i64_calibrate.so':
+| |   libifport.so.5: cannot open shared object file: No such file or directory
+| | >
+| 
+| I am confused:
+| 
+|    c) What is this program? 
+| 
+|    d) Why do you load Rmpi and then compile code? The idea of Rmpi is to give
+|       you MPI idioms _in R_ without the need to compile anything more.
+| 
+|    e) What is libifport ?
+| 
+| | I've also attached the makefile I used to generate swat2009_i64_calibrate.so,
+| | if it helps.
+| 
+| I saw no attachment.
+| 
+| Good luck,  Dirk
+| 
+| 
+| | Any guidance would be much appreciated.
+| |
+| | John Joseph
+| |
+| | P.S.  Thanks for the added clarity regarding what worked for you for Rmpi. 
+| If
+| | you think the instructions are still relevant to my new situation, I would be
+| | happy to still try to work them out.  But I have a little fear of digging
+| | myself into a deeper hole, so I'll need to ask you a couple of things first.
+| |
+| | -----Original Message-----
+| | From: r-sig-hpc-bounces at r-project.org on behalf of
+| Kevin.Buckley at ecs.vuw.ac.nz
+| | Sent: Sun 11/21/2010 4:11 PM
+| | To: r-sig-hpc at r-project.org
+| | Subject: Re: [R-sig-hpc] trouble installing Rmpi
+| |
+| | >
+| | > Thanks for your help, Kevin.
+| | >
+| | > These instructions look very helpful, and I've begun studying them.
+| | > I'm such a newbie that I understand little of it.  I'm learning a
+| | > little by reading the documentation, but I'm just not getting all of
+| | > it.  It seems that the idea is to make a file called "Makevars" that
+| | > is stored in certain directories.  I did the first three lines, but
+| | > can't find where Makevars went...Well, I did find a Makevars and
+| | > Makevars.win file several directories deep into the R directory that
+| | > was already there, but I don't know if these two files were created
+| | > by the 3 lines I wrote or were already there...Anyway, as you can
+| | > see, I'm struggling with the basics.
+| | >
+| | > Another thing is that when I go to etc/profile.d I do not find
+| | > openmpi.sh within it.
+| | >
+| | > In any case, I appreciate this help you gave.
+| | >
+| | > John Joseph
+| |
+| | hey John,
+| |
+| | it seems as though I forgot to copy the list into my "advice/experience"
+| | so am now doing so (see below for original)
+| |
+| | In respect of the issues you raise, the /etc/profile.d/openmpi.sh
+| | is a LOCAL thing, which merely gives the users, at login time, the
+| | correct environment (paths, etch) for OpenMPI.
+| |
+| | Chances are that that's being handled for you in some way because
+| | you installed OpenMPI from a package.
+| |
+| | The inclusion of that line there was just me running things explicitly
+| | as a "hedge" against a user who might not have had such an environment
+| | set up. Apologies, I should have tailored the commands to remove the
+| | "local" bits.
+| |
+| | As to the R Makevars file I referred to, again the syntax of my
+| | suggestions is creating it as though it was not there (I should
+| | have, of course, suggested checking to see if the user account
+| | being used for the installation already had such a file as my
+| | "instructions" trample all over it).
+| |
+| | That ties in with the note about removing the Makevars file
+| | afterwards: if you already had one and moved it out of the
+| | way, or otherwise appended the variables that Rmpi seemed to
+| | need, you'ld want to simply remove them or replace the old file,
+| | rather than bin it.
+| |
+| | But basically, you won't see that file ~/.R/Makevars (you might
+| | not even see the directory ~/.R) unless it had already been created
+| | beneath the home directory of the user doing the installtion.
+| |
+| | Kevin
+| |
+| | PS
+| |
+| | Just in case it is something you have not seen before, the ~ (tilde)
+| | character at the start of the path to the Makevears referred to
+| | is a shorthand for the home directory of the user, in case the user
+| | doing the install.
+| |
+| |
+| | > -----Original Message-----
+| | > From: Kevin.Buckley at ecs.vuw.ac.nz
+| | > Sent: Thu 11/18/2010 3:35 PM
+| | > To: John Joseph
+| | > Subject: Re: [R-sig-hpc] trouble installing Rmpi
+| | >
+| | >
+| | > Not directly addressing your install methodology issues, John, but
+| | >
+| | >  "the way it worked for me"
+| | >
+| | > was to install from outside of R itself, but still using R, so as
+| | > to have some control over the paths to our OpenMPI installtion.
+| | >
+| | > Note the use of the R "Makevars" file to override some
+| | > of the defaults R might be picking up if left to its own
+| | > devices:
+| | >
+| | > The "mpicc" is the OpenMPI-aware C compiler wrapper
+| | >
+| | > You might need to tweak the paths for Ubuntu's OpenMPI package
+| | > setup.
+| | >
+| | > This was for Rmpi_0.5-8.tar.bz2
+| | >
+| | > mkdir ~/.R
+| | > echo CC=mpicc > ~/.R/Makevars
+| | > echo SHLIB_LD=mpicc >> ~/.R/Makevars
+| | > . /etc/profile.d/openmpi.sh
+| | >
+| | > /opt/R/bin/R CMD INSTALL \
+| | >  --library=/opt/Rlibs \
+| | >  /path/to/Rmpi_0.5-8.tar.bz2 \
+| | >  --configure-args=--with-Rmpi-type=OPENMPI  \
+| | >  --configure-args=--with-Rmpi-libpath=/opt/openmpi/1.4.2/lib \
+| | >  --configure-args=--with-Rmpi-include=/opt/openmpi/1.4.2/include
+| | >
+| | > Oh yeah, once you have built the package, (assuming you do!),
+| | > remove the file
+| | >
+| | >  ~/.R/Makevars
+| | >
+| | > unless you want all future R packages you build by hand, to be built
+| | > against OpenMPI that is !
+| | >
+| | > Kevin
+| |
+| | --
+| | Kevin M. Buckley                                  Room:  CO327
+| | School of Engineering and                         Phone: +64 4 463 5971
+| |  Computer Science
+| | Victoria University of Wellington
+| | New Zealand
+| |
+| | _______________________________________________
+| | R-sig-hpc mailing list
+| | R-sig-hpc at r-project.org
+| | https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+| |
+| |
+| |
+| |
+| |
+| |
+| | xMakefile.calibrate.gmk, Makefile.ca [Click mouse-2 to save to a file]
+| | _______________________________________________
+| | R-sig-hpc mailing list
+| | R-sig-hpc at r-project.org
+| | https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+| 
+| --
+| Dirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com
+| 
+| 
+| 
+| 
+| 
+| 
+| 
+| 
+| 
+| 
+| 
+
+-- 
+Dirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com
+
+
+From John.Joseph at utsa.edu  Tue Nov 30 14:20:14 2010
+From: John.Joseph at utsa.edu (John Joseph)
+Date: Tue, 30 Nov 2010 07:20:14 -0600
+Subject: [R-sig-hpc] trouble installing Rmpi
+References: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3CA@granite1604>
+	<19685.38403.997886.560304@max.nulle.part>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3CE@granite1604>
+	<19686.32434.58703.328828@max.nulle.part>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3D6@granite1604>
+	<AANLkTi=w62eZ99Bq8_8n1A4uAWjAht3AA_Pnchmf+FoA@mail.gmail.com>
+Message-ID: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3E3@granite1604>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101130/e7c183c1/attachment.pl>
+

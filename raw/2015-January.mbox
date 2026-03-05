@@ -1,0 +1,116 @@
+From lisas at salford-systems.com  Mon Jan 12 21:24:59 2015
+From: lisas at salford-systems.com (Lisa Solomon)
+Date: Mon, 12 Jan 2015 14:24:59 -0600
+Subject: [R-sig-hpc] Tomorrow Webinar: Enter a KDD Cup or Kaggle Competition
+ without being an expert!
+Message-ID: <2732C804E2DBB04AA90A678D76FAF2CC6236EB6071@DFW1MBX02.mex07a.mlsrvr.com>
+
+Webinar: Enter a KDD Cup or Kaggle Competition, You don't need to be an expert!
+
+Tomorrow, January 13, 2015 from 10am-11am PDT
+
+*         If inconvenient time, please register and we will send you a recording.
+
+Click to Register: http://hubs.ly/y0q_jf0
+
+Abstract:
+
+*         Quickly achieve a place in the top 5: We will show you how Salford's TreeNet gradient boosting can be used for the 2009 KDD Cup competition to quickly achieve a place in the top 5.
+
+*         Takeaway: At the end of this webinar, our goal is that you will be able to build a TreeNet model that can bring you within decimal places of a winning solution.
+
+*         Starting Point for Kaggle, KDD and other data science competitions: Use this information as a starting point for Kaggle competitions and other KDD Cup competitions.
+
+*         30-day software access: All attendees receive 30-day access to TreeNet gradient boosting, and other Salford Predictive Modeler technology.
+
+Click to Register: http://hubs.ly/y0q_jf0
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	[[alternative HTML version deleted]]
+
+
+From Jens.Oehlschlaegel at truecluster.com  Wed Jan 14 15:49:30 2015
+From: Jens.Oehlschlaegel at truecluster.com (=?UTF-8?B?SmVucyBPZWhsc2NobMOkZ2Vs?=)
+Date: Wed, 14 Jan 2015 15:49:30 +0100
+Subject: [R-sig-hpc] Q: ffsave/ffload between Linux and Windows
+In-Reply-To: <CAJ6FE3tKy5vi4CuviR-1sMQdD526PetbWg4dpBEDoF-7oKvVpw@mail.gmail.com>
+References: <CAJ6FE3tKy5vi4CuviR-1sMQdD526PetbWg4dpBEDoF-7oKvVpw@mail.gmail.com>
+Message-ID: <54B681FA.5020703@truecluster.com>
+
+Patrick,
+
+I don't have a quick solution using ffsave/ffload. However, are you 
+aware that you can open an ff file from a previous session just by
+
+a) make sure the ff file is not removed upon session end (create it 
+outside fftemp)
+
+b) make sure you have stored the R side ff object
+
+Look at this:
+
+# create ff outside fftemp
+ > x <- ff(1:12, file="fftest")
+# see finalizer changed from 'delete' to 'close'
+ > finalizer(x)
+[1] "close"
+# see filename
+ > filename(x)
+[1] "C:/Users/jens/Documents/fftest"
+# close file
+ > close(x)
+[1] TRUE
+# plug-in wrong filepathname but do not use: filename(x) <- newname
+ > physical(x)$filename <- "C:/Users/jens/Documents/fftest2"
+# try open: can't find file anymore
+ > open(x)
+Fehler: file.access(filename, 0) == 0 ist nicht TRUE
+ > x
+ff (deleted) integer length=12 (12)
+# plug-in correct filepathname but do not use: filename(x) <- newname
+ > physical(x)$filename <- "C:/Users/jens/Documents/fftest"
+ > open(x)
+[1] TRUE
+ > x
+ff (open) integer length=12 (12)
+  [1]  [2]  [3]  [4]  [5]  [6]  [7]  [8]  [9] [10] [11] [12]
+    1    2    3    4    5    6    7    8    9   10   11   12
+
+With this you can easily migrate any ff objects to new locations
+
+HTH
+Jens
+
+Am 10.01.2015 18:45, schrieb Patrick Zhang:
+> Dear Jens,
+>
+> My name is Patrick, a new user of your fantastic ff package. Here is my
+> quick question.
+>
+> I want to move ff data archives between Linux and Windows, and have
+> tried a couple of different approaches including ffsave/ffload without
+> success. It seems to me that the different directory structure between
+> the two operating systems is preventing a smooth transfer. In the ff
+> archives, the absolute path is used as the storage parameter.
+>
+> Your assistance on this matter would be highly appreciated. Thank you!
+>
+> Best regards,
+> Patrick
+
+

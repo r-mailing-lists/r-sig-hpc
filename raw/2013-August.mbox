@@ -1,0 +1,2353 @@
+From jolmsted at princeton.edu  Thu Aug  1 18:51:13 2013
+From: jolmsted at princeton.edu (Jonathan Olmsted)
+Date: Thu, 1 Aug 2013 12:51:13 -0400
+Subject: [R-sig-hpc] Rmpi and random number generation
+In-Reply-To: <FF9DB805FC41CC4E95825A50F680630217A343D5@challenger.uhd.campus>
+References: <FF9DB805FC41CC4E95825A50F680630217A34355@challenger.uhd.campus>
+	<20969.46705.79809.261617@max.nulle.part>
+	<FF9DB805FC41CC4E95825A50F680630217A343D5@challenger.uhd.campus>
+Message-ID: <CABMO4otih8+4C1wV2DtpeCup3aPwqi-FRaPLmZ+AYoWyyp34Pw@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130801/a5462e04/attachment.pl>
+
+From greatauklet at gmail.com  Sat Aug  3 00:39:24 2013
+From: greatauklet at gmail.com (Martin Renner)
+Date: Fri, 2 Aug 2013 14:39:24 -0800
+Subject: [R-sig-hpc] segfault and RunSnowWorker: not found
+Message-ID: <D9D07429-CE61-4187-9E8D-B9D68B862747@gmail.com>
+
+Hi,
+
+While I suspect that this is an issue peculiar to my machine (Debian squeeze amd64, R version 3.0.1, up-to-date packages), I'm hoping that somebody on this list may be able to give me suggestions on how to troubleshoot and fix the following:
+
+> library (snow)
+> cl <- makeSOCKcluster(c("localhost","localhost"))
+sh: 1: RunSnowWorker: not found
+
+
+I presume/hope that this may be related to an (even more pressing) issue I have with mclapply (package 'parallel'). While 
+> example (mclapply) 
+works as expected, any of my longer parallel jobs result in segfaults:
+
+*** caught segfault ***
+address 0x7f0aeed649d0, cause 'memory not mapped'
+
+Traceback:
+1: mcexit(0L)
+2: mcparallel(FUN(X[[i]], ...), mc.set.seed = mc.set.seed, silent = mc.silent)
+3: FUN(1:8[[2L]], ...)
+4: lapply(jobid, function(i) mcparallel(FUN(X[[i]], ...), mc.set.seed = mc.set.seed,     silent = mc.silent))
+5: mclapply(sppDaysL, predDist, mc.cores = 8)
+aborting ...
+
+To add to the puzzle: the first couple of iterations sometimes finish successfully, but on other runs segfaults start to appear with the first iteration. The reported address seems to be always the same. htop indicates that there is still sufficient RAM available and memtester came out clean. Running the code with mc.cores=1 works fine -- run times are just not practical when I can't take advantage of my 8 cores. Likewise, no problems running in parallel under Mac OS X. 
+
+I tried the cran binaries R version 3.0.1 (2013-05-16) as well as my locally compiled version with the same result. I also tried a blank user account, again with the same issue. Any suggestions how I could troubleshoot this seqfault or RunSnowWorker: not found issue would be much appreciated. 
+
+Best wishes,
+
+Martin
+
+
+Martin Renner
+Tern Again Consulting
+388 E. Bayview Ave.
+Homer, AK 99603, USA
+phone: +1 907 235 0728
+cell:         299 6152
+
+
+From caf at skogoglandskap.no  Sat Aug  3 14:41:06 2013
+From: caf at skogoglandskap.no (=?iso-8859-1?Q?Clara_Ant=F3n_Fern=E1ndez?=)
+Date: Sat, 3 Aug 2013 12:41:06 +0000
+Subject: [R-sig-hpc] HiPLARb installation failed when magma-lib included
+Message-ID: <3E2599F26051A3429E7D8B05E8AB22CCD033A5DD@exdb1.ad.skogoglandskap.no>
+
+Hi all,
+I am trying to install HiPLARb package but I am running into an error. Any help would be greatly appreciated.
+I used the installer available from their website (http://www.hiplar.org/hiplar-b-installation.html) and followed their
+instructions. The installer finished without showing warnings or errors, but HiPLARb is not installed when I try to load it in R. So, I tried to install HiPLARb package manually.
+If I do 
+R CMD INSTALL --configure-args="--with-lapack=-L/home/caf/mylibs/lib\ -lopenblas  --with-plasma-lib=/home/caf/mylibs --with-cuda-home=/usr/local/cuda   " HiPLARb_0.1.3.tar.gz
+
+the installation is successfull, but if I try to include magma
+
+R CMD INSTALL --configure-args="--with-lapack=-L/home/caf/mylibs/lib\ -lopenblas  --with-magma-lib=/home/caf/mylibs --with-plasma-lib=/home/caf/mylibs   --with-cuda-home=/usr/local/cuda" HiPLARb_0.1.3.tar.gz
+
+I get the error
+Error in dyn.load(file, DLLpath = DLLpath, ...) :  unable to load shared object
+'/home/caf/R.2.15.2-patched/lib/R/library/HiPLARb/libs/HiPLARb.so': 
+  /home/caf/mylibs/lib/libmagmablas.so: undefined symbol: cudaMemcpyFromSymbol
+
+Info about the system
+Ubuntu 12.04.2 LTS
+NVIDIA Quadro K4000
+CUDA 5.5
+R 2.15.2, hwloc, MAGMA and PLASMA where both downloaded and installed
+by HiPLARb installer
+
+Any help much appreciated,
+Clara
+
+
+From xiaoch.sun at gmail.com  Tue Aug  6 21:33:53 2013
+From: xiaoch.sun at gmail.com (Xiaochun Sun)
+Date: Tue, 6 Aug 2013 15:33:53 -0400
+Subject: [R-sig-hpc] Rmpi long vector support
+Message-ID: <CAGsKdWftAqc_MObs_2q3FR_=etfqUu-kTxqJUgLJ7jqYVZUmjw@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130806/4911a1f0/attachment.pl>
+
+From nakama at ki.rim.or.jp  Wed Aug  7 02:37:44 2013
+From: nakama at ki.rim.or.jp (Ei-ji Nakama)
+Date: Wed, 7 Aug 2013 09:37:44 +0900
+Subject: [R-sig-hpc] Rmpi long vector support
+In-Reply-To: <CAGsKdWftAqc_MObs_2q3FR_=etfqUu-kTxqJUgLJ7jqYVZUmjw@mail.gmail.com>
+References: <CAGsKdWftAqc_MObs_2q3FR_=etfqUu-kTxqJUgLJ7jqYVZUmjw@mail.gmail.com>
+Message-ID: <CAJqeyYZ4b6DzmkKWKT+TQKrf3RK2pHFO8ZQNOfhMK0K3BjmW1A@mail.gmail.com>
+
+Hi,
+
+<WARNING>
+It is not yet completed...
+</WARNING>
+http://prs.ism.ac.jp/~nakama/Rhpc/
+
+2013/8/7, Xiaochun Sun <xiaoch.sun at gmail.com>:
+> The same code worked fine for smaller dataset, such as 350x25000. Does that
+> mean the current Rmpi don't allow long vectors to be passed to slaves? Any
+> idea on that or any alternatives to Rmpi?
+
+Its can treat the considerably big data.
+
+-- 
+EI-JI Nakama  <nakama (a) ki.rim.or.jp>
+"\u4e2d\u9593\u6804\u6cbb"  <nakama (a) ki.rim.or.jp>
+
+
+From j.gattiker at gmail.com  Wed Aug  7 17:59:29 2013
+From: j.gattiker at gmail.com (Jim Gattiker)
+Date: Wed, 7 Aug 2013 09:59:29 -0600
+Subject: [R-sig-hpc] Rmpi long vector support
+In-Reply-To: <CAJqeyYZ4b6DzmkKWKT+TQKrf3RK2pHFO8ZQNOfhMK0K3BjmW1A@mail.gmail.com>
+References: <CAGsKdWftAqc_MObs_2q3FR_=etfqUu-kTxqJUgLJ7jqYVZUmjw@mail.gmail.com>
+	<CAJqeyYZ4b6DzmkKWKT+TQKrf3RK2pHFO8ZQNOfhMK0K3BjmW1A@mail.gmail.com>
+Message-ID: <CAGzA4aS9DN4uNLRKj2kHB8N0y-a8dL7-L4LA9jm7YFM0ECOxSQ@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130807/a2f2b335/attachment.pl>
+
+From xiaoch.sun at gmail.com  Wed Aug  7 20:44:03 2013
+From: xiaoch.sun at gmail.com (Xiaochun Sun)
+Date: Wed, 7 Aug 2013 14:44:03 -0400
+Subject: [R-sig-hpc] Rmpi long vector support
+In-Reply-To: <CAGzA4aS9DN4uNLRKj2kHB8N0y-a8dL7-L4LA9jm7YFM0ECOxSQ@mail.gmail.com>
+References: <CAGsKdWftAqc_MObs_2q3FR_=etfqUu-kTxqJUgLJ7jqYVZUmjw@mail.gmail.com>
+	<CAJqeyYZ4b6DzmkKWKT+TQKrf3RK2pHFO8ZQNOfhMK0K3BjmW1A@mail.gmail.com>
+	<CAGzA4aS9DN4uNLRKj2kHB8N0y-a8dL7-L4LA9jm7YFM0ECOxSQ@mail.gmail.com>
+Message-ID: <CAGsKdWfFhpe2FUvwKb=LVN4bZ2acRz0HiY0LKYCvAt-5V=ZaiA@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130807/768a369e/attachment.pl>
+
+From simon.urbanek at r-project.org  Thu Aug  8 02:03:08 2013
+From: simon.urbanek at r-project.org (Simon Urbanek)
+Date: Wed, 7 Aug 2013 20:03:08 -0400
+Subject: [R-sig-hpc] Rmpi long vector support
+In-Reply-To: <CAGzA4aS9DN4uNLRKj2kHB8N0y-a8dL7-L4LA9jm7YFM0ECOxSQ@mail.gmail.com>
+References: <CAGsKdWftAqc_MObs_2q3FR_=etfqUu-kTxqJUgLJ7jqYVZUmjw@mail.gmail.com>
+	<CAJqeyYZ4b6DzmkKWKT+TQKrf3RK2pHFO8ZQNOfhMK0K3BjmW1A@mail.gmail.com>
+	<CAGzA4aS9DN4uNLRKj2kHB8N0y-a8dL7-L4LA9jm7YFM0ECOxSQ@mail.gmail.com>
+Message-ID: <3DA72ED0-9A23-4461-A028-74B2F3F37A81@r-project.org>
+
+Jim,
+
+On Aug 7, 2013, at 11:59 AM, Jim Gattiker <j.gattiker at gmail.com> wrote:
+
+> To bcast.Robj, Rmpi uses serialize() to pack the object into "raw", which
+> operates as a vector of bytes. R supports vectors up to 2^31 elements.
+
+that is not true. R supports vectors up to 2^52 elements. That is way beyond current RAM sizes and certainly more than 2^31:
+
+> n=6e9
+> x=integer(n)
+> a=serialize(x,NULL)
+> length(a)
+[1] 2.4e+10
+> log2(length(a))
+[1] 34.48232
+
+However Rmpi does not. You have to use XLENGTH and R_xlen_t in the C code if you want to go beyond 2^31.
+
+Cheers,
+Simon
+
+
+> Your
+> object, serialized, is close to that. I'm a little puzzled though,
+> 350x350000 matrix works for me; perhaps there's more to your actual call.
+> 
+> Setting up the slave environment explicitly seems to me to be better
+> practice, i.e. using mpi.bcast.Robj2Slave and related calls, then the
+> applyLB() doesn't contain the data. As I'm reading it, I think the way this
+> is set up currently will send the data to a slave for each application of
+> the apply.
+> 
+> If you're facing larger data sizes, a solution is to explicitly cut up the
+> object, mpi.bcast.Robj2Slave the pieces in turn, and then use an
+> mpi.bcast.cmd to collect them together. Another approach would be to write
+> to data to a file, and direct the slaves to read it into their environments
+> with an mpi.bcast.cmd.
+> 
+> As a comment: I can't tell your application from the code, but if the
+> slaves are to be working each on only part of the data, it's better to send
+> the slave just the part of the data it needs.
+> 
+>    cheers,
+>       jim
+> 
+> 
+> 
+> 
+> On Tue, Aug 6, 2013 at 6:37 PM, Ei-ji Nakama <nakama at ki.rim.or.jp> wrote:
+> 
+>> Hi,
+>> 
+>> <WARNING>
+>> It is not yet completed...
+>> </WARNING>
+>> http://prs.ism.ac.jp/~nakama/Rhpc/
+>> 
+>> 2013/8/7, Xiaochun Sun <xiaoch.sun at gmail.com>:
+>>> The same code worked fine for smaller dataset, such as 350x25000. Does
+>> that
+>>> mean the current Rmpi don't allow long vectors to be passed to slaves?
+>> Any
+>>> idea on that or any alternatives to Rmpi?
+>> 
+>> Its can treat the considerably big data.
+>> 
+>> --
+>> EI-JI Nakama  <nakama (a) ki.rim.or.jp>
+>> "\u4e2d\u9593\u6804\u6cbb"  <nakama (a) ki.rim.or.jp>
+>> 
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>> 
+> 
+> 	[[alternative HTML version deleted]]
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+> 
+
+
+From hyu at stats.uwo.ca  Thu Aug  8 03:42:54 2013
+From: hyu at stats.uwo.ca (Hao Yu)
+Date: Wed, 7 Aug 2013 21:42:54 -0400
+Subject: [R-sig-hpc] Rmpi long vector support
+In-Reply-To: <3DA72ED0-9A23-4461-A028-74B2F3F37A81@r-project.org>
+References: <CAGsKdWftAqc_MObs_2q3FR_=etfqUu-kTxqJUgLJ7jqYVZUmjw@mail.gmail.com>
+	<CAJqeyYZ4b6DzmkKWKT+TQKrf3RK2pHFO8ZQNOfhMK0K3BjmW1A@mail.gmail.com>
+	<CAGzA4aS9DN4uNLRKj2kHB8N0y-a8dL7-L4LA9jm7YFM0ECOxSQ@mail.gmail.com>
+	<3DA72ED0-9A23-4461-A028-74B2F3F37A81@r-project.org>
+Message-ID: <9e5d676e619e475843252ee5df12aa67.squirrel@www.stats.uwo.ca>
+
+Hi Simon,
+
+Thank for pointing out this XLENGTH and R_xlen_t. I will add them in the
+next release of Rmpi.
+
+However I do run into the following issue. On a debian system with R 3.0.1
+(8GB ram), I can run
+> n=6e8
+> x=integer(n)
+> a=serialize(x,NULL)
+> length(a)
+[1] 2.4e+09
+
+However, on a win7 64 with R 3.0.1 (16GB ram), I got
+> n=6e8
+> x=integer(n)
+> a=serialize(x,NULL)
+Error: long vectors not supported yet: ../include/Rinlinefuns.h:100
+
+Is this a bug or xlenght is not implemented in R win version?
+
+Thanks,
+
+Hao
+
+Simon Urbanek wrote:
+> Jim,
+>
+> On Aug 7, 2013, at 11:59 AM, Jim Gattiker <j.gattiker at gmail.com> wrote:
+>
+>> To bcast.Robj, Rmpi uses serialize() to pack the object into "raw",
+>> which
+>> operates as a vector of bytes. R supports vectors up to 2^31 elements.
+>
+> that is not true. R supports vectors up to 2^52 elements. That is way
+> beyond current RAM sizes and certainly more than 2^31:
+>
+>> n=6e9
+>> x=integer(n)
+>> a=serialize(x,NULL)
+>> length(a)
+> [1] 2.4e+10
+>> log2(length(a))
+> [1] 34.48232
+>
+> However Rmpi does not. You have to use XLENGTH and R_xlen_t in the C code
+> if you want to go beyond 2^31.
+>
+> Cheers,
+> Simon
+>
+>
+>> Your
+>> object, serialized, is close to that. I'm a little puzzled though,
+>> 350x350000 matrix works for me; perhaps there's more to your actual
+>> call.
+>>
+>> Setting up the slave environment explicitly seems to me to be better
+>> practice, i.e. using mpi.bcast.Robj2Slave and related calls, then the
+>> applyLB() doesn't contain the data. As I'm reading it, I think the way
+>> this
+>> is set up currently will send the data to a slave for each application
+>> of
+>> the apply.
+>>
+>> If you're facing larger data sizes, a solution is to explicitly cut up
+>> the
+>> object, mpi.bcast.Robj2Slave the pieces in turn, and then use an
+>> mpi.bcast.cmd to collect them together. Another approach would be to
+>> write
+>> to data to a file, and direct the slaves to read it into their
+>> environments
+>> with an mpi.bcast.cmd.
+>>
+>> As a comment: I can't tell your application from the code, but if the
+>> slaves are to be working each on only part of the data, it's better to
+>> send
+>> the slave just the part of the data it needs.
+>>
+>>    cheers,
+>>       jim
+>>
+>>
+>>
+>>
+>> On Tue, Aug 6, 2013 at 6:37 PM, Ei-ji Nakama <nakama at ki.rim.or.jp>
+>> wrote:
+>>
+>>> Hi,
+>>>
+>>> <WARNING>
+>>> It is not yet completed...
+>>> </WARNING>
+>>> http://prs.ism.ac.jp/~nakama/Rhpc/
+>>>
+>>> 2013/8/7, Xiaochun Sun <xiaoch.sun at gmail.com>:
+>>>> The same code worked fine for smaller dataset, such as 350x25000. Does
+>>> that
+>>>> mean the current Rmpi don't allow long vectors to be passed to slaves?
+>>> Any
+>>>> idea on that or any alternatives to Rmpi?
+>>>
+>>> Its can treat the considerably big data.
+>>>
+>>> --
+>>> EI-JI Nakama  <nakama (a) ki.rim.or.jp>
+>>> "\u4e2d\u9593\u6804\u6cbb"  <nakama (a) ki.rim.or.jp>
+>>>
+>>> _______________________________________________
+>>> R-sig-hpc mailing list
+>>> R-sig-hpc at r-project.org
+>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>
+>>
+>> 	[[alternative HTML version deleted]]
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>>
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+-- 
+Department of Statistics & Actuarial Sciences
+Office Phone#:(519)-661-3622
+Fax Phone#:(519)-661-3813
+The University of Western Ontario
+London, Ontario N6A 5B7
+http://www.stats.uwo.ca/yu
+
+
+From hyu at stats.uwo.ca  Thu Aug  8 15:53:03 2013
+From: hyu at stats.uwo.ca (Hao Yu)
+Date: Thu, 8 Aug 2013 09:53:03 -0400
+Subject: [R-sig-hpc] Rmpi long vector support
+In-Reply-To: <3DA72ED0-9A23-4461-A028-74B2F3F37A81@r-project.org>
+References: <CAGsKdWftAqc_MObs_2q3FR_=etfqUu-kTxqJUgLJ7jqYVZUmjw@mail.gmail.com>
+	<CAJqeyYZ4b6DzmkKWKT+TQKrf3RK2pHFO8ZQNOfhMK0K3BjmW1A@mail.gmail.com>
+	<CAGzA4aS9DN4uNLRKj2kHB8N0y-a8dL7-L4LA9jm7YFM0ECOxSQ@mail.gmail.com>
+	<3DA72ED0-9A23-4461-A028-74B2F3F37A81@r-project.org>
+Message-ID: <c16dc1cd616c19da8e70674560984b11.squirrel@www.stats.uwo.ca>
+
+To all,
+
+Look like the max buffer size in any MPI transfer is restricted to 2^31-1.
+Whether XLENGTH is used or not will not change it. This is the restriction
+of MPI-2. MPI-3 will address some of those issues. Until then we either
+split the data in R before transferring or define a user-defined type
+(e.g. a contiguous type like 10 double as one unit so we can transfer max
+10*(2^31-1) elements of double).
+
+Hao
+
+Simon Urbanek wrote:
+> Jim,
+>
+> On Aug 7, 2013, at 11:59 AM, Jim Gattiker <j.gattiker at gmail.com> wrote:
+>
+>> To bcast.Robj, Rmpi uses serialize() to pack the object into "raw",
+>> which
+>> operates as a vector of bytes. R supports vectors up to 2^31 elements.
+>
+> that is not true. R supports vectors up to 2^52 elements. That is way
+> beyond current RAM sizes and certainly more than 2^31:
+>
+>> n=6e9
+>> x=integer(n)
+>> a=serialize(x,NULL)
+>> length(a)
+> [1] 2.4e+10
+>> log2(length(a))
+> [1] 34.48232
+>
+> However Rmpi does not. You have to use XLENGTH and R_xlen_t in the C code
+> if you want to go beyond 2^31.
+>
+> Cheers,
+> Simon
+>
+>
+>> Your
+>> object, serialized, is close to that. I'm a little puzzled though,
+>> 350x350000 matrix works for me; perhaps there's more to your actual
+>> call.
+>>
+>> Setting up the slave environment explicitly seems to me to be better
+>> practice, i.e. using mpi.bcast.Robj2Slave and related calls, then the
+>> applyLB() doesn't contain the data. As I'm reading it, I think the way
+>> this
+>> is set up currently will send the data to a slave for each application
+>> of
+>> the apply.
+>>
+>> If you're facing larger data sizes, a solution is to explicitly cut up
+>> the
+>> object, mpi.bcast.Robj2Slave the pieces in turn, and then use an
+>> mpi.bcast.cmd to collect them together. Another approach would be to
+>> write
+>> to data to a file, and direct the slaves to read it into their
+>> environments
+>> with an mpi.bcast.cmd.
+>>
+>> As a comment: I can't tell your application from the code, but if the
+>> slaves are to be working each on only part of the data, it's better to
+>> send
+>> the slave just the part of the data it needs.
+>>
+>>    cheers,
+>>       jim
+>>
+>>
+>>
+>>
+>> On Tue, Aug 6, 2013 at 6:37 PM, Ei-ji Nakama <nakama at ki.rim.or.jp>
+>> wrote:
+>>
+>>> Hi,
+>>>
+>>> <WARNING>
+>>> It is not yet completed...
+>>> </WARNING>
+>>> http://prs.ism.ac.jp/~nakama/Rhpc/
+>>>
+>>> 2013/8/7, Xiaochun Sun <xiaoch.sun at gmail.com>:
+>>>> The same code worked fine for smaller dataset, such as 350x25000. Does
+>>> that
+>>>> mean the current Rmpi don't allow long vectors to be passed to slaves?
+>>> Any
+>>>> idea on that or any alternatives to Rmpi?
+>>>
+>>> Its can treat the considerably big data.
+>>>
+>>> --
+>>> EI-JI Nakama  <nakama (a) ki.rim.or.jp>
+>>> "\u4e2d\u9593\u6804\u6cbb"  <nakama (a) ki.rim.or.jp>
+>>>
+>>> _______________________________________________
+>>> R-sig-hpc mailing list
+>>> R-sig-hpc at r-project.org
+>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>
+>>
+>> 	[[alternative HTML version deleted]]
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>>
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+-- 
+Department of Statistics & Actuarial Sciences
+Office Phone#:(519)-661-3622
+Fax Phone#:(519)-661-3813
+The University of Western Ontario
+London, Ontario N6A 5B7
+http://www.stats.uwo.ca/yu
+
+
+From j.gattiker at gmail.com  Thu Aug  8 16:58:08 2013
+From: j.gattiker at gmail.com (Jim Gattiker)
+Date: Thu, 8 Aug 2013 08:58:08 -0600
+Subject: [R-sig-hpc] Rmpi long vector support
+In-Reply-To: <9e5d676e619e475843252ee5df12aa67.squirrel@www.stats.uwo.ca>
+References: <CAGsKdWftAqc_MObs_2q3FR_=etfqUu-kTxqJUgLJ7jqYVZUmjw@mail.gmail.com>
+	<CAJqeyYZ4b6DzmkKWKT+TQKrf3RK2pHFO8ZQNOfhMK0K3BjmW1A@mail.gmail.com>
+	<CAGzA4aS9DN4uNLRKj2kHB8N0y-a8dL7-L4LA9jm7YFM0ECOxSQ@mail.gmail.com>
+	<3DA72ED0-9A23-4461-A028-74B2F3F37A81@r-project.org>
+	<9e5d676e619e475843252ee5df12aa67.squirrel@www.stats.uwo.ca>
+Message-ID: <CAGzA4aSd4x__g91O8F02L793Dzxo2=qD9yTQ1Fv9a68WbQzBqw@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130808/05420315/attachment.pl>
+
+From j.gattiker at gmail.com  Thu Aug  8 16:59:57 2013
+From: j.gattiker at gmail.com (Jim Gattiker)
+Date: Thu, 8 Aug 2013 08:59:57 -0600
+Subject: [R-sig-hpc] Rmpi long vector support
+In-Reply-To: <c16dc1cd616c19da8e70674560984b11.squirrel@www.stats.uwo.ca>
+References: <CAGsKdWftAqc_MObs_2q3FR_=etfqUu-kTxqJUgLJ7jqYVZUmjw@mail.gmail.com>
+	<CAJqeyYZ4b6DzmkKWKT+TQKrf3RK2pHFO8ZQNOfhMK0K3BjmW1A@mail.gmail.com>
+	<CAGzA4aS9DN4uNLRKj2kHB8N0y-a8dL7-L4LA9jm7YFM0ECOxSQ@mail.gmail.com>
+	<3DA72ED0-9A23-4461-A028-74B2F3F37A81@r-project.org>
+	<c16dc1cd616c19da8e70674560984b11.squirrel@www.stats.uwo.ca>
+Message-ID: <CAGzA4aSSpVCO46enqY6JJDFf=rQTDyD62T9E+_ebRoen6J2s5Q@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130808/c46120a8/attachment.pl>
+
+From simon.urbanek at r-project.org  Thu Aug  8 18:38:22 2013
+From: simon.urbanek at r-project.org (Simon Urbanek)
+Date: Thu, 8 Aug 2013 12:38:22 -0400
+Subject: [R-sig-hpc] Rmpi long vector support
+In-Reply-To: <CAGzA4aSd4x__g91O8F02L793Dzxo2=qD9yTQ1Fv9a68WbQzBqw@mail.gmail.com>
+References: <CAGsKdWftAqc_MObs_2q3FR_=etfqUu-kTxqJUgLJ7jqYVZUmjw@mail.gmail.com>
+	<CAJqeyYZ4b6DzmkKWKT+TQKrf3RK2pHFO8ZQNOfhMK0K3BjmW1A@mail.gmail.com>
+	<CAGzA4aS9DN4uNLRKj2kHB8N0y-a8dL7-L4LA9jm7YFM0ECOxSQ@mail.gmail.com>
+	<3DA72ED0-9A23-4461-A028-74B2F3F37A81@r-project.org>
+	<9e5d676e619e475843252ee5df12aa67.squirrel@www.stats.uwo.ca>
+	<CAGzA4aSd4x__g91O8F02L793Dzxo2=qD9yTQ1Fv9a68WbQzBqw@mail.gmail.com>
+Message-ID: <54D1F587-BEBA-42B4-A33A-B840EFDCBF0B@r-project.org>
+
+
+On Aug 8, 2013, at 10:58 AM, Jim Gattiker <j.gattiker at gmail.com> wrote:
+
+> Simon, I don't understand this either: It seems that R is commonly indexed
+> by 32-bit pointers, and mine certainly is on my Mac.
+
+Nope, since R 3.0.0 we use 64-bit binaries on Mac OS X:
+
+$ R
+R version 3.0.1 Patched (2013-07-15 r63328) -- "Good Sport"
+Copyright (C) 2013 The R Foundation for Statistical Computing
+Platform: x86_64-apple-darwin10.8.0 (64-bit)
+[...]
+> .Machine$sizeof.pointer
+[1] 8
+
+
+> I'll get the message
+> above also, as did the OP; that was the direct problem. How do I get "52
+> bit" R?
+> 
+
+http://cran.r-project.org/bin/macosx/
+
+Cheers,
+Simon
+
+
+>    --j
+> 
+> On Wed, Aug 7, 2013 at 7:42 PM, Hao Yu <hyu at stats.uwo.ca> wrote:
+> 
+>> ....
+>> However, on a win7 64 with R 3.0.1 (16GB ram), I got
+>>> n=6e8
+>>> x=integer(n)
+>>> a=serialize(x,NULL)
+>> Error: long vectors not supported yet: ../include/Rinlinefuns.h:100
+>> 
+> 
+> 	[[alternative HTML version deleted]]
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+>
+
+
+From simon.urbanek at r-project.org  Thu Aug  8 18:44:14 2013
+From: simon.urbanek at r-project.org (Simon Urbanek)
+Date: Thu, 8 Aug 2013 12:44:14 -0400
+Subject: [R-sig-hpc] Rmpi long vector support
+In-Reply-To: <9e5d676e619e475843252ee5df12aa67.squirrel@www.stats.uwo.ca>
+References: <CAGsKdWftAqc_MObs_2q3FR_=etfqUu-kTxqJUgLJ7jqYVZUmjw@mail.gmail.com>
+	<CAJqeyYZ4b6DzmkKWKT+TQKrf3RK2pHFO8ZQNOfhMK0K3BjmW1A@mail.gmail.com>
+	<CAGzA4aS9DN4uNLRKj2kHB8N0y-a8dL7-L4LA9jm7YFM0ECOxSQ@mail.gmail.com>
+	<3DA72ED0-9A23-4461-A028-74B2F3F37A81@r-project.org>
+	<9e5d676e619e475843252ee5df12aa67.squirrel@www.stats.uwo.ca>
+Message-ID: <C7888830-D02C-4136-8137-8BD69447D7C3@r-project.org>
+
+On Aug 7, 2013, at 9:42 PM, Hao Yu <hyu at stats.uwo.ca> wrote:
+
+> Hi Simon,
+> 
+> Thank for pointing out this XLENGTH and R_xlen_t. I will add them in the
+> next release of Rmpi.
+> 
+> However I do run into the following issue. On a debian system with R 3.0.1
+> (8GB ram), I can run
+>> n=6e8
+>> x=integer(n)
+>> a=serialize(x,NULL)
+>> length(a)
+> [1] 2.4e+09
+> 
+> However, on a win7 64 with R 3.0.1 (16GB ram), I got
+>> n=6e8
+>> x=integer(n)
+>> a=serialize(x,NULL)
+> Error: long vectors not supported yet: ../include/Rinlinefuns.h:100
+> 
+> Is this a bug or xlenght is not implemented in R win version?
+> 
+
+I'm currently traveling so I cannot check. It's a good question - maybe try R-devel? 
+Note that long int on Windows is only 32-bit so I wonder if it is related ...
+
+Cheers,
+Simon
+
+
+
+> Thanks,
+> 
+> Hao
+> 
+> Simon Urbanek wrote:
+>> Jim,
+>> 
+>> On Aug 7, 2013, at 11:59 AM, Jim Gattiker <j.gattiker at gmail.com> wrote:
+>> 
+>>> To bcast.Robj, Rmpi uses serialize() to pack the object into "raw",
+>>> which
+>>> operates as a vector of bytes. R supports vectors up to 2^31 elements.
+>> 
+>> that is not true. R supports vectors up to 2^52 elements. That is way
+>> beyond current RAM sizes and certainly more than 2^31:
+>> 
+>>> n=6e9
+>>> x=integer(n)
+>>> a=serialize(x,NULL)
+>>> length(a)
+>> [1] 2.4e+10
+>>> log2(length(a))
+>> [1] 34.48232
+>> 
+>> However Rmpi does not. You have to use XLENGTH and R_xlen_t in the C code
+>> if you want to go beyond 2^31.
+>> 
+>> Cheers,
+>> Simon
+>> 
+>> 
+>>> Your
+>>> object, serialized, is close to that. I'm a little puzzled though,
+>>> 350x350000 matrix works for me; perhaps there's more to your actual
+>>> call.
+>>> 
+>>> Setting up the slave environment explicitly seems to me to be better
+>>> practice, i.e. using mpi.bcast.Robj2Slave and related calls, then the
+>>> applyLB() doesn't contain the data. As I'm reading it, I think the way
+>>> this
+>>> is set up currently will send the data to a slave for each application
+>>> of
+>>> the apply.
+>>> 
+>>> If you're facing larger data sizes, a solution is to explicitly cut up
+>>> the
+>>> object, mpi.bcast.Robj2Slave the pieces in turn, and then use an
+>>> mpi.bcast.cmd to collect them together. Another approach would be to
+>>> write
+>>> to data to a file, and direct the slaves to read it into their
+>>> environments
+>>> with an mpi.bcast.cmd.
+>>> 
+>>> As a comment: I can't tell your application from the code, but if the
+>>> slaves are to be working each on only part of the data, it's better to
+>>> send
+>>> the slave just the part of the data it needs.
+>>> 
+>>>   cheers,
+>>>      jim
+>>> 
+>>> 
+>>> 
+>>> 
+>>> On Tue, Aug 6, 2013 at 6:37 PM, Ei-ji Nakama <nakama at ki.rim.or.jp>
+>>> wrote:
+>>> 
+>>>> Hi,
+>>>> 
+>>>> <WARNING>
+>>>> It is not yet completed...
+>>>> </WARNING>
+>>>> http://prs.ism.ac.jp/~nakama/Rhpc/
+>>>> 
+>>>> 2013/8/7, Xiaochun Sun <xiaoch.sun at gmail.com>:
+>>>>> The same code worked fine for smaller dataset, such as 350x25000. Does
+>>>> that
+>>>>> mean the current Rmpi don't allow long vectors to be passed to slaves?
+>>>> Any
+>>>>> idea on that or any alternatives to Rmpi?
+>>>> 
+>>>> Its can treat the considerably big data.
+>>>> 
+>>>> --
+>>>> EI-JI Nakama  <nakama (a) ki.rim.or.jp>
+>>>> "\u4e2d\u9593\u6804\u6cbb"  <nakama (a) ki.rim.or.jp>
+>>>> 
+>>>> _______________________________________________
+>>>> R-sig-hpc mailing list
+>>>> R-sig-hpc at r-project.org
+>>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>> 
+>>> 
+>>> 	[[alternative HTML version deleted]]
+>>> 
+>>> _______________________________________________
+>>> R-sig-hpc mailing list
+>>> R-sig-hpc at r-project.org
+>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>> 
+>>> 
+>> 
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>> 
+> 
+> 
+> -- 
+> Department of Statistics & Actuarial Sciences
+> Office Phone#:(519)-661-3622
+> Fax Phone#:(519)-661-3813
+> The University of Western Ontario
+> London, Ontario N6A 5B7
+> http://www.stats.uwo.ca/yu
+> 
+> 
+
+
+From j.gattiker at gmail.com  Thu Aug  8 19:44:53 2013
+From: j.gattiker at gmail.com (Jim Gattiker)
+Date: Thu, 8 Aug 2013 11:44:53 -0600
+Subject: [R-sig-hpc] Rmpi long vector support
+In-Reply-To: <54D1F587-BEBA-42B4-A33A-B840EFDCBF0B@r-project.org>
+References: <CAGsKdWftAqc_MObs_2q3FR_=etfqUu-kTxqJUgLJ7jqYVZUmjw@mail.gmail.com>
+	<CAJqeyYZ4b6DzmkKWKT+TQKrf3RK2pHFO8ZQNOfhMK0K3BjmW1A@mail.gmail.com>
+	<CAGzA4aS9DN4uNLRKj2kHB8N0y-a8dL7-L4LA9jm7YFM0ECOxSQ@mail.gmail.com>
+	<3DA72ED0-9A23-4461-A028-74B2F3F37A81@r-project.org>
+	<9e5d676e619e475843252ee5df12aa67.squirrel@www.stats.uwo.ca>
+	<CAGzA4aSd4x__g91O8F02L793Dzxo2=qD9yTQ1Fv9a68WbQzBqw@mail.gmail.com>
+	<54D1F587-BEBA-42B4-A33A-B840EFDCBF0B@r-project.org>
+Message-ID: <CAGzA4aS=2TJW7b6g9xLebGtKGbb+1ojbTvWHLsyKJa10b=QGvA@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130808/b38d301d/attachment.pl>
+
+From simon.urbanek at r-project.org  Thu Aug  8 20:11:58 2013
+From: simon.urbanek at r-project.org (Simon Urbanek)
+Date: Thu, 8 Aug 2013 14:11:58 -0400
+Subject: [R-sig-hpc] Rmpi long vector support
+In-Reply-To: <CAGzA4aS=2TJW7b6g9xLebGtKGbb+1ojbTvWHLsyKJa10b=QGvA@mail.gmail.com>
+References: <CAGsKdWftAqc_MObs_2q3FR_=etfqUu-kTxqJUgLJ7jqYVZUmjw@mail.gmail.com>
+	<CAJqeyYZ4b6DzmkKWKT+TQKrf3RK2pHFO8ZQNOfhMK0K3BjmW1A@mail.gmail.com>
+	<CAGzA4aS9DN4uNLRKj2kHB8N0y-a8dL7-L4LA9jm7YFM0ECOxSQ@mail.gmail.com>
+	<3DA72ED0-9A23-4461-A028-74B2F3F37A81@r-project.org>
+	<9e5d676e619e475843252ee5df12aa67.squirrel@www.stats.uwo.ca>
+	<CAGzA4aSd4x__g91O8F02L793Dzxo2=qD9yTQ1Fv9a68WbQzBqw@mail.gmail.com>
+	<54D1F587-BEBA-42B4-A33A-B840EFDCBF0B@r-project.org>
+	<CAGzA4aS=2TJW7b6g9xLebGtKGbb+1ojbTvWHLsyKJa10b=QGvA@mail.gmail.com>
+Message-ID: <DFD47EA2-8147-4936-BE93-C7148C060AF2@r-project.org>
+
+
+On Aug 8, 2013, at 1:44 PM, Jim Gattiker <j.gattiker at gmail.com> wrote:
+
+> Aha, thanks again.  
+> 
+> Two notes:
+> 1) serialize() didn't work over 2^31 until 3.0.1 (so it failed in my 3.0.0, with a message that led me to believe that there was still a 32-bit limit on length).
+
+Ok, thanks, I was checking with 3.0.1 so I didn't notice.
+
+
+> 2) more puzzling: Using vectors over 2^31 (2^31+2 ?!) seems to be broken in Rstudio, even though it works in R command-line. It looks like the functions that monitor the workspace are not ready yet.
+> 
+> Anyway, the important thing is, this message:
+>     "Error: long vectors not supported yet: ../include/Rinlinefuns.h:100"
+> is from Rstudio, not R. 
+> 
+
+That's possible - Rstudio overrides R functions which has caused problems before. If in doubt, test with R.
+
+Cheers,
+Simon
+
+
+
+
+>       --j
+> 
+> 
+> 
+> On Thu, Aug 8, 2013 at 10:38 AM, Simon Urbanek <simon.urbanek at r-project.org> wrote:
+> 
+> On Aug 8, 2013, at 10:58 AM, Jim Gattiker <j.gattiker at gmail.com> wrote:
+> 
+> > Simon, I don't understand this either: It seems that R is commonly indexed
+> > by 32-bit pointers, and mine certainly is on my Mac.
+> 
+> Nope, since R 3.0.0 we use 64-bit binaries on Mac OS X:
+> 
+> $ R
+> R version 3.0.1 Patched (2013-07-15 r63328) -- "Good Sport"
+> Copyright (C) 2013 The R Foundation for Statistical Computing
+> Platform: x86_64-apple-darwin10.8.0 (64-bit)
+> [...]
+> > .Machine$sizeof.pointer
+> [1] 8
+> 
+> 
+> > I'll get the message
+> > above also, as did the OP; that was the direct problem. How do I get "52
+> > bit" R?
+> >
+> 
+> http://cran.r-project.org/bin/macosx/
+> 
+> Cheers,
+> Simon
+> 
+> 
+> >    --j
+> >
+> > On Wed, Aug 7, 2013 at 7:42 PM, Hao Yu <hyu at stats.uwo.ca> wrote:
+> >
+> >> ....
+> >> However, on a win7 64 with R 3.0.1 (16GB ram), I got
+> >>> n=6e8
+> >>> x=integer(n)
+> >>> a=serialize(x,NULL)
+> >> Error: long vectors not supported yet: ../include/Rinlinefuns.h:100
+> >>
+> >
+> >       [[alternative HTML version deleted]]
+> >
+> > _______________________________________________
+> > R-sig-hpc mailing list
+> > R-sig-hpc at r-project.org
+> > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> >
+> >
+> 
+> 
+
+
+From j.gattiker at gmail.com  Thu Aug  8 21:57:54 2013
+From: j.gattiker at gmail.com (Jim Gattiker)
+Date: Thu, 8 Aug 2013 13:57:54 -0600
+Subject: [R-sig-hpc] R error throwing and poe error catching
+Message-ID: <CAGzA4aQ22u7zr5kM665H45JoVQwW+x0tSJWUdWgigqrHF49D6Q@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130808/556759b4/attachment.pl>
+
+From hyu at stats.uwo.ca  Thu Aug  8 23:19:59 2013
+From: hyu at stats.uwo.ca (Hao Yu)
+Date: Thu, 8 Aug 2013 17:19:59 -0400
+Subject: [R-sig-hpc] R error throwing and poe error catching
+In-Reply-To: <CAGzA4aQ22u7zr5kM665H45JoVQwW+x0tSJWUdWgigqrHF49D6Q@mail.gmail.com>
+References: <CAGzA4aQ22u7zr5kM665H45JoVQwW+x0tSJWUdWgigqrHF49D6Q@mail.gmail.com>
+Message-ID: <99abec72f43eb4196417e997e8a2ec1a.squirrel@www.stats.uwo.ca>
+
+Jim,
+
+Try to alter the behave of error in R. Run at the beginning
+
+options(error=quote(assign(".mpi.err", FALSE, envir = .GlobalEnv)))
+
+Check Rmpi's Rprofile usage.
+
+Hao
+
+
+Jim Gattiker wrote:
+> I'm having trouble with running R under "poe" on an iDataPlex (NCAR's
+> yellowstone). The purpose of running this way is to enable an interactive
+> master instance of R that uses mpi_spawn to launch slaves, in Rmpi. In
+> this
+> environment it seems I must use PE_MPI and POE.
+>
+> The problem is, it seems poe catches even warning messages from R (e.g., a
+> simple syntax error), and the entire environment crashes out. This happens
+> in base R, it's not an issue of parallel resources. This is very
+> inconvenient for EDA, when a typo causes hard exit.
+>
+> My launch looks like:
+>
+> bsub -Is -q xxx -n 4 -W 1:00 -P yyy tcsh
+>
+> and then
+>
+> poe R --no-save -procs 4 -world_sizes 1
+>
+> It runs, and is fully functional. But, I don't have to do anything exotic
+> to get a hard error:
+>
+>> m
+> m
+> Error: object 'm' not found
+> Execution halted
+>
+>
+> ...and that's it. My interpretation is POE catches the error and doesn't
+> know how to handle it.
+>
+> If anyone has any ideas ... I see two directions for solutions:
+> 1) avoid POE, which means get an interactive master set up with a slave
+> pool up without spawn(), which means launching them at startup. I've
+> tried;
+> it doesn't seem to be possible to both launch jobs on all PEs and have
+> (just) one remain interactive.
+> 2) figure out how to get poe to not trap R's own errors. Maybe this isn't
+> an HPC specific problem, if the issue is getting R to not throw its errors
+> outside its environment. Not sure how to proceed with that either.
+>
+> If a specific question will help: why does this error get outside of R,
+> and
+> why is this normally OK?
+>
+>      chrs,
+>        --jim
+>
+> 	[[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+-- 
+Department of Statistics & Actuarial Sciences
+Office Phone#:(519)-661-3622
+Fax Phone#:(519)-661-3813
+The University of Western Ontario
+London, Ontario N6A 5B7
+http://www.stats.uwo.ca/yu
+
+
+From wccsnow at gmail.com  Fri Aug  9 19:51:21 2013
+From: wccsnow at gmail.com (Wei-Chen Chen)
+Date: Fri, 9 Aug 2013 13:51:21 -0400
+Subject: [R-sig-hpc] Rmpi long vector support
+In-Reply-To: <c16dc1cd616c19da8e70674560984b11.squirrel@www.stats.uwo.ca>
+References: <CAGsKdWftAqc_MObs_2q3FR_=etfqUu-kTxqJUgLJ7jqYVZUmjw@mail.gmail.com>
+	<CAJqeyYZ4b6DzmkKWKT+TQKrf3RK2pHFO8ZQNOfhMK0K3BjmW1A@mail.gmail.com>
+	<CAGzA4aS9DN4uNLRKj2kHB8N0y-a8dL7-L4LA9jm7YFM0ECOxSQ@mail.gmail.com>
+	<3DA72ED0-9A23-4461-A028-74B2F3F37A81@r-project.org>
+	<c16dc1cd616c19da8e70674560984b11.squirrel@www.stats.uwo.ca>
+Message-ID: <CAB2Dcavvq=OSC9jpsJSPVA14YR=ZjK6TwqKmWBYzCYWvqwFhuQ@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130809/14908227/attachment.pl>
+
+From chris.solomon at mcgill.ca  Fri Aug  9 21:53:59 2013
+From: chris.solomon at mcgill.ca (Chris Solomon)
+Date: Fri, 9 Aug 2013 19:53:59 +0000
+Subject: [R-sig-hpc] R runs on Windows Server 2012?
+Message-ID: <B12B040365C5FA418E634054C6E18E953B404E97@exmbx2010-8.campus.MCGILL.CA>
+
+Hi all-
+
+I am trying to confirm whether R will run on Windows Server 2012, and how (if at all) it will function differently than it does on a Windows 7 machine.
+
+I originally posted this question to R-help (see thread below) but didn't get much response - hoping that R-sig-hpc folks might be able to help me.
+
+Thanks very much
+Chris
+
+
+*****
+Dr. Chris Solomon
+Dept. of Natural Resource Sciences
+McGill University
+
+
+_______________________________________
+Chris Solomon <chris.solomon at mcgill.ca> wrote:
+
+Hi Jeff-
+
+Thanks for your input. I will try to provide a little more detail.
+
+First, it is useful to know that I know very little about high-performance computing with R or in general. 
+
+We occasionally run models that take a lot of processor time. In the past I have used quad-core desktops and the foreach package to speed up the computation on parallelizable parts of these models. My goal with the sever is to be able to speed up computation some (a lot) more.
+
+I am envisioning that we would mostly use the server as a compute node, but it seems possible that we might occasionally want to interact directly with R as installed on the server itself (including graphics) via Remote Desktop.
+
+Really what I am looking for is for someone who has experience with R on servers, with Windows Server 2012 and maybe other operating systems, to give me some guidance on the kinds of capabilities and limitations that you lay out hypothetically - e.g. "it will work fine with WS2012 as long as you don't try to work with graphics", or "it works just as it would on Windows7", or "there are lots of issues, you may want to rethink your OS", or whatever.
+
+Thanks
+Chris
+
+
+_______________________________________
+Jeff Newmiller <jdnewmil at dcn.davis.CA.us> wrote: 
+
+The FAQ may seem vague to you, but your question seems vague to me. I don't run R on any Windows Server, so I cannot answer your question, but there is more than one way to run R on any server and you have not mentioned how you want it to run. For example, you might run it via Remote Terminal in "interactive" mode, in which case the video settings of the client may affect graphics functionality. Or, you may want to use it as a compute node for parallel computation, leaving graphics generation to your client node. Or, you may want to use it as a network service that generates graphics files non-interactively and serves them via a web page. I suggest you clarify your definition of "run" to prompt a more helpful response from the list.
+
+_______________________________________
+Chris Solomon <chris.solomon at mcgill.ca> wrote:
+
+Hi-
+
+Can someone confirm whether R runs on the Windows Server 2012 OS, and if so whether there are any significant differences from running on e.g. Windows 7 that I ought to be aware of?
+
+The R for Windows FAQ (URL below) seems to indicate that running on Windows Server 2012 is possible, but the text is a little vague and I haven't been able to find any clear answers on the mailing list archives. We are considering spending a chunk of money on a small server and I want to be very sure that R will run before we do.
+
+URL for relevant FAQ:
+http://cran.r-project.org/bin/windows/base/rw-FAQ.html#How-do-I-install
+-R-for-Windows_003f
+
+Thanks
+Chris
+
+*****
+Dr. Chris Solomon
+Dept. of Natural Resource Sciences
+McGill University
+
+
+From curt at hagenlocher.org  Fri Aug  9 22:21:42 2013
+From: curt at hagenlocher.org (Curt Hagenlocher)
+Date: Fri, 9 Aug 2013 13:21:42 -0700
+Subject: [R-sig-hpc] R runs on Windows Server 2012?
+In-Reply-To: <B12B040365C5FA418E634054C6E18E953B404E97@exmbx2010-8.campus.MCGILL.CA>
+References: <B12B040365C5FA418E634054C6E18E953B404E97@exmbx2010-8.campus.MCGILL.CA>
+Message-ID: <CAO-Cae7izJdd=kb+P7Um5WMZoSXNYs9vOtVFj-yhueEdeKZQSw@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130809/6b9b81bb/attachment.pl>
+
+From j.gattiker at gmail.com  Fri Aug  9 22:49:23 2013
+From: j.gattiker at gmail.com (Jim Gattiker)
+Date: Fri, 9 Aug 2013 14:49:23 -0600
+Subject: [R-sig-hpc] R error throwing and poe error catching
+In-Reply-To: <99abec72f43eb4196417e997e8a2ec1a.squirrel@www.stats.uwo.ca>
+References: <CAGzA4aQ22u7zr5kM665H45JoVQwW+x0tSJWUdWgigqrHF49D6Q@mail.gmail.com>
+	<99abec72f43eb4196417e997e8a2ec1a.squirrel@www.stats.uwo.ca>
+Message-ID: <CAGzA4aQV68g8kTH-0N=sRRCcXkS6f_JYQF5ibTB4NcK2m8tL7A@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130809/c3d33a9f/attachment.pl>
+
+From j.gattiker at gmail.com  Fri Aug  9 23:27:23 2013
+From: j.gattiker at gmail.com (Jim Gattiker)
+Date: Fri, 9 Aug 2013 15:27:23 -0600
+Subject: [R-sig-hpc] R error throwing and poe error catching
+In-Reply-To: <CAGzA4aQV68g8kTH-0N=sRRCcXkS6f_JYQF5ibTB4NcK2m8tL7A@mail.gmail.com>
+References: <CAGzA4aQ22u7zr5kM665H45JoVQwW+x0tSJWUdWgigqrHF49D6Q@mail.gmail.com>
+	<99abec72f43eb4196417e997e8a2ec1a.squirrel@www.stats.uwo.ca>
+	<CAGzA4aQV68g8kTH-0N=sRRCcXkS6f_JYQF5ibTB4NcK2m8tL7A@mail.gmail.com>
+Message-ID: <CAGzA4aSU+u+TLBHe16U-PAvXYLhYZZ0No08qM_3FJw3SLs3bow@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130809/cf60bc08/attachment.pl>
+
+From umlauf at uni-bremen.de  Mon Aug 12 13:28:41 2013
+From: umlauf at uni-bremen.de (Florian Umlauf (CRIE))
+Date: Mon, 12 Aug 2013 13:28:41 +0200
+Subject: [R-sig-hpc] snow: makeMPIcluster hanging
+Message-ID: <5208C6E9.9020501@uni-bremen.de>
+
+
+Hi @all,
+
+I have some trouble while using mpi.spawn.Rslaves from the snow package. 
+I have successfully installed mpich2 and its working fine with the Rmpi 
+package:
+
+ >   library(Rmpi)
+ >      mpi.spawn.Rslaves()
+         4 slaves are spawned successfully. 0 failed.
+master (rank 0, comm 1) of size 5 is running on: nb-wimiforn2
+slave1 (rank 1, comm 1) of size 5 is running on: nb-wimiforn2
+slave2 (rank 2, comm 1) of size 5 is running on: nb-wimiforn2
+slave3 (rank 3, comm 1) of size 5 is running on: nb-wimiforn2
+slave4 (rank 4, comm 1) of size 5 is running on: nb-wimiforn2
+
+ >      mpi.remote.exec(rnorm(10))
+              X1         X2          X3         X4
+1  -0.826003439  1.1755321 -1.12667720 -0.7356504
+2  -0.446206608 -1.0365283  0.23759725 -0.5533241
+3  -0.675614170 -2.8628252  0.61035157 -0.5376180
+4   1.471801215 -1.2432659 -0.09245669 -0.4177295
+5   0.511399298  0.1925932 -0.21761067  0.8573787
+6   0.499592894 -0.1596297  0.04846257 -0.2703588
+7  -2.202159413  0.9161975 -1.39892893  0.3161000
+8  -0.880671433 -0.0576492  0.84399188  0.4670704
+9  -0.466700498 -0.2201990 -1.49148264  0.7604177
+10  0.007915527  0.3047164 -0.54815462  0.4506002
+
+ >      mpi.close.Rslaves()
+
+[1] 1
+
+But every time I run the makeMPIcluster procedure from the snow-package 
+on just one single machine it hangs up (right at the moment when 
+mpi.comm.spawn is loaded). I tried the code from the makeMPIcluster 
+procedure step by step. R freezes at this very moment and one cpu takes 
+100%. When I tried the same for mpi.spawn.Rslaves from Rmpi package 
+mpi.comm.spawn works fine. I tried to switching of the firewall, I tried 
+to run R in admin-mode and I give accessrights to everyone for my 
+R-Folder. Snow and Rmpi are both installed in the same directory. I also 
+looked for the parameters:
+
+Mpitask : "C:/PROGRA~1/R/R-30~1.1/bin/Rscript.exe"
+Args:  c("\"C:/Program Files/R/R-3.0.1/library/snow/RMPInode.R\"", 
+"SNOWLIB=C:/Program Files/R/R-3.0.1/library", "OUT=/dev/null")
+Count: 2
+Intercomm: 2
+
+ > version      _
+platform       x86_64-w64-mingw32
+arch           x86_64
+os             mingw32
+system         x86_64, mingw32
+status
+major          3
+minor          0.1
+year           2013
+month          05
+day            16
+svn rev        62743
+language       R
+version.string R version 3.0.1 (2013-05-16)
+nickname       Good Sport
+
+Do you have any suggestions what?s going wrong or what to do?
+
+Thanks a lot everyone
+
+Best Florian
+
+-- 
+Florian Umlauf
+Volkswirt, M.Sc.
+Universit?t Bremen
+Centre for Regional and Innovation Economics
+Wilhelm-Herbst-Str. 12
+28359 Bremen
+
+Telefon: +(49) 421 218 66537
+Telefax: +(49) 421 218 66832
+Email: fumlauf at uni-bremen.de
+
+
+From wccsnow at gmail.com  Mon Aug 12 21:57:52 2013
+From: wccsnow at gmail.com (Wei-Chen Chen)
+Date: Mon, 12 Aug 2013 15:57:52 -0400
+Subject: [R-sig-hpc] Rmpi long vector support
+In-Reply-To: <6857a29947b89ca945084e54dc991d2e.squirrel@www.stats.uwo.ca>
+References: <CAGsKdWftAqc_MObs_2q3FR_=etfqUu-kTxqJUgLJ7jqYVZUmjw@mail.gmail.com>
+	<CAJqeyYZ4b6DzmkKWKT+TQKrf3RK2pHFO8ZQNOfhMK0K3BjmW1A@mail.gmail.com>
+	<CAGzA4aS9DN4uNLRKj2kHB8N0y-a8dL7-L4LA9jm7YFM0ECOxSQ@mail.gmail.com>
+	<3DA72ED0-9A23-4461-A028-74B2F3F37A81@r-project.org>
+	<c16dc1cd616c19da8e70674560984b11.squirrel@www.stats.uwo.ca>
+	<CAB2Dcavvq=OSC9jpsJSPVA14YR=ZjK6TwqKmWBYzCYWvqwFhuQ@mail.gmail.com>
+	<6857a29947b89ca945084e54dc991d2e.squirrel@www.stats.uwo.ca>
+Message-ID: <CAB2DcavGpkGjxJ603pPtH4T_r7s=xniE12zROuA3rLRkPwt15A@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130812/e4ef0006/attachment.pl>
+
+From chris.solomon at mcgill.ca  Mon Aug 12 22:27:42 2013
+From: chris.solomon at mcgill.ca (Chris Solomon)
+Date: Mon, 12 Aug 2013 20:27:42 +0000
+Subject: [R-sig-hpc] R runs on Windows Server 2012?
+In-Reply-To: <CAO-Cae7izJdd=kb+P7Um5WMZoSXNYs9vOtVFj-yhueEdeKZQSw@mail.gmail.com>
+References: <B12B040365C5FA418E634054C6E18E953B404E97@exmbx2010-8.campus.MCGILL.CA>
+	<CAO-Cae7izJdd=kb+P7Um5WMZoSXNYs9vOtVFj-yhueEdeKZQSw@mail.gmail.com>
+Message-ID: <B12B040365C5FA418E634054C6E18E953B408371@exmbx2010-8.campus.MCGILL.CA>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130812/a8a3afda/attachment.pl>
+
+From pnovack-gottshall at ben.edu  Mon Aug 12 13:21:32 2013
+From: pnovack-gottshall at ben.edu (Novack-Gottshall, Philip M.)
+Date: Mon, 12 Aug 2013 11:21:32 +0000
+Subject: [R-sig-hpc] Overwriting library functions
+Message-ID: <8CF6FE2C677EA94F94FA6285289BAE68088EA66F@BENMAIL01.ben.pri>
+
+Hi all,
+
+I'm using a package that is still being updated to address unintuitive
+issues. (The package developed sent me a temporary function fix until
+the next release.) Normally (when running on a single CPU), I call
+reassignInPackage() to over-write the pre-set package function.
+
+But it doesn't seem that over-write is sent to the clusters (I use SNOW
+and snowfall) when I export the package. Can anyone recommend a method
+to reassign a function in a library so that it can be called properly on
+the workers?
+
+Thanks,
+Phil
+
+
+-- 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ Phil Novack-Gottshall
+ Assistant Professor
+ Department of Biological Sciences
+ Benedictine University
+ 5700 College Road 
+ Lisle, IL 60532
+
+ pnovack-gottshall at ben.edu
+ Phone: 630-829-6514
+ Fax: 630-829-6547
+ Office: 332 Birck Hall
+ Lab: 107 Birck Hall
+ http://www1.ben.edu/faculty/pnovack-gottshall
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+
+From pnovack-gottshall at ben.edu  Mon Aug 12 15:09:00 2013
+From: pnovack-gottshall at ben.edu (Novack-Gottshall, Philip M.)
+Date: Mon, 12 Aug 2013 13:09:00 +0000
+Subject: [R-sig-hpc] Overwriting library functions
+Message-ID: <8CF6FE2C677EA94F94FA6285289BAE68088EA761@BENMAIL01.ben.pri>
+
+Hi all,
+
+I'm using a package that is still being updated to address unintuitive 
+issues. (The package developer sent me a temporary function fix until
+the next release.) Normally (when running on a single CPU), I call
+reassignInPackage() to over-write the pre-set package function.
+
+But it doesn't seem that the over-write is sent to the clusters (I 
+usually use SNOW and snowfall) when I export the package. Can anyone 
+recommend a method to reassign a function in a library so that it can be 
+called properly on the workers?
+
+Thanks,
+Phil
+
+
+-- 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  Phil Novack-Gottshall
+  Assistant Professor
+  Department of Biological Sciences
+  Benedictine University
+  5700 College Road  Lisle, IL 60532
+
+  pnovack-gottshall at ben.edu
+  Phone: 630-829-6514
+  Fax: 630-829-6547
+  Office: 332 Birck Hall
+  Lab: 107 Birck Hall
+  http://www1.ben.edu/faculty/pnovack-gottshall
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+
+
+From glock at sdsc.edu  Tue Aug 13 15:09:52 2013
+From: glock at sdsc.edu (Lockwood, Glenn)
+Date: Tue, 13 Aug 2013 13:09:52 +0000
+Subject: [R-sig-hpc] Overwriting library functions
+In-Reply-To: <8CF6FE2C677EA94F94FA6285289BAE68088EA761@BENMAIL01.ben.pri>
+References: <8CF6FE2C677EA94F94FA6285289BAE68088EA761@BENMAIL01.ben.pri>
+Message-ID: <60F03EF2-F0EC-4DDA-8EB0-69D03F939C91@ucsd.edu>
+
+Phil,
+
+The ClusterEvalQ function is usually used to execute commands (e.g., load libraries, configure parameters) on all remote nodes.  Have you tried this?
+
+Glenn
+
+On Aug 13, 2013, at 1:32 AM, "Novack-Gottshall, Philip M." <pnovack-gottshall at ben.edu> wrote:
+
+> Hi all,
+> 
+> I'm using a package that is still being updated to address unintuitive 
+> issues. (The package developer sent me a temporary function fix until
+> the next release.) Normally (when running on a single CPU), I call
+> reassignInPackage() to over-write the pre-set package function.
+> 
+> But it doesn't seem that the over-write is sent to the clusters (I 
+> usually use SNOW and snowfall) when I export the package. Can anyone 
+> recommend a method to reassign a function in a library so that it can be 
+> called properly on the workers?
+> 
+> Thanks,
+> Phil
+> 
+> 
+> -- 
+> ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+>  Phil Novack-Gottshall
+>  Assistant Professor
+>  Department of Biological Sciences
+>  Benedictine University
+>  5700 College Road  Lisle, IL 60532
+> 
+>  pnovack-gottshall at ben.edu
+>  Phone: 630-829-6514
+>  Fax: 630-829-6547
+>  Office: 332 Birck Hall
+>  Lab: 107 Birck Hall
+>  http://www1.ben.edu/faculty/pnovack-gottshall
+> ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+> 
+> 
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From pnovack-gottshall at ben.edu  Tue Aug 13 19:42:57 2013
+From: pnovack-gottshall at ben.edu (Novack-Gottshall, Philip M.)
+Date: Tue, 13 Aug 2013 17:42:57 +0000
+Subject: [R-sig-hpc] Overwriting library functions
+References: <8CF6FE2C677EA94F94FA6285289BAE68088EA761@BENMAIL01.ben.pri>
+	<60F03EF2-F0EC-4DDA-8EB0-69D03F939C91@ucsd.edu>
+Message-ID: <8CF6FE2C677EA94F94FA6285289BAE68088EAC5E@BENMAIL01.ben.pri>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130813/b4a165b8/attachment.pl>
+
+From pnovack-gottshall at ben.edu  Tue Aug 13 19:53:18 2013
+From: pnovack-gottshall at ben.edu (Novack-Gottshall, Philip M.)
+Date: Tue, 13 Aug 2013 17:53:18 +0000
+Subject: [R-sig-hpc] Updating variable names in secondary cluster set-ups
+Message-ID: <8CF6FE2C677EA94F94FA6285289BAE68088EAC98@BENMAIL01.ben.pri>
+
+If it's not too presumptuous, could someone confirm another basic question?
+
+Imagine code involving two tasks (task1 and task2), each involving a new
+cluster (using makeCluster in snow or sfInit in snowfall), and where the
+output list from task1 is used as input to task2.
+
+Do I need to re-export the new task1 output list to the second cluster
+set-up, or will it have been stored there from the original start-up?
+
+In other words, I think, do we need to re-export libraries, variables,
+etc. every time we start-up a new cluster, or only the first time?
+
+In my playing around (see below), it seems I only need to do it once.
+
+Thanks,
+Phil
+
+# Example code:
+library(snowfall)
+cpus <- 2
+nreps <- 100
+fun1 <- function(x) {x} # Make a list
+fun2 <- function(x) {list(x=x)} # Add another list level to first list
+resultsL1 <- resultsUL1 <- resultsL2 <- resultsUL2 <- NA
+# Task 1 involving 1st cluster set-up
+sfInit(parallel=T, cpus=cpus)
+sfExportAll()
+resultsL1 <- sfLapply(1:nreps, fun1)
+resultsUL1 <- unlist(resultsL1)
+sfStop()
+
+# Task 2 involving 2nd cluster set-up
+sfInit(parallel=T, cpus=cpus)
+# sfExport("resultsL1")     # Needed? Apparently not
+resultsL2 <- sfLapply(resultsL1, fun2)
+resultsUL2 <- unlist(resultsL2)
+sfStop()
+
+
+
+
+-- 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ Phil Novack-Gottshall
+ Assistant Professor
+ Department of Biological Sciences
+ Benedictine University
+ 5700 College Road 
+ Lisle, IL 60532
+
+ pnovack-gottshall at ben.edu
+ Phone: 630-829-6514
+ Fax: 630-829-6547
+ Office: 332 Birck Hall
+ Lab: 107 Birck Hall
+ http://www1.ben.edu/faculty/pnovack-gottshall
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+
+From p_connolly at slingshot.co.nz  Wed Aug 21 11:45:51 2013
+From: p_connolly at slingshot.co.nz (Patrick Connolly)
+Date: Wed, 21 Aug 2013 21:45:51 +1200
+Subject: [R-sig-hpc] Is combining mclapply and gbm tasks possible using
+	R-3.0.1 ?
+Message-ID: <20130821094551.GD12494@slingshot.co.nz>
+
+Apologies for such a long question.  The question is fairly simple but
+takes a lot of describing.  
+
+> sessionInfo()
+R version 3.0.1 (2013-05-16)
+Platform: x86_64-unknown-linux-gnu (64-bit)
+
+locale:
+ [1] LC_CTYPE=en_NZ.UTF-8       LC_NUMERIC=C              
+ [3] LC_TIME=en_NZ.UTF-8        LC_COLLATE=en_NZ.UTF-8    
+ [5] LC_MONETARY=en_NZ.UTF-8    LC_MESSAGES=en_NZ.UTF-8   
+ [7] LC_PAPER=C                 LC_NAME=C                 
+ [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+[11] LC_MEASUREMENT=en_NZ.UTF-8 LC_IDENTIFICATION=C       
+
+attached base packages:
+[1] datasets  parallel  splines   grDevices utils     stats     graphics 
+[8] methods   base     
+
+other attached packages:
+[1] gbm_2.1          survival_2.37-4  cairoDevice_2.19 lattice_0.20-15 
+
+loaded via a namespace (and not attached):
+[1] grid_3.0.1      multicore_0.1-7 tools_3.0.1    
+
+
+Using a system with the above characteristics, I made a function
+modifying some of the code from the examples in the gbm() function
+help.  The objective was to run some examples with different seeds.
+And to do those in parallel using mclapply.  In the interests of
+limiting the size of this email body and of avoiding email software
+munging the function code, I've put the code into the attached file
+testing.fn.sc which can be sourced into an R session.
+
+
+That function runs fine when I use an unupdated installation of
+R-2.13.1 and gbm 1.6-3.1 being quite capable of using four cores
+simultaneously.  (It needs slight modification to use multicore
+instead of parallel and the call to gbm has no n.cores parameter.)
+
+> testing(4)
+  2013-08-21 20:57:31  Begin using multicore method with phony data with 4 cores.
+Core 1 uses 20442 
+
+Core 2 uses 20443 
+
+Core 3 uses 20445 
+
+Core 4 uses 20447 
+
+ 2013-08-21 20:57:36 
+....Completed testing multicore method with invented data.
+$a
+   CV Test OOB
+1 126  131  79
+
+[...]
+
+$d
+   CV Test OOB
+1 123  140  81
+
+
+However, when I try it with the current versions I get this:
+
+system.time(bbb <- testing(4))
+  2013-08-21 16:18:03  Begin using multicore method with phony data with 4 cores.
+
+Core 1 uses 22812 
+
+Core 2 uses 22814 
+
+Core 3 uses 22816 
+
+Core 4 uses 22819 
+This session PID is 22821:
+begun at 2013-08-21 16:18:04:
+This session PID is 22829:
+begun at 2013-08-21 16:18:04:
+This session PID is 22838:
+begun at 2013-08-21 16:18:04:
+This session PID is 22847:
+begun at 2013-08-21 16:18:04:
+ 2013-08-21 16:18:07 
+....Completed testing multicore method with invented data.
+   user  system elapsed 
+  0.460   1.760   3.926 
+Warning message:
+In mclapply(subsets, FUN = test.gbm, mc.cores = nc, mc.cleanup = FALSE,  :
+  3 function calls resulted in an error
+
+
+bbb$b
+[1] "Error in socketConnection(\"localhost\", port = port, server = TRUE, blocking = TRUE,  : \n  cannot open the connection\n"
+attr(,"class")
+[1] "try-error"
+attr(,"condition")
+<simpleError in socketConnection("localhost", port = port, server = TRUE, blocking = TRUE,     open = "a+b", timeout = timeout): cannot open the connection>
+> 
+
+(bbb$a works properly and the errors on bbb$c and bbb$d are identical
+to the above.)
+
+The two lines that look like this 
+
+   This session PID is 22847:
+   begun at 2013-08-21 16:18:04:
+
+will look mysterious.  It's explained by the fact that my .Rprofile
+cats the beginning time and the process id used at the beginning of
+each R session (handy to know that sometimes).  Those outputs indicate
+that extra R processes are started, and I assume end with nothing to
+do.
+
+That happens even when there is no problem with mclapply such as when
+only a single core is used.
+
+> system.time(aaa <- testing())
+  2013-08-21 16:09:46  Begin using multicore method with phony data with 1 cores.
+
+Core 1 uses 18484 
+This session PID is 18487:
+begun at 2013-08-21 16:09:46:
+
+Core 2 uses 18511 
+This session PID is 18543:
+begun at 2013-08-21 16:09:50:
+
+Core 3 uses 18553 
+This session PID is 18556:
+begun at 2013-08-21 16:09:54:
+
+Core 4 uses 18609 
+This session PID is 18612:
+begun at 2013-08-21 16:09:58:
+ 2013-08-21 16:10:01 
+....Completed testing multicore method with invented data.
+   user  system elapsed 
+  1.540   2.070  15.488 
+> 
+
+Running that same code (minus the PID stuff) on a Windows 7
+installation on identical hardware runs in about half that time.
+Since I don't know how to get the equivalent to the PID information on
+Windows, I can't tell if extra R processes are started on that
+platform too.  However, running a more demanding task did seem to show
+that more than one core was being used as though the OS is capable of
+a degree of parallelling even when the R tasks are done serially.
+
+
+My question is how can I use gbm and mclapply without reverting to an
+ancient R version?
+
+TIA
+
+-- 
+~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.   
+   ___    Patrick Connolly   
+ {~._.~}                   Great minds discuss ideas    
+ _( Y )_  	         Average minds discuss events 
+(:_~*~_:)                  Small minds discuss people  
+ (_)-(_)  	                      ..... Eleanor Roosevelt
+	  
+~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: testing.fn.sc
+Type: application/vnd.ibm.secure-container
+Size: 3831 bytes
+Desc: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130821/84da3ccf/attachment.bin>
+
+From stephen.b.weston at gmail.com  Wed Aug 21 15:17:29 2013
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Wed, 21 Aug 2013 09:17:29 -0400
+Subject: [R-sig-hpc] Is combining mclapply and gbm tasks possible using
+ R-3.0.1 ?
+In-Reply-To: <20130821094551.GD12494@slingshot.co.nz>
+References: <20130821094551.GD12494@slingshot.co.nz>
+Message-ID: <CALh21iKFLvNJKdqzJjLOcjBxT4NWjH0mcYgJ9Y+4pWWJ_QPNeQ@mail.gmail.com>
+
+I think the problem has more to do with the version of gbm that you're
+using, not the version of R.  Looking over gbm 2.1 briefly, it looks
+like it always creates a cluster object and does the cross validation
+with parLapply, even when you specify n.cores = 1.  That explains why
+you see the messages from your .Rprofile within the mclapply tasks.
+The error messages from socketConnection may be happening because
+you're creating four cluster objects on the same machine at about the
+same time, resulting in port collisions.  If you had any control over
+how the cluster object was created by gbm, you might be able to
+specify different ports for the different mclapply tasks, but it
+doesn't look like gbm has made any provision for that kind of control.
+
+If this is important to you, I think you should either back off to an
+older version of gbm, or talk to the package maintainer.  I don't
+think the package expects you to call gbm using mclapply.
+
+- Steve
+
+On Wed, Aug 21, 2013 at 5:45 AM, Patrick Connolly
+<p_connolly at slingshot.co.nz> wrote:
+> Apologies for such a long question.  The question is fairly simple but
+> takes a lot of describing.
+>
+>> sessionInfo()
+> R version 3.0.1 (2013-05-16)
+> Platform: x86_64-unknown-linux-gnu (64-bit)
+>
+> locale:
+>  [1] LC_CTYPE=en_NZ.UTF-8       LC_NUMERIC=C
+>  [3] LC_TIME=en_NZ.UTF-8        LC_COLLATE=en_NZ.UTF-8
+>  [5] LC_MONETARY=en_NZ.UTF-8    LC_MESSAGES=en_NZ.UTF-8
+>  [7] LC_PAPER=C                 LC_NAME=C
+>  [9] LC_ADDRESS=C               LC_TELEPHONE=C
+> [11] LC_MEASUREMENT=en_NZ.UTF-8 LC_IDENTIFICATION=C
+>
+> attached base packages:
+> [1] datasets  parallel  splines   grDevices utils     stats     graphics
+> [8] methods   base
+>
+> other attached packages:
+> [1] gbm_2.1          survival_2.37-4  cairoDevice_2.19 lattice_0.20-15
+>
+> loaded via a namespace (and not attached):
+> [1] grid_3.0.1      multicore_0.1-7 tools_3.0.1
+>
+>
+> Using a system with the above characteristics, I made a function
+> modifying some of the code from the examples in the gbm() function
+> help.  The objective was to run some examples with different seeds.
+> And to do those in parallel using mclapply.  In the interests of
+> limiting the size of this email body and of avoiding email software
+> munging the function code, I've put the code into the attached file
+> testing.fn.sc which can be sourced into an R session.
+>
+>
+> That function runs fine when I use an unupdated installation of
+> R-2.13.1 and gbm 1.6-3.1 being quite capable of using four cores
+> simultaneously.  (It needs slight modification to use multicore
+> instead of parallel and the call to gbm has no n.cores parameter.)
+>
+>> testing(4)
+>   2013-08-21 20:57:31  Begin using multicore method with phony data with 4 cores.
+> Core 1 uses 20442
+>
+> Core 2 uses 20443
+>
+> Core 3 uses 20445
+>
+> Core 4 uses 20447
+>
+>  2013-08-21 20:57:36
+> ....Completed testing multicore method with invented data.
+> $a
+>    CV Test OOB
+> 1 126  131  79
+>
+> [...]
+>
+> $d
+>    CV Test OOB
+> 1 123  140  81
+>
+>
+> However, when I try it with the current versions I get this:
+>
+> system.time(bbb <- testing(4))
+>   2013-08-21 16:18:03  Begin using multicore method with phony data with 4 cores.
+>
+> Core 1 uses 22812
+>
+> Core 2 uses 22814
+>
+> Core 3 uses 22816
+>
+> Core 4 uses 22819
+> This session PID is 22821:
+> begun at 2013-08-21 16:18:04:
+> This session PID is 22829:
+> begun at 2013-08-21 16:18:04:
+> This session PID is 22838:
+> begun at 2013-08-21 16:18:04:
+> This session PID is 22847:
+> begun at 2013-08-21 16:18:04:
+>  2013-08-21 16:18:07
+> ....Completed testing multicore method with invented data.
+>    user  system elapsed
+>   0.460   1.760   3.926
+> Warning message:
+> In mclapply(subsets, FUN = test.gbm, mc.cores = nc, mc.cleanup = FALSE,  :
+>   3 function calls resulted in an error
+>
+>
+> bbb$b
+> [1] "Error in socketConnection(\"localhost\", port = port, server = TRUE, blocking = TRUE,  : \n  cannot open the connection\n"
+> attr(,"class")
+> [1] "try-error"
+> attr(,"condition")
+> <simpleError in socketConnection("localhost", port = port, server = TRUE, blocking = TRUE,     open = "a+b", timeout = timeout): cannot open the connection>
+>>
+>
+> (bbb$a works properly and the errors on bbb$c and bbb$d are identical
+> to the above.)
+>
+> The two lines that look like this
+>
+>    This session PID is 22847:
+>    begun at 2013-08-21 16:18:04:
+>
+> will look mysterious.  It's explained by the fact that my .Rprofile
+> cats the beginning time and the process id used at the beginning of
+> each R session (handy to know that sometimes).  Those outputs indicate
+> that extra R processes are started, and I assume end with nothing to
+> do.
+>
+> That happens even when there is no problem with mclapply such as when
+> only a single core is used.
+>
+>> system.time(aaa <- testing())
+>   2013-08-21 16:09:46  Begin using multicore method with phony data with 1 cores.
+>
+> Core 1 uses 18484
+> This session PID is 18487:
+> begun at 2013-08-21 16:09:46:
+>
+> Core 2 uses 18511
+> This session PID is 18543:
+> begun at 2013-08-21 16:09:50:
+>
+> Core 3 uses 18553
+> This session PID is 18556:
+> begun at 2013-08-21 16:09:54:
+>
+> Core 4 uses 18609
+> This session PID is 18612:
+> begun at 2013-08-21 16:09:58:
+>  2013-08-21 16:10:01
+> ....Completed testing multicore method with invented data.
+>    user  system elapsed
+>   1.540   2.070  15.488
+>>
+>
+> Running that same code (minus the PID stuff) on a Windows 7
+> installation on identical hardware runs in about half that time.
+> Since I don't know how to get the equivalent to the PID information on
+> Windows, I can't tell if extra R processes are started on that
+> platform too.  However, running a more demanding task did seem to show
+> that more than one core was being used as though the OS is capable of
+> a degree of parallelling even when the R tasks are done serially.
+>
+>
+> My question is how can I use gbm and mclapply without reverting to an
+> ancient R version?
+>
+> TIA
+>
+> --
+> ~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
+>    ___    Patrick Connolly
+>  {~._.~}                   Great minds discuss ideas
+>  _( Y )_                 Average minds discuss events
+> (:_~*~_:)                  Small minds discuss people
+>  (_)-(_)                              ..... Eleanor Roosevelt
+>
+> ~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From p_connolly at slingshot.co.nz  Thu Aug 22 11:36:43 2013
+From: p_connolly at slingshot.co.nz (Patrick Connolly)
+Date: Thu, 22 Aug 2013 21:36:43 +1200
+Subject: [R-sig-hpc] Is combining mclapply and gbm tasks possible using
+ R-3.0.1 ?
+In-Reply-To: <CALh21iKFLvNJKdqzJjLOcjBxT4NWjH0mcYgJ9Y+4pWWJ_QPNeQ@mail.gmail.com>
+References: <20130821094551.GD12494@slingshot.co.nz>
+	<CALh21iKFLvNJKdqzJjLOcjBxT4NWjH0mcYgJ9Y+4pWWJ_QPNeQ@mail.gmail.com>
+Message-ID: <20130822093643.GE12494@slingshot.co.nz>
+
+On Wed, 21-Aug-2013 at 09:17AM -0400, Stephen Weston wrote:
+
+|> I think the problem has more to do with the version of gbm that you're
+|> using, not the version of R.  Looking over gbm 2.1 briefly, it looks
+|> like it always creates a cluster object and does the cross validation
+|> with parLapply, even when you specify n.cores = 1.  That explains why
+|> you see the messages from your .Rprofile within the mclapply tasks.
+|> The error messages from socketConnection may be happening because
+|> you're creating four cluster objects on the same machine at about the
+|> same time, resulting in port collisions.  If you had any control over
+|> how the cluster object was created by gbm, you might be able to
+|> specify different ports for the different mclapply tasks, but it
+|> doesn't look like gbm has made any provision for that kind of control.
+
+It should be traceable since it didn't work like that pre ver 2.x.
+
+|> 
+|> If this is important to you, I think you should either back off to an
+|> older version of gbm, or talk to the package maintainer.  I don't
+|> think the package expects you to call gbm using mclapply.
+
+My gbm work is far more elaborate than in the example given.  There's
+not enough hours in a month to do them all serially which isn't making
+use of a machine with 8 cores and 24 Gb of memory.  That is to say, it
+is imortant to me.  It surprises me that others would use gbm without
+using parallel jobs.  Though it is superior in several ways to other
+methods such as what can be done in Weka, it's orders of magnitude
+slower.
+
+I tried both your suggestions.  Harry Southworth, the package
+maintainer, says he won't have time to look at it for a week or so.  I
+removed the current gbm package and tried reinstalling gbm 1.6-3.1 but
+it wouldn't compile using R-3.0.1 since it didn't have a NAMESPACE
+file.  However, there was a slightly newer one, version 1.6-3.2, which
+did compile.  And yes, it did work with mclapply without all those
+extra R processes.
+
+However, it's a bit disconcerting to use an orphaned package.  In my
+experience over the years, old stuff soon stops working when changes
+aren't made to make it fit the way software evolves.
+
+Harry (the package maintainer) suggested reporting the issue to the
+project's googlecode home page.  I'm not familar with the norms of
+such pages.  Is what I have below too much?  It doesn't quite fit the
+cookie cutter layout.
+
+
+Thanx
+
+|> 
+|> - Steve
+|> 
+|> On Wed, Aug 21, 2013 at 5:45 AM, Patrick Connolly
+|> <p_connolly at slingshot.co.nz> wrote:
+|> > Apologies for such a long question.  The question is fairly simple but
+|> > takes a lot of describing.
+|> >
+|> >> sessionInfo()
+|> > R version 3.0.1 (2013-05-16)
+|> > Platform: x86_64-unknown-linux-gnu (64-bit)
+|> >
+|> > locale:
+|> >  [1] LC_CTYPE=en_NZ.UTF-8       LC_NUMERIC=C
+|> >  [3] LC_TIME=en_NZ.UTF-8        LC_COLLATE=en_NZ.UTF-8
+|> >  [5] LC_MONETARY=en_NZ.UTF-8    LC_MESSAGES=en_NZ.UTF-8
+|> >  [7] LC_PAPER=C                 LC_NAME=C
+|> >  [9] LC_ADDRESS=C               LC_TELEPHONE=C
+|> > [11] LC_MEASUREMENT=en_NZ.UTF-8 LC_IDENTIFICATION=C
+|> >
+|> > attached base packages:
+|> > [1] datasets  parallel  splines   grDevices utils     stats     graphics
+|> > [8] methods   base
+|> >
+|> > other attached packages:
+|> > [1] gbm_2.1          survival_2.37-4  cairoDevice_2.19 lattice_0.20-15
+|> >
+|> > loaded via a namespace (and not attached):
+|> > [1] grid_3.0.1      multicore_0.1-7 tools_3.0.1
+|> >
+|> >
+|> > Using a system with the above characteristics, I made a function
+|> > modifying some of the code from the examples in the gbm() function
+|> > help.  The objective was to run some examples with different seeds.
+|> > And to do those in parallel using mclapply.  In the interests of
+|> > limiting the size of this email body and of avoiding email software
+|> > munging the function code, I've put the code into the attached file
+|> > testing.fn.sc which can be sourced into an R session.
+|> >
+|> >
+|> > That function runs fine when I use an unupdated installation of
+|> > R-2.13.1 and gbm 1.6-3.1 being quite capable of using four cores
+|> > simultaneously.  (It needs slight modification to use multicore
+|> > instead of parallel and the call to gbm has no n.cores parameter.)
+|> >
+|> >> testing(4)
+|> >   2013-08-21 20:57:31  Begin using multicore method with phony data with 4 cores.
+|> > Core 1 uses 20442
+|> >
+|> > Core 2 uses 20443
+|> >
+|> > Core 3 uses 20445
+|> >
+|> > Core 4 uses 20447
+|> >
+|> >  2013-08-21 20:57:36
+|> > ....Completed testing multicore method with invented data.
+|> > $a
+|> >    CV Test OOB
+|> > 1 126  131  79
+|> >
+|> > [...]
+|> >
+|> > $d
+|> >    CV Test OOB
+|> > 1 123  140  81
+|> >
+|> >
+|> > However, when I try it with the current versions I get this:
+|> >
+|> > system.time(bbb <- testing(4))
+|> >   2013-08-21 16:18:03  Begin using multicore method with phony data with 4 cores.
+|> >
+|> > Core 1 uses 22812
+|> >
+|> > Core 2 uses 22814
+|> >
+|> > Core 3 uses 22816
+|> >
+|> > Core 4 uses 22819
+|> > This session PID is 22821:
+|> > begun at 2013-08-21 16:18:04:
+|> > This session PID is 22829:
+|> > begun at 2013-08-21 16:18:04:
+|> > This session PID is 22838:
+|> > begun at 2013-08-21 16:18:04:
+|> > This session PID is 22847:
+|> > begun at 2013-08-21 16:18:04:
+|> >  2013-08-21 16:18:07
+|> > ....Completed testing multicore method with invented data.
+|> >    user  system elapsed
+|> >   0.460   1.760   3.926
+|> > Warning message:
+|> > In mclapply(subsets, FUN = test.gbm, mc.cores = nc, mc.cleanup = FALSE,  :
+|> >   3 function calls resulted in an error
+|> >
+|> >
+|> > bbb$b
+|> > [1] "Error in socketConnection(\"localhost\", port = port, server = TRUE, blocking = TRUE,  : \n  cannot open the connection\n"
+|> > attr(,"class")
+|> > [1] "try-error"
+|> > attr(,"condition")
+|> > <simpleError in socketConnection("localhost", port = port, server = TRUE, blocking = TRUE,     open = "a+b", timeout = timeout): cannot open the connection>
+|> >>
+|> >
+|> > (bbb$a works properly and the errors on bbb$c and bbb$d are identical
+|> > to the above.)
+|> >
+|> > The two lines that look like this
+|> >
+|> >    This session PID is 22847:
+|> >    begun at 2013-08-21 16:18:04:
+|> >
+|> > will look mysterious.  It's explained by the fact that my .Rprofile
+|> > cats the beginning time and the process id used at the beginning of
+|> > each R session (handy to know that sometimes).  Those outputs indicate
+|> > that extra R processes are started, and I assume end with nothing to
+|> > do.
+|> >
+|> > That happens even when there is no problem with mclapply such as when
+|> > only a single core is used.
+|> >
+|> >> system.time(aaa <- testing())
+|> >   2013-08-21 16:09:46  Begin using multicore method with phony data with 1 cores.
+|> >
+|> > Core 1 uses 18484
+|> > This session PID is 18487:
+|> > begun at 2013-08-21 16:09:46:
+|> >
+|> > Core 2 uses 18511
+|> > This session PID is 18543:
+|> > begun at 2013-08-21 16:09:50:
+|> >
+|> > Core 3 uses 18553
+|> > This session PID is 18556:
+|> > begun at 2013-08-21 16:09:54:
+|> >
+|> > Core 4 uses 18609
+|> > This session PID is 18612:
+|> > begun at 2013-08-21 16:09:58:
+|> >  2013-08-21 16:10:01
+|> > ....Completed testing multicore method with invented data.
+|> >    user  system elapsed
+|> >   1.540   2.070  15.488
+|> >>
+|> >
+|> > Running that same code (minus the PID stuff) on a Windows 7
+|> > installation on identical hardware runs in about half that time.
+|> > Since I don't know how to get the equivalent to the PID information on
+|> > Windows, I can't tell if extra R processes are started on that
+|> > platform too.  However, running a more demanding task did seem to show
+|> > that more than one core was being used as though the OS is capable of
+|> > a degree of parallelling even when the R tasks are done serially.
+|> >
+|> >
+|> > My question is how can I use gbm and mclapply without reverting to an
+|> > ancient R version?
+|> >
+|> > TIA
+|> >
+|> > --
+|> > ~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
+|> >    ___    Patrick Connolly
+|> >  {~._.~}                   Great minds discuss ideas
+|> >  _( Y )_                 Average minds discuss events
+|> > (:_~*~_:)                  Small minds discuss people
+|> >  (_)-(_)                              ..... Eleanor Roosevelt
+|> >
+|> > ~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
+|> >
+|> > _______________________________________________
+|> > R-sig-hpc mailing list
+|> > R-sig-hpc at r-project.org
+|> > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+|> >
+
+-- 
+~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.   
+   ___    Patrick Connolly   
+ {~._.~}                   Great minds discuss ideas    
+ _( Y )_  	         Average minds discuss events 
+(:_~*~_:)                  Small minds discuss people  
+ (_)-(_)  	                      ..... Eleanor Roosevelt
+	  
+~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
+
+
+From stephen.b.weston at gmail.com  Thu Aug 22 15:38:59 2013
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Thu, 22 Aug 2013 09:38:59 -0400
+Subject: [R-sig-hpc] Is combining mclapply and gbm tasks possible using
+ R-3.0.1 ?
+In-Reply-To: <20130822093643.GE12494@slingshot.co.nz>
+References: <20130821094551.GD12494@slingshot.co.nz>
+	<CALh21iKFLvNJKdqzJjLOcjBxT4NWjH0mcYgJ9Y+4pWWJ_QPNeQ@mail.gmail.com>
+	<20130822093643.GE12494@slingshot.co.nz>
+Message-ID: <CALh21iJRp=bn=US7m6naU3PizsRokP4QpSbp1hQ-=VJq+sGRiw@mail.gmail.com>
+
+I think you should simply request that they use lapply rather than
+parLapply when n.cores = 1.  I believe that will allow your code to
+work as before.
+
+- Steve
+
+On Thu, Aug 22, 2013 at 5:36 AM, Patrick Connolly
+<p_connolly at slingshot.co.nz> wrote:
+> On Wed, 21-Aug-2013 at 09:17AM -0400, Stephen Weston wrote:
+>
+> |> I think the problem has more to do with the version of gbm that you're
+> |> using, not the version of R.  Looking over gbm 2.1 briefly, it looks
+> |> like it always creates a cluster object and does the cross validation
+> |> with parLapply, even when you specify n.cores = 1.  That explains why
+> |> you see the messages from your .Rprofile within the mclapply tasks.
+> |> The error messages from socketConnection may be happening because
+> |> you're creating four cluster objects on the same machine at about the
+> |> same time, resulting in port collisions.  If you had any control over
+> |> how the cluster object was created by gbm, you might be able to
+> |> specify different ports for the different mclapply tasks, but it
+> |> doesn't look like gbm has made any provision for that kind of control.
+>
+> It should be traceable since it didn't work like that pre ver 2.x.
+>
+> |>
+> |> If this is important to you, I think you should either back off to an
+> |> older version of gbm, or talk to the package maintainer.  I don't
+> |> think the package expects you to call gbm using mclapply.
+>
+> My gbm work is far more elaborate than in the example given.  There's
+> not enough hours in a month to do them all serially which isn't making
+> use of a machine with 8 cores and 24 Gb of memory.  That is to say, it
+> is imortant to me.  It surprises me that others would use gbm without
+> using parallel jobs.  Though it is superior in several ways to other
+> methods such as what can be done in Weka, it's orders of magnitude
+> slower.
+>
+> I tried both your suggestions.  Harry Southworth, the package
+> maintainer, says he won't have time to look at it for a week or so.  I
+> removed the current gbm package and tried reinstalling gbm 1.6-3.1 but
+> it wouldn't compile using R-3.0.1 since it didn't have a NAMESPACE
+> file.  However, there was a slightly newer one, version 1.6-3.2, which
+> did compile.  And yes, it did work with mclapply without all those
+> extra R processes.
+>
+> However, it's a bit disconcerting to use an orphaned package.  In my
+> experience over the years, old stuff soon stops working when changes
+> aren't made to make it fit the way software evolves.
+>
+> Harry (the package maintainer) suggested reporting the issue to the
+> project's googlecode home page.  I'm not familar with the norms of
+> such pages.  Is what I have below too much?  It doesn't quite fit the
+> cookie cutter layout.
+>
+>
+> Thanx
+>
+> |>
+> |> - Steve
+> |>
+> |> On Wed, Aug 21, 2013 at 5:45 AM, Patrick Connolly
+> |> <p_connolly at slingshot.co.nz> wrote:
+> |> > Apologies for such a long question.  The question is fairly simple but
+> |> > takes a lot of describing.
+> |> >
+> |> >> sessionInfo()
+> |> > R version 3.0.1 (2013-05-16)
+> |> > Platform: x86_64-unknown-linux-gnu (64-bit)
+> |> >
+> |> > locale:
+> |> >  [1] LC_CTYPE=en_NZ.UTF-8       LC_NUMERIC=C
+> |> >  [3] LC_TIME=en_NZ.UTF-8        LC_COLLATE=en_NZ.UTF-8
+> |> >  [5] LC_MONETARY=en_NZ.UTF-8    LC_MESSAGES=en_NZ.UTF-8
+> |> >  [7] LC_PAPER=C                 LC_NAME=C
+> |> >  [9] LC_ADDRESS=C               LC_TELEPHONE=C
+> |> > [11] LC_MEASUREMENT=en_NZ.UTF-8 LC_IDENTIFICATION=C
+> |> >
+> |> > attached base packages:
+> |> > [1] datasets  parallel  splines   grDevices utils     stats     graphics
+> |> > [8] methods   base
+> |> >
+> |> > other attached packages:
+> |> > [1] gbm_2.1          survival_2.37-4  cairoDevice_2.19 lattice_0.20-15
+> |> >
+> |> > loaded via a namespace (and not attached):
+> |> > [1] grid_3.0.1      multicore_0.1-7 tools_3.0.1
+> |> >
+> |> >
+> |> > Using a system with the above characteristics, I made a function
+> |> > modifying some of the code from the examples in the gbm() function
+> |> > help.  The objective was to run some examples with different seeds.
+> |> > And to do those in parallel using mclapply.  In the interests of
+> |> > limiting the size of this email body and of avoiding email software
+> |> > munging the function code, I've put the code into the attached file
+> |> > testing.fn.sc which can be sourced into an R session.
+> |> >
+> |> >
+> |> > That function runs fine when I use an unupdated installation of
+> |> > R-2.13.1 and gbm 1.6-3.1 being quite capable of using four cores
+> |> > simultaneously.  (It needs slight modification to use multicore
+> |> > instead of parallel and the call to gbm has no n.cores parameter.)
+> |> >
+> |> >> testing(4)
+> |> >   2013-08-21 20:57:31  Begin using multicore method with phony data with 4 cores.
+> |> > Core 1 uses 20442
+> |> >
+> |> > Core 2 uses 20443
+> |> >
+> |> > Core 3 uses 20445
+> |> >
+> |> > Core 4 uses 20447
+> |> >
+> |> >  2013-08-21 20:57:36
+> |> > ....Completed testing multicore method with invented data.
+> |> > $a
+> |> >    CV Test OOB
+> |> > 1 126  131  79
+> |> >
+> |> > [...]
+> |> >
+> |> > $d
+> |> >    CV Test OOB
+> |> > 1 123  140  81
+> |> >
+> |> >
+> |> > However, when I try it with the current versions I get this:
+> |> >
+> |> > system.time(bbb <- testing(4))
+> |> >   2013-08-21 16:18:03  Begin using multicore method with phony data with 4 cores.
+> |> >
+> |> > Core 1 uses 22812
+> |> >
+> |> > Core 2 uses 22814
+> |> >
+> |> > Core 3 uses 22816
+> |> >
+> |> > Core 4 uses 22819
+> |> > This session PID is 22821:
+> |> > begun at 2013-08-21 16:18:04:
+> |> > This session PID is 22829:
+> |> > begun at 2013-08-21 16:18:04:
+> |> > This session PID is 22838:
+> |> > begun at 2013-08-21 16:18:04:
+> |> > This session PID is 22847:
+> |> > begun at 2013-08-21 16:18:04:
+> |> >  2013-08-21 16:18:07
+> |> > ....Completed testing multicore method with invented data.
+> |> >    user  system elapsed
+> |> >   0.460   1.760   3.926
+> |> > Warning message:
+> |> > In mclapply(subsets, FUN = test.gbm, mc.cores = nc, mc.cleanup = FALSE,  :
+> |> >   3 function calls resulted in an error
+> |> >
+> |> >
+> |> > bbb$b
+> |> > [1] "Error in socketConnection(\"localhost\", port = port, server = TRUE, blocking = TRUE,  : \n  cannot open the connection\n"
+> |> > attr(,"class")
+> |> > [1] "try-error"
+> |> > attr(,"condition")
+> |> > <simpleError in socketConnection("localhost", port = port, server = TRUE, blocking = TRUE,     open = "a+b", timeout = timeout): cannot open the connection>
+> |> >>
+> |> >
+> |> > (bbb$a works properly and the errors on bbb$c and bbb$d are identical
+> |> > to the above.)
+> |> >
+> |> > The two lines that look like this
+> |> >
+> |> >    This session PID is 22847:
+> |> >    begun at 2013-08-21 16:18:04:
+> |> >
+> |> > will look mysterious.  It's explained by the fact that my .Rprofile
+> |> > cats the beginning time and the process id used at the beginning of
+> |> > each R session (handy to know that sometimes).  Those outputs indicate
+> |> > that extra R processes are started, and I assume end with nothing to
+> |> > do.
+> |> >
+> |> > That happens even when there is no problem with mclapply such as when
+> |> > only a single core is used.
+> |> >
+> |> >> system.time(aaa <- testing())
+> |> >   2013-08-21 16:09:46  Begin using multicore method with phony data with 1 cores.
+> |> >
+> |> > Core 1 uses 18484
+> |> > This session PID is 18487:
+> |> > begun at 2013-08-21 16:09:46:
+> |> >
+> |> > Core 2 uses 18511
+> |> > This session PID is 18543:
+> |> > begun at 2013-08-21 16:09:50:
+> |> >
+> |> > Core 3 uses 18553
+> |> > This session PID is 18556:
+> |> > begun at 2013-08-21 16:09:54:
+> |> >
+> |> > Core 4 uses 18609
+> |> > This session PID is 18612:
+> |> > begun at 2013-08-21 16:09:58:
+> |> >  2013-08-21 16:10:01
+> |> > ....Completed testing multicore method with invented data.
+> |> >    user  system elapsed
+> |> >   1.540   2.070  15.488
+> |> >>
+> |> >
+> |> > Running that same code (minus the PID stuff) on a Windows 7
+> |> > installation on identical hardware runs in about half that time.
+> |> > Since I don't know how to get the equivalent to the PID information on
+> |> > Windows, I can't tell if extra R processes are started on that
+> |> > platform too.  However, running a more demanding task did seem to show
+> |> > that more than one core was being used as though the OS is capable of
+> |> > a degree of parallelling even when the R tasks are done serially.
+> |> >
+> |> >
+> |> > My question is how can I use gbm and mclapply without reverting to an
+> |> > ancient R version?
+> |> >
+> |> > TIA
+> |> >
+> |> > --
+> |> > ~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
+> |> >    ___    Patrick Connolly
+> |> >  {~._.~}                   Great minds discuss ideas
+> |> >  _( Y )_                 Average minds discuss events
+> |> > (:_~*~_:)                  Small minds discuss people
+> |> >  (_)-(_)                              ..... Eleanor Roosevelt
+> |> >
+> |> > ~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
+> |> >
+> |> > _______________________________________________
+> |> > R-sig-hpc mailing list
+> |> > R-sig-hpc at r-project.org
+> |> > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> |> >
+>
+> --
+> ~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
+>    ___    Patrick Connolly
+>  {~._.~}                   Great minds discuss ideas
+>  _( Y )_                 Average minds discuss events
+> (:_~*~_:)                  Small minds discuss people
+>  (_)-(_)                              ..... Eleanor Roosevelt
+>
+> ~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.
+
+

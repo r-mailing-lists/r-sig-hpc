@@ -1,0 +1,3702 @@
+From cubranic at stat.ubc.ca  Wed Dec  1 06:09:00 2010
+From: cubranic at stat.ubc.ca (Davor Cubranic)
+Date: Tue, 30 Nov 2010 21:09:00 -0800
+Subject: [R-sig-hpc] trouble installing Rmpi
+In-Reply-To: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3E1@granite1604>
+References: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3CA@granite1604>
+	<19700.24073.333480.425665@max.nulle.part>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3E1@granite1604>
+Message-ID: <201011302109.00993.cubranic@stat.ubc.ca>
+
+On November 29, 2010 11:25:11 pm John Joseph wrote:
+> In regard to e: libifport.so.5 is part of or at least closely
+> associated with the Intel Fortran compiler I am using.  I find it in
+> opt/intel/lib/ia32/, but when I click to try to open it I get "Could
+> not create the archive.  Archive type not supported."
+
+Don't worry about clicking on it. What happens when you run 'file 
+/opt/intel/lib/ia32/libifport.so.5'? The reason I'm asking is because 
+the following error:
+
+> | > library(Rmpi)
+> | > library(snow)
+> | > setwd("/home/john/LREWI15_TIO")
+> | > dyn.load("./swat2009_i64_calibrate.so")
+> | Error in dyn.load("./swat2009_i64_calibrate.so") :
+> |   unable to load shared library '/home/john/LREWI15_TIO/./
+> | swat2009_i64_calibrate.so':
+> |   libifport.so.5: cannot open shared object file: No such file or
+> directory
+
+seems to indicate that the dynamic linker cannot find libifport.so.5. One 
+way this can happen is if it's in directory that's not on a 
+LD_LIBRARY_PATH. Can you check that it is? Try 'ldd 
+/home/john/LREWI15_TIO/./swat2009_i64_calibrate.so'. Make sure that 
+there is a line in there that looks something like (I'm guessing):
+
+  libifport.so.5 => /opt/intel/lib/ia32/libifport.so.5 (...)
+
+Also, do you have other programs on that system that you compiled with 
+Intel's Fortran compiler that work correctly?
+
+And let me echo Dirk's suggestion to familiarize yourself with R 
+packages -- what happens when you load a package, and how the package 
+mechanism interacts with compilation and linking of dynamic libraries. 
+To try otherwise will only cause you a lot of frustration, as you've 
+probably already discovered. 
+
+Davor
+
+
+From murray at stokely.org  Wed Dec  1 06:09:41 2010
+From: murray at stokely.org (Murray Stokely)
+Date: Tue, 30 Nov 2010 21:09:41 -0800
+Subject: [R-sig-hpc] License of GotoBLAS was changed to BSD
+In-Reply-To: <AANLkTikhewTjCMfWsGCuuKa0ZBZAf+Y3vN1rD4iQj3gO@mail.gmail.com>
+References: <AANLkTikhewTjCMfWsGCuuKa0ZBZAf+Y3vN1rD4iQj3gO@mail.gmail.com>
+Message-ID: <AANLkTi=TDVrKFriQDdhiOQY8vJigTNwVYFYf7by7KZBq@mail.gmail.com>
+
+This is excellent news.  Has anyone expressed interest in maintaining
+this going forward?  I understand Kazushige-san is not interested in
+maintaining it on sourceforge or the like.
+
+I ask because the assumptions it makes about MAX_NODES in numa_check
+in driver/others/init.c do not work for my linux environment, so I
+need to compile with -DNO_AFFINITY, but that doesn't actually compile
+without a tiny modification.  I was able to resolve the particular
+issues that I ran into, but its a good example of the type of issues
+that will come up without active maintainership.
+
+          - Murray
+
+On Fri, Nov 26, 2010 at 8:32 AM, Ei-ji Nakama <nakama at ki.rim.or.jp> wrote:
+> Hi,
+>
+> Please look at the following.
+> http://www.tacc.utexas.edu/tacc-projects/gotoblas2/
+>
+> comparatively new CPU should force it with `make TARGET=NEHALEM'
+>
+> --
+> EI-JI Nakama? <nakama (a) ki.rim.or.jp>
+> "\u4e2d\u9593\u6804\u6cbb"? <nakama (a) ki.rim.or.jp>
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From John.Joseph at utsa.edu  Wed Dec  1 06:57:10 2010
+From: John.Joseph at utsa.edu (John Joseph)
+Date: Tue, 30 Nov 2010 23:57:10 -0600
+Subject: [R-sig-hpc] trouble installing Rmpi
+References: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3CA@granite1604>
+	<19700.24073.333480.425665@max.nulle.part>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3E1@granite1604>
+	<201011302109.00993.cubranic@stat.ubc.ca>
+Message-ID: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3E5@granite1604>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101130/0a235674/attachment.pl>
+
+From nakama at ki.rim.or.jp  Wed Dec  1 07:43:34 2010
+From: nakama at ki.rim.or.jp (Ei-ji Nakama)
+Date: Wed, 1 Dec 2010 15:43:34 +0900
+Subject: [R-sig-hpc] License of GotoBLAS was changed to BSD
+In-Reply-To: <AANLkTi=TDVrKFriQDdhiOQY8vJigTNwVYFYf7by7KZBq@mail.gmail.com>
+References: <AANLkTikhewTjCMfWsGCuuKa0ZBZAf+Y3vN1rD4iQj3gO@mail.gmail.com>
+	<AANLkTi=TDVrKFriQDdhiOQY8vJigTNwVYFYf7by7KZBq@mail.gmail.com>
+Message-ID: <AANLkTi=+Rj+Bzab0imGZrOXMYBxjdu2ThMEdLNAdLzvR@mail.gmail.com>
+
+Hi
+
+2010/12/1 Murray Stokely <murray at stokely.org>:
+> This is excellent news. ?Has anyone expressed interest in maintaining
+> this going forward? ?I understand Kazushige-san is not interested in
+> maintaining it on sourceforge or the like.
+
+I began this leisurely.
+http://prs.ism.ac.jp/~nakama/SurviveGotoBLAS2/
+
+> I ask because the assumptions it makes about MAX_NODES in numa_check
+> in driver/others/init.c do not work for my linux environment, so I
+> need to compile with -DNO_AFFINITY, but that doesn't actually compile
+> without a tiny modification. ?I was able to resolve the particular
+> issues that I ran into, but its a good example of the type of issues
+> that will come up without active maintainership.
+
+I think that *active* is difficult(case of me).
+-- 
+EI-JI Nakama? <nakama (a) ki.rim.or.jp>
+"\u4e2d\u9593\u6804\u6cbb"? <nakama (a) ki.rim.or.jp>
+
+
+From J.Maas at uea.ac.uk  Wed Dec  1 10:05:47 2010
+From: J.Maas at uea.ac.uk (Maas James Dr (MED))
+Date: Wed, 1 Dec 2010 09:05:47 +0000
+Subject: [R-sig-hpc] parallelizing R code
+Message-ID: <9C2B89830110BF4A845878D9A31F3D9255D9FF23B7@UEAEXCHMBX.UEA.AC.UK>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101201/0495ecf6/attachment.pl>
+
+From daniel.cegielka at gmail.com  Wed Dec  1 10:54:49 2010
+From: daniel.cegielka at gmail.com (=?ISO-8859-2?Q?Daniel_Cegie=B3ka?=)
+Date: Wed, 1 Dec 2010 10:54:49 +0100
+Subject: [R-sig-hpc] License of GotoBLAS was changed to BSD
+In-Reply-To: <AANLkTi=+Rj+Bzab0imGZrOXMYBxjdu2ThMEdLNAdLzvR@mail.gmail.com>
+References: <AANLkTikhewTjCMfWsGCuuKa0ZBZAf+Y3vN1rD4iQj3gO@mail.gmail.com>
+	<AANLkTi=TDVrKFriQDdhiOQY8vJigTNwVYFYf7by7KZBq@mail.gmail.com>
+	<AANLkTi=+Rj+Bzab0imGZrOXMYBxjdu2ThMEdLNAdLzvR@mail.gmail.com>
+Message-ID: <AANLkTimLK3R+zab=NszeYSx9_s=C9MdmwY0kB=XEX2=W@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101201/3110b953/attachment.pl>
+
+From John.Joseph at utsa.edu  Wed Dec  1 14:44:09 2010
+From: John.Joseph at utsa.edu (John Joseph)
+Date: Wed, 1 Dec 2010 07:44:09 -0600
+Subject: [R-sig-hpc] trouble installing Rmpi
+References: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3CA@granite1604><978d4aae61e5a9aa1718eba7a84b57ee.squirrel@mail.ecs.vuw.ac.nz><8AFB4A1479ECD246A26FAA98CC48A93C018FE3CF@granite1604><4582bd03f7e9e70d29a6f9ccc6300158.squirrel@mail.ecs.vuw.ac.nz><8AFB4A1479ECD246A26FAA98CC48A93C018FE3E0@granite1604><19700.24073.333480.425665@max.nulle.part><8AFB4A1479ECD246A26FAA98CC48A93C018FE3E1@granite1604>
+	<19700.63780.315713.692602@max.nulle.part>
+Message-ID: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3E6@granite1604>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101201/37457739/attachment.pl>
+
+From cubranic at stat.ubc.ca  Wed Dec  1 20:41:22 2010
+From: cubranic at stat.ubc.ca (Davor Cubranic)
+Date: Wed, 1 Dec 2010 11:41:22 -0800
+Subject: [R-sig-hpc] trouble installing Rmpi
+In-Reply-To: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3E5@granite1604>
+References: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3CA@granite1604>
+	<19700.24073.333480.425665@max.nulle.part>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3E1@granite1604>
+	<201011302109.00993.cubranic@stat.ubc.ca>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3E5@granite1604>
+Message-ID: <C76D4A8D-A5D1-4640-898C-37C466609A23@stat.ubc.ca>
+
+On 2010-11-30, at 9:57 PM, John Joseph wrote:
+> john at john-desktop:~$ file /opt/intel/lib/ia32/libifport.so.5
+> /opt/intel/lib/ia32/libifport.so.5: ELF 32-bit LSB shared object, Intel 80386, version 1 (SYSV), dynamically linked, not stripped
+
+That look OK then.
+
+> And when I do that check you suggest regarding the path, this is what happens:
+> 
+> john at john-desktop:~$ ldd /home/john/LREWI15_TIO/./swat2009_i64_calibrate.so
+> ldd: /home/john/LREWI15_TIO/./swat2009_i64_calibrate.so: No such file or directory
+
+That's odd. Is the path to the file correct? Maybe I have copied it incorrectly from your original message.
+
+> So, does this confirm what you suspected?  I've been studying the makefile that was given to me and that worked on a CentOS platform, and, by reading up on documentation, I think I pretty much understand it, but see nothing in it that would lead to such a problem. 
+
+It doesn't confirm it or reject my hypothesis until we get ldd output on that Swat .so file. I want to see what libraries it depends on, and whether it knows where they are.
+
+Davor
+
+From cboettig at gmail.com  Wed Dec  1 22:10:38 2010
+From: cboettig at gmail.com (Carl Boettiger)
+Date: Wed, 1 Dec 2010 13:10:38 -0800
+Subject: [R-sig-hpc] parallelizing R code
+In-Reply-To: <9C2B89830110BF4A845878D9A31F3D9255D9FF23B7@UEAEXCHMBX.UEA.AC.UK>
+References: <9C2B89830110BF4A845878D9A31F3D9255D9FF23B7@UEAEXCHMBX.UEA.AC.UK>
+Message-ID: <AANLkTi=KS5Q=CJmaa5BqoGF9dbou3J2GP4otzuL6ntQT@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101201/ca5aeebc/attachment.pl>
+
+From John.Joseph at utsa.edu  Thu Dec  2 01:48:54 2010
+From: John.Joseph at utsa.edu (John Joseph)
+Date: Wed, 1 Dec 2010 18:48:54 -0600
+Subject: [R-sig-hpc] trouble installing Rmpi
+References: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3CA@granite1604>
+	<19700.24073.333480.425665@max.nulle.part>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3E1@granite1604>
+	<201011302109.00993.cubranic@stat.ubc.ca>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3E5@granite1604>
+	<C76D4A8D-A5D1-4640-898C-37C466609A23@stat.ubc.ca>
+Message-ID: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3E9@granite1604>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101201/9c3c6d96/attachment.pl>
+
+From cubranic at stat.ubc.ca  Thu Dec  2 06:50:15 2010
+From: cubranic at stat.ubc.ca (Davor Cubranic)
+Date: Wed, 1 Dec 2010 21:50:15 -0800
+Subject: [R-sig-hpc] trouble installing Rmpi
+In-Reply-To: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3E9@granite1604>
+References: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3CA@granite1604>
+	<C76D4A8D-A5D1-4640-898C-37C466609A23@stat.ubc.ca>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3E9@granite1604>
+Message-ID: <201012012150.15934.cubranic@stat.ubc.ca>
+
+On December 1, 2010 04:48:54 pm John Joseph wrote:
+> john at john-desktop:~$ ldd
+> /home/john/LREWI15_TIO/./swat2009_i64_calibrate.so
+[...]
+> 	libifport.so.5 => not found
+> 	libifcore.so.5 => not found
+> 	libimf.so => not found
+> 	libsvml.so => not found
+> 	libintlc.so.5 => not found
+
+Here we go: I'm pretty sure any entry that's 'not found' here will cause 
+an error in the dynamic linker. If you can locate those libraries, just 
+add them to LD_LIBRARY_PATH. At the very least, we know that 
+libifport.so.5 is in /opt/intel/lib/ia32, and it is very likely that the 
+rest of them are there as well.
+
+> I very much appreciate this help.
+
+No worries, you're welcome.
+
+Davor
+
+
+From John.Joseph at utsa.edu  Fri Dec  3 00:22:47 2010
+From: John.Joseph at utsa.edu (John Joseph)
+Date: Thu, 2 Dec 2010 17:22:47 -0600
+Subject: [R-sig-hpc] trouble installing Rmpi
+References: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3CA@granite1604>
+	<C76D4A8D-A5D1-4640-898C-37C466609A23@stat.ubc.ca>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3E9@granite1604>
+	<201012012150.15934.cubranic@stat.ubc.ca>
+Message-ID: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3EC@granite1604>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101202/972fb5f2/attachment.pl>
+
+From saptarshi.guha at gmail.com  Fri Dec  3 00:28:54 2010
+From: saptarshi.guha at gmail.com (Saptarshi Guha)
+Date: Thu, 2 Dec 2010 15:28:54 -0800
+Subject: [R-sig-hpc] trouble installing Rmpi
+In-Reply-To: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3EC@granite1604>
+References: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3CA@granite1604>
+	<C76D4A8D-A5D1-4640-898C-37C466609A23@stat.ubc.ca>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3E9@granite1604>
+	<201012012150.15934.cubranic@stat.ubc.ca>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3EC@granite1604>
+Message-ID: <AANLkTimx7YcyZV9Aq8MuAKJEeFvCY4UZwgA8qsJwdwof@mail.gmail.com>
+
+With each LD_LIBRARY_PATH, i think you're undoing the previous line. try
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/intel/lib/ia32/
+
+and then  ldd ./swat2009_i64_calibrate.so (assuming UNIX)  - the paths
+should be present.
+
+J
+
+On Thu, Dec 2, 2010 at 3:22 PM, John Joseph <John.Joseph at utsa.edu> wrote:
+>
+> Thanks, Davor.
+>
+> Well, my attempt to "add them to LD_LIBRARY_PATH" hasn't worked. ?Here's what I tried:
+>
+> john at john-desktop:~/LREWI15_TIO$ LD_LIBRARY_PATH=/opt/intel/lib/ia32/libifport.so.5 export LD_LIBRARY_PATH
+> john at john-desktop:~/LREWI15_TIO$ LD_LIBRARY_PATH=/opt/intel/lib/ia32/libifcore.so.5 export LD_LIBRARY_PATH
+> john at john-desktop:~/LREWI15_TIO$ LD_LIBRARY_PATH=/opt/intel/lib/ia32/libimf.so.5 export LD_LIBRARY_PATH
+> john at john-desktop:~/LREWI15_TIO$ LD_LIBRARY_PATH=/opt/intel/lib/ia32/libsvml.so.5 export LD_LIBRARY_PATH
+> john at john-desktop:~/LREWI15_TIO$ LD_LIBRARY_PATH=/opt/intel/lib/ia32/libintlc.so.5 export LD_LIBRARY_PATH
+>
+> I also tried without the "export LD_LIBRARY_PATH" portion, but, either way, I got the same old error.
+>
+> I also tried recompiling by setting the environment with LD_RUN_PATH, and this actually got me beyond the same old error. ?But now is.loaded() indicates that the program is not loaded.
+>
+>> setwd("/home/john/LREWI15_TIO")
+>> dyn.load("./swat2009_i64_calibrate.so")
+>> is.loaded("./swat2009_i64_calibrate.so")
+> [1] FALSE
+>>
+>
+> Using LD_LIBRARY_PATH does not affect this status either.
+>
+> Well, although I'm still not at the solution, I think I've gotten closer to it. ?Thanks for your leads. ?I'm learning a lot.
+>
+> I think I need to search the groups for how others may have dealt with this "is.loaded()" is FALSE problem, and might continue this post under a more relevant subject heading, such as "dyn.load() is.loaded() FALSE". ?But, of course, if you have any suggestions, I much appreciate them.
+>
+> John Joseph
+>
+>
+>
+> -----Original Message-----
+> From: Davor Cubranic [mailto:cubranic at stat.ubc.ca]
+> Sent: Wed 12/1/2010 11:50 PM
+> To: John Joseph
+> Cc: r-sig-hpc at r-project.org
+> Subject: Re: [R-sig-hpc] trouble installing Rmpi
+>
+> On December 1, 2010 04:48:54 pm John Joseph wrote:
+>> john at john-desktop:~$ ldd
+>> /home/john/LREWI15_TIO/./swat2009_i64_calibrate.so
+> [...]
+>> ? ? ? libifport.so.5 => not found
+>> ? ? ? libifcore.so.5 => not found
+>> ? ? ? libimf.so => not found
+>> ? ? ? libsvml.so => not found
+>> ? ? ? libintlc.so.5 => not found
+>
+> Here we go: I'm pretty sure any entry that's 'not found' here will cause
+> an error in the dynamic linker. If you can locate those libraries, just
+> add them to LD_LIBRARY_PATH. At the very least, we know that
+> libifport.so.5 is in /opt/intel/lib/ia32, and it is very likely that the
+> rest of them are there as well.
+>
+>> I very much appreciate this help.
+>
+> No worries, you're welcome.
+>
+> Davor
+>
+>
+>
+>
+>
+>
+>
+>
+> ? ? ? ?[[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From John.Joseph at utsa.edu  Fri Dec  3 01:42:08 2010
+From: John.Joseph at utsa.edu (John Joseph)
+Date: Thu, 2 Dec 2010 18:42:08 -0600
+Subject: [R-sig-hpc] trouble installing Rmpi
+References: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3CA@granite1604><C76D4A8D-A5D1-4640-898C-37C466609A23@stat.ubc.ca><8AFB4A1479ECD246A26FAA98CC48A93C018FE3E9@granite1604><201012012150.15934.cubranic@stat.ubc.ca>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3EC@granite1604>
+	<A196E27BFCD53648B78FA5AAE6BA205518AA0A@MINMAIL6.lands.resnet.qg>
+Message-ID: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3ED@granite1604>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101202/960e02db/attachment.pl>
+
+From Kevin.Buckley at ecs.vuw.ac.nz  Fri Dec  3 02:50:31 2010
+From: Kevin.Buckley at ecs.vuw.ac.nz (Kevin.Buckley at ecs.vuw.ac.nz)
+Date: Fri, 3 Dec 2010 14:50:31 +1300
+Subject: [R-sig-hpc] trouble installing Rmpi
+In-Reply-To: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3ED@granite1604>
+References: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3CA@granite1604><C76D4A8D-A5D1-4640-898C-37C466609A23@stat.ubc.ca><8AFB4A1479ECD246A26FAA98CC48A93C018FE3E9@granite1604><201012012150.15934.cubranic@stat.ubc.ca>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3EC@granite1604>
+	<A196E27BFCD53648B78FA5AAE6BA205518AA0A@MINMAIL6.lands.resnet.qg>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3ED@granite1604>
+Message-ID: <2fdc0118ed4f5f481a0b30538cc3bf1b.squirrel@mail.ecs.vuw.ac.nz>
+
+
+> Thanks for showing me better ways to use LD_LIBRARY_PATH.  I saw
+> nothing like those in the examples I found on line.
+
+On thing to consder is that R, Rmpi or the MPI underneath Rmpi, may
+be spawning shells that don't pick up on the LD_LIBRARY_PATH and
+other environmental variables you're exporting from the interactive
+shell from which you launch the jobs.
+
+You know I am not a  real "R man" but I am aware, from my dabblings
+with it, that when "loading things" there's an optional lib=/some/path
+argument you can pass to the R load function so as to allow R to
+find things that it might not necessarily see. (R people will know
+what I am on about, I am sure).
+
+If that option exists for your dynamic load of the shared library
+(.so), would that not be a place at which to specify paths into
+the environmnt which R/Rmpi sees and so then have R make those
+paths available when your shared library starts looking to fix
+up the Intel compiler symbols?
+
+You are effectively then giving R control over the environment,
+instead of trying to poke it from the outside.
+
+Just a thought though,
+Kevin
+
+-- 
+Kevin M. Buckley                                  Room:  CO327
+School of Engineering and                         Phone: +64 4 463 5971
+ Computer Science
+Victoria University of Wellington
+New Zealand
+
+
+From John.Joseph at utsa.edu  Fri Dec  3 03:16:57 2010
+From: John.Joseph at utsa.edu (John Joseph)
+Date: Thu, 2 Dec 2010 20:16:57 -0600
+Subject: [R-sig-hpc] trouble installing Rmpi
+References: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3CA@granite1604><C76D4A8D-A5D1-4640-898C-37C466609A23@stat.ubc.ca><8AFB4A1479ECD246A26FAA98CC48A93C018FE3E9@granite1604><201012012150.15934.cubranic@stat.ubc.ca><8AFB4A1479ECD246A26FAA98CC48A93C018FE3EC@granite1604><A196E27BFCD53648B78FA5AAE6BA205518AA0A@MINMAIL6.lands.resnet.qg>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3ED@granite1604>
+	<3CB7E549BE1AA14BB108ABCB4637B025FBF3@EXCHDB3.medctr.ad.wfubmc.edu>
+Message-ID: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3EE@granite1604>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101202/ac345b3b/attachment.pl>
+
+From John.Joseph at utsa.edu  Fri Dec  3 03:59:23 2010
+From: John.Joseph at utsa.edu (John Joseph)
+Date: Thu, 2 Dec 2010 20:59:23 -0600
+Subject: [R-sig-hpc] trouble installing Rmpi
+References: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3CA@granite1604><C76D4A8D-A5D1-4640-898C-37C466609A23@stat.ubc.ca><8AFB4A1479ECD246A26FAA98CC48A93C018FE3E9@granite1604><201012012150.15934.cubranic@stat.ubc.ca><8AFB4A1479ECD246A26FAA98CC48A93C018FE3EC@granite1604><A196E27BFCD53648B78FA5AAE6BA205518AA0A@MINMAIL6.lands.resnet.qg>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3ED@granite1604>
+	<3CB7E549BE1AA14BB108ABCB4637B025FBF3@EXCHDB3.medctr.ad.wfubmc.edu>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3EE@granite1604>
+	<3CB7E549BE1AA14BB108ABCB4637B025FC15@EXCHDB3.medctr.ad.wfubmc.edu>
+Message-ID: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3EF@granite1604>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101202/a8c4a228/attachment.pl>
+
+From John.Joseph at utsa.edu  Fri Dec  3 19:36:41 2010
+From: John.Joseph at utsa.edu (John Joseph)
+Date: Fri, 3 Dec 2010 12:36:41 -0600
+Subject: [R-sig-hpc] trouble installing Rmpi
+References: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3CA@granite1604><C76D4A8D-A5D1-4640-898C-37C466609A23@stat.ubc.ca><8AFB4A1479ECD246A26FAA98CC48A93C018FE3E9@granite1604><201012012150.15934.cubranic@stat.ubc.ca><8AFB4A1479ECD246A26FAA98CC48A93C018FE3EC@granite1604><A196E27BFCD53648B78FA5AAE6BA205518AA0A@MINMAIL6.lands.resnet.qg>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3ED@granite1604>
+	<3CB7E549BE1AA14BB108ABCB4637B025FBF3@EXCHDB3.medctr.ad.wfubmc.edu>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3EE@granite1604>
+	<3CB7E549BE1AA14BB108ABCB4637B025FC15@EXCHDB3.medctr.ad.wfubmc.edu>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3EF@granite1604>
+	<3CB7E549BE1AA14BB108ABCB4637B025010860@EXCHDB3.medctr.ad.wfubmc.edu>
+Message-ID: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3F5@granite1604>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101203/55bf7493/attachment.pl>
+
+From cubranic at stat.ubc.ca  Fri Dec  3 20:20:52 2010
+From: cubranic at stat.ubc.ca (Davor Cubranic)
+Date: Fri, 3 Dec 2010 11:20:52 -0800
+Subject: [R-sig-hpc] trouble installing Rmpi
+In-Reply-To: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3ED@granite1604>
+References: <8AFB4A1479ECD246A26FAA98CC48A93C018FE3CA@granite1604><C76D4A8D-A5D1-4640-898C-37C466609A23@stat.ubc.ca><8AFB4A1479ECD246A26FAA98CC48A93C018FE3E9@granite1604><201012012150.15934.cubranic@stat.ubc.ca>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3EC@granite1604>
+	<A196E27BFCD53648B78FA5AAE6BA205518AA0A@MINMAIL6.lands.resnet.qg>
+	<8AFB4A1479ECD246A26FAA98CC48A93C018FE3ED@granite1604>
+Message-ID: <451E61E1-9E07-49D5-9250-CD3BC0FD0CE5@stat.ubc.ca>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101203/74502e10/attachment.pl>
+
+From allane at cybaea.com  Tue Dec  7 16:31:43 2010
+From: allane at cybaea.com (Allan Engelhardt)
+Date: Tue, 07 Dec 2010 15:31:43 +0000
+Subject: [R-sig-hpc] Managing R CPU/memory usage on Linux
+In-Reply-To: <201011191341.48485.cubranic@stat.ubc.ca>
+References: <201011191341.48485.cubranic@stat.ubc.ca>
+Message-ID: <4CFE535F.7010501@cybaea.com>
+
+Control groups is probably the way to go if you have it, as Etienne 
+suggested, but also consider increasing swappiness, e.g.
+
+echo 100 >> /proc/sys/vm/swappiness
+
+(or more likely the equivalent in whatever /etc/sysctl.conf is on 
+Ubuntu).  You are quite low on RAM.  You will of course want a 
+decent-sized swap file.
+
+And without control croups you should set resource limits, cf. man 
+limits.conf.
+
+You could also try 'ionice -c 3' but the benefit is likely to be low 
+(nice -19 already drops your scheduling class to the equivalent of -c 2 
+-n 7).
+
+Allan
+
+On 19/11/10 21:41, Davor Cubranic wrote:
+> We have some Linux compute servers that our users occasionally overwhelm
+> with their R batch jobs to the point where the machines are completely
+> unresponsive and have to be rebooted. This seems to be happening more
+> often recently, and got me wondering what other people do to manage the
+> CPU/memory resources used by R on their servers.
+>
+> We 'nice -19' the R process, but that doesn't seem to help. Are there
+> any other R options or OS settings that would be useful? Or should I
+> consider installing a queuing manager and closing the servers to
+> interactive logins? As far as I can tell, out users just run existing R
+> packages from CRAN, and there is no parallelization or distributed
+> computing going on.
+>
+> The machines are dual-CPU 64-bit Intels with 4GB of RAM and running
+> Ubuntu 8.04. So they won't be making the TOP500 list any time soon, but
+> I would have hoped the kernel would be a litter better at squelching
+> down CPU and memory hogs.
+>
+> Thanks,
+>
+> Davor
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From ostrouchovg at ornl.gov  Wed Dec  8 05:44:14 2010
+From: ostrouchovg at ornl.gov (George Ostrouchov)
+Date: Tue, 07 Dec 2010 23:44:14 -0500
+Subject: [R-sig-hpc] Makevars.in - changing compiler
+Message-ID: <4CFF0D1E.2020106@ornl.gov>
+
+Is it possible to set a package compiler via Makevars.in? I need to 
+substitute mpicc (an Open MPI wrapper compiler). My attempts just 
+setting CC=mpicc in Makevars.in have failed.
+
+Is Makevars just "included before the default `Makefile'" as it states 
+in the "Writing R Extensions" manual or is there more to it?
+
+Thanks,
+George
+
+
+From edd at debian.org  Wed Dec  8 05:52:58 2010
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Tue, 7 Dec 2010 22:52:58 -0600
+Subject: [R-sig-hpc] Makevars.in - changing compiler
+In-Reply-To: <4CFF0D1E.2020106@ornl.gov>
+References: <4CFF0D1E.2020106@ornl.gov>
+Message-ID: <19711.3882.343038.418169@max.nulle.part>
+
+
+On 7 December 2010 at 23:44, George Ostrouchov wrote:
+| Is it possible to set a package compiler via Makevars.in? I need to 
+| substitute mpicc (an Open MPI wrapper compiler). My attempts just 
+| setting CC=mpicc in Makevars.in have failed.
+
+For an R package? 
+
+| Is Makevars just "included before the default `Makefile'" as it states 
+| in the "Writing R Extensions" manual or is there more to it?
+
+Here is what the current Rmpi has in src/Makefile.in:
+
+  # -*- Makefile -*-  vim : ft = make
+
+  PKG_CPPFLAGS = @DEFS@ @PKG_CPPFLAGS@
+  PKG_CFLAGS   = $(ARCHCFLAGS)
+  PKG_LIBS     = @PKG_LIBS@ $(ARCHLIB)
+
+As you can see, it only sets arguments to the compiler, not the compiler
+itself.
+
+Rmpi is a pretty good package to study as Hao as been diligently working at
+it for many years, and has it working for a great number of system and
+compiler choices.  
+
+Did that help? If not please rephrase the question.
+
+Cheers, Dirk 
+
+-- 
+Dirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com
+
+
+From ostrouchovg at ornl.gov  Wed Dec  8 15:17:41 2010
+From: ostrouchovg at ornl.gov (George Ostrouchov)
+Date: Wed, 08 Dec 2010 09:17:41 -0500
+Subject: [R-sig-hpc] Makevars.in - changing compiler
+In-Reply-To: <19711.3882.343038.418169@max.nulle.part>
+References: <4CFF0D1E.2020106@ornl.gov>
+	<19711.3882.343038.418169@max.nulle.part>
+Message-ID: <4CFF9385.6090709@ornl.gov>
+
+Hi Dirk,
+
+Here is some more detail that I should have included earlier. I am 
+extending the ncdf4 package to include parallel I/O (already available 
+in NetCDF4) so it needs Open MPI includes and libs. Just swapping the 
+compiler to mpicc will take care of things. ncdf4 uses autoconf and the 
+Makevars.in mechanism. Can the package compiler be specified this way?
+
+Thanks,
+George
+
+On 12/7/10 11:52 PM, Dirk Eddelbuettel wrote:
+> On 7 December 2010 at 23:44, George Ostrouchov wrote:
+> | Is it possible to set a package compiler via Makevars.in? I need to
+> | substitute mpicc (an Open MPI wrapper compiler). My attempts just
+> | setting CC=mpicc in Makevars.in have failed.
+>
+> For an R package?
+>
+> | Is Makevars just "included before the default `Makefile'" as it states
+> | in the "Writing R Extensions" manual or is there more to it?
+>
+> Here is what the current Rmpi has in src/Makefile.in:
+>
+>    # -*- Makefile -*-  vim : ft = make
+>
+>    PKG_CPPFLAGS = @DEFS@ @PKG_CPPFLAGS@
+>    PKG_CFLAGS   = $(ARCHCFLAGS)
+>    PKG_LIBS     = @PKG_LIBS@ $(ARCHLIB)
+>
+> As you can see, it only sets arguments to the compiler, not the compiler
+> itself.
+>
+> Rmpi is a pretty good package to study as Hao as been diligently working at
+> it for many years, and has it working for a great number of system and
+> compiler choices.
+>
+> Did that help? If not please rephrase the question.
+>
+> Cheers, Dirk
+>
+
+-- 
+George Ostrouchov, Ph.D.
+Statistics and Data Sciences Group
+Computer Science and Mathematics Division
+Oak Ridge National Laboratory
+(865) 574-3137  http://www.csm.ornl.gov/~ost
+
+
+From ostrouchovg at ornl.gov  Wed Dec  8 19:13:40 2010
+From: ostrouchovg at ornl.gov (George Ostrouchov)
+Date: Wed, 08 Dec 2010 13:13:40 -0500
+Subject: [R-sig-hpc] Makevars.in - changing compiler
+In-Reply-To: <4CFF9385.6090709@ornl.gov>
+References: <4CFF0D1E.2020106@ornl.gov>
+	<19711.3882.343038.418169@max.nulle.part> <4CFF9385.6090709@ornl.gov>
+Message-ID: <4CFFCAD4.30508@ornl.gov>
+
+After some more searching, I think the answer is no. But it probably 
+also makes more sense to align the compiler with R and Rmpi rather than 
+with NetCDF4 anyway. My initial thought was to use MPI information 
+provided by nc-config of NetCDF4, and this was only mpicc.
+
+So I will work through the PKG_* variables of Makevars to provide the 
+MPI includes and libs like Hao does in Rmpi.
+
+Cheers,
+George
+
+On 12/8/10 9:17 AM, George Ostrouchov wrote:
+> Hi Dirk,
+>
+> Here is some more detail that I should have included earlier. I am
+> extending the ncdf4 package to include parallel I/O (already available
+> in NetCDF4) so it needs Open MPI includes and libs. Just swapping the
+> compiler to mpicc will take care of things. ncdf4 uses autoconf and the
+> Makevars.in mechanism. Can the package compiler be specified this way?
+>
+> Thanks,
+> George
+>
+> On 12/7/10 11:52 PM, Dirk Eddelbuettel wrote:
+>> On 7 December 2010 at 23:44, George Ostrouchov wrote:
+>> | Is it possible to set a package compiler via Makevars.in? I need to
+>> | substitute mpicc (an Open MPI wrapper compiler). My attempts just
+>> | setting CC=mpicc in Makevars.in have failed.
+>>
+>> For an R package?
+>>
+>> | Is Makevars just "included before the default `Makefile'" as it states
+>> | in the "Writing R Extensions" manual or is there more to it?
+>>
+>> Here is what the current Rmpi has in src/Makefile.in:
+>>
+>>     # -*- Makefile -*-  vim : ft = make
+>>
+>>     PKG_CPPFLAGS = @DEFS@ @PKG_CPPFLAGS@
+>>     PKG_CFLAGS   = $(ARCHCFLAGS)
+>>     PKG_LIBS     = @PKG_LIBS@ $(ARCHLIB)
+>>
+>> As you can see, it only sets arguments to the compiler, not the compiler
+>> itself.
+>>
+>> Rmpi is a pretty good package to study as Hao as been diligently working at
+>> it for many years, and has it working for a great number of system and
+>> compiler choices.
+>>
+>> Did that help? If not please rephrase the question.
+>>
+>> Cheers, Dirk
+>>
+
+-- 
+George Ostrouchov, Ph.D.
+Statistics and Data Sciences Group
+Computer Science and Mathematics Division
+Oak Ridge National Laboratory
+(865) 574-3137  http://www.csm.ornl.gov/~ost
+
+
+From J.Maas at uea.ac.uk  Thu Dec  9 11:37:59 2010
+From: J.Maas at uea.ac.uk (Maas James Dr (MED))
+Date: Thu, 9 Dec 2010 10:37:59 +0000
+Subject: [R-sig-hpc] Rmpi and sending files to slaves
+Message-ID: <9C2B89830110BF4A845878D9A31F3D9255DA5AB3D2@UEAEXCHMBX.UEA.AC.UK>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101209/d5dc88b0/attachment.pl>
+
+From J.Maas at uea.ac.uk  Thu Dec  9 17:33:55 2010
+From: J.Maas at uea.ac.uk (Maas James Dr (MED))
+Date: Thu, 9 Dec 2010 16:33:55 +0000
+Subject: [R-sig-hpc] unusual results with Rmpi
+Message-ID: <9C2B89830110BF4A845878D9A31F3D9255DA5AB646@UEAEXCHMBX.UEA.AC.UK>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101209/a278147a/attachment.pl>
+
+From hyu at stats.uwo.ca  Thu Dec  9 19:00:42 2010
+From: hyu at stats.uwo.ca (Hao Yu)
+Date: Thu, 9 Dec 2010 13:00:42 -0500
+Subject: [R-sig-hpc] unusual results with Rmpi
+In-Reply-To: <9C2B89830110BF4A845878D9A31F3D9255DA5AB646@UEAEXCHMBX.UEA.AC.UK>
+References: <9C2B89830110BF4A845878D9A31F3D9255DA5AB646@UEAEXCHMBX.UEA.AC.UK>
+Message-ID: <4cc9671ae52ba5af5b4580028010bef3.squirrel@www.stats.uwo.ca>
+
+I don't think
+>   mpi.bcast.Robj2slave(sim.dat$bsiaic.dat)
+will work because R cannot name sim.dat$bsiaic.dat as an object on slaves.
+
+I don't know what exactly your functions do on slaves. Be aware that all
+slaves are likely to have the same random seed unless parallel rng is
+used. Install rlecuyer and use mpi.setup.rngstream() to initiate parallel
+rng.
+
+Hao
+
+Maas James Dr (MED) wrote:
+> I'm running a small programme as a test and to learn how to use Rmpi.
+>
+> I send a data set and routine to two slave nodes, and then get the answers
+> back in an object.  The routines executed are Bayesian Gibbs sampling
+> routines so I would expect slightly different answers back from the two
+> nodes but I get identical answers back from both nodes.
+>
+> I'm under the impression that each node does the complete routine from
+> start to finish before returning answers but this may be my
+> misunderstanding.  Should the answers in fact be identical because mpi has
+> split the job up between the two nodes and both contributed to the
+> calculations, therefore both end up with the same answer?
+>
+> mpi code that gives me these results is :
+>
+>   ## send the data to slaves
+>   mpi.bcast.Robj2slave(sim.dat$bsiaic.dat)
+>   mpi.bcast.Robj2slave(sim.dat$bsdaic.dat)
+>
+>   ## send the jags fitting functions to slaves
+>   mpi.bcast.Robj2slave(bsiaicresults)
+>   mpi.bcast.Robj2slave(bsdaicresults)
+>
+>   ## execute the fitting functions on slaves and
+>   ## get results back
+>   bsiaictot <- mpi.remote.exec(bsiaicresults())
+>   bsdaictot <- mpi.remote.exec(bsdaicresults())
+>
+>
+> Any suggestions?
+>
+> Thanks
+>
+> J
+>
+> ===============================
+> Dr. Jim Maas
+> University of East Anglia
+>
+> 	[[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+-- 
+Department of Statistics & Actuarial Sciences
+Fax Phone#:(519)-661-3813
+The University of Western Ontario
+Office Phone#:(519)-661-3622
+London, Ontario N6A 5B7
+http://www.stats.uwo.ca/faculty/yu
+
+
+From brian at braverock.com  Thu Dec  9 21:17:35 2010
+From: brian at braverock.com (Brian G. Peterson)
+Date: Thu, 09 Dec 2010 14:17:35 -0600
+Subject: [R-sig-hpc] unusual results with Rmpi
+In-Reply-To: <9C2B89830110BF4A845878D9A31F3D9255DA5AB646@UEAEXCHMBX.UEA.AC.UK>
+References: <9C2B89830110BF4A845878D9A31F3D9255DA5AB646@UEAEXCHMBX.UEA.AC.UK>
+Message-ID: <4D01395F.50702@braverock.com>
+
+On 12/09/2010 10:33 AM, Maas James Dr (MED) wrote:
+> I'm running a small programme as a test and to learn how to use Rmpi.
+>
+> I send a data set and routine to two slave nodes, and then get the answers back in an object.  The routines executed are Bayesian Gibbs sampling routines so I would expect slightly different answers back from the two nodes but I get identical answers back from both nodes.
+>
+> I'm under the impression that each node does the complete routine from start to finish before returning answers but this may be my misunderstanding.  Should the answers in fact be identical because mpi has split the job up between the two nodes and both contributed to the calculations, therefore both end up with the same answer?
+
+
+See presentations by Dirk Eddelbuettel, Bryan Lewis, and others talking 
+about initializing parallel random number streams in parallelized R 
+sessions.  Alternately, you can set a different seed on each node.
+
+Regards,
+
+   - Brian
+
+-- 
+Brian G. Peterson
+http://braverock.com/brian/
+Ph: 773-459-4973
+IM: bgpbraverock
+
+
+From cubranic at stat.ubc.ca  Fri Dec 10 18:35:05 2010
+From: cubranic at stat.ubc.ca (Davor Cubranic)
+Date: Fri, 10 Dec 2010 09:35:05 -0800
+Subject: [R-sig-hpc] Makevars.in - changing compiler
+In-Reply-To: <4CFF9385.6090709@ornl.gov>
+References: <4CFF0D1E.2020106@ornl.gov>
+	<19711.3882.343038.418169@max.nulle.part>
+	<4CFF9385.6090709@ornl.gov>
+Message-ID: <201012100935.06292.cubranic@stat.ubc.ca>
+
+You *can* modify the package compiler -- for example gputools switches 
+to using nvcc CUDA compiler. But I'm pretty sure you'll need to use a 
+custom Makefile.
+
+Davor
+
+
+On December 8, 2010 06:17:41 am George Ostrouchov wrote:
+> Hi Dirk,
+> 
+> Here is some more detail that I should have included earlier. I am
+> extending the ncdf4 package to include parallel I/O (already
+> available in NetCDF4) so it needs Open MPI includes and libs. Just
+> swapping the compiler to mpicc will take care of things. ncdf4 uses
+> autoconf and the Makevars.in mechanism. Can the package compiler be
+> specified this way?
+> 
+> Thanks,
+> George
+> 
+> On 12/7/10 11:52 PM, Dirk Eddelbuettel wrote:
+> > On 7 December 2010 at 23:44, George Ostrouchov wrote:
+> > | Is it possible to set a package compiler via Makevars.in? I need
+> > | to substitute mpicc (an Open MPI wrapper compiler). My attempts
+> > | just setting CC=mpicc in Makevars.in have failed.
+> > 
+> > For an R package?
+> > 
+> > | Is Makevars just "included before the default `Makefile'" as it
+> > | states in the "Writing R Extensions" manual or is there more to
+> > | it?
+> > 
+> > Here is what the current Rmpi has in src/Makefile.in:
+> >    # -*- Makefile -*-  vim : ft = make
+> >    
+> >    PKG_CPPFLAGS = @DEFS@ @PKG_CPPFLAGS@
+> >    PKG_CFLAGS   = $(ARCHCFLAGS)
+> >    PKG_LIBS     = @PKG_LIBS@ $(ARCHLIB)
+> > 
+> > As you can see, it only sets arguments to the compiler, not the
+> > compiler itself.
+> > 
+> > Rmpi is a pretty good package to study as Hao as been diligently
+> > working at it for many years, and has it working for a great
+> > number of system and compiler choices.
+> > 
+> > Did that help? If not please rephrase the question.
+> > 
+> > Cheers, Dirk
+
+
+From edd at debian.org  Fri Dec 10 18:53:55 2010
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Fri, 10 Dec 2010 11:53:55 -0600
+Subject: [R-sig-hpc] Makevars.in - changing compiler
+In-Reply-To: <201012100935.06292.cubranic@stat.ubc.ca>
+References: <4CFF0D1E.2020106@ornl.gov>
+	<19711.3882.343038.418169@max.nulle.part>
+	<4CFF9385.6090709@ornl.gov>
+	<201012100935.06292.cubranic@stat.ubc.ca>
+Message-ID: <19714.26931.514716.814684@max.nulle.part>
+
+
+On 10 December 2010 at 09:35, Davor Cubranic wrote:
+| You *can* modify the package compiler -- for example gputools switches 
+| to using nvcc CUDA compiler. But I'm pretty sure you'll need to use a 
+| custom Makefile.
+
+Yes ... but as we're talking R here, consider the know downsides. 
+
+With Makefiles you no longer get multiarch builds which have been the default
+on the Mac for some time and are now the default on Windows (arguably via
+Makefile.win).
+
+If you can do with Makefile, do without a Makefile.   I'd use one for a local
+package -- ie if George wanted something to work just at the lab.  For
+redistribution, CRAN, ... it's better without one.   
+
+Dirk
+
+-- 
+Dirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com
+
+
+From cubranic at stat.ubc.ca  Fri Dec 10 19:54:34 2010
+From: cubranic at stat.ubc.ca (Davor Cubranic)
+Date: Fri, 10 Dec 2010 10:54:34 -0800
+Subject: [R-sig-hpc] Makevars.in - changing compiler
+In-Reply-To: <19714.26931.514716.814684@max.nulle.part>
+References: <4CFF0D1E.2020106@ornl.gov>
+	<201012100935.06292.cubranic@stat.ubc.ca>
+	<19714.26931.514716.814684@max.nulle.part>
+Message-ID: <201012101054.35228.cubranic@stat.ubc.ca>
+
+I agree completely, Dirk. I would definitely consider it only in special 
+circumstances, like a custom optimization for a local install. But if it 
+really needs to be done, it's possible... With some trade-offs. If you 
+know what you're doing. :-)
+
+Davor
+
+
+On December 10, 2010 09:53:55 am Dirk Eddelbuettel wrote:
+> On 10 December 2010 at 09:35, Davor Cubranic wrote:
+> | You *can* modify the package compiler -- for example gputools
+> | switches to using nvcc CUDA compiler. But I'm pretty sure you'll
+> | need to use a custom Makefile.
+> 
+> Yes ... but as we're talking R here, consider the know downsides.
+> 
+> With Makefiles you no longer get multiarch builds which have been the
+> default on the Mac for some time and are now the default on Windows
+> (arguably via Makefile.win).
+> 
+> If you can do with Makefile, do without a Makefile.   I'd use one for
+> a local package -- ie if George wanted something to work just at the
+> lab.  For redistribution, CRAN, ... it's better without one.
+> 
+> Dirk
+
+
+From ross at biostat.ucsf.edu  Tue Dec 14 22:51:09 2010
+From: ross at biostat.ucsf.edu (Ross Boylan)
+Date: Tue, 14 Dec 2010 13:51:09 -0800
+Subject: [R-sig-hpc] parallel random numbers: set.seed(i), rsprng,
+	rlecuyer, ??
+In-Reply-To: <19481.60138.260928.613494@lynne.math.ethz.ch>
+References: <19481.60138.260928.613494@lynne.math.ethz.ch>
+Message-ID: <1292363469.7621.40.camel@markov.biostat.ucsf.edu>
+
+I have a particular variant of this question, and also some additional
+information related to the original one.  See also the discussion at
+http://rwiki.sciviews.org/doku.php?id=packages:cran:rsprng.
+
+The question is how to generate reproducible streams of parallel random
+numbers in a way that is insensitive to the number of nodes used.  If I
+can run 10 jobs one time, and 60 the next, I want to get the same random
+numbers.
+
+Scenarios
+A) Each job generates its own random numbers.
+B) A specialized subset of jobs generates random numbers; the subset
+expands as the total number of jobs expands.
+C) A fixed subset, e.g., 5 jobs, are responsible for generating the
+random number.
+
+C) seems the most likely to be achievable. rsprng, which we use,
+initializes streams with a call that includes the stream number and the
+total number of streams.  I don't know if the stream number alone
+determines the sequence, or if the stream number, and possibly messaging
+between processes, comes into play.  Even if rsprng came with some
+guarantees, other parallel generators (e.g., rlecuyer) might not.
+
+There are also calls for spawning streams and manipulating stream state.
+Perhaps these could be jury-rigged into a solution.
+
+Any thoughts?
+
+There's one point in the original post I'd like to correct.  See below.
+
+On Thu, 2010-06-17 at 11:29 +0200, Martin Maechler wrote:
+> Again, I've been asked about RNG (random number generation) in
+> the context of - say embarrassingly - parallel computation.
+> 
+> I've heard of many people just using
+> set.seed(i)  on the i-th computing node,
+> and when asked for advice, I've typically even acknowledged,
+> that I though this to be save, in the case of
+>   { i in 1:N }  and  N < 1000 (say),
+> but have always warned, that people have argued (I vaguely
+> recall a talk given by Tony Rossini) that you need something
+> else, namely with *proven* independent random streams:
+> 
+> And there are sophisticated approaches: the CRAN task view on
+> HPC  mentions the R packages, 'rsprng' and 'rlecuyer'.
+> The first interfaces to SPRNG 2.0, ie extra software which is
+> outdated (SPRNG 4.0 is current, but not back-compatible), and
+> does not compile without error {
+>   gcc -c -O3 -DLittleEndian -DUSE_PMLCG  -DINTEL   -I../include  metropolis.c
+>   metropolis.c:157:14: error: operator '!' has no right operand
+> }
+> Even if fixed, it's not trivial to install in a cluster
+> environment without root priviledges, and so I guess the package
+> will currently be used by less than 1% of people doing
+> cluster/parallel R computations.
+> The second pkg, rlecuyer, has all functions "invisible", as
+> their names start with ".lec." which also does not look like
+> production-quality, at first look, at least.
+> More importantly, ideally the R functions used, which call
+> rnorm(), runif(), r<...> and may have internal C code also
+> interfacing to R's C-API 'unif_rand()'.
+> So a ``reasonable'' R package should really ensure that R's
+> runif(), rnorm(), ... RNGs automatically use the package's
+> alternative, by establishing itself {C level / R level}
+> as R's RNGs; in R, see
+>    help(Random.user)
+> I'm pretty sure that both packages do not make use of this R API
+> feature.
+My reading of the code is that rsprng, at least, does hook into the
+underlying generators, which most of the r-level ones call.  It does not
+hook into calls relating to setting the seed or saving and restoring the
+stream state; i.e., those must be done through rsprng-specific calls.
+It's probably not reasonable to expect that a single-stream seed setting
+call would work with a parallel random number generator.
+
+Ross
+
+P.S. We're using rsprng because it is part of the base Debian
+distribution.  Packaged versions of rlecuyer are available in other
+repositories.
+> 
+> I'm asking for advice, mostly if you really have collected
+> experience, and am hence including the package authors of
+> 'rsprng' and 'rlecuyer' in the addressees of this e-mail.
+> (IIRC, you all have to subscribe to R-SIG-HPC if you want your
+>  replies to be  posted to the mailing list. 
+>  So, for now, please use "reply to all" if possible)
+> 
+> And yes, let's think of a simple situation of an "embarassingly
+> parallel" application, e.g., pure simulation,
+> or bootstrap (or cross-validation).
+> 
+> Thanks in advance,
+> 
+> Martin Maechler,
+> ETH Zurich
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From hanas at uw.edu  Wed Dec 15 18:35:18 2010
+From: hanas at uw.edu (Hana Sevcikova)
+Date: Wed, 15 Dec 2010 09:35:18 -0800
+Subject: [R-sig-hpc] parallel random numbers: set.seed(i), rsprng,
+ rlecuyer, ??
+In-Reply-To: <OFA0963976.EA16FFC4-ONC12577FA.002B1336-C12577FA.002B6AD0@domino.novartis.com>
+References: <OFA0963976.EA16FFC4-ONC12577FA.002B1336-C12577FA.002B6AD0@domino.novartis.com>
+Message-ID: <4D08FC56.5050109@uw.edu>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101215/67fa12ff/attachment.pl>
+
+From m_hofert at web.de  Thu Dec 16 23:09:13 2010
+From: m_hofert at web.de (Marius Hofert)
+Date: Thu, 16 Dec 2010 23:09:13 +0100
+Subject: [R-sig-hpc] Error in makeMPIcluster(spec,
+	...): how to get a minimal example for parallel computing with
+	doSNOW to run?
+Message-ID: <1D8516CF-52B8-40A7-B34C-486480D610BE@web.de>
+
+Dear expeRts,
+
+I try to get a minimal example for parallel computing via "foreach" + "doSNOW" to run on a computer cluster (Brutus from ETH Zurich). The minimal example is given below. It runs perfectly fine on my MacBook but when I submit it as a batch job via ...
+bsub -n 3 -R "select[model==Opteron8380]" mpirun R --no-save -q -f doSNOW_minimal.R
+... it does not work. The output is also given below. The error is "Error in makeMPIcluster(spec, ...) : a cluster already exists 1". The only similar thing I found on the web is http://www.mail-archive.com/r-help at stat.math.ethz.ch/msg35501.html
+but unfortunately, it was not answered. 
+I also contacted the maintainers of the cluster, however, they couldn't really help me since they were no "expeRts". 
+
+Cheers,
+
+Marius
+
+Ps: As you an expeRt probably sees right away, I am a newby when it comes to parallel computing, so please check all the details (does the mpirun command makes sense? and the bsubs command [the batch system is "LSF"]?) and let me know if you need further. 
+
+## ==== minimal example ==== 
+
+library(doSNOW) # loads foreach
+library(Rmpi) # for default in makeCluster()
+cl <- makeCluster(3) # create cluster object with the given number of slaves 
+registerDoSNOW(cl) # register the cluster object with foreach
+x <- foreach(i = 1:3) %dopar% { # simple test
+   sqrt(i)
+}
+x 
+stopCluster(cl) # properly shut down the cluster 
+
+## ==== minimal example ====
+
+## ==== output ====
+
+Sender: LSF System <lsfadmin at a6218>
+Subject: Job 921476: <mpirun R --no-save -q -f doSNOW_minimal.R> Done
+
+Job <mpirun R --no-save -q -f doSNOW_minimal.R> was submitted from host <brutus2> by user <hofertj> in cluster <brutus>.
+Job was executed on host(s) <3*a6218>, in queue <pub.1h>, as user <hofertj> in cluster <brutus>.
+</cluster/home/math/hofertj> was used as the home directory.
+</cluster/home/math/hofertj> was used as the working directory.
+Started at Thu Dec 16 22:16:31 2010
+Results reported at Thu Dec 16 22:16:43 2010
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+mpirun R --no-save -q -f doSNOW_minimal.R
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time   :      6.96 sec.
+    Max Memory :         3 MB
+    Max Swap   :        29 MB
+
+    Max Processes  :         1
+    Max Threads    :         1
+
+The output (if any) follows:
+
+master (rank 0, comm 1) of size 3 is running on: a6218 
+slave1 (rank 1, comm 1) of size 3 is running on: a6218 
+slave2 (rank 2, comm 1) of size 3 is running on: a6218 
+> library(doSNOW) # loads foreach
+Loading required package: foreach
+Loading required package: iterators
+Loading required package: codetools
+Loading required package: snow
+> library(Rmpi) # for default in makeCluster()
+> cl <- makeCluster(3) # create cluster object with the given number of slaves 
+Error in makeMPIcluster(spec, ...) : a cluster already exists 1
+Calls: makeCluster -> makeMPIcluster
+> registerDoSNOW(cl) # register the cluster object with foreach
+Error in assign("data", data, pos = .foreachGlobals, inherits = FALSE) : 
+  object 'cl' not found
+Calls: registerDoSNOW -> setDoPar -> assign
+> x <- foreach(i = 1:3) %dopar% { # simple test
++    sqrt(i)
++ }
+Error in checkCluster(cl) : not a valid cluster
+Calls: %dopar% -> <Anonymous> -> clusterCall -> checkCluster
+> x 
+Error: object 'x' not found
+> stopCluster(cl) # properly shut down the cluster 
+Error in stopCluster(cl) : object 'cl' not found
+> 
+> 
+[1] "Please use mpi.close.Rslaves() to close slaves"
+[1] "Please use mpi.quit() to quit R"
+
+## ==== output ====
+
+From m_hofert at web.de  Fri Dec 17 11:41:23 2010
+From: m_hofert at web.de (Marius Hofert)
+Date: Fri, 17 Dec 2010 11:41:23 +0100
+Subject: [R-sig-hpc] Error in makeMPIcluster(spec,
+	...): how to get a minimal example for parallel computing
+	with	doSNOW to run?
+In-Reply-To: <4D0B0EEA.3020102@cscs.ch>
+References: <1D8516CF-52B8-40A7-B34C-486480D610BE@web.de>
+	<4D0AF347.1060509@cscs.ch>
+	<3C5F08BC-EFE2-4BB3-86F0-C16B9D93A836@web.de>
+	<4D0B0EEA.3020102@cscs.ch>
+Message-ID: <51B88422-4260-423E-8F59-21DB8527A1F3@web.de>
+
+Hi,
+
+In the meantime, I tried the Rmpi hello world as suggested by Mario. I tried exactly the one given on
+http://math.acadiau.ca/ACMMaC/Rmpi/sample.html
+
+I submitted it to the batch system via: bsub -n 4 -R "select[model==Opteron8380]" mpirun R --no-save -q -f Rmpi_hello_world.R
+
+Below is the output. Does anyone know how to interpret the error (and possible how to fix it :-) hopefully that helps solving the doSNOW problem)?
+
+Cheers,
+
+Marius
+
+## ==== snippet start ====
+
+Sender: LSF System <lsfadmin at a6211>
+Subject: Job 938942: <mpirun R --no-save -q -f Rmpi_hello_world.R> Done
+
+Job <mpirun R --no-save -q -f Rmpi_hello_world.R> was submitted from host <brutus2> by user <hofertj> in cluster <brutus>.
+Job was executed on host(s) <4*a6211>, in queue <pub.1h>, as user <hofertj> in cluster <brutus>.
+</cluster/home/math/hofertj> was used as the home directory.
+</cluster/home/math/hofertj> was used as the working directory.
+Started at Fri Dec 17 11:35:40 2010
+Results reported at Fri Dec 17 11:35:49 2010
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+mpirun R --no-save -q -f Rmpi_hello_world.R
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time   :      4.21 sec.
+    Max Memory :         3 MB
+    Max Swap   :        29 MB
+
+    Max Processes  :         1
+    Max Threads    :         1
+
+The output (if any) follows:
+
+master (rank 0, comm 1) of size 4 is running on: a6211 
+slave1 (rank 1, comm 1) of size 4 is running on: a6211 
+slave2 (rank 2, comm 1) of size 4 is running on: a6211 
+slave3 (rank 3, comm 1) of size 4 is running on: a6211 
+> ## from http://math.acadiau.ca/ACMMaC/Rmpi/sample.html
+> 
+> # Load the R MPI package if it is not already loaded.
+> if (!is.loaded("mpi_initialize")) {
++     library("Rmpi")
++     }
+>                                                                                 
+> # Spawn as many slaves as possible
+> mpi.spawn.Rslaves()
+Error in mpi.spawn.Rslaves() : 
+  It seems there are some slaves running on comm  1
+>                                                                                 
+> # In case R exits unexpectedly, have it automatically clean up
+> # resources taken up by Rmpi (slaves, memory, etc...)
+> .Last <- function(){
++     if (is.loaded("mpi_initialize")){
++         if (mpi.comm.size(1) > 0){
++             print("Please use mpi.close.Rslaves() to close slaves.")
++             mpi.close.Rslaves()
++         }
++         print("Please use mpi.quit() to quit R")
++         .Call("mpi_finalize")
++     }
++ }
+> 
+> # Tell all slaves to return a message identifying themselves
+> mpi.remote.exec(paste("I am",mpi.comm.rank(),"of",mpi.comm.size()))
+$slave1
+[1] "I am 1 of 4"
+
+$slave2
+[1] "I am 2 of 4"
+
+$slave3
+[1] "I am 3 of 4"
+
+> 
+> # Tell all slaves to close down, and exit the program
+> mpi.close.Rslaves()
+[1] 1
+> mpi.quit()
+
+## ==== snippet end ====
+
+On 2010-12-17, at 08:19 , Mario Valle wrote:
+
+> Good morning Marius!
+> I try to make parallels to my experience with snofall.
+> One was the number of jobs, the other hanging R processes around the cluster, another due to
+> mpich2 configuration on the cluster (does not allow MPI spawn processes).
+> Have you tried the Rmpi examples alone?
+> Have you tried the classical MPI "Hello world" application, just to exclude problems with MPI alone.
+> Unfortunately I will be back in my office Monday. I tried your example remotely but seems something changed to MPI
+> and now it hangs in makeCluster.
+> I'll try again monday.
+> Ciao!
+>                    mario
+> 
+> On 17-Dec-10 07:41, Marius Hofert wrote:
+>> Dear Mario,
+>> 
+>> I tried "-n 4" and obtain the same error :-(
+>> 
+>> Cheers,
+>> 
+>> Marius
+>> 
+> 
+> -- 
+> Ing. Mario Valle
+> Data Analysis and Visualization Group            | http://www.cscs.ch/~mvalle
+> Swiss National Supercomputing Centre (CSCS)      | Tel:  +41 (91) 610.82.60
+> v. Cantonale Galleria 2, 6928 Manno, Switzerland | Fax:  +41 (91) 610.82.82
+> 
+
+
+From J.Maas at uea.ac.uk  Sat Dec 18 16:11:29 2010
+From: J.Maas at uea.ac.uk (Maas James Dr (MED))
+Date: Sat, 18 Dec 2010 15:11:29 +0000
+Subject: [R-sig-hpc] .combine in foreach
+Message-ID: <9C2B89830110BF4A845878D9A31F3D925A7C80F395@UEAEXCHMBX.UEA.AC.UK>
+
+I?m testing using the foreach package to see if it will parrallelize a Bayesian MCMC routine.  It appears to work well, just gives back huge results files when I run multiple iterations.  I?m looking at the .combine option ... is there an easy way to get it combine the results across components and still maintain the matrix structure?  Several of the outputs are 3x3 matrices, but I get 1000 of them, one in each component.  If possible I?d like to get the mean matrix, i.e  (m1 +m2+m3 ... m1000 ) / 1000  if that makes any sense!?
+ 
+Any suggestions most welcome, thanks for help.
+
+J
+
+===============================
+Dr. Jim Maas
+University of East Anglia
+
+
+From m_hofert at web.de  Sun Dec 19 09:54:08 2010
+From: m_hofert at web.de (Marius Hofert)
+Date: Sun, 19 Dec 2010 09:54:08 +0100
+Subject: [R-sig-hpc] Error in makeMPIcluster(spec,
+	...): how to get a minimal example for parallel
+	computing	with	doSNOW to run?
+Message-ID: <28FDFAB2-7561-42D5-82EE-F66C21BB41D6@web.de>
+
+Dear all,
+
+I received the following feedback from the maintainers of the cluster "Brutus". 
+
+## begin quotation 
+
+All MPI processes are launched by mpirun when your job starts. Rmpi simply queries
+those processes to find out their number and ranks. In other words, the R
+"cluster" is already up and running when Rmpi (or doMPI, doSNOW) starts. That is
+the reason you cannot spawn slaves or create a new cluster using
+mpi.spawn.Rslaves(), startMPIcluster() or makeCluster().
+
+The proof is that the "hello world" example runs without error on Brutus if you
+remove the mpi.spawn.Rslaves() statement.
+
+I believe the problem in the present case is that registerDoMPI(cl) and
+registerDoSNOW(cl) require a "cluster" (cl) as argument. Unlike Rmpi, they are
+unable to use the pre-existing (and unnamed) cluster started by mpirun.
+
+From my point of view, this is a problem between doMPI/doSNOW and Rmpi. It has
+nothing to do with bsub or mpirun.
+
+## end quotation
+
+Then I checked ?makeCluster again. I found an interesting paragraph under "Details":
+
+## begin quotation
+
+In MPI configurations where process spawning is not available and something like mpirun is used to start a master and a set of slaves the corresponding cluster will have been pre-constructed and can be obtained with getMPIcluster. It is also possible to obtain a reference to the running cluster using makeCluster or makeMPIcluster. In this case the count argument can be omitted; if it is supplied, it must equal the number of nodes in the cluster. This interface is still experimental and subject to change.
+
+## end quotation
+
+So my hope was that either getMPIcluster() or makeCluster() without the argument count would do the job. Unfortunately, it still does not seem to work. But maybe that is something you have encountered before. Here is the output:
+
+## ==== begin snippet "getMPIcluster" ====
+
+Sender: LSF System <lsfadmin at a6269>
+Subject: Job 56574: <mpirun R --no-save -q -f minimal3.R> Done
+
+Job <mpirun R --no-save -q -f minimal3.R> was submitted from host <brutus2> by user <hofertj> in cluster <brutus>.
+Job was executed on host(s) <4*a6269>, in queue <pub.1h>, as user <hofertj> in cluster <brutus>.
+</cluster/home/math/hofertj> was used as the home directory.
+</cluster/home/math/hofertj> was used as the working directory.
+Started at Sun Dec 19 01:53:54 2010
+Results reported at Sun Dec 19 01:54:02 2010
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+mpirun R --no-save -q -f minimal3.R
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time   :      6.27 sec.
+    Max Memory :         3 MB
+    Max Swap   :        29 MB
+
+    Max Processes  :         1
+    Max Threads    :         1
+
+The output (if any) follows:
+
+master (rank 0, comm 1) of size 4 is running on: a6269 
+slave1 (rank 1, comm 1) of size 4 is running on: a6269 
+slave2 (rank 2, comm 1) of size 4 is running on: a6269 
+slave3 (rank 3, comm 1) of size 4 is running on: a6269 
+> library(doSNOW) # loads foreach, snow, and other packages
+Loading required package: foreach
+Loading required package: iterators
+Loading required package: codetools
+Loading required package: snow
+> library(Rmpi) # for default in makeCluster()
+> library(rlecuyer) # for clusterSetupRNG
+> Error in checkCluster(cl) : not a valid cluster
+Calls: clusterSetupRNG ... clusterSetupRNGstream -> clusterApply -> staticClusterApply -> checkCluster
+Error in checkCluster(cl) : not a valid cluster
+Calls: %dopar% -> <Anonymous> -> clusterCall -> checkCluster
+Error: object 'x' not found
+cl <- getMPIcluster() # create cluster object with the given number of slaves 
+> clusterSetupRNG(cl, seed = rep(1,6)) # initialize uniform rng streams in a SNOW cluster (L'Ecuyer)
+> registerDoSNOW(cl) # register the cluster object with foreach
+> x <- foreach(i = 1:3) %dopar% { # simple test
++    sqrt(i)
++ }
+> x 
+> stopCluster(cl) # properly shut down the cluster 
+> 
+[1] "Please use mpi.close.Rslaves() to close slaves"
+[1] "Please use mpi.quit() to quit R"
+
+## ==== end snippet "getMPIcluster" ====
+
+and
+
+## ==== begin snippet "makeCluster()" ====
+
+Sender: LSF System <lsfadmin at a6231>
+Subject: Job 56564: <mpirun R --no-save -q -f minimal2.R> Exited
+
+Job <mpirun R --no-save -q -f minimal2.R> was submitted from host <brutus2> by user <hofertj> in cluster <brutus>.
+Job was executed on host(s) <4*a6231>, in queue <pub.1h>, as user <hofertj> in cluster <brutus>.
+</cluster/home/math/hofertj> was used as the home directory.
+</cluster/home/math/hofertj> was used as the working directory.
+Started at Sun Dec 19 01:52:48 2010
+Results reported at Sun Dec 19 02:52:51 2010
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+mpirun R --no-save -q -f minimal2.R
+------------------------------------------------------------
+
+TERM_RUNLIMIT: job killed after reaching LSF run time limit.
+Exited with exit code 1.
+
+Resource usage summary:
+
+    CPU time   :  13877.23 sec.
+    Max Memory :       207 MB
+    Max Swap   :      1472 MB
+
+    Max Processes  :         7
+    Max Threads    :         8
+
+The output (if any) follows:
+
+master (rank 0, comm 1) of size 4 is running on: a6231 
+slave1 (rank 1, comm 1) of size 4 is running on: a6231 
+slave2 (rank 2, comm 1) of size 4 is running on: a6231 
+slave3 (rank 3, comm 1) of size 4 is running on: a6231 
+> library(doSNOW) # loads foreach, snow, and other packages
+Loading required package: foreach
+Loading required package: iterators
+Loading required package: codetools
+Loading required package: snow
+> library(Rmpi) # for default in makeCluster()
+> library(rlecuyer) # for clusterSetupRNG
+> cl <- makeCluster() # create cluster object with the given number of slaves 
+> clusterSetupRNG(cl, seed = rep(1,6)) # initialize uniform rng streams in a SNOW cluster (L'Ecuyer)
+mpirun: Forwarding signal 12 to job
+Execution halted
+--------------------------------------------------------------------------
+mpirun has exited due to process rank 0 with PID 30107 on
+node a6231.hpc-net.ethz.ch exiting without calling "finalize". This may
+have caused other processes in the application to be
+terminated by signals sent by mpirun (as reported here).
+--------------------------------------------------------------------------
+
+## ==== end snippet "makeCluster()" ====
+
+Cheers,
+
+Marius
+
+From jayemerson at gmail.com  Sun Dec 19 16:51:25 2010
+From: jayemerson at gmail.com (Jay Emerson)
+Date: Sun, 19 Dec 2010 10:51:25 -0500
+Subject: [R-sig-hpc] .combine in foreach
+Message-ID: <AANLkTik2kEw=hnYKz0gMXVHGpwTcJPH1o0C5hin96xXd@mail.gmail.com>
+
+Jim,
+
+.combine=rbind may be helpful in some cases.  However, in a case like
+this it wouldn't surprise me if the returns are more complex (like a
+list of matrices).  Although I haven't done it, you can write a custom
+function for use with .combine (and note the possible need for
+.multicombine).
+
+You also might be able to use .combine='+'; if the return is a 3x3
+matrix, for example, this should give the mean matrix you allude to
+below, and would do the addition as the returns occur, avoiding the
+storage of all of the matrices.  This is very cool (IMHO).
+
+Jay
+
+
+--------------------------------
+I?m testing using the foreach package to see if it will parrallelize a
+Bayesian MCMC routine.  It appears to work well, just gives back huge
+results files when I run multiple iterations.  I?m looking at the
+.combine option ... is there an easy way to get it combine the results
+across components and still maintain the matrix structure?  Several of
+the outputs are 3x3 matrices, but I get 1000 of them, one in each
+component.  If possible I?d like to get the mean matrix, i.e  (m1
++m2+m3 ... m1000 ) / 1000  if that makes any sense!?
+
+-- 
+John W. Emerson (Jay)
+Associate Professor of Statistics
+Department of Statistics
+Yale University
+http://www.stat.yale.edu/~jay
+
+
+From arash at drakeresearchlab.com  Sun Dec 19 22:28:46 2010
+From: arash at drakeresearchlab.com (Arash Fard)
+Date: Sun, 19 Dec 2010 16:28:46 -0500
+Subject: [R-sig-hpc] Rmpi using LAM/MPI
+Message-ID: <AANLkTina8sDG2NwPO9agjRHfd9aq3-uzwVSivJbVOgmj@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101219/436d1627/attachment.pl>
+
+From patrick.t.brandt at gmail.com  Mon Dec 20 02:35:27 2010
+From: patrick.t.brandt at gmail.com (Patrick Brandt)
+Date: Sun, 19 Dec 2010 19:35:27 -0600
+Subject: [R-sig-hpc] .combine in foreach
+In-Reply-To: <9C2B89830110BF4A845878D9A31F3D925A7C80F395@UEAEXCHMBX.UEA.AC.UK>
+References: <9C2B89830110BF4A845878D9A31F3D925A7C80F395@UEAEXCHMBX.UEA.AC.UK>
+Message-ID: <AANLkTi=rKu_xVe24Xpt8VKPddmS2mTvjVoBNHp_6TKc+@mail.gmail.com>
+
+There are some multiple chain, multiple model MCMC specifications
+using RMPI/snow in my papers.  Replication info and example code is
+available at
+
+http://www.utdallas.edu/~pbrandt/pbrandt/Replication.html
+
+See specifically the zip/tarballs with R code for the Brandt,
+Colaresi, and Freeman (2008) paper (there are some custom functions
+that will give you back coda mcmc.lists across models -- some of this
+is now in my MSBVAR pkg).  The Brandt and Freeman (2009) papers does
+parallel chains using rmpi/snow.
+
+For MCMC-like analysis I have found that using snow works best, esp.
+if the models work in similar run times.  If you have multiple models
+/ specifications that are going to run in different run-times (e.g.,
+longer v. shorter samplers, or MH-steps that become progressively more
+complex across specifications), I have some example code that I can
+share off list (it is not ready for release, so please email me if you
+are interested) , then you may want to look at clusterApplyLB() to
+calling the models.
+
+PTB
+
+-- 
+Patrick Brandt
+Associate Professor
+Political Science
+School of Economic, Political and Policy Sciences
+University of Texas at Dallas
+Personal site: http://www.utdallas.edu/~pbrandt
+MSBVAR site: http://yule.utdallas.edu
+
+
+
+
+On Sat, Dec 18, 2010 at 9:11 AM, Maas James Dr (MED) <J.Maas at uea.ac.uk> wrote:
+> I?m testing using the foreach package to see if it will parrallelize a Bayesian MCMC routine. ?It appears to work well, just gives back huge results files when I run multiple iterations. ?I?m looking at the .combine option ... is there an easy way to get it combine the results across components and still maintain the matrix structure? ?Several of the outputs are 3x3 matrices, but I get 1000 of them, one in each component. ?If possible I?d like to get the mean matrix, i.e ?(m1 +m2+m3 ... m1000 ) / 1000 ?if that makes any sense!?
+>
+> Any suggestions most welcome, thanks for help.
+>
+> J
+>
+> ===============================
+> Dr. Jim Maas
+> University of East Anglia
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From mike409 at gmail.com  Mon Dec 20 20:54:52 2010
+From: mike409 at gmail.com (Michael D)
+Date: Mon, 20 Dec 2010 14:54:52 -0500
+Subject: [R-sig-hpc] R on a Beowulf Cluster
+Message-ID: <AANLkTinbzc31BPN-cSw=LL34r+bZk0N=LbmQnpYWSb=w@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20101220/c2536d4e/attachment.pl>
+
+From pauljohn32 at gmail.com  Mon Dec 20 21:03:33 2010
+From: pauljohn32 at gmail.com (Paul Johnson)
+Date: Mon, 20 Dec 2010 14:03:33 -0600
+Subject: [R-sig-hpc] R on a Beowulf Cluster
+In-Reply-To: <AANLkTinbzc31BPN-cSw=LL34r+bZk0N=LbmQnpYWSb=w@mail.gmail.com>
+References: <AANLkTinbzc31BPN-cSw=LL34r+bZk0N=LbmQnpYWSb=w@mail.gmail.com>
+Message-ID: <AANLkTin7RCtASHovS1LvmNX6thJSqRPsSmJZg9E=X89Z@mail.gmail.com>
+
+"Beowulf" is a generic term, it does not mean in particular what kind
+of cluster framework your school has. For example, we run "Rocks"
+cluster linux. You might contact your folks, find out what they are
+doing. Or, if you can log in, you will be able to tell by snooping
+around a bit in /etc, or by running
+
+$ uname -a
+
+You need to find out what scheduling framework your administrators
+have set up and which system is your "head node" where you can log in
+and submit jobs to the queue.
+
+For work with R, you need the ordinary stuff for compiling R programs
+(as you would in any workstation) and for the communications between
+systems, get  OpenMPI.  Rmpi compiles against that, so don't bother
+trying to make R go parallel until you have a working OpenMPI.  It is
+possible to install that in a user account, but usually a sysadmin
+will put it somewhere and tell you where the lib dir is for compiling
+apps.  it will supply an executable "mpirun" or such that is named in
+your scripts.
+
+We have a new HPC system here and I've been trying to build user
+documentaiton from the ground up because most of the students I'm
+trying to help are not programmers either.
+
+I have some online "working examples" I'm cultivating.  I work on this
+pretty hard for a few weeks and then I get so frustrated I do other
+things for a month or two. Parallel programming is very frustrating,
+compared with the ordinary kind.
+
+This URL should be all on one line:
+
+/http://pj.freefaculty.org/cgi-bin/mw/index.php?title=Main_Page#2._High_Performance_Computing_on_a_Linux_Cluster
+
+On Mon, Dec 20, 2010 at 1:54 PM, Michael D <mike409 at gmail.com> wrote:
+> Greetings HPC SIG,
+>
+> I recently found out my school has a HPC project where they use Beowulf
+> clusters and I was really hoping to wield this computing power before I
+> finish my last semester; mostly to be acquainted with the workflow but also
+> to run some large simulations for the course I'll be in.
+> Suggestions for any interesting topics I might try are welcome.
+>
+> What I really need is some idea of what libraries I would need to have in
+> order to run some R jobs on the system. It will take a bit of negotiation
+> with the admins to get the packages I need so I'd like to have as complete a
+> list as possible to start. I can get the details of the setup if that would
+> be necessary.
+>
+> Also, I've seen the list of relevant packages (
+> http://cran.r-project.org/web/views/HighPerformanceComputing.html) but my
+> knowledge of computing only goes so far (my knowledge of HPC even less so)
+> and my fall-back method of ctrl-f "beowulf" turned up no results.
+>
+> Thanks for the help,
+>
+> Michael DePersio
+> M.S. Candidate
+> Georgetown University Department of Mathematics and Statistics
+>
+> ? ? ? ?[[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+
+-- 
+Paul E. Johnson
+Professor, Political Science
+1541 Lilac Lane, Room 504
+University of Kansas
+
+
+From edd at debian.org  Mon Dec 20 22:08:46 2010
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Mon, 20 Dec 2010 15:08:46 -0600
+Subject: [R-sig-hpc] R on a Beowulf Cluster
+In-Reply-To: <AANLkTinbzc31BPN-cSw=LL34r+bZk0N=LbmQnpYWSb=w@mail.gmail.com>
+References: <AANLkTinbzc31BPN-cSw=LL34r+bZk0N=LbmQnpYWSb=w@mail.gmail.com>
+Message-ID: <19727.50654.846937.696586@max.nulle.part>
+
+
+On 20 December 2010 at 14:54, Michael D wrote:
+| Greetings HPC SIG,
+| 
+| I recently found out my school has a HPC project where they use Beowulf
+| clusters and I was really hoping to wield this computing power before I
+| finish my last semester; mostly to be acquainted with the workflow but also
+| to run some large simulations for the course I'll be in.
+| Suggestions for any interesting topics I might try are welcome.
+| 
+| What I really need is some idea of what libraries I would need to have in
+| order to run some R jobs on the system. It will take a bit of negotiation
+| with the admins to get the packages I need so I'd like to have as complete a
+| list as possible to start. I can get the details of the setup if that would
+| be necessary.
+| 
+| Also, I've seen the list of relevant packages (
+| http://cran.r-project.org/web/views/HighPerformanceComputing.html) but my
+| knowledge of computing only goes so far (my knowledge of HPC even less so)
+| and my fall-back method of ctrl-f "beowulf" turned up no results.
+
+We wrote a survey paper a little while back on this topic which may be a
+suitable intro or refresher for you. It is linked from the HPC Task View and
+is otherwise pretty easy to google too.
+
+Enjoy,  Dirk
+
+ 
+| Thanks for the help,
+| 
+| Michael DePersio
+| M.S. Candidate
+| Georgetown University Department of Mathematics and Statistics
+| 
+| 	[[alternative HTML version deleted]]
+| 
+| _______________________________________________
+| R-sig-hpc mailing list
+| R-sig-hpc at r-project.org
+| https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+-- 
+Dirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com
+
+
+From andy_liaw at merck.com  Mon Dec 20 22:17:35 2010
+From: andy_liaw at merck.com (Liaw, Andy)
+Date: Mon, 20 Dec 2010 16:17:35 -0500
+Subject: [R-sig-hpc] R on a Beowulf Cluster
+In-Reply-To: <AANLkTin7RCtASHovS1LvmNX6thJSqRPsSmJZg9E=X89Z@mail.gmail.com>
+References: <AANLkTinbzc31BPN-cSw=LL34r+bZk0N=LbmQnpYWSb=w@mail.gmail.com>
+	<AANLkTin7RCtASHovS1LvmNX6thJSqRPsSmJZg9E=X89Z@mail.gmail.com>
+Message-ID: <B10BAA7D28D88B45AF82813C4A6FFA93EA67C2@usctmx1157.merck.com>
+
+Actually "beowulf" is not really all that generic, I think.  We happen to have a Scyld Beowulf cluster (running ClusterWare on top of CentOS).  Beowulf is very different from other types of cluster in that it has a single master node (in most setup) and there are no login access to slave nodes.  If the master node goes down, the entire cluster is down.  The advantages are that it is single system image (there's one process table for the entire cluster), and no OS/software installation is needed on the slaves.
+
+We've used Rmpi on the cluster.  NWS can work, but need some setup. 
+
+Best,
+Andy
+
+> -----Original Message-----
+> From: r-sig-hpc-bounces at r-project.org 
+> [mailto:r-sig-hpc-bounces at r-project.org] On Behalf Of Paul Johnson
+> Sent: Monday, December 20, 2010 3:04 PM
+> To: Michael D; R SIG High Performance Computing
+> Subject: Re: [R-sig-hpc] R on a Beowulf Cluster
+> 
+> "Beowulf" is a generic term, it does not mean in particular what kind
+> of cluster framework your school has. For example, we run "Rocks"
+> cluster linux. You might contact your folks, find out what they are
+> doing. Or, if you can log in, you will be able to tell by snooping
+> around a bit in /etc, or by running
+> 
+> $ uname -a
+> 
+> You need to find out what scheduling framework your administrators
+> have set up and which system is your "head node" where you can log in
+> and submit jobs to the queue.
+> 
+> For work with R, you need the ordinary stuff for compiling R programs
+> (as you would in any workstation) and for the communications between
+> systems, get  OpenMPI.  Rmpi compiles against that, so don't bother
+> trying to make R go parallel until you have a working OpenMPI.  It is
+> possible to install that in a user account, but usually a sysadmin
+> will put it somewhere and tell you where the lib dir is for compiling
+> apps.  it will supply an executable "mpirun" or such that is named in
+> your scripts.
+> 
+> We have a new HPC system here and I've been trying to build user
+> documentaiton from the ground up because most of the students I'm
+> trying to help are not programmers either.
+> 
+> I have some online "working examples" I'm cultivating.  I work on this
+> pretty hard for a few weeks and then I get so frustrated I do other
+> things for a month or two. Parallel programming is very frustrating,
+> compared with the ordinary kind.
+> 
+> This URL should be all on one line:
+> 
+> /http://pj.freefaculty.org/cgi-bin/mw/index.php?title=Main_Pag
+> e#2._High_Performance_Computing_on_a_Linux_Cluster
+> 
+> On Mon, Dec 20, 2010 at 1:54 PM, Michael D <mike409 at gmail.com> wrote:
+> > Greetings HPC SIG,
+> >
+> > I recently found out my school has a HPC project where they 
+> use Beowulf
+> > clusters and I was really hoping to wield this computing 
+> power before I
+> > finish my last semester; mostly to be acquainted with the 
+> workflow but also
+> > to run some large simulations for the course I'll be in.
+> > Suggestions for any interesting topics I might try are welcome.
+> >
+> > What I really need is some idea of what libraries I would 
+> need to have in
+> > order to run some R jobs on the system. It will take a bit 
+> of negotiation
+> > with the admins to get the packages I need so I'd like to 
+> have as complete a
+> > list as possible to start. I can get the details of the 
+> setup if that would
+> > be necessary.
+> >
+> > Also, I've seen the list of relevant packages (
+> > 
+> http://cran.r-project.org/web/views/HighPerformanceComputing.h
+> tml) but my
+> > knowledge of computing only goes so far (my knowledge of 
+> HPC even less so)
+> > and my fall-back method of ctrl-f "beowulf" turned up no results.
+> >
+> > Thanks for the help,
+> >
+> > Michael DePersio
+> > M.S. Candidate
+> > Georgetown University Department of Mathematics and Statistics
+> >
+> > ? ? ? ?[[alternative HTML version deleted]]
+> >
+> > _______________________________________________
+> > R-sig-hpc mailing list
+> > R-sig-hpc at r-project.org
+> > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> >
+> 
+> 
+> 
+> -- 
+> Paul E. Johnson
+> Professor, Political Science
+> 1541 Lilac Lane, Room 504
+> University of Kansas
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+Notice:  This e-mail message, together with any attachme...{{dropped:11}}
+
+
+From m_hofert at web.de  Tue Dec 21 18:38:25 2010
+From: m_hofert at web.de (Marius Hofert)
+Date: Tue, 21 Dec 2010 18:38:25 +0100
+Subject: [R-sig-hpc] doSNOW + foreach = embarrassingly frustrating
+	computation
+Message-ID: <A259C590-2BAA-4650-9BC3-7119E0C0E66D@web.de>
+
+Dear HPC-expeRts,
+
+After several days of trial, my minimal example is still not running. In what follows, I summarize what I tried so far. Any help/comment is appreciated.
+
+The problem is simple: I would like to use the R packages "foreach" with "doSNOW" (as parallel backend) to do an embarrassingly parallel computation in R on the cluster "Brutus" of ETH Zurich. My minimal example is to calculate the square root of 1, 2, and 3 in parallel. 
+Brutus has the "LSF" batch system and I send the job to the cluster with the command:
+bsub -n 4 -R "select[model==Opteron8380]" mpirun R --no-save -q -f minimal.R
+where 4 is the number of slaves plus the master, the "select..." forces the jobs to run on a certain processor type, and "minimal.R" is the file name of the minimal example(s) I tried.  
+
+Below are all the different programs I tried (with corresponding output).
+
+Any ideas?
+
+After reading the paragraph starting with "In MPI configurations where process spawning..." in the Details section of "?makeCluster", I had great hope that "getMPIcluster()" would do the job, but it doesn't (please see also https://stat.ethz.ch/pipermail/r-sig-hpc/2010-December/000863.html, where I posted what the maintainers of Brutus told me)
+
+Cheers,
+
+Marius
+
+
+(1) First trial (check if MPI runs):
+
+Here, I used the Rmpi minimal example as given on http://math.acadiau.ca/ACMMaC/Rmpi/sample.html I described the output here:
+https://stat.ethz.ch/pipermail/r-sig-hpc/2010-December/000861.html
+
+I don't know if the "Error in mpi.spawn.Rslaves() :" has a meaning.
+
+(2) Second trial 
+Here is the code I tried to run:
+
+## ==== snippet (2) start ====
+
+library(doSNOW) 
+library(Rmpi)
+library(rlecuyer)
+
+cl <- makeCluster(3, type = "MPI") # create cluster object with the given number of slaves 
+clusterSetupRNG(cl, seed = rep(1,6)) # initialize uniform rng streams in a SNOW cluster (L'Ecuyer)
+registerDoSNOW(cl) # register the cluster object with foreach
+## start the work
+x <- foreach(i = 1:3) %dopar% { 
+   sqrt(i)
+}
+x 
+stopCluster(cl) # properly shut down the cluster
+
+## ==== snippet (2) end ====
+
+Here is the corresponding output:
+
+## ==== output (2) start ====
+
+Sender: LSF System <lsfadmin at a6213>
+Subject: Job 190250: <mpirun R --no-save -q -f m02.R> Done
+
+Job <mpirun R --no-save -q -f m02.R> was submitted from host <brutus2> by user <hofertj> in cluster <brutus>.
+Job was executed on host(s) <4*a6213>, in queue <pub.1h>, as user <hofertj> in cluster <brutus>.
+</cluster/home/math/hofertj> was used as the home directory.
+</cluster/home/math/hofertj> was used as the working directory.
+Started at Tue Dec 21 18:02:15 2010
+Results reported at Tue Dec 21 18:02:25 2010
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+mpirun R --no-save -q -f m02.R
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time   :      7.84 sec.
+    Max Memory :         3 MB
+    Max Swap   :        29 MB
+
+    Max Processes  :         1
+    Max Threads    :         1
+
+The output (if any) follows:
+
+master (rank 0, comm 1)Loading required package: foreach
+Loading required package: iterators
+ of size 4 is running on: a6213 
+slave1 (rank 1, comm 1) of size 4 is running on: a6213 
+slave2 (rank 2, comm 1) of size 4 is running on: a6213 
+slave3 (rank 3, comm 1) of size 4 is running on: a6213 
+> library(doSNOW) 
+Loading required package: codetools
+Loading required package: snow
+> library(Rmpi)
+> library(rlecuyer)
+> 
+> cl <- makeCluster(3, type = "MPI") # create cluster object with the given number of slaves 
+Error in makeMPIcluster(spec, ...) : a cluster already exists 1
+Calls: makeCluster -> makeMPIcluster
+> clusterSetupRNG(cl, seed = rep(1,6)) # initialize uniform rng streams in a SNOW cluster (L'Ecuyer)
+Error in clusterSetupRNGstream(cl, ...) : object 'cl' not found
+Calls: clusterSetupRNG -> clusterSetupRNGstream
+> registerDoSNOW(cl) # register the cluster object with foreach
+Error in assign("data", data, pos = .foreachGlobals, inherits = FALSE) : 
+  object 'cl' not found
+Calls: registerDoSNOW -> setDoPar -> assign
+> ## start the work
+> x <- foreach(i = 1:3) %dopar% { 
++    sqrt(i)
++ }
+Error in checkCluster(cl) : not a valid cluster
+Calls: %dopar% -> <Anonymous> -> clusterCall -> checkCluster
+> x 
+Error: object 'x' not found
+> stopCluster(cl) # properly shut down the cluster 
+Error in stopCluster(cl) : object 'cl' not found
+> 
+[1] "Please use mpi.close.Rslaves() to close slaves"
+[1] "Please use mpi.quit() to quit R"
+
+## ==== output (2) end ====
+
+(3) Third trial 
+
+## ==== snippet (3) start ====
+
+library(doSNOW) 
+library(Rmpi)
+library(rlecuyer)
+
+cl <- makeCluster() # create cluster object
+clusterSetupRNG(cl, seed = rep(1,6)) # initialize uniform rng streams in a SNOW cluster (L'Ecuyer)
+registerDoSNOW(cl) # register the cluster object with foreach
+## start the work
+x <- foreach(i = 1:3) %dopar% { 
+   sqrt(i)
+}
+x 
+stopCluster(cl) # properly shut down the cluster
+
+## ==== snippet (3) end ====
+
+## ==== output (3) start ====
+
+no output. The script runs and "hangs" somewhere; the job had to be killed.
+
+## ==== output (3) end ====
+
+(4) Fourth trial 
+
+## ==== snippet (4) start ====
+
+library(doSNOW) 
+library(Rmpi)
+library(rlecuyer)
+
+cl <- makeMPIcluster() # create cluster object 
+clusterSetupRNG(cl, seed = rep(1,6)) # initialize uniform rng streams in a SNOW cluster (L'Ecuyer)
+registerDoSNOW(cl) # register the cluster object with foreach
+## start the work
+x <- foreach(i = 1:3) %dopar% { 
+   sqrt(i)
+}
+x 
+stopCluster(cl) # properly shut down the cluster
+
+## ==== snippet (4) end ====
+
+## ==== output (4) start ====
+
+no output. The script runs and "hangs" somewhere; the job had to be killed.
+
+## ==== output (4) end ====
+
+(5) Fifth trial 
+
+## ==== snippet (5) start ====
+
+library(doSNOW) 
+library(Rmpi)
+library(rlecuyer)
+
+cl <- getMPIcluster() # get the MPI cluster
+clusterSetupRNG(cl, seed = rep(1,6)) # initialize uniform rng streams in a SNOW cluster (L'Ecuyer)
+registerDoSNOW(cl) # register the cluster object with foreach
+## start the work
+x <- foreach(i = 1:3) %dopar% { 
+   sqrt(i)
+}
+x 
+stopCluster(cl) # properly shut down the cluster
+
+## ==== snippet (5) end ====
+
+## ==== output (5) start ====
+
+Sender: LSF System <lsfadmin at a6227>
+Subject: Job 190252: <mpirun R --no-save -q -f m04.R> Done
+
+Job <mpirun R --no-save -q -f m04.R> was submitted from host <brutus2> by user <hofertj> in cluster <brutus>.
+Job was executed on host(s) <4*a6227>, in queue <pub.1h>, as user <hofertj> in cluster <brutus>.
+</cluster/home/math/hofertj> was used as the home directory.
+</cluster/home/math/hofertj> was used as the working directory.
+Started at Tue Dec 21 18:02:15 2010
+Results reported at Tue Dec 21 18:02:26 2010
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+mpirun R --no-save -q -f m04.R
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time   :     12.01 sec.
+    Max Memory :         3 MB
+    Max Swap   :        29 MB
+
+    Max Processes  :         1
+    Max Threads    :         1
+
+The output (if any) follows:
+
+master (rank 0, comm 1) of size 4 is running on: a6227 
+slave1 (rank 1, comm 1) of size 4 is running on: a6227 
+slave2 (rank 2, comm 1) of size 4 is running on: a6227 
+slave3 (rank 3, comm 1) of size 4 is running on: a6227 
+> library(doSNOW) 
+Loading required package: foreach
+Loading required package: iterators
+Loading required package: codetools
+Loading required package: snow
+> library(Rmpi)
+> library(rlecuyer)
+> 
+> cl <- getMPIcluster() # get the MPI cluster
+> clusterSetupRNG(cl, seed = rep(1,6)) # initialize uniform rng streams in a SNOW cluster (L'Ecuyer)
+Error in checkCluster(cl) : not a valid cluster
+Calls: clusterSetupRNG ... clusterSetupRNGstream -> clusterApply -> staticClusterApply -> checkCluster
+> registerDoSNOW(cl) # register the cluster object with foreach
+> ## start the work
+> x <- foreach(i = 1:3) %dopar% { 
++    sqrt(i)
++ }
+Error in checkCluster(cl) : not a valid cluster
+Calls: %dopar% -> <Anonymous> -> clusterCall -> checkCluster
+> x 
+Error: object 'x' not found
+> stopCluster(cl) # properly shut down the cluster
+> 
+> 
+[1] "Please use mpi.close.Rslaves() to close slaves"
+[1] "Please use mpi.quit() to quit R"
+
+## ==== output (5) end ====
+
+(6) Sixth trial
+
+## ==== snippet (6) start ====
+
+library(doSNOW) 
+library(Rmpi)
+library(rlecuyer)
+
+cl <- makeMPIcluster(3) # create cluster object with the given number of slaves 
+clusterSetupRNG(cl, seed = rep(1,6)) # initialize uniform rng streams in a SNOW cluster (L'Ecuyer)
+registerDoSNOW(cl) # register the cluster object with foreach
+## start the work
+x <- foreach(i = 1:3) %dopar% { 
+   sqrt(i)
+}
+x 
+stopCluster(cl) # properly shut down the cluster
+
+## ==== snippet (6) end ====
+
+## ==== output (6) start ====
+
+Sender: LSF System <lsfadmin at a6262>
+Subject: Job 190255: <mpirun R --no-save -q -f m06.R> Done
+
+Job <mpirun R --no-save -q -f m06.R> was submitted from host <brutus2> by user <hofertj> in cluster <brutus>.
+Job was executed on host(s) <4*a6262>, in queue <pub.1h>, as user <hofertj> in cluster <brutus>.
+</cluster/home/math/hofertj> was used as the home directory.
+</cluster/home/math/hofertj> was used as the working directory.
+Started at Tue Dec 21 18:02:15 2010
+Results reported at Tue Dec 21 18:02:24 2010
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+mpirun R --no-save -q -f m06.R
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time   :      4.90 sec.
+    Max Memory :         4 MB
+    Max Swap   :        29 MB
+
+    Max Processes  :         1
+    Max Threads    :         1
+
+The output (if any) follows:
+
+master (rank 0, comm 1) of size 4 is running on: a6262 
+slave1 (rank 1, comm 1) of size 4 is running on: a6262 
+slave2 (rank 2, comm 1) of size 4 is running on: a6262 
+slave3 (rank 3, comm 1) of size 4 is running on: a6262 
+> library(doSNOW) 
+Loading required package: foreach
+Loading required package: iterators
+Loading required package: codetools
+Loading required package: snow
+> library(Rmpi)
+> library(rlecuyer)
+> 
+> cl <- makeMPIcluster(3) # create cluster object with the given number of slaves 
+Error in makeMPIcluster(3) : a cluster already exists 1
+> clusterSetupRNG(cl, seed = rep(1,6)) # initialize uniform rng streams in a SNOW cluster (L'Ecuyer)
+Error in clusterSetupRNGstream(cl, ...) : object 'cl' not found
+Calls: clusterSetupRNG -> clusterSetupRNGstream
+> registerDoSNOW(cl) # register the cluster object with foreach
+Error in assign("data", data, pos = .foreachGlobals, inherits = FALSE) : 
+  object 'cl' not found
+Calls: registerDoSNOW -> setDoPar -> assign
+> ## start the work
+> x <- foreach(i = 1:3) %dopar% { 
++    sqrt(i)
+Error in checkCluster(cl) : not a valid cluster
+Calls: %dopar% -> <Anonymous> -> clusterCall -> checkCluster
+Error: object 'x' not found
+Error in stopCluster(cl) : object 'cl' not found
++ }
+> x 
+> stopCluster(cl) # properly shut down the cluster
+> 
+[1] "Please use mpi.close.Rslaves() to close slaves"
+[1] "Please use mpi.quit() to quit R"
+
+## ==== output (6) end ====
+
+
+From m_hofert at web.de  Tue Dec 21 19:59:17 2010
+From: m_hofert at web.de (Marius Hofert)
+Date: Tue, 21 Dec 2010 19:59:17 +0100
+Subject: [R-sig-hpc] doSNOW + foreach = embarrassingly
+	frustrating	computation
+In-Reply-To: <4D10E9C4.8090106@fhcrc.org>
+References: <A259C590-2BAA-4650-9BC3-7119E0C0E66D@web.de>
+	<4D10E9C4.8090106@fhcrc.org>
+Message-ID: <51B70069-C875-49B5-8F3B-D30BE0430DCC@web.de>
+
+Hi all,
+
+Martin Morgan responded off-list and pointed out that I might have used the wrong bsub-command. He suggested:
+bsub -n 4 -R "select[model==Opteron8380]" mpirun -n 1 R --vanilla -f minimal.R 
+Since my installed packages were not found (due to --no-environ as part of --vanilla), I used:
+bsub -n 4 -R "select[model==Opteron8380]" mpirun -n 1 R --no-save -q -f minimal.R 
+Below, please find all the outputs [ran under the same setup as before], with comments.
+It seems like (2) and (6) almost solve the problem. But what does this "finalize" mean?
+
+Cheers,
+
+Marius
+
+
+(1) First trial (check if MPI runs):
+
+minimal example as given on http://math.acadiau.ca/ACMMaC/Rmpi/sample.html 
+
+## ==== output (1) start ====
+
+Sender: LSF System <lsfadmin at a6231>
+Subject: Job 192910: <mpirun -n 1 R --no-save -q -f m01.R> Done
+
+Job <mpirun -n 1 R --no-save -q -f m01.R> was submitted from host <brutus3> by user <hofertj> in cluster <brutus>.
+Job was executed on host(s) <4*a6231>, in queue <pub.1h>, as user <hofertj> in cluster <brutus>.
+</cluster/home/math/hofertj> was used as the home directory.
+</cluster/home/math/hofertj> was used as the working directory.
+Started at Tue Dec 21 19:44:03 2010
+Results reported at Tue Dec 21 19:44:19 2010
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+mpirun -n 1 R --no-save -q -f m01.R
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time   :     24.90 sec.
+    Max Memory :         3 MB
+    Max Swap   :        29 MB
+
+    Max Processes  :         1
+    Max Threads    :         1
+
+The output (if any) follows:
+
+> ## from http://math.acadiau.ca/ACMMaC/Rmpi/sample.html
+> 
+> # Load the R MPI package if it is not already loaded.
+> if (!is.loaded("mpi_initialize")) {
++     library("Rmpi")
++     }
+>                                                                                 
+> # Spawn as many slaves as possible
+> mpi.spawn.Rslaves()
+	4 slaves are spawned successfully. 0 failed.
+master (rank 0, comm 1) of size 5 is running on: a6231 
+slave1 (rank 1, comm 1) of size 5 is running on: a6231 
+slave2 (rank 2, comm 1) of size 5 is running on: a6231 
+slave3 (rank 3, comm 1) of size 5 is running on: a6231 
+slave4 (rank 4, comm 1) of size 5 is running on: a6231 
+>                                                                                 
+> # In case R exits unexpectedly, have it automatically clean up
+> # resources taken up by Rmpi (slaves, memory, etc...)
+> .Last <- function(){
++     if (is.loaded("mpi_initialize")){
++         if (mpi.comm.size(1) > 0){
++             print("Please use mpi.close.Rslaves() to close slaves.")
++             mpi.close.Rslaves()
++         }
++         print("Please use mpi.quit() to quit R")
++         .Call("mpi_finalize")
++     }
++ }
+> 
+> # Tell all slaves to return a message identifying themselves
+> mpi.remote.exec(paste("I am",mpi.comm.rank(),"of",mpi.comm.size()))
+$slave1
+[1] "I am 1 of 5"
+
+$slave2
+[1] "I am 2 of 5"
+
+$slave3
+[1] "I am 3 of 5"
+
+$slave4
+[1] "I am 4 of 5"
+
+> 
+> # Tell all slaves to close down, and exit the program
+> mpi.close.Rslaves()
+--------------------------------------------------------------------------
+An MPI process has executed an operation involving a call to the
+"fork()" system call to create a child process.  Open MPI is currently
+operating in a condition that could result in memory corruption or
+other system errors; your MPI job may hang, crash, or produce silent
+data corruption.  The use of fork() (or system() or other calls that
+create child processes) is strongly discouraged.  
+
+The process that invoked fork was:
+
+  Local host:          a6231.hpc-net.ethz.ch (PID 8966)
+  MPI_COMM_WORLD rank: 0
+
+If you are *absolutely sure* that your application will successfully
+and correctly survive a call to fork(), you may disable this warning
+by setting the mpi_warn_on_fork MCA parameter to 0.
+--------------------------------------------------------------------------
+[1] 1
+> mpi.quit()
+
+## ==== output (1) end ====
+
+=> now the there is no error anymore (only the warning (?))
+
+(2) Second trial 
+
+## ==== output (2) start ====
+
+Sender: LSF System <lsfadmin at a6231>
+Subject: Job 193052: <mpirun -n 1 R --no-save -q -f m02.R> Exited
+
+Job <mpirun -n 1 R --no-save -q -f m02.R> was submitted from host <brutus3> by user <hofertj> in cluster <brutus>.
+Job was executed on host(s) <4*a6231>, in queue <pub.1h>, as user <hofertj> in cluster <brutus>.
+</cluster/home/math/hofertj> was used as the home directory.
+</cluster/home/math/hofertj> was used as the working directory.
+Started at Tue Dec 21 19:49:28 2010
+Results reported at Tue Dec 21 19:49:39 2010
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+mpirun -n 1 R --no-save -q -f m02.R
+------------------------------------------------------------
+
+Exited with exit code 1.
+
+Resource usage summary:
+
+    CPU time   :      7.20 sec.
+    Max Memory :         3 MB
+    Max Swap   :        29 MB
+
+    Max Processes  :         1
+    Max Threads    :         1
+
+The output (if any) follows:
+
+> library(doSNOW) 
+Loading required package: foreach
+Loading required package: iterators
+Loading required package: codetools
+Loading required package: snow
+> library(Rmpi)
+> library(rlecuyer)
+> 
+> cl <- makeCluster(3, type = "MPI") # create cluster object with the given number of slaves 
+	3 slaves are spawned successfully. 0 failed.
+> clusterSetupRNG(cl, seed = rep(1,6)) # initialize uniform rng streams in a SNOW cluster (L'Ecuyer)
+[1] "RNGstream"
+> registerDoSNOW(cl) # register the cluster object with foreach
+> ## start the work
+> x <- foreach(i = 1:3) %dopar% { 
++    sqrt(i)
++ }
+> x 
+[[1]]
+[1] 1
+
+[[2]]
+[1] 1.414214
+
+[[3]]
+[1] 1.732051
+
+> stopCluster(cl) # properly shut down the cluster 
+[1] 1
+> 
+--------------------------------------------------------------------------
+mpirun has exited due to process rank 0 with PID 9048 on
+node a6231.hpc-net.ethz.ch exiting without calling "finalize". This may
+have caused other processes in the application to be
+terminated by signals sent by mpirun (as reported here).
+--------------------------------------------------------------------------
+
+## ==== output (2) end ====
+
+=> okay, the first hope: The calculations were done. But why "exit code 1"/finalize problem?
+
+(3) Third trial 
+
+## ==== output (3) start ====
+
+Sender: LSF System <lsfadmin at a6204>
+Subject: Job 193053: <mpirun -n 1 R --no-save -q -f m03.R> Exited
+
+Job <mpirun -n 1 R --no-save -q -f m03.R> was submitted from host <brutus3> by user <hofertj> in cluster <brutus>.
+Job was executed on host(s) <4*a6204>, in queue <pub.1h>, as user <hofertj> in cluster <brutus>.
+</cluster/home/math/hofertj> was used as the home directory.
+</cluster/home/math/hofertj> was used as the working directory.
+Started at Tue Dec 21 19:49:28 2010
+Results reported at Tue Dec 21 19:49:36 2010
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+mpirun -n 1 R --no-save -q -f m03.R
+------------------------------------------------------------
+
+Exited with exit code 1.
+
+Resource usage summary:
+
+    CPU time   :      0.93 sec.
+    Max Memory :         3 MB
+    Max Swap   :        29 MB
+
+    Max Processes  :         1
+    Max Threads    :         1
+
+The output (if any) follows:
+
+> library(doSNOW) 
+Loading required package: foreach
+Loading required package: iterators
+Loading required package: codetools
+Loading required package: snow
+> library(Rmpi)
+> library(rlecuyer)
+> 
+> cl <- makeCluster() # create cluster object 
+Error in makeMPIcluster(spec, ...) : no nodes available.
+Calls: makeCluster -> makeMPIcluster
+Execution halted
+--------------------------------------------------------------------------
+mpirun has exited due to process rank 0 with PID 9530 on
+node a6204.hpc-net.ethz.ch exiting without calling "finalize". This may
+have caused other processes in the application to be
+terminated by signals sent by mpirun (as reported here).
+--------------------------------------------------------------------------
+
+## ==== output (3) end ====
+
+(4) Fourth trial 
+
+## ==== output (4) start ====
+
+Sender: LSF System <lsfadmin at a6278>
+Subject: Job 193056: <mpirun -n 1 R --no-save -q -f m04.R> Exited
+
+Job <mpirun -n 1 R --no-save -q -f m04.R> was submitted from host <brutus3> by user <hofertj> in cluster <brutus>.
+Job was executed on host(s) <4*a6278>, in queue <pub.1h>, as user <hofertj> in cluster <brutus>.
+</cluster/home/math/hofertj> was used as the home directory.
+</cluster/home/math/hofertj> was used as the working directory.
+Started at Tue Dec 21 19:49:28 2010
+Results reported at Tue Dec 21 19:49:37 2010
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+mpirun -n 1 R --no-save -q -f m04.R
+------------------------------------------------------------
+
+Exited with exit code 1.
+
+Resource usage summary:
+
+    CPU time   :      1.01 sec.
+    Max Memory :         3 MB
+    Max Swap   :        29 MB
+
+    Max Processes  :         1
+    Max Threads    :         1
+
+The output (if any) follows:
+
+> library(doSNOW) 
+Loading required package: foreach
+Loading required package: iterators
+Loading required package: codetools
+Loading required package: snow
+> library(Rmpi)
+> library(rlecuyer)
+> 
+> cl <- makeMPIcluster() # create cluster object  
+Error in makeMPIcluster() : no nodes available.
+Execution halted
+--------------------------------------------------------------------------
+mpirun has exited due to process rank 0 with PID 9778 on
+node a6278.hpc-net.ethz.ch exiting without calling "finalize". This may
+have caused other processes in the application to be
+terminated by signals sent by mpirun (as reported here).
+--------------------------------------------------------------------------
+
+## ==== output (4) end ====
+
+=> now (3) and (4) run and stop, but with errors.
+
+(5) Fifth trial 
+
+## ==== output (5) start ====
+
+Sender: LSF System <lsfadmin at a6244>
+Subject: Job 193057: <mpirun -n 1 R --no-save -q -f m05.R> Exited
+
+Job <mpirun -n 1 R --no-save -q -f m05.R> was submitted from host <brutus3> by user <hofertj> in cluster <brutus>.
+Job was executed on host(s) <4*a6244>, in queue <pub.1h>, as user <hofertj> in cluster <brutus>.
+</cluster/home/math/hofertj> was used as the home directory.
+</cluster/home/math/hofertj> was used as the working directory.
+Started at Tue Dec 21 19:49:28 2010
+Results reported at Tue Dec 21 19:49:37 2010
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+mpirun -n 1 R --no-save -q -f m05.R
+------------------------------------------------------------
+
+Exited with exit code 1.
+
+Resource usage summary:
+
+    CPU time   :      0.98 sec.
+    Max Memory :         4 MB
+    Max Swap   :        29 MB
+
+    Max Processes  :         1
+    Max Threads    :         1
+
+The output (if any) follows:
+
+> library(doSNOW) 
+Loading required package: foreach
+Loading required package: iterators
+Loading required package: codetools
+Loading required package: snow
+> library(Rmpi)
+> library(rlecuyer)
+> 
+> cl <- getMPIcluster() # get the MPI cluster
+> clusterSetupRNG(cl, seed = rep(1,6)) # initialize uniform rng streams in a SNOW cluster (L'Ecuyer)
+Error in checkCluster(cl) : not a valid cluster
+Calls: clusterSetupRNG ... clusterSetupRNGstream -> clusterApply -> staticClusterApply -> checkCluster
+Execution halted
+--------------------------------------------------------------------------
+mpirun has exited due to process rank 0 with PID 9571 on
+node a6244.hpc-net.ethz.ch exiting without calling "finalize". This may
+have caused other processes in the application to be
+terminated by signals sent by mpirun (as reported here).
+--------------------------------------------------------------------------
+
+## ==== output (5) end ====
+
+(6) Sixth trial
+
+## ==== output (6) start ====
+
+Sender: LSF System <lsfadmin at a6266>
+Subject: Job 193058: <mpirun -n 1 R --no-save -q -f m06.R> Exited
+
+Job <mpirun -n 1 R --no-save -q -f m06.R> was submitted from host <brutus3> by user <hofertj> in cluster <brutus>.
+Job was executed on host(s) <4*a6266>, in queue <pub.1h>, as user <hofertj> in cluster <brutus>.
+</cluster/home/math/hofertj> was used as the home directory.
+</cluster/home/math/hofertj> was used as the working directory.
+Started at Tue Dec 21 19:49:28 2010
+Results reported at Tue Dec 21 19:49:41 2010
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+mpirun -n 1 R --no-save -q -f m06.R
+------------------------------------------------------------
+
+Exited with exit code 1.
+
+Resource usage summary:
+
+    CPU time   :      3.69 sec.
+    Max Memory :         4 MB
+    Max Swap   :        29 MB
+
+    Max Processes  :         1
+    Max Threads    :         1
+
+The output (if any) follows:
+
+> library(doSNOW) 
+Loading required package: foreach
+Loading required package: iterators
+Loading required package: codetools
+Loading required package: snow
+> library(Rmpi)
+> library(rlecuyer)
+> 
+> cl <- makeMPIcluster(3) # create cluster object with the given number of slaves 
+	3 slaves are spawned successfully. 0 failed.
+> clusterSetupRNG(cl, seed = rep(1,6)) # initialize uniform rng streams in a SNOW cluster (L'Ecuyer)
+[1] "RNGstream"
+> registerDoSNOW(cl) # register the cluster object with foreach
+> ## start the work
+> x <- foreach(i = 1:3) %dopar% { 
++    sqrt(i)
++ }
+> x 
+[[1]]
+[1] 1
+
+[[2]]
+[1] 1.414214
+
+[[3]]
+[1] 1.732051
+
+> stopCluster(cl) # properly shut down the cluster
+[1] 1
+> 
+--------------------------------------------------------------------------
+mpirun has exited due to process rank 0 with PID 24975 on
+node a6266.hpc-net.ethz.ch exiting without calling "finalize". This may
+have caused other processes in the application to be
+terminated by signals sent by mpirun (as reported here).
+--------------------------------------------------------------------------
+
+## ==== output (6) end ====
+
+=> similar to (2)
+
+From brian at braverock.com  Tue Dec 21 20:18:10 2010
+From: brian at braverock.com (Brian G. Peterson)
+Date: Tue, 21 Dec 2010 13:18:10 -0600
+Subject: [R-sig-hpc] doSNOW + foreach = embarrassingly
+	frustrating	computation
+In-Reply-To: <A259C590-2BAA-4650-9BC3-7119E0C0E66D@web.de>
+References: <A259C590-2BAA-4650-9BC3-7119E0C0E66D@web.de>
+Message-ID: <4D10FD72.6040200@braverock.com>
+
+On 12/21/2010 11:38 AM, Marius Hofert wrote:
+> Any ideas?
+
+I wonder  why you are adding the complexity of SNOW on top of MPI 
+instead of using doMPI.  There are several good examples and vignette on 
+calling doMPI via mpirun, and a discussion of what side effects you can 
+expect and plan for.
+
+Regards,
+
+   - Brian
+
+-- 
+Brian G. Peterson
+http://braverock.com/brian/
+Ph: 773-459-4973
+IM: bgpbraverock
+
+
+From mtmorgan at fhcrc.org  Tue Dec 21 20:40:40 2010
+From: mtmorgan at fhcrc.org (Martin Morgan)
+Date: Tue, 21 Dec 2010 11:40:40 -0800
+Subject: [R-sig-hpc] doSNOW + foreach = embarrassingly
+	frustrating	computation
+In-Reply-To: <51B70069-C875-49B5-8F3B-D30BE0430DCC@web.de>
+References: <A259C590-2BAA-4650-9BC3-7119E0C0E66D@web.de>
+	<4D10E9C4.8090106@fhcrc.org>
+	<51B70069-C875-49B5-8F3B-D30BE0430DCC@web.de>
+Message-ID: <4D1102B8.4020806@fhcrc.org>
+
+On 12/21/2010 10:59 AM, Marius Hofert wrote:
+> Hi all,
+> 
+> Martin Morgan responded off-list and pointed out that I might have used the wrong bsub-command. He suggested:
+> bsub -n 4 -R "select[model==Opteron8380]" mpirun -n 1 R --vanilla -f minimal.R 
+> Since my installed packages were not found (due to --no-environ as part of --vanilla), I used:
+
+I would confirm that your or the site's R environment file is not doing
+anything unusual; I'm surprised that you need this set. More below...
+
+> bsub -n 4 -R "select[model==Opteron8380]" mpirun -n 1 R --no-save -q -f minimal.R 
+> Below, please find all the outputs [ran under the same setup as before], with comments.
+> It seems like (2) and (6) almost solve the problem. But what does this "finalize" mean?
+> 
+> Cheers,
+> 
+> Marius
+> 
+> 
+> (1) First trial (check if MPI runs):
+> 
+> minimal example as given on http://math.acadiau.ca/ACMMaC/Rmpi/sample.html 
+> 
+> ## ==== output (1) start ====
+> 
+> Sender: LSF System <lsfadmin at a6231>
+> Subject: Job 192910: <mpirun -n 1 R --no-save -q -f m01.R> Done
+> 
+> Job <mpirun -n 1 R --no-save -q -f m01.R> was submitted from host <brutus3> by user <hofertj> in cluster <brutus>.
+> Job was executed on host(s) <4*a6231>, in queue <pub.1h>, as user <hofertj> in cluster <brutus>.
+> </cluster/home/math/hofertj> was used as the home directory.
+> </cluster/home/math/hofertj> was used as the working directory.
+> Started at Tue Dec 21 19:44:03 2010
+> Results reported at Tue Dec 21 19:44:19 2010
+> 
+> Your job looked like:
+> 
+> ------------------------------------------------------------
+> # LSBATCH: User input
+> mpirun -n 1 R --no-save -q -f m01.R
+> ------------------------------------------------------------
+> 
+> Successfully completed.
+> 
+> Resource usage summary:
+> 
+>     CPU time   :     24.90 sec.
+>     Max Memory :         3 MB
+>     Max Swap   :        29 MB
+> 
+>     Max Processes  :         1
+>     Max Threads    :         1
+> 
+> The output (if any) follows:
+> 
+>> ## from http://math.acadiau.ca/ACMMaC/Rmpi/sample.html
+>>
+>> # Load the R MPI package if it is not already loaded.
+>> if (!is.loaded("mpi_initialize")) {
+> +     library("Rmpi")
+> +     }
+>>                                                                                 
+>> # Spawn as many slaves as possible
+>> mpi.spawn.Rslaves()
+> 	4 slaves are spawned successfully. 0 failed.
+> master (rank 0, comm 1) of size 5 is running on: a6231 
+> slave1 (rank 1, comm 1) of size 5 is running on: a6231 
+> slave2 (rank 2, comm 1) of size 5 is running on: a6231 
+> slave3 (rank 3, comm 1) of size 5 is running on: a6231 
+> slave4 (rank 4, comm 1) of size 5 is running on: a6231 
+>>                                                                                 
+>> # In case R exits unexpectedly, have it automatically clean up
+>> # resources taken up by Rmpi (slaves, memory, etc...)
+>> .Last <- function(){
+> +     if (is.loaded("mpi_initialize")){
+> +         if (mpi.comm.size(1) > 0){
+> +             print("Please use mpi.close.Rslaves() to close slaves.")
+> +             mpi.close.Rslaves()
+> +         }
+> +         print("Please use mpi.quit() to quit R")
+> +         .Call("mpi_finalize")
+> +     }
+> + }
+
+This part of the 'minimal' example doesn't seem minimal, I'd remove it,
+but follow it's advice and conclude your scripts with
+
+  mpi.close.Rslaves()
+  mpi.quit()
+
+>>
+>> # Tell all slaves to return a message identifying themselves
+>> mpi.remote.exec(paste("I am",mpi.comm.rank(),"of",mpi.comm.size()))
+> $slave1
+> [1] "I am 1 of 5"
+> 
+> $slave2
+> [1] "I am 2 of 5"
+> 
+> $slave3
+> [1] "I am 3 of 5"
+> 
+> $slave4
+> [1] "I am 4 of 5"
+> 
+>>
+>> # Tell all slaves to close down, and exit the program
+>> mpi.close.Rslaves()
+> --------------------------------------------------------------------------
+> An MPI process has executed an operation involving a call to the
+> "fork()" system call to create a child process.  Open MPI is currently
+> operating in a condition that could result in memory corruption or
+> other system errors; your MPI job may hang, crash, or produce silent
+> data corruption.  The use of fork() (or system() or other calls that
+> create child processes) is strongly discouraged.  
+> 
+> The process that invoked fork was:
+> 
+>   Local host:          a6231.hpc-net.ethz.ch (PID 8966)
+>   MPI_COMM_WORLD rank: 0
+> 
+> If you are *absolutely sure* that your application will successfully
+> and correctly survive a call to fork(), you may disable this warning
+> by setting the mpi_warn_on_fork MCA parameter to 0.
+> --------------------------------------------------------------------------
+> [1] 1
+>> mpi.quit()
+> 
+> ## ==== output (1) end ====
+> 
+> => now the there is no error anymore (only the warning (?))
+> 
+> (2) Second trial 
+> 
+> ## ==== output (2) start ====
+> 
+> Sender: LSF System <lsfadmin at a6231>
+> Subject: Job 193052: <mpirun -n 1 R --no-save -q -f m02.R> Exited
+> 
+> Job <mpirun -n 1 R --no-save -q -f m02.R> was submitted from host <brutus3> by user <hofertj> in cluster <brutus>.
+> Job was executed on host(s) <4*a6231>, in queue <pub.1h>, as user <hofertj> in cluster <brutus>.
+> </cluster/home/math/hofertj> was used as the home directory.
+> </cluster/home/math/hofertj> was used as the working directory.
+> Started at Tue Dec 21 19:49:28 2010
+> Results reported at Tue Dec 21 19:49:39 2010
+> 
+> Your job looked like:
+> 
+> ------------------------------------------------------------
+> # LSBATCH: User input
+> mpirun -n 1 R --no-save -q -f m02.R
+> ------------------------------------------------------------
+> 
+> Exited with exit code 1.
+> 
+> Resource usage summary:
+> 
+>     CPU time   :      7.20 sec.
+>     Max Memory :         3 MB
+>     Max Swap   :        29 MB
+> 
+>     Max Processes  :         1
+>     Max Threads    :         1
+> 
+> The output (if any) follows:
+> 
+>> library(doSNOW) 
+> Loading required package: foreach
+> Loading required package: iterators
+> Loading required package: codetools
+> Loading required package: snow
+>> library(Rmpi)
+>> library(rlecuyer)
+>>
+>> cl <- makeCluster(3, type = "MPI") # create cluster object with the given number of slaves 
+> 	3 slaves are spawned successfully. 0 failed.
+>> clusterSetupRNG(cl, seed = rep(1,6)) # initialize uniform rng streams in a SNOW cluster (L'Ecuyer)
+> [1] "RNGstream"
+>> registerDoSNOW(cl) # register the cluster object with foreach
+>> ## start the work
+>> x <- foreach(i = 1:3) %dopar% { 
+> +    sqrt(i)
+> + }
+>> x 
+> [[1]]
+> [1] 1
+> 
+> [[2]]
+> [1] 1.414214
+> 
+> [[3]]
+> [1] 1.732051
+> 
+>> stopCluster(cl) # properly shut down the cluster 
+> [1] 1
+>>
+> --------------------------------------------------------------------------
+> mpirun has exited due to process rank 0 with PID 9048 on
+> node a6231.hpc-net.ethz.ch exiting without calling "finalize". This may
+> have caused other processes in the application to be
+> terminated by signals sent by mpirun (as reported here).
+> --------------------------------------------------------------------------
+
+here I think you are begin told to end your script with
+
+  mpi.quit()
+
+
+> 
+> ## ==== output (2) end ====
+> 
+> => okay, the first hope: The calculations were done. But why "exit code 1"/finalize problem?
+> 
+> (3) Third trial 
+> 
+> ## ==== output (3) start ====
+> 
+> Sender: LSF System <lsfadmin at a6204>
+> Subject: Job 193053: <mpirun -n 1 R --no-save -q -f m03.R> Exited
+> 
+> Job <mpirun -n 1 R --no-save -q -f m03.R> was submitted from host <brutus3> by user <hofertj> in cluster <brutus>.
+> Job was executed on host(s) <4*a6204>, in queue <pub.1h>, as user <hofertj> in cluster <brutus>.
+> </cluster/home/math/hofertj> was used as the home directory.
+> </cluster/home/math/hofertj> was used as the working directory.
+> Started at Tue Dec 21 19:49:28 2010
+> Results reported at Tue Dec 21 19:49:36 2010
+> 
+> Your job looked like:
+> 
+> ------------------------------------------------------------
+> # LSBATCH: User input
+> mpirun -n 1 R --no-save -q -f m03.R
+> ------------------------------------------------------------
+> 
+> Exited with exit code 1.
+> 
+> Resource usage summary:
+> 
+>     CPU time   :      0.93 sec.
+>     Max Memory :         3 MB
+>     Max Swap   :        29 MB
+> 
+>     Max Processes  :         1
+>     Max Threads    :         1
+> 
+> The output (if any) follows:
+> 
+>> library(doSNOW) 
+> Loading required package: foreach
+> Loading required package: iterators
+> Loading required package: codetools
+> Loading required package: snow
+>> library(Rmpi)
+>> library(rlecuyer)
+>>
+>> cl <- makeCluster() # create cluster object 
+> Error in makeMPIcluster(spec, ...) : no nodes available.
+> Calls: makeCluster -> makeMPIcluster
+> Execution halted
+
+here snow is determining the size of the cluster with mpi.comm.size()
+(which returns 0) whereas I think you want to do something like
+
+   n = mpi.universe.size()
+   cl = makeCluster(n, type="MPI")
+
+likewise below. In some cases mpi.universe.size() uses a system call to
+'lamnodes', which will fail on systems without a lamnodes command; the
+cheap workaround is to create an executable file called lamnodes that
+does nothing and is on your PATH.
+
+Martin
+
+> --------------------------------------------------------------------------
+> mpirun has exited due to process rank 0 with PID 9530 on
+> node a6204.hpc-net.ethz.ch exiting without calling "finalize". This may
+> have caused other processes in the application to be
+> terminated by signals sent by mpirun (as reported here).
+> --------------------------------------------------------------------------
+
+> 
+> ## ==== output (3) end ====
+> 
+> (4) Fourth trial 
+> 
+> ## ==== output (4) start ====
+> 
+> Sender: LSF System <lsfadmin at a6278>
+> Subject: Job 193056: <mpirun -n 1 R --no-save -q -f m04.R> Exited
+> 
+> Job <mpirun -n 1 R --no-save -q -f m04.R> was submitted from host <brutus3> by user <hofertj> in cluster <brutus>.
+> Job was executed on host(s) <4*a6278>, in queue <pub.1h>, as user <hofertj> in cluster <brutus>.
+> </cluster/home/math/hofertj> was used as the home directory.
+> </cluster/home/math/hofertj> was used as the working directory.
+> Started at Tue Dec 21 19:49:28 2010
+> Results reported at Tue Dec 21 19:49:37 2010
+> 
+> Your job looked like:
+> 
+> ------------------------------------------------------------
+> # LSBATCH: User input
+> mpirun -n 1 R --no-save -q -f m04.R
+> ------------------------------------------------------------
+> 
+> Exited with exit code 1.
+> 
+> Resource usage summary:
+> 
+>     CPU time   :      1.01 sec.
+>     Max Memory :         3 MB
+>     Max Swap   :        29 MB
+> 
+>     Max Processes  :         1
+>     Max Threads    :         1
+> 
+> The output (if any) follows:
+> 
+>> library(doSNOW) 
+> Loading required package: foreach
+> Loading required package: iterators
+> Loading required package: codetools
+> Loading required package: snow
+>> library(Rmpi)
+>> library(rlecuyer)
+>>
+>> cl <- makeMPIcluster() # create cluster object  
+> Error in makeMPIcluster() : no nodes available.
+> Execution halted
+> --------------------------------------------------------------------------
+> mpirun has exited due to process rank 0 with PID 9778 on
+> node a6278.hpc-net.ethz.ch exiting without calling "finalize". This may
+> have caused other processes in the application to be
+> terminated by signals sent by mpirun (as reported here).
+> --------------------------------------------------------------------------
+> 
+> ## ==== output (4) end ====
+> 
+> => now (3) and (4) run and stop, but with errors.
+> 
+> (5) Fifth trial 
+> 
+> ## ==== output (5) start ====
+> 
+> Sender: LSF System <lsfadmin at a6244>
+> Subject: Job 193057: <mpirun -n 1 R --no-save -q -f m05.R> Exited
+> 
+> Job <mpirun -n 1 R --no-save -q -f m05.R> was submitted from host <brutus3> by user <hofertj> in cluster <brutus>.
+> Job was executed on host(s) <4*a6244>, in queue <pub.1h>, as user <hofertj> in cluster <brutus>.
+> </cluster/home/math/hofertj> was used as the home directory.
+> </cluster/home/math/hofertj> was used as the working directory.
+> Started at Tue Dec 21 19:49:28 2010
+> Results reported at Tue Dec 21 19:49:37 2010
+> 
+> Your job looked like:
+> 
+> ------------------------------------------------------------
+> # LSBATCH: User input
+> mpirun -n 1 R --no-save -q -f m05.R
+> ------------------------------------------------------------
+> 
+> Exited with exit code 1.
+> 
+> Resource usage summary:
+> 
+>     CPU time   :      0.98 sec.
+>     Max Memory :         4 MB
+>     Max Swap   :        29 MB
+> 
+>     Max Processes  :         1
+>     Max Threads    :         1
+> 
+> The output (if any) follows:
+> 
+>> library(doSNOW) 
+> Loading required package: foreach
+> Loading required package: iterators
+> Loading required package: codetools
+> Loading required package: snow
+>> library(Rmpi)
+>> library(rlecuyer)
+>>
+>> cl <- getMPIcluster() # get the MPI cluster
+>> clusterSetupRNG(cl, seed = rep(1,6)) # initialize uniform rng streams in a SNOW cluster (L'Ecuyer)
+> Error in checkCluster(cl) : not a valid cluster
+> Calls: clusterSetupRNG ... clusterSetupRNGstream -> clusterApply -> staticClusterApply -> checkCluster
+> Execution halted
+> --------------------------------------------------------------------------
+> mpirun has exited due to process rank 0 with PID 9571 on
+> node a6244.hpc-net.ethz.ch exiting without calling "finalize". This may
+> have caused other processes in the application to be
+> terminated by signals sent by mpirun (as reported here).
+> --------------------------------------------------------------------------
+> 
+> ## ==== output (5) end ====
+> 
+> (6) Sixth trial
+> 
+> ## ==== output (6) start ====
+> 
+> Sender: LSF System <lsfadmin at a6266>
+> Subject: Job 193058: <mpirun -n 1 R --no-save -q -f m06.R> Exited
+> 
+> Job <mpirun -n 1 R --no-save -q -f m06.R> was submitted from host <brutus3> by user <hofertj> in cluster <brutus>.
+> Job was executed on host(s) <4*a6266>, in queue <pub.1h>, as user <hofertj> in cluster <brutus>.
+> </cluster/home/math/hofertj> was used as the home directory.
+> </cluster/home/math/hofertj> was used as the working directory.
+> Started at Tue Dec 21 19:49:28 2010
+> Results reported at Tue Dec 21 19:49:41 2010
+> 
+> Your job looked like:
+> 
+> ------------------------------------------------------------
+> # LSBATCH: User input
+> mpirun -n 1 R --no-save -q -f m06.R
+> ------------------------------------------------------------
+> 
+> Exited with exit code 1.
+> 
+> Resource usage summary:
+> 
+>     CPU time   :      3.69 sec.
+>     Max Memory :         4 MB
+>     Max Swap   :        29 MB
+> 
+>     Max Processes  :         1
+>     Max Threads    :         1
+> 
+> The output (if any) follows:
+> 
+>> library(doSNOW) 
+> Loading required package: foreach
+> Loading required package: iterators
+> Loading required package: codetools
+> Loading required package: snow
+>> library(Rmpi)
+>> library(rlecuyer)
+>>
+>> cl <- makeMPIcluster(3) # create cluster object with the given number of slaves 
+> 	3 slaves are spawned successfully. 0 failed.
+>> clusterSetupRNG(cl, seed = rep(1,6)) # initialize uniform rng streams in a SNOW cluster (L'Ecuyer)
+> [1] "RNGstream"
+>> registerDoSNOW(cl) # register the cluster object with foreach
+>> ## start the work
+>> x <- foreach(i = 1:3) %dopar% { 
+> +    sqrt(i)
+> + }
+>> x 
+> [[1]]
+> [1] 1
+> 
+> [[2]]
+> [1] 1.414214
+> 
+> [[3]]
+> [1] 1.732051
+> 
+>> stopCluster(cl) # properly shut down the cluster
+> [1] 1
+>>
+> --------------------------------------------------------------------------
+> mpirun has exited due to process rank 0 with PID 24975 on
+> node a6266.hpc-net.ethz.ch exiting without calling "finalize". This may
+> have caused other processes in the application to be
+> terminated by signals sent by mpirun (as reported here).
+> --------------------------------------------------------------------------
+> 
+> ## ==== output (6) end ====
+> 
+> => similar to (2)
+
+
+-- 
+Computational Biology
+Fred Hutchinson Cancer Research Center
+1100 Fairview Ave. N. PO Box 19024 Seattle, WA 98109
+
+Location: M1-B861
+Telephone: 206 667-2793
+
+
+From m_hofert at web.de  Tue Dec 21 21:49:11 2010
+From: m_hofert at web.de (Marius Hofert)
+Date: Tue, 21 Dec 2010 21:49:11 +0100
+Subject: [R-sig-hpc] doSNOW + foreach = embarrassingly
+	frustrating	computation
+In-Reply-To: <51B70069-C875-49B5-8F3B-D30BE0430DCC@web.de>
+References: <A259C590-2BAA-4650-9BC3-7119E0C0E66D@web.de>
+	<4D10E9C4.8090106@fhcrc.org>
+	<51B70069-C875-49B5-8F3B-D30BE0430DCC@web.de>
+Message-ID: <A0653F0F-74F0-4DD7-AAC8-F694AAC3C0D4@web.de>
+
+Okay, I ran (2) and (3) again, now with the lines
+
+mpi.close.Rslaves()
+mpi.quit()
+
+(as suggested) in the end. Both programs stopped with:
+
+> mpi.close.Rslaves()
+Error in mpi.close.Rslaves() : It seems no slaves running on comm 1
+Execution halted
+
+I therefore ran (2) and (3) again, but only with 
+mpi.quit()
+Below is the output.
+
+So it seems to work! I have the following remaining questions:
+
+(1) with "n <- mpi.universe.size()", program (3) elegantly uses all available CPUs (if I understand this command correctly). Can this always be used or should one think like that: "I need 3 workers, that's why I should use makeCluster(3, type = "MPI")". Obviously, with "n <- mpi.universe.size()" one is not required to think about the number of workers.
+
+(2) Brian Peterson pointed out that doMPI might be a better choice. I would like to have a similar minimal example as (3) but with doMPI. Unfortunately, I couldn't find an equivalent of "clusterSetupRNG()" [from snow] for doMPI. Do you know how to setup rlecuyer with doMPI? I tried the following, but that does not work (of course):
+
+## snippet doMPI start ====
+
+library(doMPI) 
+library(foreach)
+library(rlecuyer)
+
+cl <- startMPIcluster()
+clusterSetupRNG(cl, seed = rep(1,6)) # => only works with doSNOW (otherwise, you'll get 'Error: could not find function "clusterSetupRNG"')
+registerDoMPI(cl) # register the cluster object with foreach
+## start the work
+x <- foreach(i = 1:3) %dopar% { 
+   sqrt(i)
+}
+x 
+stopCluster(cl) # properly shut down the cluster
+mpi.quit()
+
+## snippet doMPI end ====
+
+Cheers,
+
+Marius
+
+## === output of (2) start === 
+
+Sender: LSF System <lsfadmin at a6169>
+Subject: Job 195661: <mpirun -n 1 R --no-save -q -f m02.R> Done
+
+Job <mpirun -n 1 R --no-save -q -f m02.R> was submitted from host <brutus3> by user <hofertj> in cluster <brutus>.
+Job was executed on host(s) <4*a6169>, in queue <pub.1h>, as user <hofertj> in cluster <brutus>.
+</cluster/home/math/hofertj> was used as the home directory.
+</cluster/home/math/hofertj> was used as the working directory.
+Started at Tue Dec 21 21:15:16 2010
+Results reported at Tue Dec 21 21:15:27 2010
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+mpirun -n 1 R --no-save -q -f m02.R
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time   :      6.41 sec.
+    Max Memory :         4 MB
+    Max Swap   :        29 MB
+
+    Max Processes  :         1
+    Max Threads    :         1
+
+The output (if any) follows:
+
+> library(doSNOW) 
+Loading required package: foreach
+Loading required package: iterators
+Loading required package: codetools
+Loading required package: snow
+> library(Rmpi)
+> library(rlecuyer)
+> 
+> cl <- makeCluster(3, type = "MPI") # create cluster object with the given number of slaves 
+	3 slaves are spawned successfully. 0 failed.
+> clusterSetupRNG(cl, seed = rep(1,6)) # initialize uniform rng streams in a SNOW cluster (L'Ecuyer)
+[1] "RNGstream"
+> registerDoSNOW(cl) # register the cluster object with foreach
+> ## start the work
+> x <- foreach(i = 1:3) %dopar% { 
++    sqrt(i)
++ }
+> x 
+[[1]]
+[1] 1
+
+[[2]]
+[1] 1.414214
+
+[[3]]
+[1] 1.732051
+
+> stopCluster(cl) # properly shut down the cluster 
+[1] 1
+> mpi.quit()
+
+## === output of (2) end === 
+
+## === output of (3) start ===
+
+Sender: LSF System <lsfadmin at a6169>
+Subject: Job 195663: <mpirun -n 1 R --no-save -q -f m03.R> Done
+
+Job <mpirun -n 1 R --no-save -q -f m03.R> was submitted from host <brutus3> by user <hofertj> in cluster <brutus>.
+Job was executed on host(s) <4*a6169>, in queue <pub.1h>, as user <hofertj> in cluster <brutus>.
+</cluster/home/math/hofertj> was used as the home directory.
+</cluster/home/math/hofertj> was used as the working directory.
+Started at Tue Dec 21 21:15:16 2010
+Results reported at Tue Dec 21 21:15:31 2010
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+mpirun -n 1 R --no-save -q -f m03.R
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time   :     24.67 sec.
+    Max Memory :       297 MB
+    Max Swap   :      1934 MB
+
+    Max Processes  :         8
+    Max Threads    :        19
+
+The output (if any) follows:
+
+> library(doSNOW) 
+Loading required package: foreach
+Loading required package: iterators
+Loading required package: codetools
+Loading required package: snow
+> library(Rmpi)
+> library(rlecuyer)
+> 
+> n <- mpi.universe.size()
+> cl <- makeCluster(n, type ="MPI") # create cluster object 
+	4 slaves are spawned successfully. 0 failed.
+> clusterSetupRNG(cl, seed = rep(1,6)) # initialize uniform rng streams in a SNOW cluster (L'Ecuyer)
+[1] "RNGstream"
+> registerDoSNOW(cl) # register the cluster object with foreach
+> ## start the work
+> x <- foreach(i = 1:3) %dopar% { 
++    sqrt(i)
++ }
+> x 
+[[1]]
+[1] 1
+
+[[2]]
+[1] 1.414214
+
+[[3]]
+[1] 1.732051
+
+> stopCluster(cl) # properly shut down the cluster
+[1] 1
+> mpi.quit()
+
+## === output of (3) end ===
+
+
+From blindglobe at gmail.com  Tue Dec 21 22:38:41 2010
+From: blindglobe at gmail.com (A.J. Rossini)
+Date: Tue, 21 Dec 2010 22:38:41 +0100
+Subject: [R-sig-hpc] doSNOW + foreach = embarrassingly frustrating
+	computation
+In-Reply-To: <4D10FD72.6040200@braverock.com>
+References: <A259C590-2BAA-4650-9BC3-7119E0C0E66D@web.de>
+	<4D10FD72.6040200@braverock.com>
+Message-ID: <AANLkTinbB9+pLvq6pO0kp0z27-eFNYm9Be6XtPi_6iDh@mail.gmail.com>
+
+SNOW shouldn't be complex -- not if people do the right thing and
+appropriately add a backend (i.e. similar to what Revolution did for
+NWS).  If you like to roll your own and target your own architecture,
+fine.  And after someone else finds it inefficient, history will
+repeat itself rather than learning.
+
+SNOW provides portability, which MPI doesn't provide.  Portability and
+reproducibility are important, even if people think that simplicity
+and ease of use are wonderful things.
+
+I'll point out the usual analogy,
+http://www.jwz.org/doc/worse-is-better.html  for why SNOW won't win
+and worse is better.
+
+On Tue, Dec 21, 2010 at 8:18 PM, Brian G. Peterson <brian at braverock.com> wrote:
+> On 12/21/2010 11:38 AM, Marius Hofert wrote:
+>>
+>> Any ideas?
+>
+> I wonder ?why you are adding the complexity of SNOW on top of MPI instead of
+> using doMPI. ?There are several good examples and vignette on calling doMPI
+> via mpirun, and a discussion of what side effects you can expect and plan
+> for.
+>
+> Regards,
+>
+> ?- Brian
+>
+> --
+> Brian G. Peterson
+> http://braverock.com/brian/
+> Ph: 773-459-4973
+> IM: bgpbraverock
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+
+-- 
+best,
+-tony
+
+blindglobe at gmail.com
+Muttenz, Switzerland.
+"Commit early,commit often, and commit in a repository from which we
+can easily roll-back your mistakes" (AJR, 4Jan05).
+
+Drink Coffee:? Do stupid things faster with more energy!
+
+
+From jdlong at gmail.com  Thu Dec 23 04:16:02 2010
+From: jdlong at gmail.com (James Long)
+Date: Wed, 22 Dec 2010 21:16:02 -0600
+Subject: [R-sig-hpc] request for input on a new parallel R package using
+	Amazon Web Services
+Message-ID: <AANLkTik2FNBOhjBLkrVU8GH+JRj_hLJ9p=t0qH31jYvK@mail.gmail.com>
+
+Dear R-HPC list:
+
+About 7 months ago I presented at the Chicago Hadoop User Group an
+example of using Amazon's Elastic Map Reduce (EMR) as a method of
+running R in parallel. If you're curious about such things, here's the
+video from my presentation:
+http://www.vcasmo.com/video/drewconway/8468
+
+Since then I've been working to grossly simplify the use of Amazon Web
+Services as an R parallel engine. Toward that end I've created an
+abstraction on top of AWS which I've named "Segue." It includes an
+lapply() type function called emrlapply() which runs an lapply across
+an array of Amazon machines.
+
+I'm not a professional developer and am actually somewhat new to
+parallel computing. But this project spun from my own need to parallel
+R for Monte Carlo modeling and I don't have access to an MPI cluster.
+So this is dog food which I've been busy eating. I'd really appreciate
+some input from all of you who have been doing this type of thing a
+lot longer. Please keep in mind that this package is VERY alpha. I've
+run a few tests and things work. But the wheels might pop off and odd
+things might happen. If you use it, you may end up with temp
+directories in your S3 account and be sure and double check if EC2
+instances really shut down or else Amazon will bill you for the
+running machines.
+
+Please keep in mind that the use case for this package is people who,
+like myself, don't have access to their own cluster and would like to
+easily rent one from Amazon (emphasis on _easily_) for their CPU bound
+tasks. This is not a "big data" package because at each run of
+emrlapply() the list is serialized and uploaded to S3. The list must
+be in memory on the local machine, naturally, and thus is bound by
+objects that fit in your desktop memory. This package uses Amazon's
+Elastic Map Reduce framework which is "Hadoop billed by the drink" but
+this is not a map/reduce system. The reduce step is, literally, cat.
+But the mapper step is harnessed as a "grid engine" of sorts. A Segue
+grid takes a little less than 10 minutes to start, but then is able to
+start individual jobs in under a minute (depending on the size of the
+list you are applying across). So there is significant latency,
+naturally.
+
+Running Segue grids requires Amazon Web Services credentials which are
+stored only on your local machine. You will be billed by Amazon for
+your machine time. The default machine size is "small" which has 1.7
+gb of RAM and costs $0.085 per hour of run time. But if you have
+interest in testing this package and feel financially constrained,
+Amazon has been nice enough to give me some coupons for AWS run time.
+Just shoot me a note and I'll be happy to share these with you.
+
+You can find the Segue repo here:
+
+http://code.google.com/p/segue/
+
+If you install the package you can run a simple test like this:
+
+
+require(segue)
+## requires your AWS access Key and Secret Key
+setCredentials("yourKey", "yourSecretKey", setEnvironmentVariables=TRUE)
+
+myCluster <- createCluster(numInstances=5)
+
+myList <- NULL
+set.seed(1)
+for (i in 1:10){
+  a <- c(rnorm(999), NA)
+  myList[[i]] <- a
+}
+
+outputEmr   <- emrlapply(myCluster, myList, mean,  na.rm=T)
+ouputLocal  <- lapply(myList, mean, na.rm=T)
+all.equal(outputEmr, ouputLocal)
+
+stopCluster(myCluster)
+
+
+This email is the very first time I've shared this code publicly.
+Please feel free to email me directly or fill out issue reports on the
+Google Code site. Any and all feedback is appreciated. And, yes, it's
+on my road map for Segue to be a 'for each' backend. I just want to
+get all the kinks worked out of the basic code first.
+
+Thanks in advance,
+
+James "JD" Long
+
+
+From jdlong at gmail.com  Thu Dec 23 21:34:00 2010
+From: jdlong at gmail.com (James Long)
+Date: Thu, 23 Dec 2010 14:34:00 -0600
+Subject: [R-sig-hpc] request for input on a new parallel R package using
+	Amazon Web Services
+In-Reply-To: <AANLkTik2FNBOhjBLkrVU8GH+JRj_hLJ9p=t0qH31jYvK@mail.gmail.com>
+References: <AANLkTik2FNBOhjBLkrVU8GH+JRj_hLJ9p=t0qH31jYvK@mail.gmail.com>
+Message-ID: <AANLkTikUdsZyFsP4sXxyYH=0g=gv3thTFh6NxSWw7+=3@mail.gmail.com>
+
+I've received a lot of good private feedback on this package. Thank
+you all so much! One note pointed out a bug that kept my example from
+running. Sorry about that. I've patched the code and updated the tar
+ball on the Google Code site:
+
+http://code.google.com/p/segue/
+
+Please note that I have not even once run this code from a Windows or
+Mac local machine. I wrote the code with intent for it to be cross
+platform, but my main machine is Ubuntu Linux, so what little testing
+that has been done, has been done in Linux.
+
+Thanks again for all your support and helpful comments.
+
+-J
+
+
+On Wed, Dec 22, 2010 at 9:16 PM, James Long <jdlong at gmail.com> wrote:
+> Dear R-HPC list:
+>
+> About 7 months ago I presented at the Chicago Hadoop User Group an
+> example of using Amazon's Elastic Map Reduce (EMR) as a method of
+> running R in parallel. If you're curious about such things, here's the
+> video from my presentation:
+> http://www.vcasmo.com/video/drewconway/8468
+>
+> Since then I've been working to grossly simplify the use of Amazon Web
+> Services as an R parallel engine. Toward that end I've created an
+> abstraction on top of AWS which I've named "Segue." It includes an
+> lapply() type function called emrlapply() which runs an lapply across
+> an array of Amazon machines.
+>
+> I'm not a professional developer and am actually somewhat new to
+> parallel computing. But this project spun from my own need to parallel
+> R for Monte Carlo modeling and I don't have access to an MPI cluster.
+> So this is dog food which I've been busy eating. I'd really appreciate
+> some input from all of you who have been doing this type of thing a
+> lot longer. Please keep in mind that this package is VERY alpha. I've
+> run a few tests and things work. But the wheels might pop off and odd
+> things might happen. If you use it, you may end up with temp
+> directories in your S3 account and be sure and double check if EC2
+> instances really shut down or else Amazon will bill you for the
+> running machines.
+>
+> Please keep in mind that the use case for this package is people who,
+> like myself, don't have access to their own cluster and would like to
+> easily rent one from Amazon (emphasis on _easily_) for their CPU bound
+> tasks. This is not a "big data" package because at each run of
+> emrlapply() the list is serialized and uploaded to S3. The list must
+> be in memory on the local machine, naturally, and thus is bound by
+> objects that fit in your desktop memory. This package uses Amazon's
+> Elastic Map Reduce framework which is "Hadoop billed by the drink" but
+> this is not a map/reduce system. The reduce step is, literally, cat.
+> But the mapper step is harnessed as a "grid engine" of sorts. A Segue
+> grid takes a little less than 10 minutes to start, but then is able to
+> start individual jobs in under a minute (depending on the size of the
+> list you are applying across). So there is significant latency,
+> naturally.
+>
+> Running Segue grids requires Amazon Web Services credentials which are
+> stored only on your local machine. You will be billed by Amazon for
+> your machine time. The default machine size is "small" which has 1.7
+> gb of RAM and costs $0.085 per hour of run time. But if you have
+> interest in testing this package and feel financially constrained,
+> Amazon has been nice enough to give me some coupons for AWS run time.
+> Just shoot me a note and I'll be happy to share these with you.
+>
+> You can find the Segue repo here:
+>
+> http://code.google.com/p/segue/
+>
+> If you install the package you can run a simple test like this:
+>
+>
+> require(segue)
+> ## requires your AWS access Key and Secret Key
+> setCredentials("yourKey", "yourSecretKey", setEnvironmentVariables=TRUE)
+>
+> myCluster <- createCluster(numInstances=5)
+>
+> myList <- NULL
+> set.seed(1)
+> for (i in 1:10){
+> ?a <- c(rnorm(999), NA)
+> ?myList[[i]] <- a
+> }
+>
+> outputEmr ? <- emrlapply(myCluster, myList, mean, ?na.rm=T)
+> ouputLocal ?<- lapply(myList, mean, na.rm=T)
+> all.equal(outputEmr, ouputLocal)
+>
+> stopCluster(myCluster)
+>
+>
+> This email is the very first time I've shared this code publicly.
+> Please feel free to email me directly or fill out issue reports on the
+> Google Code site. Any and all feedback is appreciated. And, yes, it's
+> on my road map for Segue to be a 'for each' backend. I just want to
+> get all the kinks worked out of the basic code first.
+>
+> Thanks in advance,
+>
+> James "JD" Long
+>
+
+

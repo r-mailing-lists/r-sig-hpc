@@ -1,0 +1,581 @@
+From seija.sirkia at csc.fi  Wed Apr  6 11:25:19 2016
+From: seija.sirkia at csc.fi (Seija =?iso-8859-1?Q?Sirki=E4?=)
+Date: Wed, 6 Apr 2016 12:25:19 +0300 (EEST)
+Subject: [R-sig-hpc] How a Slurm bug made parallel R jobs segfault,
+	and our workaround
+Message-ID: <1426856471.1253526.1459934719229.JavaMail.zimbra@csc.fi>
+
+Hey all, I thought I'd share this since we spent quite some time with it and it might be relevant to some of you. Or at least amusing, possibly.
+
+So. Our customers run their stuff on our cluster, and resources are allocated using Slurm, business as usual. Out of the blue one customer finds that their parallel R jobs that used to run fine now cause a segmentation fault. Sure enough, so did my previously working test scripts. Ordinary one core sessions work and nothing with our R installation had changed. So it is something in the system environment that changed, but nothing else breaks, just R. Huh?
+
+After a few days and a lot of coffee, the root cause is found: briefly, a very recent Slurm version update introduced or exposed a part where the name of the binary that was started is looked at, and there's a test of the form "if string length is greater than one", not zero ... So if the binary is called just "R", the test result is wrong and madness ensues.
+
+As a workaround, a symlink called RR was created next to the R binary in lib64/R/bin/exec, pointing to that binary, and then a tweak in the wrapper starting script to make it say R_binary="${R_HOME}/bin/exec${R_ARCH}/RR" instead. Works like a charm, it seems.
+
+What I found funny is that this is definitely not the first time the name of the thing being just one letter causes some kind of trouble, probably won't be the last. Of course it is a genuine bug elsewhere, but I at least burst out laughing when I heard this. *That* is what was so special about it!
+
+BR,
+Seija S.
+
+
+From cgf at isep.ipp.pt  Tue Apr 19 11:07:27 2016
+From: cgf at isep.ipp.pt (Carlos Ferreira)
+Date: Tue, 19 Apr 2016 10:07:27 +0100
+Subject: [R-sig-hpc] VECPAR 2016: Call for Participation
+Message-ID: <5715F54F.9090706@isep.ipp.pt>
+
+
+------------------------------------------------------------------------------------------
+CALL FOR PARTICIPATION
+
+12th International Meeting on High-Performance Computing
+for Computational Science (VECPAR 2016)
+
+University of Porto, Porto, Portugal
+June 28 - 30, 2016
+
+http://vecpar.fe.up.pt/2016/
+
+Porto has been crowned the BEST EUROPEAN DESTINATION of 2014
+for its postcard-perfect views, friendly locals and gastronomy.
+-------------------------------------------------------------------------------------------
+
+This year the VECPAR conference will have a very exciting program with
+19 papers from 10 countries. We have a varied selection of paper
+subjects ranging from distributed to shared and hybrid parallel
+algorithms and systems, but with a strong focus on computational
+science applications. Examples are epidemic modeling and word
+searching. Parallel libraries is also a popular subject this year.
+Platforms range from clouds to multi-core, many-core, and GPUs. The
+conference will include invited talks by 4 prominent speakers, very
+interesting workshops and a crash course, and a fantastic social
+dinner including Port wine tasting.
+
+A list of accepted papers can be found at:
+
+http://vecpar.fe.up.pt/2016/papers.html
+
+Please, check the conference web site (http://vecpar.fe.up.pt/2016/)
+for updates and more detailed information.
+
+Registrations will be opening soon! Please, check at:
+http://vecpar.fe.up.pt/2016.
+
+We look forward to seeing you soon!
+
+The VECPAR 2016 Organizing Committee.
+
+
+Carlos Ferreira
+
+ISEP | Instituto Superior de Engenharia do Porto
+Rua Dr. Ant?nio Bernardino de Almeida, 431
+4249-015 Porto - PORTUGAL
+tel. +351 228 340 500 | fax +351 228 321 159
+mail at isep.ipp.pt | www.isep.ipp.pt
+
+
+From b.h.mevik at usit.uio.no  Wed Apr 20 15:08:05 2016
+From: b.h.mevik at usit.uio.no (=?utf-8?Q?Bj=C3=B8rn-Helge_Mevik?=)
+Date: Wed, 20 Apr 2016 15:08:05 +0200
+Subject: [R-sig-hpc] Recommended way to exit cleanly from MPI cluster?
+Message-ID: <s3swpnsa0ne.fsf@varelg.uio.no>
+
+Dear All,
+
+I'm wondering what is the currently recommended way of exiting cleanly
+after using a MPI cluster with the parallel (or snow) package.
+
+My reason for asking is the following:
+I'm managing an HPC cluster at the University of Oslo, and we have
+recommended that our users use MPI with R like this:
+
+
+################################
+library(parallel)
+
+## Start the MPI worker processes:
+numWorkers <- as.numeric(Sys.getenv("SLURM_NTASKS")) - 1
+myCluster <- makeCluster(numWorkers, type = "MPI")
+
+## Define a worker function:
+workerFunc <- function(n) {
+    return(n^2)
+}
+## and a list or vector to use it on:
+values <- 1:100
+
+## Apply workerFunc to values in parallel:
+results <- parLapply(myCluster, values, workerFunc)
+print(unlist(results))
+
+## Exit cleanly:
+stopCluster(myCluster)
+mpi.exit()                              # or mpi.quit(), which quits R as well
+################################
+
+
+However, as of snow 0.4-1, Rmpi is no longer attached on the search
+path, so mpi.exit() and mpi.quit() are not visible.
+
+
+After a bit of testing and reading, I've discovered that
+
+stopCluster(myCluster)
+Rmpi::mpi.finalize()
+
+and
+
+stopCluster(myCluster)
+Rmpi::mpi.quit()
+
+work, the latter of which will also exit R.
+
+Are these the currently recommended ways to exit cleanly after using MPI
+clusters?
+
+-- 
+Bj?rn-Helge Mevik, dr. scient,
+Department for Research Computing, University of Oslo
+
+
+From jdenton at amnh.org  Sat Apr 23 21:14:21 2016
+From: jdenton at amnh.org (John Denton)
+Date: Sat, 23 Apr 2016 19:14:21 +0000
+Subject: [R-sig-hpc] r script using foreach hangs at loop
+Message-ID: <9DB18CB85B13594BA44ADD67DC99C60201794703DF@MAIL-MBX-004.internal.amnh.org>
+
+Hi, all.
+
+I have am R script I'm trying to run on a cluster, using OpenMPI and mpirun, but after the non-mpi elements of the function are produced, the execution hangs at the foreach step:
+
+##RUN MPI BOOTSTRAP (set MPI in script itself):
+
+iters <- list.files(pattern="\\.nex") 
+
+	clust <- startMPIcluster(ncores)
+	registerDoMPI(clust)
+		 
+			foreach(i=1:length(iters)) %dopar% {
+				system(paste("mb", iters[i], sep=" "))
+			}
+
+closeCluster(clust)
+
+where ncores is set to be equal to the value nodes x ppn in the sh file:
+
+# qsub -V myjob-pbs.sh
+#PBS -V
+#PBS -N tully_bt.name
+#PBS -q batch
+#PBS -S /bin/bash
+#PBS -m abe
+#PBS -l nodes=13:ppn=4
+#PBS -l walltime=500:00:00
+
+cd $PBS_O_WORKDIR   
+echo Working directory is $PBS_O_WORKDIR
+
+NPROCS=`wc -l < $PBS_NODEFILE`
+
+NNODES=`uniq $PBS_NODEFILE | wc -l`
+
+echo Running on host `hostname`
+echo Time is `date`
+echo Directory is `pwd`
+echo Using ${NPROCS} processors across ${NNODES} nodes
+
+module load openmpi-1.10.1
+MPIRUN=`which mpirun`
+${MPIRUN} -machinefile $PBS_NODEFILE -np 1 R --slave -f test.r
+
+The function itself loads doMPI, which loads foreach and Rmpi as dependencies.
+
+The R script is test.r, which has only the lines source (the function), function (call function with options), mpi.quit. The function works without a submission script, and I suspect the problem might have something to do with the mpirun line, but I am not sure.
+
+Any help would be appreciated!
+
+
+
+
+
+John S. S. Denton, Ph.D.
+Department of Vertebrate Paleontology
+American Museum of Natural History
+www.johnssdenton.com
+
+From nakama at ki.rim.or.jp  Mon Apr 25 06:01:16 2016
+From: nakama at ki.rim.or.jp (Ei-ji Nakama)
+Date: Mon, 25 Apr 2016 13:01:16 +0900
+Subject: [R-sig-hpc] r script using foreach hangs at loop
+In-Reply-To: <9DB18CB85B13594BA44ADD67DC99C60201794703DF@MAIL-MBX-004.internal.amnh.org>
+References: <9DB18CB85B13594BA44ADD67DC99C60201794703DF@MAIL-MBX-004.internal.amnh.org>
+Message-ID: <CAJqeyYYhp-6FfzgkBSMnq-tF5ySjocqd6-aSU=uJ22PauCry1w@mail.gmail.com>
+
+check determine if Open MPI is configured for PBS environment?
+i.e. https://www.open-mpi.org/faq/?category=tm#tm-configure-ompi
+
+You must launch the process through the job scheduler.
+#machine(or hostfile) is rsh(or ssh) will request
+
+Please  to inquiry your system administrator.
+
+2016-04-24 4:14 GMT+09:00 John Denton <jdenton at amnh.org>:
+> Hi, all.
+>
+> I have am R script I'm trying to run on a cluster, using OpenMPI and mpirun, but after the non-mpi elements of the function are produced, the execution hangs at the foreach step:
+>
+> ##RUN MPI BOOTSTRAP (set MPI in script itself):
+>
+> iters <- list.files(pattern="\\.nex")
+>
+>         clust <- startMPIcluster(ncores)
+>         registerDoMPI(clust)
+>
+>                         foreach(i=1:length(iters)) %dopar% {
+>                                 system(paste("mb", iters[i], sep=" "))
+>                         }
+>
+> closeCluster(clust)
+>
+> where ncores is set to be equal to the value nodes x ppn in the sh file:
+>
+> # qsub -V myjob-pbs.sh
+> #PBS -V
+> #PBS -N tully_bt.name
+> #PBS -q batch
+> #PBS -S /bin/bash
+> #PBS -m abe
+> #PBS -l nodes=13:ppn=4
+> #PBS -l walltime=500:00:00
+>
+> cd $PBS_O_WORKDIR
+> echo Working directory is $PBS_O_WORKDIR
+>
+> NPROCS=`wc -l < $PBS_NODEFILE`
+>
+> NNODES=`uniq $PBS_NODEFILE | wc -l`
+>
+> echo Running on host `hostname`
+> echo Time is `date`
+> echo Directory is `pwd`
+> echo Using ${NPROCS} processors across ${NNODES} nodes
+>
+> module load openmpi-1.10.1
+> MPIRUN=`which mpirun`
+> ${MPIRUN} -machinefile $PBS_NODEFILE -np 1 R --slave -f test.r
+>
+> The function itself loads doMPI, which loads foreach and Rmpi as dependencies.
+>
+> The R script is test.r, which has only the lines source (the function), function (call function with options), mpi.quit. The function works without a submission script, and I suspect the problem might have something to do with the mpirun line, but I am not sure.
+>
+> Any help would be appreciated!
+>
+>
+>
+>
+>
+> John S. S. Denton, Ph.D.
+> Department of Vertebrate Paleontology
+> American Museum of Natural History
+> www.johnssdenton.com
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+
+-- 
+Best Regards,
+--
+Eiji NAKAMA <nakama (a) ki.rim.or.jp>
+"\u4e2d\u9593\u6804\u6cbb"  <nakama (a) ki.rim.or.jp>
+
+
+From jdenton at amnh.org  Mon Apr 25 19:04:47 2016
+From: jdenton at amnh.org (John Denton)
+Date: Mon, 25 Apr 2016 17:04:47 +0000
+Subject: [R-sig-hpc] gpus with foreach
+Message-ID: <9DB18CB85B13594BA44ADD67DC99C602017947059E@MAIL-MBX-004.internal.amnh.org>
+
+Hi, all.
+
+Does anybody know of a library that allows foreach to be called over GPUs, specifically? I'm interested in parallelizing a very large number of calls to system(), and am still debugging a cluster issue, so doMPI, etc are not working at the moment.
+
+Thanks.
+
+John S. S. Denton, Ph.D.
+Department of Vertebrate Paleontology
+American Museum of Natural History
+www.johnssdenton.com
+
+From brian at braverock.com  Mon Apr 25 19:11:52 2016
+From: brian at braverock.com (Brian G. Peterson)
+Date: Mon, 25 Apr 2016 12:11:52 -0500
+Subject: [R-sig-hpc] gpus with foreach
+In-Reply-To: <9DB18CB85B13594BA44ADD67DC99C602017947059E@MAIL-MBX-004.internal.amnh.org>
+References: <9DB18CB85B13594BA44ADD67DC99C602017947059E@MAIL-MBX-004.internal.amnh.org>
+Message-ID: <1461604312.8091.304.camel@brian-rcg>
+
+On Mon, 2016-04-25 at 17:04 +0000, John Denton wrote:
+> Does anybody know of a library that allows foreach to be called over
+> GPUs, specifically? I'm interested in parallelizing a very large number
+> of calls to system(), and am still debugging a cluster issue, so doMPI,
+> etc are not working at the moment.
+
+There's no reason you can't call system() from inside your foreach loop,
+so you could, for example, use foreach with a socket cluster, or a redis
+cluster, to send jobs to workers on different physical machines, and
+call system() in the body of the foreach loop.
+
+Or perhaps your questions isn't specific enough for me to understand
+what you're trying to do?
+
+Regards,
+
+Brian
+
+-- 
+Brian G. Peterson
+http://braverock.com/brian/
+Ph: 773-459-4973
+IM: bgpbraverock
+
+
+From cdetermanjr at gmail.com  Mon Apr 25 19:16:17 2016
+From: cdetermanjr at gmail.com (Charles Determan)
+Date: Mon, 25 Apr 2016 12:16:17 -0500
+Subject: [R-sig-hpc] gpus with foreach
+In-Reply-To: <9DB18CB85B13594BA44ADD67DC99C602017947059E@MAIL-MBX-004.internal.amnh.org>
+References: <9DB18CB85B13594BA44ADD67DC99C602017947059E@MAIL-MBX-004.internal.amnh.org>
+Message-ID: <CAKxd1KMH+ke2ewHiEc+AWaDpKOj7w8i91dU3ZEydxMzy818FvA@mail.gmail.com>
+
+Hi John,
+
+I'm not sure about a package designed specifically for this but I have been
+toying with the idea about how I could implement it with my GPU package
+gpuR (https://cran.r-project.org/web/packages/gpuR/index.html).  Do you
+have at least as many CPUs and GPUs?  If so, that should make the
+implementation easier.  Essentially this would consist of using the
+'setContext' function within each fork generated by foreach corresponding
+to different GPU.  There is an existing issue on my it repo regarding
+selection of specific GPUs (https://github.com/cdeterman/gpuR/issues/9).
+Once I have a user willing to test my code (I only have one GPU personally)
+I can finalize that feature and it is theoretically plausible to use
+foreach with my package on your GPUs.
+
+If you are interested we may want to move this conversation off-list since
+this would be developmental.
+
+Regards,
+
+Charles Determan PhD
+Data Scientist
+
+
+On Mon, Apr 25, 2016 at 12:04 PM, John Denton <jdenton at amnh.org> wrote:
+
+> Hi, all.
+>
+> Does anybody know of a library that allows foreach to be called over GPUs,
+> specifically? I'm interested in parallelizing a very large number of calls
+> to system(), and am still debugging a cluster issue, so doMPI, etc are not
+> working at the moment.
+>
+> Thanks.
+>
+> John S. S. Denton, Ph.D.
+> Department of Vertebrate Paleontology
+> American Museum of Natural History
+> www.johnssdenton.com
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+	[[alternative HTML version deleted]]
+
+
+From patric.zhao at gmail.com  Tue Apr 26 12:15:12 2016
+From: patric.zhao at gmail.com (patric zhao)
+Date: Tue, 26 Apr 2016 18:15:12 +0800
+Subject: [R-sig-hpc] R-sig-hpc Digest, Vol 87, Issue 6
+In-Reply-To: <mailman.5.1461664802.21328.r-sig-hpc@r-project.org>
+References: <mailman.5.1461664802.21328.r-sig-hpc@r-project.org>
+Message-ID: <CAGc3NFuvtNB6M4xPMB2rAyqNbJGYHOyWzPR+DGWiJqEdR8=Ebg@mail.gmail.com>
+
+Hi John,
+
+Could you provide more details about what do you want to do on GPU
+(may code examples)?
+I have provided the case of using 'multicore' with multiple GPUs for
+DNN in GTC16.
+
+The second slide in below link, hopes it's helpful.
+http://www.parallelr.com/training/
+
+BR,
+
+-Patric
+
+On Tue, Apr 26, 2016 at 6:00 PM,  <r-sig-hpc-request at r-project.org> wrote:
+> Send R-sig-hpc mailing list submissions to
+>         r-sig-hpc at r-project.org
+>
+> To subscribe or unsubscribe via the World Wide Web, visit
+>         https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> or, via email, send a message with subject or body 'help' to
+>         r-sig-hpc-request at r-project.org
+>
+> You can reach the person managing the list at
+>         r-sig-hpc-owner at r-project.org
+>
+> When replying, please edit your Subject line so it is more specific
+> than "Re: Contents of R-sig-hpc digest..."
+>
+>
+> Today's Topics:
+>
+>    1. gpus with foreach (John Denton)
+>    2. Re: gpus with foreach (Brian G. Peterson)
+>    3. Re: gpus with foreach (Charles Determan)
+>
+>
+> ----------------------------------------------------------------------
+>
+> Message: 1
+> Date: Mon, 25 Apr 2016 17:04:47 +0000
+> From: John Denton <jdenton at amnh.org>
+> To: "r-sig-hpc at r-project.org" <r-sig-hpc at r-project.org>
+> Subject: [R-sig-hpc] gpus with foreach
+> Message-ID:
+>         <9DB18CB85B13594BA44ADD67DC99C602017947059E at MAIL-MBX-004.internal.amnh.org>
+>
+> Content-Type: text/plain; charset="us-ascii"
+>
+> Hi, all.
+>
+> Does anybody know of a library that allows foreach to be called over GPUs, specifically? I'm interested in parallelizing a very large number of calls to system(), and am still debugging a cluster issue, so doMPI, etc are not working at the moment.
+>
+> Thanks.
+>
+> John S. S. Denton, Ph.D.
+> Department of Vertebrate Paleontology
+> American Museum of Natural History
+> www.johnssdenton.com
+>
+>
+> ------------------------------
+>
+> Message: 2
+> Date: Mon, 25 Apr 2016 12:11:52 -0500
+> From: "Brian G. Peterson" <brian at braverock.com>
+> To: "r-sig-hpc at r-project.org" <r-sig-hpc at r-project.org>
+> Subject: Re: [R-sig-hpc] gpus with foreach
+> Message-ID: <1461604312.8091.304.camel at brian-rcg>
+> Content-Type: text/plain; charset="UTF-8"
+>
+> On Mon, 2016-04-25 at 17:04 +0000, John Denton wrote:
+>> Does anybody know of a library that allows foreach to be called over
+>> GPUs, specifically? I'm interested in parallelizing a very large number
+>> of calls to system(), and am still debugging a cluster issue, so doMPI,
+>> etc are not working at the moment.
+>
+> There's no reason you can't call system() from inside your foreach loop,
+> so you could, for example, use foreach with a socket cluster, or a redis
+> cluster, to send jobs to workers on different physical machines, and
+> call system() in the body of the foreach loop.
+>
+> Or perhaps your questions isn't specific enough for me to understand
+> what you're trying to do?
+>
+> Regards,
+>
+> Brian
+>
+> --
+> Brian G. Peterson
+> http://braverock.com/brian/
+> Ph: 773-459-4973
+> IM: bgpbraverock
+>
+>
+>
+> ------------------------------
+>
+> Message: 3
+> Date: Mon, 25 Apr 2016 12:16:17 -0500
+> From: Charles Determan <cdetermanjr at gmail.com>
+> To: John Denton <jdenton at amnh.org>
+> Cc: "r-sig-hpc at r-project.org" <r-sig-hpc at r-project.org>
+> Subject: Re: [R-sig-hpc] gpus with foreach
+> Message-ID:
+>         <CAKxd1KMH+ke2ewHiEc+AWaDpKOj7w8i91dU3ZEydxMzy818FvA at mail.gmail.com>
+> Content-Type: text/plain; charset="UTF-8"
+>
+> Hi John,
+>
+> I'm not sure about a package designed specifically for this but I have been
+> toying with the idea about how I could implement it with my GPU package
+> gpuR (https://cran.r-project.org/web/packages/gpuR/index.html).  Do you
+> have at least as many CPUs and GPUs?  If so, that should make the
+> implementation easier.  Essentially this would consist of using the
+> 'setContext' function within each fork generated by foreach corresponding
+> to different GPU.  There is an existing issue on my it repo regarding
+> selection of specific GPUs (https://github.com/cdeterman/gpuR/issues/9).
+> Once I have a user willing to test my code (I only have one GPU personally)
+> I can finalize that feature and it is theoretically plausible to use
+> foreach with my package on your GPUs.
+>
+> If you are interested we may want to move this conversation off-list since
+> this would be developmental.
+>
+> Regards,
+>
+> Charles Determan PhD
+> Data Scientist
+>
+>
+> On Mon, Apr 25, 2016 at 12:04 PM, John Denton <jdenton at amnh.org> wrote:
+>
+>> Hi, all.
+>>
+>> Does anybody know of a library that allows foreach to be called over GPUs,
+>> specifically? I'm interested in parallelizing a very large number of calls
+>> to system(), and am still debugging a cluster issue, so doMPI, etc are not
+>> working at the moment.
+>>
+>> Thanks.
+>>
+>> John S. S. Denton, Ph.D.
+>> Department of Vertebrate Paleontology
+>> American Museum of Natural History
+>> www.johnssdenton.com
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>
+>         [[alternative HTML version deleted]]
+>
+>
+>
+> ------------------------------
+>
+> Subject: Digest Footer
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+> ------------------------------
+>
+> End of R-sig-hpc Digest, Vol 87, Issue 6
+> ****************************************
+
+

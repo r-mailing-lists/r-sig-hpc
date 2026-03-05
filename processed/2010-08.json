@@ -1,0 +1,1214 @@
+{
+  "list": "r-sig-hpc",
+  "description": "",
+  "month": "2010-08",
+  "messages": [
+    {
+      "id": "msg-192ac028221d",
+      "message_id": "<AANLkTik24xg9UYdNtwW1H-7NwNLCv4hmrEQ9v70kgWLL@mail.gmail.com>",
+      "from_name": "Paul Johnson",
+      "from_email_hash": "b96b8a38c7fef12892ac8cae395028a3b39f3acce423d9c564ab27dc864c47b3",
+      "date": "2010-08-02T15:19:59-05:00",
+      "subject": "[R-sig-hpc] Started uploading \"simple working example\" collection for parallel R",
+      "subject_clean": "Started uploading \"simple working example\" collection for parallel R",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Hi, everybody\n\nAbout 10 months ago, 60 Dell PowerEdge servers fell in my lap and\nwe've set up a smallish cluster where I'm learning how to do parallel\nprogramming.  There's a two step process. I futz around and learn how\nto do something, then I write up the clearest example I can with\ninstructions for the students to use.\n\nThe documentation I've made so far for the cluster is here:\n\nhttp://pj.freefaculty.org/cgi-bin/mw/index.php?title=Cluster:Main\n\nIf you look toward the bottom, you see information about the\ncollection of working examples.\n\nThrough the courtesy of our system administrators here at KU, the SVN\nserver's content can be viewed and downloaded by people who are not in\nour domain. You can view these in a web browser or download with svn.\nYou are freely allowed to take, adapt, revise, fix, or otherwise use\nthese scripts however you want to.  So far, I have these directories.\n\n2 Ex30-BashScriptinParallel\n2 Ex41-HelloWorldinParallelC\n2 Ex53-HelloWorldRmpi\n2 Ex54-HelloWorldRmpiRscipt\n2 Ex60-HelloWorldSnow\n2 Ex70-doMPI-sinc\n2 Ex75-corrSim-doMpi\n2 Ex76-corrSim-notParallel\n\n\n-- \nPaul E. Johnson\nProfessor, Political Science\n1541 Lilac Lane, Room 504\nUniversity of Kansas",
+      "body_snippet": "Hi, everybody\n\nAbout 10 months ago, 60 Dell PowerEdge servers fell in my lap and\nwe've set up a smallish cluster where I'm learning how to do parallel\nprogramming.  There's a two step process. I futz ",
+      "thread_id": "thread-192ac028221d",
+      "thread_depth": 0,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-931ac5216795",
+      "message_id": "<AANLkTimMF2fmYXRUMe2wb4kHozhCpGG6chtti5pGkyB0@mail.gmail.com>",
+      "from_name": "Fong Chun Chan",
+      "from_email_hash": "88629301a7ef02aae134ac8df1a4fbbabaea4cdae264620a099100e67dd64a71",
+      "date": "2010-08-03T15:51:33-07:00",
+      "subject": "[R-sig-hpc] doMC - Using the foreach function",
+      "subject_clean": "doMC - Using the foreach function",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100803/050c74d5/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100803/050c74d5/attachment.pl>",
+      "thread_id": "thread-931ac5216795",
+      "thread_depth": 0,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-79e759c53b8c",
+      "message_id": "<AANLkTinqs4MF1_r0QZNxiVqHBH5i=PyHVPsQRfdpBRVs@mail.gmail.com>",
+      "from_name": "Stephen Weston",
+      "from_email_hash": "507fe1aedccd9cb1c2bba1715ac24f959abe255adeeb866f82b6c8a1896cbd15",
+      "date": "2010-08-08T18:51:15-04:00",
+      "subject": "[R-sig-hpc] doMC - Using the foreach function",
+      "subject_clean": "doMC - Using the foreach function",
+      "in_reply_to": "<AANLkTimMF2fmYXRUMe2wb4kHozhCpGG6chtti5pGkyB0@mail.gmail.com>",
+      "references": [
+        "<AANLkTimMF2fmYXRUMe2wb4kHozhCpGG6chtti5pGkyB0@mail.gmail.com>"
+      ],
+      "body_plain": "Hi Fong,\n\nThe quick answer is to set the \"names\" attribute of the list returned\nby \"foreach\":\n\n    names(p_vals) <- as.character(ni[,2])\n\nHowever, you could also set the \"names\" attribute of the values\nreturned by the \"foreach\" loop, and combine them using the\nstandard \"c\" function.\n\nAn important note is that you can't use either \"next\" or \"break\"\ninside a \"foreach\" loop.  I believe that would require a change\nto the R interpreter.  However, you can use the \".errorhandling\"\nargument to \"foreach\" to filter values out.\n\nHere's my version of your example.  Note that I'm using an \"icount\"\niterator, rather than a vector to specify the values for \"r\".  That isn't\nnecessary, but I like to use iterators when appropriate.\n\n   p_vals <- foreach(r=icount(nrow(ni)), .errorhandling='remove',\n.combine='c') %dopar% {\n      t_test_results <- t.test(ni[r, groupA], ni[r, groupB])\n      if (is.nan(t_test_results$p.value)) stop('remove me')\n      structure(t_test_results$p.value, names=as.character(ni[r, 2]))\n   }\n\nIf \"t.test\" throws an error, or if p.value is a NaN, then no value is returned\nfor that iteration.  That seems to be the behavior that you're trying to\nachieve.\n\nMake sure that you use the latest version of the \"doMC\" package\non CRAN, since that contains a fix for a bug when the \"foreach\" body\nthrows an error.\n\nAlso note that this version returns a vector, not a list.  That seems to make\nsense, but if you really want a list, just wrap t_test_results$p.value\nin a list before passing it to \"structure\", as follows:\n\n   p_vals <- foreach(r=icount(nrow(ni)), .errorhandling='remove',\n.combine='c') %dopar% {\n      t_test_results <- t.test(ni[r, groupA], ni[r, groupB])\n      if (is.nan(t_test_results$p.value)) stop('remove me')\n      structure(list(t_test_results$p.value), names=as.character(ni[r, 2]))\n   }\n\nIt still uses \"c\" as the combine function, since \"c\" works on both\nvectors and lists.\n\nFinally, I'm not sure why you think that the \".combine\" argument\ndoesn't work with custom functions.  I've used it many times without\nproblems.  There are also examples of custom combine functions that\ncome with the \"foreach\" package.  If you have an example that\ndemonstrates a problem, I'd be glad to take a look at it.  You could also\nsend a report to the package maintainer, but I'd be personally interested\nin hearing of any bugs in \"foreach\" or \"doMC\".\n\n- Steve\n\n\n\nOn Tue, Aug 3, 2010 at 6:51 PM, Fong Chun Chan <fongchunchan at gmail.com> wrote:\n> Hi all,\n>\n> I just discovered the doMC package and have been working on parallelizing my\n> code. ?I know by default the foreach function returns a list in which the\n> tags are the index of the iterator. ?If I wanted specific tags for my list\n> how could I do something like that? ?For example, the following code does a\n> t-test and returns a p-val for each probeset.\n>\n> p_vals <- NULL\n> p_vals <- foreach (r = 1:nrow(ni)) %dopar% {\n> ? ?t_test_results <- try(t.test(ni[r, groupA], ni[r, groupB]), silent=TRUE)\n> ? ?ps <- as.character(ni[r,2])\n>\n> ? ?if (is(t_test_results, \"try-error\")){\n> ? ? ? ?next()\n> ? ?} else {\n> ? ? ? ?if (!is.nan(t_test_results$p.value)){\n> ? ? ? ? ? ?print(paste(\"Performing t-test on probeset -\", ps))\n> ? ? ? ? ? ?t_test_results$p.value\n> ? ? ? ?}\n> ? ?}\n> }\n>\n> The returned list would look like:\n>\n> [1] 0.005\n> [2] 0.15\n> [3] 0.52\n> .\n> .\n> .\n>\n> The list tag for the p-val is the index r. ?But the probeset itself as a\n> specific value (ps) which I would like to use as the tag in the list. ?So it\n> could be like this:\n>\n> [2425915] 0.005\n> [1596109] 0.15\n> [3258010] 0.52\n> .\n> .\n> .\n>\n> I tried to use the line p_vals[[ps]] <- t_test_results$p.value inside my\n> foreach loop but it doesn't work. ?The .combine parameter doesn't appear to\n> allow me to specify custom functions to combine my results. ?Any ideas on\n> what I could do?\n>\n> Thanks,\n>\n> Fong\n>\n> ? ? ? ?[[alternative HTML version deleted]]\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>",
+      "body_snippet": "Hi Fong,\n\nThe quick answer is to set the \"names\" attribute of the list returned\nby \"foreach\":\n\n    names(p_vals) <- as.character(ni[,2])\n\nHowever, you could also set the \"names\" attribute of the value",
+      "thread_id": "thread-931ac5216795",
+      "thread_depth": 1,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-540f87aea40e",
+      "message_id": "<AANLkTimGxDA=AtGEsKzU6=oGizWZMRPjv7awOVWPb_bx@mail.gmail.com>",
+      "from_name": "Laura S",
+      "from_email_hash": "f1bf1f5ba38bba645286aa5a5c6852ced1d118bbdb2a8d927099385dd60a88de",
+      "date": "2010-08-10T08:15:03-07:00",
+      "subject": "[R-sig-hpc] Running jobs on a linux cluster: ways to communicate finished jobs, so fill in with new jobs",
+      "subject_clean": "Running jobs on a linux cluster: ways to communicate finished jobs, so fill in with new jobs",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100810/d44630d4/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100810/d44630d4/attachment.pl>",
+      "thread_id": "thread-540f87aea40e",
+      "thread_depth": 0,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-e42414db5bf6",
+      "message_id": "<AANLkTimZitWCo-7Ecncj5BZvPkTgsz0CbqgGu7XHTDao@mail.gmail.com>",
+      "from_name": "Paul Johnson",
+      "from_email_hash": "b96b8a38c7fef12892ac8cae395028a3b39f3acce423d9c564ab27dc864c47b3",
+      "date": "2010-08-10T11:57:50-05:00",
+      "subject": "[R-sig-hpc] Running jobs on a linux cluster: ways to communicate finished jobs, so fill in with new jobs",
+      "subject_clean": "Running jobs on a linux cluster: ways to communicate finished jobs, so fill in with new jobs",
+      "in_reply_to": "<AANLkTimGxDA=AtGEsKzU6=oGizWZMRPjv7awOVWPb_bx@mail.gmail.com>",
+      "references": [
+        "<AANLkTimGxDA=AtGEsKzU6=oGizWZMRPjv7awOVWPb_bx@mail.gmail.com>"
+      ],
+      "body_plain": "On Tue, Aug 10, 2010 at 10:15 AM, Laura S <leslaura at gmail.com> wrote:\n> Dear all:\n>\n> I would appreciate any help you are willing to offer. I have a simulation\n> program that runs serially. However, I would like to run the jobs in such a\n> way that when a simulation is finished another job can begin to run. ?The\n> simulations take different amounts of time, so it would be ideal to have a\n> way to communicate that jobs are done, and to initiate new jobs. The linux\n> cluster IT staff at my institution do not have much documentation or\n> experience with running R jobs. ?I am new to HPC, so my apologizes for this\n> potentially very basic inquiry.\n>\n> Thank you for your time and consideration,\n> Laura\n>\n\nYou don't give us much to go on. What scheduler does your cluster use?\nfor example.\n\nHere's what I'd do. Write a shell script that runs all of the programs\none after the other.  Without knowing more about the scheduling scheme\non your cluster, I can't say exactly how I would go about it.\n\nIf you have access to a BASH shell, for example, it should be as simple as\n\n#!/bin/bash\n\nR --vanilla -f yourRprogram1.R\n\nR --vanilla -f yourRprogram2.R\n\n=====================\n\nand so forth. If you rewrite the first line of your R code to use\nRscript or littler, then you don't even need to bother with the \"R\n--vanilla -f\" part, as each R program will become self aware (and take\nover the world, like in Terminator).\n\nIf you run exactly the same R program over and over again, make a for loop.\n\nAs long as you have the details worked out on each individual run of\nthe model, the rest of it is not even really a \"cluster\" problem. You\nhave to run one after the other.\n\nFYI, I've been uploading practical working examples for our Rocks\nLinux cluster using the Torque/OpenPBS scheduling system.  Maybe some\nwill help you.\n\nhttp://pj.freefaculty.org/cgi-bin/mw/index.php?title=Cluster:Main\n\nI think I could work out an example of the sort you describe if you\ntell us a bit more about how the separate simulation runs talk to each\nother.\n\nOr, I should add, if the runs go one after the other, why don't you\nput them all in 1 R program.  ??\n\n-- \nPaul E. Johnson\nProfessor, Political Science\n1541 Lilac Lane, Room 504\nUniversity of Kansas",
+      "body_snippet": "On Tue, Aug 10, 2010 at 10:15 AM, Laura S <leslaura at gmail.com> wrote:\n> Dear all:\n>\n> I would appreciate any help you are willing to offer. I have a simulation\n> program that runs serially. However",
+      "thread_id": "thread-540f87aea40e",
+      "thread_depth": 1,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-0756d1ca5c35",
+      "message_id": "<AANLkTikdz1mXwbWcnqLHvNSb-pS_AOwoC61kfWsD5gSq@mail.gmail.com>",
+      "from_name": "Fong Chun Chan",
+      "from_email_hash": "6f0f3ea205eae012c62cd9f75151bd42586cf0a832d4df731ea5015cc143e2ce",
+      "date": "2010-08-10T13:07:41-07:00",
+      "subject": "[R-sig-hpc] Error: serialization is too large to store in a raw vector",
+      "subject_clean": "Error: serialization is too large to store in a raw vector",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100810/b060b5c8/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100810/b060b5c8/attachment.pl>",
+      "thread_id": "thread-0756d1ca5c35",
+      "thread_depth": 0,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-50581d3c1551",
+      "message_id": "<AANLkTinN7V-a2kDSsdcA-nfQZuCQ5jHhOfVxi9d41oVS@mail.gmail.com>",
+      "from_name": "Stephen Weston",
+      "from_email_hash": "507fe1aedccd9cb1c2bba1715ac24f959abe255adeeb866f82b6c8a1896cbd15",
+      "date": "2010-08-10T22:03:46-04:00",
+      "subject": "[R-sig-hpc] Error: serialization is too large to store in a raw vector",
+      "subject_clean": "Error: serialization is too large to store in a raw vector",
+      "in_reply_to": "<AANLkTikdz1mXwbWcnqLHvNSb-pS_AOwoC61kfWsD5gSq@mail.gmail.com>",
+      "references": [
+        "<AANLkTikdz1mXwbWcnqLHvNSb-pS_AOwoC61kfWsD5gSq@mail.gmail.com>"
+      ],
+      "body_plain": "Hi Fong,\n\nA vector of length 40503 is definitely not too large.  The code that\nyou included looks fine.  Is it possible that in the full version of the\nscript the variable \"ps\" is defined outside of the foreach loop?\nIt would be automatically exported in that case, and if it was large\nenough, it could cause the serialization error.  If that is the case,\nyou could fix the problem by using the foreach argument\n\".noexport='ps'\".\n\nIf that isn't the case, could you post a complete, self-contained\nexample that demonstrates the problem?\n\n- Steve\n\n\nOn Tue, Aug 10, 2010 at 4:07 PM, Fong Chun Chan\n<fongchun at interchange.ubc.ca> wrote:\n> Hi all,\n>\n> I am getting this serialization error when I am trying to run a simple\n> parallel process script. ?I just want to test if it works.\n>\n> foreach (i = 1:length(U133_ps), .combine=\"rbind\") %dopar% {\n> + ps <- U133_ps[i]\n> + ps\n> + }\n> Error: serialization is too large to store in a raw vector\n>\n> U133_ps is a single column vector of length 40503. ?Is this too large of a\n> dataset to iterate over? ?If not, how can I get around this problem?\n>\n> Thanks,\n>\n> Fong\n>\n> ? ? ? ?[[alternative HTML version deleted]]\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>",
+      "body_snippet": "Hi Fong,\n\nA vector of length 40503 is definitely not too large.  The code that\nyou included looks fine.  Is it possible that in the full version of the\nscript the variable \"ps\" is defined outside of t",
+      "thread_id": "thread-0756d1ca5c35",
+      "thread_depth": 1,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-f7cefe838c5c",
+      "message_id": "<AANLkTi=yA+hu4=RibyjXtShgG_bbXuO1MjP=qzOEFjBD@mail.gmail.com>",
+      "from_name": "Fong Chun Chan",
+      "from_email_hash": "6f0f3ea205eae012c62cd9f75151bd42586cf0a832d4df731ea5015cc143e2ce",
+      "date": "2010-08-10T21:38:27-07:00",
+      "subject": "[R-sig-hpc] Error: serialization is too large to store in a raw vector",
+      "subject_clean": "Error: serialization is too large to store in a raw vector",
+      "in_reply_to": "<AANLkTinN7V-a2kDSsdcA-nfQZuCQ5jHhOfVxi9d41oVS@mail.gmail.com>",
+      "references": [
+        "<AANLkTikdz1mXwbWcnqLHvNSb-pS_AOwoC61kfWsD5gSq@mail.gmail.com>",
+        "<AANLkTinN7V-a2kDSsdcA-nfQZuCQ5jHhOfVxi9d41oVS@mail.gmail.com>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100810/d83c0693/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100810/d83c0693/attachment.pl>",
+      "thread_id": "thread-0756d1ca5c35",
+      "thread_depth": 2,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-79169675d701",
+      "message_id": "<AANLkTimRRq08eJhA_LsoMnBME-F=dO0wfyZUsmZ1eyRU@mail.gmail.com>",
+      "from_name": "Stephen Weston",
+      "from_email_hash": "507fe1aedccd9cb1c2bba1715ac24f959abe255adeeb866f82b6c8a1896cbd15",
+      "date": "2010-08-11T07:59:10-04:00",
+      "subject": "[R-sig-hpc] Error: serialization is too large to store in a raw vector",
+      "subject_clean": "Error: serialization is too large to store in a raw vector",
+      "in_reply_to": "<AANLkTi=yA+hu4=RibyjXtShgG_bbXuO1MjP=qzOEFjBD@mail.gmail.com>",
+      "references": [
+        "<AANLkTikdz1mXwbWcnqLHvNSb-pS_AOwoC61kfWsD5gSq@mail.gmail.com>",
+        "<AANLkTinN7V-a2kDSsdcA-nfQZuCQ5jHhOfVxi9d41oVS@mail.gmail.com>",
+        "<AANLkTi=yA+hu4=RibyjXtShgG_bbXuO1MjP=qzOEFjBD@mail.gmail.com>"
+      ],
+      "body_plain": "I don't see why making U133_ps a factor would cause the serialization\nerror that you reported.  I wasn't able to reproduce it.  I suspect that\nsomething else was going on as well.\n\n- Steve\n\n\nOn Wed, Aug 11, 2010 at 12:38 AM, Fong Chun Chan\n<fongchun at interchange.ubc.ca> wrote:\n> Thanks for the reply Steve.? I actually finally managed to figure out what\n> was going on.? The U133_ps was a single column factor actually.? Once I\n> converted it into a single column character vector, I didn't have any more\n> problems\n>\n> Do you know why the factor class was causing so many issues?\n>\n> Fong\n>\n>\n> On Tue, Aug 10, 2010 at 7:03 PM, Stephen Weston <stephen.b.weston at gmail.com>\n> wrote:\n>>\n>> Hi Fong,\n>>\n>> A vector of length 40503 is definitely not too large. ?The code that\n>> you included looks fine. ?Is it possible that in the full version of the\n>> script the variable \"ps\" is defined outside of the foreach loop?\n>> It would be automatically exported in that case, and if it was large\n>> enough, it could cause the serialization error. ?If that is the case,\n>> you could fix the problem by using the foreach argument\n>> \".noexport='ps'\".\n>>\n>> If that isn't the case, could you post a complete, self-contained\n>> example that demonstrates the problem?\n>>\n>> - Steve\n>>\n>>\n>> On Tue, Aug 10, 2010 at 4:07 PM, Fong Chun Chan\n>> <fongchun at interchange.ubc.ca> wrote:\n>> > Hi all,\n>> >\n>> > I am getting this serialization error when I am trying to run a simple\n>> > parallel process script. ?I just want to test if it works.\n>> >\n>> > foreach (i = 1:length(U133_ps), .combine=\"rbind\") %dopar% {\n>> > + ps <- U133_ps[i]\n>> > + ps\n>> > + }\n>> > Error: serialization is too large to store in a raw vector\n>> >\n>> > U133_ps is a single column vector of length 40503. ?Is this too large of\n>> > a\n>> > dataset to iterate over? ?If not, how can I get around this problem?\n>> >\n>> > Thanks,\n>> >\n>> > Fong\n>> >\n>> > ? ? ? ?[[alternative HTML version deleted]]\n>> >\n>> > _______________________________________________\n>> > R-sig-hpc mailing list\n>> > R-sig-hpc at r-project.org\n>> > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>> >\n>>\n>> _______________________________________________\n>> R-sig-hpc mailing list\n>> R-sig-hpc at r-project.org\n>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>\n>",
+      "body_snippet": "I don't see why making U133_ps a factor would cause the serialization\nerror that you reported.  I wasn't able to reproduce it.  I suspect that\nsomething else was going on as well.\n\n- Steve\n\n\nOn Wed, A",
+      "thread_id": "thread-0756d1ca5c35",
+      "thread_depth": 3,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-6310d93c1cec",
+      "message_id": "<C2E7770928FE77408159B6FAE596340DCCD535@ntlonexm02.pc.internal.macquarie.com>",
+      "from_name": "Christian Davies (Macquarie Securities)",
+      "from_email_hash": "5f79c99b7448dbebc8d25501620479d38d482f1af4fec1e1a24daf50e65dbd54",
+      "date": "2010-08-11T17:22:53+01:00",
+      "subject": "[R-sig-hpc] Rmpi and bigmemory",
+      "subject_clean": "Rmpi and bigmemory",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100811/00e2e0d5/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100811/00e2e0d5/attachment.pl>",
+      "thread_id": "thread-6310d93c1cec",
+      "thread_depth": 0,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-599cded3abf5",
+      "message_id": "<C2E7770928FE77408159B6FAE596340DD4FAEE@ntlonexm02.pc.internal.macquarie.com>",
+      "from_name": "Christian Davies (Macquarie Securities)",
+      "from_email_hash": "5f79c99b7448dbebc8d25501620479d38d482f1af4fec1e1a24daf50e65dbd54",
+      "date": "2010-08-12T10:39:59+01:00",
+      "subject": "[R-sig-hpc] Rmpi and bigmemory",
+      "subject_clean": "Rmpi and bigmemory",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100812/196a9295/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100812/196a9295/attachment.pl>",
+      "thread_id": "thread-599cded3abf5",
+      "thread_depth": 0,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-5cd996e96d50",
+      "message_id": "<AANLkTikGQD2NyXVVSpWhSu7n9fWOKxQA2D+hnLzKZvF6@mail.gmail.com>",
+      "from_name": "Paul Johnson",
+      "from_email_hash": "b96b8a38c7fef12892ac8cae395028a3b39f3acce423d9c564ab27dc864c47b3",
+      "date": "2010-08-14T02:57:39-05:00",
+      "subject": "[R-sig-hpc] Cluster R \"environment\" trouble. Using Rmpi",
+      "subject_clean": "Cluster R \"environment\" trouble. Using Rmpi",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Hi, everybody.\n\nA user came in with a problem on our Rocks Linux Cluster. His function\nruns fine in an interactive session, but when he sends the function to\ncompute nodes with Rmpi, they never return.  I'd not seen that before.\n We are sending out a few big tasks to a few nodes.\n\nSo I took his code, which is hundreds of lines long, spread across 4\nfiles, and I've been staring at it for hours.  It makes me wonder ...\n\nQuestion 1. How do auxiliary functions find their way onto compute nodes?\n\nOn the master, this sends \"SimJob\" to the compute nodes. SimJob is\ninside \"SimJob.R\", as is \"pars\".  But if SimJob calls other functions,\nhow does the compute node find them?\n\n############################################\nlibrary(Rmpi)\nmpi.spawn.Rslaves(nslaves=4)\n\nsource(\"SimJob.R\")\npars\n\nExitStatus <- mpi.parApply(pars, MARGIN=1, fun=SimJob)\ncat(\"\\n\",table(ExitStatus),\"\\n\")\n\nmpi.close.Rslaves()\nmpi.quit()\n############################################\n\nThe SimJob.R does lots of things, it creates the object \"pars\" and\nmany other functions and definitions.\n\n \"SimJob.R\" has some interlinked functions like this:\n\npre1 <- function(i)   {  whatever; source(\"someFile.R\") }\n\npre2 <- function (j, something) {  whatever(something);\nsource(\"someOtherFile.R\") }\n\npre3 <- function(i) { whatever }\n\nSimJob <- function(x,i, j){\n    result1 <-  pre(i)\n    result2 <- pre2(j, result1)\n    result3 <- someRFunction(result1, result2)\n}\n\nsomeRFunction is in an R package, say \"lm\" or something like that.\n\nHow does a compute node  get functions \"pre\" and \"pre2\" and the files\nthey source?\n\nWhat if the implementation of pre2 calls some function pre3?\n\nWe ARE on an NFS system with home folder available on all compute\nnodes.  But the compute nodes don't inherit the working directory of\nthe master, do they?\n\nHere's the frustrating part. I can run interactively on the master\n\n> SimJob( pars[1, ] )\n\nBut the whole job won't run on the compute nodes.\n\n2. Suppose a function that we send to a node tries to write a result.\nIt has \"save(whatever,file=\"blha.Rda\")  in it.   Where does that file\ngo?  What is the \"current working directory\" on the compute node?\n\nI think that we have to re-write this so we return the information to\nthe master node and save it there.\n\n\n3. Is there a way I can find out what is going on \"over there\" on a\ncompute node while it is working?\n\nI wish I could put a bunch of print statements in so I could track the\nthing's progress, but don't know  how to monitor them.\n\nWhen this program runs interactively, it spits out some messages to\nStdOut.  On a compute node, where do those go?\n\nI've used the web program \"ganglia\" to see that nodes are actually\nbeing used.  They are, using lots of CPU.\n\n\nI've re-worked this code so that it  is all in one file (no more use\nof source).  Still the same thing.\n\nI can run SimJob () on the interactively,  but it never runs on the slaves.\n\nWell, so long, I would appreciate your ideas.\n\n-- \nPaul E. Johnson\nProfessor, Political Science\n1541 Lilac Lane, Room 504\nUniversity of Kansas",
+      "body_snippet": "Hi, everybody.\n\nA user came in with a problem on our Rocks Linux Cluster. His function\nruns fine in an interactive session, but when he sends the function to\ncompute nodes with Rmpi, they never return",
+      "thread_id": "thread-5cd996e96d50",
+      "thread_depth": 0,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-607c3d1cd04b",
+      "message_id": "<AANLkTikaeuSMSGh8KxqNfbzCUKC1Guz0uZByXqgAwq9Q@mail.gmail.com>",
+      "from_name": "romunov",
+      "from_email_hash": "b70a18c9a99e892d13bb2f35236ac5c47a9a379cff8efa15381be74fd6781851",
+      "date": "2010-08-16T11:04:56+02:00",
+      "subject": "[R-sig-hpc] installing multicore package in W7",
+      "subject_clean": "installing multicore package in W7",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100816/c074e166/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100816/c074e166/attachment.pl>",
+      "thread_id": "thread-607c3d1cd04b",
+      "thread_depth": 0,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-6d1d16d3cc04",
+      "message_id": "<4C6B8DAD.1040303@laposte.net>",
+      "from_name": "olivier.garo at laposte.net",
+      "from_email_hash": "c6e647cbaf48caaf5606ba117cdce63b7ec0ef158f57cb08877110577b81b61a",
+      "date": "2010-08-18T09:37:17+02:00",
+      "subject": "[R-sig-hpc] rmpi SGE",
+      "subject_clean": "rmpi SGE",
+      "in_reply_to": "<4C6B8D73.6000709@insa-rennes.fr>",
+      "references": [
+        "<4C6B8D73.6000709@insa-rennes.fr>"
+      ],
+      "body_plain": "Hello\n> i am a newbies and i have a cluster under redhat\n> onto this cluster revolution R+ rmpi+SGE is installed but i have some \n> problem with the  command line to use for launch R  with input file \n> and output file\n> i have another problem , i tried to install a GUI but doesn t succed\n> for rcmdr i have a PB of tcltk library (i have install the latest \n> tcltk version)\n> can somebody help me?\n> Best Regards\n> olivier\n>",
+      "body_snippet": "Hello\n> i am a newbies and i have a cluster under redhat\n> onto this cluster revolution R+ rmpi+SGE is installed but i have some \n> problem with the  command line to use for launch R  with input file ",
+      "thread_id": "thread-6d1d16d3cc04",
+      "thread_depth": 0,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-a4736868202d",
+      "message_id": "<7f6dd654eb80ff122c360f3e16357064.squirrel@www.stats.uwo.ca>",
+      "from_name": "Hao Yu",
+      "from_email_hash": "f90343116b4a1720ab706b8b458137d0f188602a07689c3a137d7f8799e4a179",
+      "date": "2010-08-18T14:05:10-04:00",
+      "subject": "[R-sig-hpc] Cluster R \"environment\" trouble. Using Rmpi",
+      "subject_clean": "Cluster R \"environment\" trouble. Using Rmpi",
+      "in_reply_to": "<AANLkTikGQD2NyXVVSpWhSu7n9fWOKxQA2D+hnLzKZvF6@mail.gmail.com>",
+      "references": [
+        "<AANLkTikGQD2NyXVVSpWhSu7n9fWOKxQA2D+hnLzKZvF6@mail.gmail.com>"
+      ],
+      "body_plain": "Hi Paul,\n\nJust got back from two conferences.\n\nFirst of all, when R slaves are spawned, they are \"naked\", meaning they\nare started with basic R functions/lib even that they are in the same dir\nwith master. You have to tell slaves to get all necessary objects or to\nload libraries specifically. There are a few ways to do so.\n\nUse mpi.bcast.Robj2slave(an Robj) to send \"an Robj\" from master to all\nslaves. If a function to be executed on slaves depends on many\nfunctions/data, those functions/data must be sent to slaves first.\n\nUse mpi.bcast.cmd (cmd()) to tell salves to run cmd() like\nsource(\"SimJob.R\") (make sure to remove any execution commands in\nSimJob.R). I don't know if race condition will be an issue since slaves\nare competing for the same file.\n\nmpi.scatter.Robj/mpi.gather.Rojb can also be used to send/receive objects\namong master and slaves.\n\nHao\n\n\nPaul Johnson wrote:\n> Hi, everybody.\n>\n> A user came in with a problem on our Rocks Linux Cluster. His function\n> runs fine in an interactive session, but when he sends the function to\n> compute nodes with Rmpi, they never return.  I'd not seen that before.\n>  We are sending out a few big tasks to a few nodes.\n>\n> So I took his code, which is hundreds of lines long, spread across 4\n> files, and I've been staring at it for hours.  It makes me wonder ...\n>\n> Question 1. How do auxiliary functions find their way onto compute nodes?\n>\n> On the master, this sends \"SimJob\" to the compute nodes. SimJob is\n> inside \"SimJob.R\", as is \"pars\".  But if SimJob calls other functions,\n> how does the compute node find them?\n>\n> ############################################\n> library(Rmpi)\n> mpi.spawn.Rslaves(nslaves=4)\n>\n> source(\"SimJob.R\")\n> pars\n>\n> ExitStatus <- mpi.parApply(pars, MARGIN=1, fun=SimJob)\n> cat(\"\\n\",table(ExitStatus),\"\\n\")\n>\n> mpi.close.Rslaves()\n> mpi.quit()\n> ############################################\n>\n> The SimJob.R does lots of things, it creates the object \"pars\" and\n> many other functions and definitions.\n>\n>  \"SimJob.R\" has some interlinked functions like this:\n>\n> pre1 <- function(i)   {  whatever; source(\"someFile.R\") }\n>\n> pre2 <- function (j, something) {  whatever(something);\n> source(\"someOtherFile.R\") }\n>\n> pre3 <- function(i) { whatever }\n>\n> SimJob <- function(x,i, j){\n>     result1 <-  pre(i)\n>     result2 <- pre2(j, result1)\n>     result3 <- someRFunction(result1, result2)\n> }\n>\n> someRFunction is in an R package, say \"lm\" or something like that.\n>\n> How does a compute node  get functions \"pre\" and \"pre2\" and the files\n> they source?\n>\n> What if the implementation of pre2 calls some function pre3?\n>\n> We ARE on an NFS system with home folder available on all compute\n> nodes.  But the compute nodes don't inherit the working directory of\n> the master, do they?\n>\n> Here's the frustrating part. I can run interactively on the master\n>\n>> SimJob( pars[1, ] )\n>\n> But the whole job won't run on the compute nodes.\n>\n> 2. Suppose a function that we send to a node tries to write a result.\n> It has \"save(whatever,file=\"blha.Rda\")  in it.   Where does that file\n> go?  What is the \"current working directory\" on the compute node?\n>\n> I think that we have to re-write this so we return the information to\n> the master node and save it there.\n>\n>\n> 3. Is there a way I can find out what is going on \"over there\" on a\n> compute node while it is working?\n>\n> I wish I could put a bunch of print statements in so I could track the\n> thing's progress, but don't know  how to monitor them.\n>\n> When this program runs interactively, it spits out some messages to\n> StdOut.  On a compute node, where do those go?\n>\n> I've used the web program \"ganglia\" to see that nodes are actually\n> being used.  They are, using lots of CPU.\n>\n>\n> I've re-worked this code so that it  is all in one file (no more use\n> of source).  Still the same thing.\n>\n> I can run SimJob () on the interactively,  but it never runs on the\n> slaves.\n>\n> Well, so long, I would appreciate your ideas.\n>\n> --\n> Paul E. Johnson\n> Professor, Political Science\n> 1541 Lilac Lane, Room 504\n> University of Kansas\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>\n\n\n-- \nDepartment of Statistics & Actuarial Sciences\nFax Phone#:(519)-661-3813\nThe University of Western Ontario\nOffice Phone#:(519)-661-3622\nLondon, Ontario N6A 5B7\nhttp://www.stats.uwo.ca/faculty/yu",
+      "body_snippet": "Hi Paul,\n\nJust got back from two conferences.\n\nFirst of all, when R slaves are spawned, they are \"naked\", meaning they\nare started with basic R functions/lib even that they are in the same dir\nwith ma",
+      "thread_id": "thread-5cd996e96d50",
+      "thread_depth": 1,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-6d1875d13ddc",
+      "message_id": "<AANLkTim5AhhL4JqK7O-41BMKhE=yhOfRS6w5bkB+iUuO@mail.gmail.com>",
+      "from_name": "Roman Luštrik",
+      "from_email_hash": "c0075bee7cf180735267468677bcb6c0b494c84c39ebc7ec1c97688bee0fa3df",
+      "date": "2010-08-19T09:52:46+02:00",
+      "subject": "[R-sig-hpc] how to remove workers in doSMP",
+      "subject_clean": "how to remove workers in doSMP",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100819/b59f07af/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100819/b59f07af/attachment.pl>",
+      "thread_id": "thread-6d1875d13ddc",
+      "thread_depth": 0,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-205c1497cb03",
+      "message_id": "<19565.12924.272255.406428@max.nulle.part>",
+      "from_name": "Dirk Eddelbuettel",
+      "from_email_hash": "447d8de83a7b9c5d61116890bacb6dc0c76aee31b3011a41fb7d3c62dac9042f",
+      "date": "2010-08-19T08:32:44-05:00",
+      "subject": "[R-sig-hpc] how to remove workers in doSMP",
+      "subject_clean": "how to remove workers in doSMP",
+      "in_reply_to": "<AANLkTim5AhhL4JqK7O-41BMKhE=yhOfRS6w5bkB+iUuO@mail.gmail.com>",
+      "references": [
+        "<AANLkTim5AhhL4JqK7O-41BMKhE=yhOfRS6w5bkB+iUuO@mail.gmail.com>"
+      ],
+      "body_plain": "On 19 August 2010 at 09:52, Roman Lu?trik wrote:\n| Looks like I was sloppy and didn't clean up after myself in previous\n| session(s). I'm trying to activate my cores via doSMP package like so:\n| \n| > wrk <- startWorkers(4, FORCE = TRUE)  # if I don't use FORCE, it won't\n| create the object\n| Warning messages:\n| 1: In startWorkers(4, FORCE = TRUE) :\n|   there is an existing doSMP session using doSMP1\n| 2: In startWorkers(4, FORCE = TRUE) :\n|   there is an existing doSMP session using doSMP2\n| 3: In startWorkers(4, FORCE = TRUE) :\n|   there is an existing doSMP session using doSMP3\n| 4: In startWorkers(4, FORCE = TRUE) :\n|   there is an existing doSMP session using doSMP4\n| 5: In startWorkers(4, FORCE = TRUE) :\n|   there is an existing doSMP session using doSMP5\n| 6: In startWorkers(4, FORCE = TRUE) :\n|   there is an existing doSMP session using doSMP6\n| 7: In startWorkers(4, FORCE = TRUE) :\n|   there is an existing doSMP session using doSMP7\n| 8: In startWorkers(4, FORCE = TRUE) :\n|   there is an existing doSMP session using doSMP8\n| 9: In startWorkers(4, FORCE = TRUE) : unable to recreate task queue doSMP1\n| > registerDoSMP(wrk)\n| \n| After I registerDoSMP, I get two popup windows that my Rterm has stopped\n| responding. If I try to run something in parallel, only one/two cores will\n| work. Because I failed to stop workers in my previous sessions (and have\n| rebooted the system inbetween), I don't have objects with which I could\n| stopWorkers(obj). I tried stopWorkers(wrk) (after using FORCE in\n| startWorkers), but R session seems to hang (console unresponsive and not\n| much is going with CPU usage. How can I \"reboot\" cores so that I'll be able\n| to register workers?\n\nThis is commercially supported software not even released to CRAN so I\nrecommend you contact the vendor.\n\nDirk\n\n-- \nDirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com",
+      "body_snippet": "On 19 August 2010 at 09:52, Roman Lu?trik wrote:\n| Looks like I was sloppy and didn't clean up after myself in previous\n| session(s). I'm trying to activate my cores via doSMP package like so:\n| \n| > ",
+      "thread_id": "thread-6d1875d13ddc",
+      "thread_depth": 1,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-7265ec798a19",
+      "message_id": "<AANLkTin+DoTwvQ4DfeavZZdh6hV9Zhg0qfnkeU=ty2Ju@mail.gmail.com>",
+      "from_name": "Roman Luštrik",
+      "from_email_hash": "c0075bee7cf180735267468677bcb6c0b494c84c39ebc7ec1c97688bee0fa3df",
+      "date": "2010-08-20T11:32:07+02:00",
+      "subject": "[R-sig-hpc] unable to create localhost clusters with doSNOW",
+      "subject_clean": "unable to create localhost clusters with doSNOW",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100820/3e557e45/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100820/3e557e45/attachment.pl>",
+      "thread_id": "thread-7265ec798a19",
+      "thread_depth": 0,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-a8ae37c02d65",
+      "message_id": "<19566.38558.864035.633034@max.nulle.part>",
+      "from_name": "Dirk Eddelbuettel",
+      "from_email_hash": "447d8de83a7b9c5d61116890bacb6dc0c76aee31b3011a41fb7d3c62dac9042f",
+      "date": "2010-08-20T09:52:14-05:00",
+      "subject": "[R-sig-hpc] unable to create localhost clusters with doSNOW",
+      "subject_clean": "unable to create localhost clusters with doSNOW",
+      "in_reply_to": "<AANLkTin+DoTwvQ4DfeavZZdh6hV9Zhg0qfnkeU=ty2Ju@mail.gmail.com>",
+      "references": [
+        "<AANLkTin+DoTwvQ4DfeavZZdh6hV9Zhg0qfnkeU=ty2Ju@mail.gmail.com>"
+      ],
+      "body_plain": "On 20 August 2010 at 11:32, Roman Lu?trik wrote:\n| I'm trying to parallel compute with doSNOW and foreach package (%dopar%) on\n| my 4 core W7 32 bit machine.\n| \n| I'm stuck at the first line when I try to create a cluster\n| \n| wrk  <-  makeCluster(spec = 4, type = \"SOCK\")\n| \n| The computer hangs and waits until I stop the process.\n\nI am not the best person for advice on Windows but I think what this means is\nthat you cannot spawn extra shells on your machine via the default mechanism,\nwhich I believe to be ssh.  \n\nWhereas on my Linux box, using first a quick ssh test and then a one-line\ninvocation of R via r (aka littler, and older cousin of Rscript): \n\nedd at max:~$ ssh localhost hostname    # proves I can ssh to myself\nmax\nedd at max:~$ r -lsnow -e'wrk <- makeCluster(spec = 4, type = \"SOCK\"); print(str(wrk)); stopCluster(wrk)'\nLoading required package: utils\nLoading required package: utils\nLoading required package: utils\nLoading required package: utils\nList of 4\n $ :List of 3\n  ..$ con :Classes 'sockconn', 'connection'  atomic [1:1] 3\n  .. .. ..- attr(*, \"conn_id\")=<externalptr> \n  ..$ host: chr \"localhost\"\n  ..$ rank: int 1\n  ..- attr(*, \"class\")= chr \"SOCKnode\"\n $ :List of 3\n  ..$ con :Classes 'sockconn', 'connection'  atomic [1:1] 4\n  .. .. ..- attr(*, \"conn_id\")=<externalptr> \n  ..$ host: chr \"localhost\"\n  ..$ rank: int 2\n  ..- attr(*, \"class\")= chr \"SOCKnode\"\n $ :List of 3\n  ..$ con :Classes 'sockconn', 'connection'  atomic [1:1] 5\n  .. .. ..- attr(*, \"conn_id\")=<externalptr> \n  ..$ host: chr \"localhost\"\n  ..$ rank: int 3\n  ..- attr(*, \"class\")= chr \"SOCKnode\"\n $ :List of 3\n  ..$ con :Classes 'sockconn', 'connection'  atomic [1:1] 6\n  .. .. ..- attr(*, \"conn_id\")=<externalptr> \n  ..$ host: chr \"localhost\"\n  ..$ rank: int 4\n  ..- attr(*, \"class\")= chr \"SOCKnode\"\n - attr(*, \"class\")= chr [1:2] \"SOCKcluster\" \"cluster\"\nNULL\nedd at max:~$ \n\nNow, you don't _have_ to use ssh but it may well be fallback. You may need to\nperuse the snow documentation to learn which other authentication mechanisms\nyou have your disposal.\n\nDirk\n\n\n| Following some advice from this\n| list<http://article.gmane.org/gmane.comp.lang.r.hpc/216/>,\n| I tried \"nudging\" it from another terminal (running the same command). I got\n| the following error.\n| \n| Error in socketConnection(port = port, server = TRUE, blocking = TRUE,  :\n|   cannot open the connection\n| In addition: Warning message:\n| In socketConnection(port = port, server = TRUE, blocking = TRUE,  :\n|   port 10187 cannot be opened\n| \n| Per advice from the same link I tried adding outfile argument, but nothing\n| happened (looks like cluster wasn't created).\n| \n| wrk <- makeSOCKcluster(rep(\"localhost\", 4), manual = TRUE, outfile =\n| \"d:/workspace/para/snow.log\")\n| \n| Manually start worker on localhost with\n|      C:\\Program Files\\R\\R-2.11.1/bin/Rscript.exe\n| C:/Users/romunov/Documents/R/win-library/2.11/snow/RSOCKnode.R\n| MASTER=localhost PORT=10187 OUT=d:/workspace/para/snow.log\n| SNOWLIB=C:/Users/romunov/Documents/R/win-library/2.11\n| \n| I have tried turning off firewall and program blocker, but I got the same,\n| unresponsive, result. Any suggestions welcome.\n| \n| Cheers,\n| Roman\n| \n| \n| \n| R version 2.11.1 (2010-05-31)\n| i386-pc-mingw32\n| \n| locale:\n| [1] LC_COLLATE=Slovenian_Slovenia.1250  LC_CTYPE=Slovenian_Slovenia.1250\n| [3] LC_MONETARY=Slovenian_Slovenia.1250 LC_NUMERIC=C\n| [5] LC_TIME=Slovenian_Slovenia.1250\n| \n| attached base packages:\n| [1] stats     graphics  grDevices utils     datasets  methods   base\n| \n| other attached packages:\n| [1] doSNOW_1.0.3    snow_0.3-3      foreach_1.3.0   codetools_0.2-2\n| [5] iterators_1.0.3\n| \n| loaded via a namespace (and not attached):\n| [1] tools_2.11.1\n| \n| -- \n| In God we trust, all others bring data.\n| \n| \t[[alternative HTML version deleted]]\n| \n| _______________________________________________\n| R-sig-hpc mailing list\n| R-sig-hpc at r-project.org\n| https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n\n-- \nDirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com",
+      "body_snippet": "On 20 August 2010 at 11:32, Roman Lu?trik wrote:\n| I'm trying to parallel compute with doSNOW and foreach package (%dopar%) on\n| my 4 core W7 32 bit machine.\n| \n| I'm stuck at the first line when I tr",
+      "thread_id": "thread-7265ec798a19",
+      "thread_depth": 1,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-1f62c8122a04",
+      "message_id": "<4C6EA125.4010601@araastat.com>",
+      "from_name": "Abhijit Dasgupta, PhD",
+      "from_email_hash": "0b5f08c118df91c2475aadee8c2bfb55bb7c714c60cc352947802464f5bc1e99",
+      "date": "2010-08-20T11:37:09-04:00",
+      "subject": "[R-sig-hpc] unable to create localhost clusters with doSNOW",
+      "subject_clean": "unable to create localhost clusters with doSNOW",
+      "in_reply_to": "<19566.38558.864035.633034@max.nulle.part>",
+      "references": [
+        "<AANLkTin+DoTwvQ4DfeavZZdh6hV9Zhg0qfnkeU=ty2Ju@mail.gmail.com>",
+        "<19566.38558.864035.633034@max.nulle.part>"
+      ],
+      "body_plain": "I've had the same problem with SNOW on R 2.11 on Windows on both 32-bit \nand 64-bit versions. This problem did not exist on R 2.10. On Linux, \nthis problem does not exist.\n\nAbhijit\n\nOn 08/20/2010 10:52 AM, Dirk Eddelbuettel wrote:\n> On 20 August 2010 at 11:32, Roman Lu?trik wrote:\n> | I'm trying to parallel compute with doSNOW and foreach package (%dopar%) on\n> | my 4 core W7 32 bit machine.\n> |\n> | I'm stuck at the first line when I try to create a cluster\n> |\n> | wrk<-  makeCluster(spec = 4, type = \"SOCK\")\n> |\n> | The computer hangs and waits until I stop the process.\n>\n> I am not the best person for advice on Windows but I think what this means is\n> that you cannot spawn extra shells on your machine via the default mechanism,\n> which I believe to be ssh.\n>\n> Whereas on my Linux box, using first a quick ssh test and then a one-line\n> invocation of R via r (aka littler, and older cousin of Rscript):\n>\n> edd at max:~$ ssh localhost hostname    # proves I can ssh to myself\n> max\n> edd at max:~$ r -lsnow -e'wrk<- makeCluster(spec = 4, type = \"SOCK\"); print(str(wrk)); stopCluster(wrk)'\n> Loading required package: utils\n> Loading required package: utils\n> Loading required package: utils\n> Loading required package: utils\n> List of 4\n>   $ :List of 3\n>    ..$ con :Classes 'sockconn', 'connection'  atomic [1:1] 3\n>    .. .. ..- attr(*, \"conn_id\")=<externalptr>\n>    ..$ host: chr \"localhost\"\n>    ..$ rank: int 1\n>    ..- attr(*, \"class\")= chr \"SOCKnode\"\n>   $ :List of 3\n>    ..$ con :Classes 'sockconn', 'connection'  atomic [1:1] 4\n>    .. .. ..- attr(*, \"conn_id\")=<externalptr>\n>    ..$ host: chr \"localhost\"\n>    ..$ rank: int 2\n>    ..- attr(*, \"class\")= chr \"SOCKnode\"\n>   $ :List of 3\n>    ..$ con :Classes 'sockconn', 'connection'  atomic [1:1] 5\n>    .. .. ..- attr(*, \"conn_id\")=<externalptr>\n>    ..$ host: chr \"localhost\"\n>    ..$ rank: int 3\n>    ..- attr(*, \"class\")= chr \"SOCKnode\"\n>   $ :List of 3\n>    ..$ con :Classes 'sockconn', 'connection'  atomic [1:1] 6\n>    .. .. ..- attr(*, \"conn_id\")=<externalptr>\n>    ..$ host: chr \"localhost\"\n>    ..$ rank: int 4\n>    ..- attr(*, \"class\")= chr \"SOCKnode\"\n>   - attr(*, \"class\")= chr [1:2] \"SOCKcluster\" \"cluster\"\n> NULL\n> edd at max:~$\n>\n> Now, you don't _have_ to use ssh but it may well be fallback. You may need to\n> peruse the snow documentation to learn which other authentication mechanisms\n> you have your disposal.\n>\n> Dirk\n>\n>\n> | Following some advice from this\n> | list<http://article.gmane.org/gmane.comp.lang.r.hpc/216/>,\n> | I tried \"nudging\" it from another terminal (running the same command). I got\n> | the following error.\n> |\n> | Error in socketConnection(port = port, server = TRUE, blocking = TRUE,  :\n> |   cannot open the connection\n> | In addition: Warning message:\n> | In socketConnection(port = port, server = TRUE, blocking = TRUE,  :\n> |   port 10187 cannot be opened\n> |\n> | Per advice from the same link I tried adding outfile argument, but nothing\n> | happened (looks like cluster wasn't created).\n> |\n> | wrk<- makeSOCKcluster(rep(\"localhost\", 4), manual = TRUE, outfile =\n> | \"d:/workspace/para/snow.log\")\n> |\n> | Manually start worker on localhost with\n> |      C:\\Program Files\\R\\R-2.11.1/bin/Rscript.exe\n> | C:/Users/romunov/Documents/R/win-library/2.11/snow/RSOCKnode.R\n> | MASTER=localhost PORT=10187 OUT=d:/workspace/para/snow.log\n> | SNOWLIB=C:/Users/romunov/Documents/R/win-library/2.11\n> |\n> | I have tried turning off firewall and program blocker, but I got the same,\n> | unresponsive, result. Any suggestions welcome.\n> |\n> | Cheers,\n> | Roman\n> |\n> |\n> |\n> | R version 2.11.1 (2010-05-31)\n> | i386-pc-mingw32\n> |\n> | locale:\n> | [1] LC_COLLATE=Slovenian_Slovenia.1250  LC_CTYPE=Slovenian_Slovenia.1250\n> | [3] LC_MONETARY=Slovenian_Slovenia.1250 LC_NUMERIC=C\n> | [5] LC_TIME=Slovenian_Slovenia.1250\n> |\n> | attached base packages:\n> | [1] stats     graphics  grDevices utils     datasets  methods   base\n> |\n> | other attached packages:\n> | [1] doSNOW_1.0.3    snow_0.3-3      foreach_1.3.0   codetools_0.2-2\n> | [5] iterators_1.0.3\n> |\n> | loaded via a namespace (and not attached):\n> | [1] tools_2.11.1\n> |\n> | --\n> | In God we trust, all others bring data.\n> |\n> | \t[[alternative HTML version deleted]]\n> |\n> | _______________________________________________\n> | R-sig-hpc mailing list\n> | R-sig-hpc at r-project.org\n> | https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>\n>    \n\n\n-- \n\nAbhijit Dasgupta, PhD\nDirector and Principal Statistician\nARAASTAT\nPh: 301.385.3067\nE: adasgupta at araastat.com\nW: http://www.araastat.com",
+      "body_snippet": "I've had the same problem with SNOW on R 2.11 on Windows on both 32-bit \nand 64-bit versions. This problem did not exist on R 2.10. On Linux, \nthis problem does not exist.\n\nAbhijit\n\nOn 08/20/2010 10:5",
+      "thread_id": "thread-7265ec798a19",
+      "thread_depth": 2,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-ae75385ec85b",
+      "message_id": "<alpine.LFD.2.00.1008201045520.12761@itasca.stat.uiowa.edu>",
+      "from_name": "luke at stat.uiowa.edu",
+      "from_email_hash": "a5794212f0450ee86843a234fdc23fdecc67cbd9935fd99e22e36e11b265bf20",
+      "date": "2010-08-20T10:47:45-05:00",
+      "subject": "[R-sig-hpc] unable to create localhost clusters with doSNOW",
+      "subject_clean": "unable to create localhost clusters with doSNOW",
+      "in_reply_to": "<4C6EA125.4010601@araastat.com>",
+      "references": [
+        "<AANLkTin+DoTwvQ4DfeavZZdh6hV9Zhg0qfnkeU=ty2Ju@mail.gmail.com>",
+        "<19566.38558.864035.633034@max.nulle.part>",
+        "<4C6EA125.4010601@araastat.com>"
+      ],
+      "body_plain": "Others have been able to use snow successfully on R 2.11 so it looks\nlike some more help in debugging from those having problems will be\nneeded.\n\nluke\n\nOn Fri, 20 Aug 2010, Abhijit Dasgupta, PhD wrote:\n\n> I've had the same problem with SNOW on R 2.11 on Windows on both 32-bit \n> and 64-bit versions. This problem did not exist on R 2.10. On Linux, \n> this problem does not exist.\n>\n> Abhijit\n>\n> On 08/20/2010 10:52 AM, Dirk Eddelbuettel wrote:\n>> On 20 August 2010 at 11:32, Roman Lu?trik wrote:\n>> | I'm trying to parallel compute with doSNOW and foreach package (%dopar%) \n> on\n>> | my 4 core W7 32 bit machine.\n>> |\n>> | I'm stuck at the first line when I try to create a cluster\n>> |\n>> | wrk<-  makeCluster(spec = 4, type = \"SOCK\")\n>> |\n>> | The computer hangs and waits until I stop the process.\n>>\n>> I am not the best person for advice on Windows but I think what this means \n> is\n>> that you cannot spawn extra shells on your machine via the default \n> mechanism,\n>> which I believe to be ssh.\n>>\n>> Whereas on my Linux box, using first a quick ssh test and then a one-line\n>> invocation of R via r (aka littler, and older cousin of Rscript):\n>>\n>> edd at max:~$ ssh localhost hostname    # proves I can ssh to myself\n>> max\n>> edd at max:~$ r -lsnow -e'wrk<- makeCluster(spec = 4, type = \"SOCK\"); \n> print(str(wrk)); stopCluster(wrk)'\n>> Loading required package: utils\n>> Loading required package: utils\n>> Loading required package: utils\n>> Loading required package: utils\n>> List of 4\n>>   $ :List of 3\n>>    ..$ con :Classes 'sockconn', 'connection'  atomic [1:1] 3\n>>    .. .. ..- attr(*, \"conn_id\")=<externalptr>\n>>    ..$ host: chr \"localhost\"\n>>    ..$ rank: int 1\n>>    ..- attr(*, \"class\")= chr \"SOCKnode\"\n>>   $ :List of 3\n>>    ..$ con :Classes 'sockconn', 'connection'  atomic [1:1] 4\n>>    .. .. ..- attr(*, \"conn_id\")=<externalptr>\n>>    ..$ host: chr \"localhost\"\n>>    ..$ rank: int 2\n>>    ..- attr(*, \"class\")= chr \"SOCKnode\"\n>>   $ :List of 3\n>>    ..$ con :Classes 'sockconn', 'connection'  atomic [1:1] 5\n>>    .. .. ..- attr(*, \"conn_id\")=<externalptr>\n>>    ..$ host: chr \"localhost\"\n>>    ..$ rank: int 3\n>>    ..- attr(*, \"class\")= chr \"SOCKnode\"\n>>   $ :List of 3\n>>    ..$ con :Classes 'sockconn', 'connection'  atomic [1:1] 6\n>>    .. .. ..- attr(*, \"conn_id\")=<externalptr>\n>>    ..$ host: chr \"localhost\"\n>>    ..$ rank: int 4\n>>    ..- attr(*, \"class\")= chr \"SOCKnode\"\n>>   - attr(*, \"class\")= chr [1:2] \"SOCKcluster\" \"cluster\"\n>> NULL\n>> edd at max:~$\n>>\n>> Now, you don't _have_ to use ssh but it may well be fallback. You may need \n> to\n>> peruse the snow documentation to learn which other authentication \n> mechanisms\n>> you have your disposal.\n>>\n>> Dirk\n>>\n>>\n>> | Following some advice from this\n>> | list<http://article.gmane.org/gmane.comp.lang.r.hpc/216/>,\n>> | I tried \"nudging\" it from another terminal (running the same command). I \n> got\n>> | the following error.\n>> |\n>> | Error in socketConnection(port = port, server = TRUE, blocking = TRUE,  :\n>> |   cannot open the connection\n>> | In addition: Warning message:\n>> | In socketConnection(port = port, server = TRUE, blocking = TRUE,  :\n>> |   port 10187 cannot be opened\n>> |\n>> | Per advice from the same link I tried adding outfile argument, but \n> nothing\n>> | happened (looks like cluster wasn't created).\n>> |\n>> | wrk<- makeSOCKcluster(rep(\"localhost\", 4), manual = TRUE, outfile =\n>> | \"d:/workspace/para/snow.log\")\n>> |\n>> | Manually start worker on localhost with\n>> |      C:\\Program Files\\R\\R-2.11.1/bin/Rscript.exe\n>> | C:/Users/romunov/Documents/R/win-library/2.11/snow/RSOCKnode.R\n>> | MASTER=localhost PORT=10187 OUT=d:/workspace/para/snow.log\n>> | SNOWLIB=C:/Users/romunov/Documents/R/win-library/2.11\n>> |\n>> | I have tried turning off firewall and program blocker, but I got the \n> same,\n>> | unresponsive, result. Any suggestions welcome.\n>> |\n>> | Cheers,\n>> | Roman\n>> |\n>> |\n>> |\n>> | R version 2.11.1 (2010-05-31)\n>> | i386-pc-mingw32\n>> |\n>> | locale:\n>> | [1] LC_COLLATE=Slovenian_Slovenia.1250  LC_CTYPE=Slovenian_Slovenia.1250\n>> | [3] LC_MONETARY=Slovenian_Slovenia.1250 LC_NUMERIC=C\n>> | [5] LC_TIME=Slovenian_Slovenia.1250\n>> |\n>> | attached base packages:\n>> | [1] stats     graphics  grDevices utils     datasets  methods   base\n>> |\n>> | other attached packages:\n>> | [1] doSNOW_1.0.3    snow_0.3-3      foreach_1.3.0   codetools_0.2-2\n>> | [5] iterators_1.0.3\n>> |\n>> | loaded via a namespace (and not attached):\n>> | [1] tools_2.11.1\n>> |\n>> | --\n>> | In God we trust, all others bring data.\n>> |\n>> | \t[[alternative HTML version deleted]]\n>> |\n>> | _______________________________________________\n>> | R-sig-hpc mailing list\n>> | R-sig-hpc at r-project.org\n>> | https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>>\n>> \n>\n>\n>\n\n-- \nLuke Tierney\nStatistics and Actuarial Science\nRalph E. Wareham Professor of Mathematical Sciences\nUniversity of Iowa                  Phone:             319-335-3386\nDepartment of Statistics and        Fax:               319-335-3017\n    Actuarial Science\n241 Schaeffer Hall                  email:      luke at stat.uiowa.edu\nIowa City, IA 52242                 WWW:  http://www.stat.uiowa.edu",
+      "body_snippet": "Others have been able to use snow successfully on R 2.11 so it looks\nlike some more help in debugging from those having problems will be\nneeded.\n\nluke\n\nOn Fri, 20 Aug 2010, Abhijit Dasgupta, PhD wrote",
+      "thread_id": "thread-7265ec798a19",
+      "thread_depth": 3,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-ddf2bd1ada1f",
+      "message_id": "<AANLkTincqEA5ZK8Etdvo7D45oc0vVjrjf5cfNWrZAcr7@mail.gmail.com>",
+      "from_name": "romunov",
+      "from_email_hash": "b70a18c9a99e892d13bb2f35236ac5c47a9a379cff8efa15381be74fd6781851",
+      "date": "2010-08-20T20:30:10+02:00",
+      "subject": "[R-sig-hpc] unable to create localhost clusters with doSNOW",
+      "subject_clean": "unable to create localhost clusters with doSNOW",
+      "in_reply_to": "<4C6EA125.4010601@araastat.com>",
+      "references": [
+        "<AANLkTin+DoTwvQ4DfeavZZdh6hV9Zhg0qfnkeU=ty2Ju@mail.gmail.com>",
+        "<19566.38558.864035.633034@max.nulle.part>",
+        "<4C6EA125.4010601@araastat.com>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100820/70540857/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100820/70540857/attachment.pl>",
+      "thread_id": "thread-7265ec798a19",
+      "thread_depth": 3,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-e7790e146c03",
+      "message_id": "<4C6FA5E0.4060401@gmail.com>",
+      "from_name": "mat",
+      "from_email_hash": "8be7d9af3aa05df3cb73327099ca82a1e00b62ae5b6e52d77e9d9908c4ad6d37",
+      "date": "2010-08-21T12:09:36+02:00",
+      "subject": "[R-sig-hpc] unable to create localhost clusters with doSNOW",
+      "subject_clean": "unable to create localhost clusters with doSNOW",
+      "in_reply_to": "<AANLkTincqEA5ZK8Etdvo7D45oc0vVjrjf5cfNWrZAcr7@mail.gmail.com>",
+      "references": [
+        "<AANLkTin+DoTwvQ4DfeavZZdh6hV9Zhg0qfnkeU=ty2Ju@mail.gmail.com>",
+        "<19566.38558.864035.633034@max.nulle.part>",
+        "<4C6EA125.4010601@araastat.com>",
+        "<AANLkTincqEA5ZK8Etdvo7D45oc0vVjrjf5cfNWrZAcr7@mail.gmail.com>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100821/31195bb7/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100821/31195bb7/attachment.pl>",
+      "thread_id": "thread-7265ec798a19",
+      "thread_depth": 4,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-1d07a1578ba0",
+      "message_id": "<AANLkTim6TVChKJ=5a=SyJAsNhXEezsx5jdL5Tpt2MLZV@mail.gmail.com>",
+      "from_name": "Laura S",
+      "from_email_hash": "f1bf1f5ba38bba645286aa5a5c6852ced1d118bbdb2a8d927099385dd60a88de",
+      "date": "2010-08-21T11:03:27-07:00",
+      "subject": "[R-sig-hpc] Making a series of similar, but modified .r files- suggested method(s)? Re: Running jobs on a linux cluster",
+      "subject_clean": "Making a series of similar, but modified .r files- suggested method(s)? Re: Running jobs on a linux cluster",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100821/aec6c56a/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100821/aec6c56a/attachment.pl>",
+      "thread_id": "thread-1d07a1578ba0",
+      "thread_depth": 0,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-b70e2929aa3f",
+      "message_id": "<AANLkTi=zosxn-XHtQufC1A9w4kXvEXMg0bD+BGbKSikR@mail.gmail.com>",
+      "from_name": "Fernando Saldanha",
+      "from_email_hash": "e187078f69097ebef9f8c06f41e2d36081ad3f74c323004e336cfe8ea6e7165e",
+      "date": "2010-08-21T15:16:47-04:00",
+      "subject": "[R-sig-hpc] serialize() slow",
+      "subject_clean": "serialize() slow",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "In this post:\n\nhttp://www.mail-archive.com/r-devel at r-project.org/msg13248.html\n\nHenrik Bengtsson observes that the R function serialize() can run very\nslowly when the argument connection is null and provides a function\nserialize2() that runs much faster. The post is dated 7/24/2008.\n\nSome code I wrote using package Rmpi was running slowly and I found\nout the bottleneck was exactly the function serialize(), which is\ncalled by some functions in Rmpi.\n\nSo I inserted the command\n\nserialize <- serialize2\n\nin my code and there was a dramatic acceleration of the relevant\nportions of the program.\n\nI have run the same code on two other computers and it did not run\nslowly. To be more specific:\n\nIn all three computers I am running R 2.11.1.\n\nAll three computers are made by HP.\n\nOne dual core desktop PC (with no hyperthreading) running  Windows XP\n32-bit and one Intel i5 notebook (dual core with hyperthreading)\nrunning Windows 7 64-bit are not slowed down by serialize().\n\nOne dual core notebook (no hyperthreading) running Windows 7 64-bit\nexecutes serialize() very slowly.\n\nI used the function memory.limit() to increase memory allocation but\nthat did not make any difference.\n\nOf course substituting serialize2 for serialize() is not an ideal\nsituation, among other reasons because serialize2() needlessly writes\nto and reads from a connection (a temporary file).\n\nDoes anyone have insights on what is going on and maybe better ways to\ndeal with the issue?\n\nThanks.\n\nFernando Saldanha",
+      "body_snippet": "In this post:\n\nhttp://www.mail-archive.com/r-devel at r-project.org/msg13248.html\n\nHenrik Bengtsson observes that the R function serialize() can run very\nslowly when the argument connection is null an",
+      "thread_id": "thread-b70e2929aa3f",
+      "thread_depth": 0,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-681294151d5f",
+      "message_id": "<AANLkTimy4WOiuhMT28BXuzFmkrv03OY=2qDiHZYEJ5hQ@mail.gmail.com>",
+      "from_name": "Kasper Daniel Hansen",
+      "from_email_hash": "b2b45a5f3ad330d8561a4711d1f95ff6a445243a303a83a7a709685fab3e068c",
+      "date": "2010-08-21T15:39:58-04:00",
+      "subject": "[R-sig-hpc] Making a series of similar, but modified .r files- suggested method(s)? Re: Running jobs on a linux cluster",
+      "subject_clean": "Making a series of similar, but modified .r files- suggested method(s)? Re: Running jobs on a linux cluster",
+      "in_reply_to": "<AANLkTim6TVChKJ=5a=SyJAsNhXEezsx5jdL5Tpt2MLZV@mail.gmail.com>",
+      "references": [
+        "<AANLkTim6TVChKJ=5a=SyJAsNhXEezsx5jdL5Tpt2MLZV@mail.gmail.com>"
+      ],
+      "body_plain": "Laura\n\nIt seems you are using the Sun Grid Engine.  You want to look into the\nconcept of an \"Array Job\".  Essentially an array job allows you to run\na script many time, the only thing being different is the value of an\nenvironment variable.  This sounds simple, but is really pretty power\nfull\n\nSay a normal script would loop over a hundred input files and do something like\n\nfor( file in list.files() ) {\n  data = read.table(file)\n  fit = glm(y~x, data = data)\n  save(fit, file = paste(file, \"-fit.rda\"))\n}\n\nWith an array job you would do something like\n\nslotNumber = Sys.getenv(\"SGE_TASK_ID\")\nfile = list.files() [ slotNumber ]\ndata = read.table(file)\nfit = glm(y~x, data = data)\nsave(fit, file = paste(file, \"-fit.rda\"))\n\nHere you see how I use the slotNumber variable (which will be an\ninteger) to index into the vector returned by list.files().\n\nYou submit you job like\nqsub -t 1-100 SCRIPT\n\nHere I will spawn a 100 submissions, with values from 1 to 100 of SGE_TASK_ID.\n\nFinally, conceptually to SGE it will look like one big job, so you\njust need to do a single qdel if you need to remove it.\n\nIn summary I tend to always set up one big vector or list and then\njust index into that list.  But there are many variants of the stuff\nabove, and I am sure you can figure what to do.\n\nKasper\n\nOn Sat, Aug 21, 2010 at 2:03 PM, Laura S <leslaura at gmail.com> wrote:\n> Thank you Paul. I really appreciate your response! The scheduler is now set\n> up such that each user (it is a small cluster) gets a maximum of 16\n> processors at a time. I am using a Rocks Linux cluster.\n>\n> #### Making a series of similar, but modified .r files- suggested\n> method(s)?:\n>\n> Any suggestions are much appreciated, given my new clunky (but it will work)\n> method. I am looking for a way to make a series of similar, but slightly\n> modified, .r files.\n>\n> My issue is automating making 320 .r files that change the for(i in 1:x) in\n> my base .r file (as well as other elements, e.g., the load(...),\n> setwd(...)). For smaller jobs running on a single computer with batch files,\n> I have been manually changing the for(i in 1:x) line, etc..\n>\n> Why does this matter to me? I am planning on running a simulation experiment\n> on the linux cluster as a serial job (for now it seems the quickest way to\n> get things rolling on our cluster). Although not elegant, it has been\n> suggested I make 320 .r files so qsub runs one .r file and then selects\n> other jobs. Thus, the manual route I am currently using would take a very\n> long time (given multiple runs of 320 .r files, given experimental\n> replication).\n>\n> Thank you,\n> Laura\n>\n> On Tue, Aug 10, 2010 at 9:57 AM, Paul Johnson <pauljohn32 at gmail.com> wrote:\n>\n>> On Tue, Aug 10, 2010 at 10:15 AM, Laura S <leslaura at gmail.com> wrote:\n>> > Dear all:\n>> >\n>> > I would appreciate any help you are willing to offer. I have a simulation\n>> > program that runs serially. However, I would like to run the jobs in such\n>> a\n>> > way that when a simulation is finished another job can begin to run. ?The\n>> > simulations take different amounts of time, so it would be ideal to have\n>> a\n>> > way to communicate that jobs are done, and to initiate new jobs. The\n>> linux\n>> > cluster IT staff at my institution do not have much documentation or\n>> > experience with running R jobs. ?I am new to HPC, so my apologizes for\n>> this\n>> > potentially very basic inquiry.\n>> >\n>> > Thank you for your time and consideration,\n>> > Laura\n>> >\n>>\n>> You don't give us much to go on. What scheduler does your cluster use?\n>> for example.\n>>\n>> Here's what I'd do. Write a shell script that runs all of the programs\n>> one after the other. ?Without knowing more about the scheduling scheme\n>> on your cluster, I can't say exactly how I would go about it.\n>>\n>> If you have access to a BASH shell, for example, it should be as simple as\n>>\n>> #!/bin/bash\n>>\n>> R --vanilla -f yourRprogram1.R\n>>\n>> R --vanilla -f yourRprogram2.R\n>>\n>> =====================\n>>\n>> and so forth. If you rewrite the first line of your R code to use\n>> Rscript or littler, then you don't even need to bother with the \"R\n>> --vanilla -f\" part, as each R program will become self aware (and take\n>> over the world, like in Terminator).\n>>\n>> If you run exactly the same R program over and over again, make a for loop.\n>>\n>> As long as you have the details worked out on each individual run of\n>> the model, the rest of it is not even really a \"cluster\" problem. You\n>> have to run one after the other.\n>>\n>> FYI, I've been uploading practical working examples for our Rocks\n>> Linux cluster using the Torque/OpenPBS scheduling system. ?Maybe some\n>> will help you.\n>>\n>> http://pj.freefaculty.org/cgi-bin/mw/index.php?title=Cluster:Main\n>>\n>> I think I could work out an example of the sort you describe if you\n>> tell us a bit more about how the separate simulation runs talk to each\n>> other.\n>>\n>> Or, I should add, if the runs go one after the other, why don't you\n>> put them all in 1 R program. ???\n>>\n>> --\n>> Paul E. Johnson\n>> Professor, Political Science\n>> 1541 Lilac Lane, Room 504\n>> University of Kansas\n>>\n>\n>\n>\n> --\n> \" Genius is the summed production of the many with the names of the few\n> attached for easy recall, unfairly so to other scientists\"\n>\n> - E. O. Wilson (The Diversity of Life)\n>\n> ? ? ? ?[[alternative HTML version deleted]]\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>",
+      "body_snippet": "Laura\n\nIt seems you are using the Sun Grid Engine.  You want to look into the\nconcept of an \"Array Job\".  Essentially an array job allows you to run\na script many time, the only thing being different ",
+      "thread_id": "thread-1d07a1578ba0",
+      "thread_depth": 1,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-cd5c375bab01",
+      "message_id": "<AANLkTimr8XADSy_JByeoLNu3enPf+Yj+CF8fT5ssGU_W@mail.gmail.com>",
+      "from_name": "Paul Johnson",
+      "from_email_hash": "b96b8a38c7fef12892ac8cae395028a3b39f3acce423d9c564ab27dc864c47b3",
+      "date": "2010-08-21T15:28:33-05:00",
+      "subject": "[R-sig-hpc] serialize() slow",
+      "subject_clean": "serialize() slow",
+      "in_reply_to": "<AANLkTi=zosxn-XHtQufC1A9w4kXvEXMg0bD+BGbKSikR@mail.gmail.com>",
+      "references": [
+        "<AANLkTi=zosxn-XHtQufC1A9w4kXvEXMg0bD+BGbKSikR@mail.gmail.com>"
+      ],
+      "body_plain": "On Sat, Aug 21, 2010 at 2:16 PM, Fernando Saldanha <fsaldan1 at gmail.com> wrote:\n> In this post:\n>\n> http://www.mail-archive.com/r-devel at r-project.org/msg13248.html\n>\n> Henrik Bengtsson observes that the R function serialize() can run very\n> slowly when the argument connection is null and provides a function\n> serialize2() that runs much faster. The post is dated 7/24/2008.\n>\n> Some code I wrote using package Rmpi was running slowly and I found\n> out the bottleneck was exactly the function serialize(), which is\n> called by some functions in Rmpi.\n>\n> So I inserted the command\n>\n> serialize <- serialize2\n>\n> in my code and there was a dramatic acceleration of the relevant\n> portions of the program.\n>\n\nIf serialize2 fixes it for you, doesn't that answer your own question?\n\nYou ask why the different computers may perform differently. Can I ask\nif there is any chance you have been fiddling around with alternative\nBLAS?\n\nI see a huge horrible Rmpi slowdown when GOTOBLAS2 is installed with\nthreads allowed > 1.\n\nI had not heard of the serialize/serialize2 thing you mention, but I'm\ninterested to try it to see what effect it has. I will let you know if\nI see any difference.\n\n-- \nPaul E. Johnson\nProfessor, Political Science\n1541 Lilac Lane, Room 504\nUniversity of Kansas",
+      "body_snippet": "On Sat, Aug 21, 2010 at 2:16 PM, Fernando Saldanha <fsaldan1 at gmail.com> wrote:\n> In this post:\n>\n> http://www.mail-archive.com/r-devel at r-project.org/msg13248.html\n>\n> Henrik Bengtsson observes t",
+      "thread_id": "thread-b70e2929aa3f",
+      "thread_depth": 1,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-f07da45b1296",
+      "message_id": "<4C703976.3030206@fhcrc.org>",
+      "from_name": "Martin Morgan",
+      "from_email_hash": "9f5a643078023be7f11cfed10069ce2b31d0a2cc98705fa84c2ae0e157a1fb93",
+      "date": "2010-08-21T13:39:18-07:00",
+      "subject": "[R-sig-hpc] serialize() slow",
+      "subject_clean": "serialize() slow",
+      "in_reply_to": "<AANLkTi=zosxn-XHtQufC1A9w4kXvEXMg0bD+BGbKSikR@mail.gmail.com>",
+      "references": [
+        "<AANLkTi=zosxn-XHtQufC1A9w4kXvEXMg0bD+BGbKSikR@mail.gmail.com>"
+      ],
+      "body_plain": "On 08/21/2010 12:16 PM, Fernando Saldanha wrote:\n> In this post:\n> \n> http://www.mail-archive.com/r-devel at r-project.org/msg13248.html\n> \n> Henrik Bengtsson observes that the R function serialize() can run very\n> slowly when the argument connection is null and provides a function\n> serialize2() that runs much faster. The post is dated 7/24/2008.\n\nThis has likely been fixed in R-devel\n\nhttp://www.mail-archive.com/r-devel at r-project.org/msg20921.html\n\nMartin\n\n> \n> Some code I wrote using package Rmpi was running slowly and I found\n> out the bottleneck was exactly the function serialize(), which is\n> called by some functions in Rmpi.\n> \n> So I inserted the command\n> \n> serialize <- serialize2\n> \n> in my code and there was a dramatic acceleration of the relevant\n> portions of the program.\n> \n> I have run the same code on two other computers and it did not run\n> slowly. To be more specific:\n> \n> In all three computers I am running R 2.11.1.\n> \n> All three computers are made by HP.\n> \n> One dual core desktop PC (with no hyperthreading) running  Windows XP\n> 32-bit and one Intel i5 notebook (dual core with hyperthreading)\n> running Windows 7 64-bit are not slowed down by serialize().\n> \n> One dual core notebook (no hyperthreading) running Windows 7 64-bit\n> executes serialize() very slowly.\n> \n> I used the function memory.limit() to increase memory allocation but\n> that did not make any difference.\n> \n> Of course substituting serialize2 for serialize() is not an ideal\n> situation, among other reasons because serialize2() needlessly writes\n> to and reads from a connection (a temporary file).\n> \n> Does anyone have insights on what is going on and maybe better ways to\n> deal with the issue?\n> \n> Thanks.\n> \n> Fernando Saldanha\n> \n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n\n\n-- \nMartin Morgan\nComputational Biology / Fred Hutchinson Cancer Research Center\n1100 Fairview Ave. N.\nPO Box 19024 Seattle, WA 98109\n\nLocation: Arnold Building M1 B861\nPhone: (206) 667-2793",
+      "body_snippet": "On 08/21/2010 12:16 PM, Fernando Saldanha wrote:\n> In this post:\n> \n> http://www.mail-archive.com/r-devel at r-project.org/msg13248.html\n> \n> Henrik Bengtsson observes that the R function serialize() ",
+      "thread_id": "thread-b70e2929aa3f",
+      "thread_depth": 1,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-6486e6f483ad",
+      "message_id": "<AANLkTimAkccyzR1rnP8vVL_GNBxgYscsMCbTdfB_98B+@mail.gmail.com>",
+      "from_name": "Patrick Brandt",
+      "from_email_hash": "1949448c314b4b963277cbd32cbb923e33f1142d27486531bc87096f63519483",
+      "date": "2010-08-22T19:36:25-05:00",
+      "subject": "[R-sig-hpc] Making a series of similar, but modified .r files- suggested method(s)? Re: Running jobs on a linux cluster",
+      "subject_clean": "Making a series of similar, but modified .r files- suggested method(s)? Re: Running jobs on a linux cluster",
+      "in_reply_to": "<AANLkTim6TVChKJ=5a=SyJAsNhXEezsx5jdL5Tpt2MLZV@mail.gmail.com>",
+      "references": [
+        "<AANLkTim6TVChKJ=5a=SyJAsNhXEezsx5jdL5Tpt2MLZV@mail.gmail.com>"
+      ],
+      "body_plain": "You can use R to dynamically generate the .R files and then process\nthem with Rmpi and snow.  See the examples on my replication page or\nthe following file that generates 3 .R files of data and related files\nfor an R + JAGS session.  Would post on the R-hpc list, but this is\nnot one I can provide as a reproducible example.  In what I do, I then\ndispatch the multiple .R files to separate nodes for computation.\n\nLet me know if you have questions.\n\nPTB\n\n-- \nPatrick Brandt\nPolitical Science\nSchool of Economic, Political and Policy Sciences\nUniversity of Texas at Dallas\nPersonal site: http://www.utdallas.edu/~pbrandt\nMSBVAR site: http://yule.utdallas.edu\n\nOn Sat, Aug 21, 2010 at 1:03 PM, Laura S <leslaura at gmail.com> wrote:\n> Thank you Paul. I really appreciate your response! The scheduler is now set\n> up such that each user (it is a small cluster) gets a maximum of 16\n> processors at a time. I am using a Rocks Linux cluster.\n>\n> #### Making a series of similar, but modified .r files- suggested\n> method(s)?:\n>\n> Any suggestions are much appreciated, given my new clunky (but it will work)\n> method. I am looking for a way to make a series of similar, but slightly\n> modified, .r files.\n>\n> My issue is automating making 320 .r files that change the for(i in 1:x) in\n> my base .r file (as well as other elements, e.g., the load(...),\n> setwd(...)). For smaller jobs running on a single computer with batch files,\n> I have been manually changing the for(i in 1:x) line, etc..\n>\n> Why does this matter to me? I am planning on running a simulation experiment\n> on the linux cluster as a serial job (for now it seems the quickest way to\n> get things rolling on our cluster). Although not elegant, it has been\n> suggested I make 320 .r files so qsub runs one .r file and then selects\n> other jobs. Thus, the manual route I am currently using would take a very\n> long time (given multiple runs of 320 .r files, given experimental\n> replication).\n>\n> Thank you,\n> Laura\n>\n> On Tue, Aug 10, 2010 at 9:57 AM, Paul Johnson <pauljohn32 at gmail.com> wrote:\n>\n>> On Tue, Aug 10, 2010 at 10:15 AM, Laura S <leslaura at gmail.com> wrote:\n>> > Dear all:\n>> >\n>> > I would appreciate any help you are willing to offer. I have a simulation\n>> > program that runs serially. However, I would like to run the jobs in such\n>> a\n>> > way that when a simulation is finished another job can begin to run. ?The\n>> > simulations take different amounts of time, so it would be ideal to have\n>> a\n>> > way to communicate that jobs are done, and to initiate new jobs. The\n>> linux\n>> > cluster IT staff at my institution do not have much documentation or\n>> > experience with running R jobs. ?I am new to HPC, so my apologizes for\n>> this\n>> > potentially very basic inquiry.\n>> >\n>> > Thank you for your time and consideration,\n>> > Laura\n>> >\n>>\n>> You don't give us much to go on. What scheduler does your cluster use?\n>> for example.\n>>\n>> Here's what I'd do. Write a shell script that runs all of the programs\n>> one after the other. ?Without knowing more about the scheduling scheme\n>> on your cluster, I can't say exactly how I would go about it.\n>>\n>> If you have access to a BASH shell, for example, it should be as simple as\n>>\n>> #!/bin/bash\n>>\n>> R --vanilla -f yourRprogram1.R\n>>\n>> R --vanilla -f yourRprogram2.R\n>>\n>> =====================\n>>\n>> and so forth. If you rewrite the first line of your R code to use\n>> Rscript or littler, then you don't even need to bother with the \"R\n>> --vanilla -f\" part, as each R program will become self aware (and take\n>> over the world, like in Terminator).\n>>\n>> If you run exactly the same R program over and over again, make a for loop.\n>>\n>> As long as you have the details worked out on each individual run of\n>> the model, the rest of it is not even really a \"cluster\" problem. You\n>> have to run one after the other.\n>>\n>> FYI, I've been uploading practical working examples for our Rocks\n>> Linux cluster using the Torque/OpenPBS scheduling system. ?Maybe some\n>> will help you.\n>>\n>> http://pj.freefaculty.org/cgi-bin/mw/index.php?title=Cluster:Main\n>>\n>> I think I could work out an example of the sort you describe if you\n>> tell us a bit more about how the separate simulation runs talk to each\n>> other.\n>>\n>> Or, I should add, if the runs go one after the other, why don't you\n>> put them all in 1 R program. ???\n>>\n>> --\n>> Paul E. Johnson\n>> Professor, Political Science\n>> 1541 Lilac Lane, Room 504\n>> University of Kansas\n>>\n>\n>\n>\n> --\n> \" Genius is the summed production of the many with the names of the few\n> attached for easy recall, unfairly so to other scientists\"\n>\n> - E. O. Wilson (The Diversity of Life)\n>\n> ? ? ? ?[[alternative HTML version deleted]]\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>\n-------------- next part --------------\nA non-text attachment was scrubbed...\nName: MVPLN-VAR-monthly.R\nType: application/octet-stream\nSize: 5809 bytes\nDesc: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100822/ba5c97a9/attachment.obj>",
+      "body_snippet": "You can use R to dynamically generate the .R files and then process\nthem with Rmpi and snow.  See the examples on my replication page or\nthe following file that generates 3 .R files of data and relate",
+      "thread_id": "thread-1d07a1578ba0",
+      "thread_depth": 1,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-b1d17873ff05",
+      "message_id": "<4C72338C.6030204@njn.nl>",
+      "from_name": "bart",
+      "from_email_hash": "f28fabf263d4372f7c2ff98ea7531e873e66f86e06a86eb3d868dbcaa885c4cb",
+      "date": "2010-08-23T10:38:36+02:00",
+      "subject": "[R-sig-hpc] rmpi SGE",
+      "subject_clean": "rmpi SGE",
+      "in_reply_to": "<4C6B8DAD.1040303@laposte.net>",
+      "references": [
+        "<4C6B8D73.6000709@insa-rennes.fr>",
+        "<4C6B8DAD.1040303@laposte.net>"
+      ],
+      "body_plain": "Hi Olivier\n\nYour problem description is not very precise. But I'm very statisfied \nusing Rsge ( http://cran.r-project.org/web/packages/Rsge/index.html ) to \nrun my r code on a SGE cluster it is easy and takes care of dealing with SGE\n\nBart\n\nOn 08/18/2010 09:37 AM, olivier.garo at laposte.net wrote:\n> Hello\n>> i am a newbies and i have a cluster under redhat\n>> onto this cluster revolution R+ rmpi+SGE is installed but i have some\n>> problem with the command line to use for launch R with input file and\n>> output file\n>> i have another problem , i tried to install a GUI but doesn t succed\n>> for rcmdr i have a PB of tcltk library (i have install the latest\n>> tcltk version)\n>> can somebody help me?\n>> Best Regards\n>> olivier\n>>\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>\n>",
+      "body_snippet": "Hi Olivier\n\nYour problem description is not very precise. But I'm very statisfied \nusing Rsge ( http://cran.r-project.org/web/packages/Rsge/index.html ) to \nrun my r code on a SGE cluster it is easy a",
+      "thread_id": "thread-6d1d16d3cc04",
+      "thread_depth": 1,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-0f35ba963c7d",
+      "message_id": "<4C72358D.6080108@njn.nl>",
+      "from_name": "bart",
+      "from_email_hash": "f28fabf263d4372f7c2ff98ea7531e873e66f86e06a86eb3d868dbcaa885c4cb",
+      "date": "2010-08-23T10:47:09+02:00",
+      "subject": "[R-sig-hpc] Making a series of similar, but modified .r files- suggested method(s)? Re: Running jobs on a linux cluster",
+      "subject_clean": "Making a series of similar, but modified .r files- suggested method(s)? Re: Running jobs on a linux cluster",
+      "in_reply_to": "<AANLkTimy4WOiuhMT28BXuzFmkrv03OY=2qDiHZYEJ5hQ@mail.gmail.com>",
+      "references": [
+        "<AANLkTim6TVChKJ=5a=SyJAsNhXEezsx5jdL5Tpt2MLZV@mail.gmail.com>",
+        "<AANLkTimy4WOiuhMT28BXuzFmkrv03OY=2qDiHZYEJ5hQ@mail.gmail.com>"
+      ],
+      "body_plain": "Hi an alternative to this is using Rsge, the code would then look \nsomething like this\n\nrequire(Rsge)\nfile = list.files()\ntmpfun<-function(x)\n{\n\tglm(y~x, data=x)\n\treturn(fit)\n}\nresult<-sge.parLapply(file, tmpfun)\nsave(result, file=\"result.Rdata\")\n\nThe only thing to think about it that the master R session should keep \nrunning. I generally ensure this by running it with in a screen but one \ncould also just run it as a background job and start it like \"R CMD \nBATCH script.R &\"\n\nBart\n\nOn 08/21/2010 09:39 PM, Kasper Daniel Hansen wrote:\n> Laura\n>\n> It seems you are using the Sun Grid Engine.  You want to look into the\n> concept of an \"Array Job\".  Essentially an array job allows you to run\n> a script many time, the only thing being different is the value of an\n> environment variable.  This sounds simple, but is really pretty power\n> full\n>\n> Say a normal script would loop over a hundred input files and do something like\n>\n> for( file in list.files() ) {\n>    data = read.table(file)\n>    fit = glm(y~x, data = data)\n>    save(fit, file = paste(file, \"-fit.rda\"))\n> }\n>\n> With an array job you would do something like\n>\n> slotNumber = Sys.getenv(\"SGE_TASK_ID\")\n> file = list.files() [ slotNumber ]\n> data = read.table(file)\n> fit = glm(y~x, data = data)\n> save(fit, file = paste(file, \"-fit.rda\"))\n>\n> Here you see how I use the slotNumber variable (which will be an\n> integer) to index into the vector returned by list.files().\n>\n> You submit you job like\n> qsub -t 1-100 SCRIPT\n>\n> Here I will spawn a 100 submissions, with values from 1 to 100 of SGE_TASK_ID.\n>\n> Finally, conceptually to SGE it will look like one big job, so you\n> just need to do a single qdel if you need to remove it.\n>\n> In summary I tend to always set up one big vector or list and then\n> just index into that list.  But there are many variants of the stuff\n> above, and I am sure you can figure what to do.\n>\n> Kasper\n>\n> On Sat, Aug 21, 2010 at 2:03 PM, Laura S<leslaura at gmail.com>  wrote:\n>> Thank you Paul. I really appreciate your response! The scheduler is now set\n>> up such that each user (it is a small cluster) gets a maximum of 16\n>> processors at a time. I am using a Rocks Linux cluster.\n>>\n>> #### Making a series of similar, but modified .r files- suggested\n>> method(s)?:\n>>\n>> Any suggestions are much appreciated, given my new clunky (but it will work)\n>> method. I am looking for a way to make a series of similar, but slightly\n>> modified, .r files.\n>>\n>> My issue is automating making 320 .r files that change the for(i in 1:x) in\n>> my base .r file (as well as other elements, e.g., the load(...),\n>> setwd(...)). For smaller jobs running on a single computer with batch files,\n>> I have been manually changing the for(i in 1:x) line, etc..\n>>\n>> Why does this matter to me? I am planning on running a simulation experiment\n>> on the linux cluster as a serial job (for now it seems the quickest way to\n>> get things rolling on our cluster). Although not elegant, it has been\n>> suggested I make 320 .r files so qsub runs one .r file and then selects\n>> other jobs. Thus, the manual route I am currently using would take a very\n>> long time (given multiple runs of 320 .r files, given experimental\n>> replication).\n>>\n>> Thank you,\n>> Laura\n>>\n>> On Tue, Aug 10, 2010 at 9:57 AM, Paul Johnson<pauljohn32 at gmail.com>  wrote:\n>>\n>>> On Tue, Aug 10, 2010 at 10:15 AM, Laura S<leslaura at gmail.com>  wrote:\n>>>> Dear all:\n>>>>\n>>>> I would appreciate any help you are willing to offer. I have a simulation\n>>>> program that runs serially. However, I would like to run the jobs in such\n>>> a\n>>>> way that when a simulation is finished another job can begin to run.  The\n>>>> simulations take different amounts of time, so it would be ideal to have\n>>> a\n>>>> way to communicate that jobs are done, and to initiate new jobs. The\n>>> linux\n>>>> cluster IT staff at my institution do not have much documentation or\n>>>> experience with running R jobs.  I am new to HPC, so my apologizes for\n>>> this\n>>>> potentially very basic inquiry.\n>>>>\n>>>> Thank you for your time and consideration,\n>>>> Laura\n>>>>\n>>>\n>>> You don't give us much to go on. What scheduler does your cluster use?\n>>> for example.\n>>>\n>>> Here's what I'd do. Write a shell script that runs all of the programs\n>>> one after the other.  Without knowing more about the scheduling scheme\n>>> on your cluster, I can't say exactly how I would go about it.\n>>>\n>>> If you have access to a BASH shell, for example, it should be as simple as\n>>>\n>>> #!/bin/bash\n>>>\n>>> R --vanilla -f yourRprogram1.R\n>>>\n>>> R --vanilla -f yourRprogram2.R\n>>>\n>>> =====================\n>>>\n>>> and so forth. If you rewrite the first line of your R code to use\n>>> Rscript or littler, then you don't even need to bother with the \"R\n>>> --vanilla -f\" part, as each R program will become self aware (and take\n>>> over the world, like in Terminator).\n>>>\n>>> If you run exactly the same R program over and over again, make a for loop.\n>>>\n>>> As long as you have the details worked out on each individual run of\n>>> the model, the rest of it is not even really a \"cluster\" problem. You\n>>> have to run one after the other.\n>>>\n>>> FYI, I've been uploading practical working examples for our Rocks\n>>> Linux cluster using the Torque/OpenPBS scheduling system.  Maybe some\n>>> will help you.\n>>>\n>>> http://pj.freefaculty.org/cgi-bin/mw/index.php?title=Cluster:Main\n>>>\n>>> I think I could work out an example of the sort you describe if you\n>>> tell us a bit more about how the separate simulation runs talk to each\n>>> other.\n>>>\n>>> Or, I should add, if the runs go one after the other, why don't you\n>>> put them all in 1 R program.  ??\n>>>\n>>> --\n>>> Paul E. Johnson\n>>> Professor, Political Science\n>>> 1541 Lilac Lane, Room 504\n>>> University of Kansas\n>>>\n>>\n>>\n>>\n>> --\n>> \" Genius is the summed production of the many with the names of the few\n>> attached for easy recall, unfairly so to other scientists\"\n>>\n>> - E. O. Wilson (The Diversity of Life)\n>>\n>>         [[alternative HTML version deleted]]\n>>\n>> _______________________________________________\n>> R-sig-hpc mailing list\n>> R-sig-hpc at r-project.org\n>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>>\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>\n>",
+      "body_snippet": "Hi an alternative to this is using Rsge, the code would then look \nsomething like this\n\nrequire(Rsge)\nfile = list.files()\ntmpfun<-function(x)\n{\n\tglm(y~x, data=x)\n\treturn(fit)\n}\nresult<-sge.parLapply(f",
+      "thread_id": "thread-1d07a1578ba0",
+      "thread_depth": 2,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-1d7d6298a860",
+      "message_id": "<AANLkTi=RkcL=wPqOHatUhej5BRjnf_2vGBrDVj3BUYKM@mail.gmail.com>",
+      "from_name": "romunov",
+      "from_email_hash": "b70a18c9a99e892d13bb2f35236ac5c47a9a379cff8efa15381be74fd6781851",
+      "date": "2010-08-23T20:21:13+02:00",
+      "subject": "[R-sig-hpc] unable to create localhost clusters with doSNOW",
+      "subject_clean": "unable to create localhost clusters with doSNOW",
+      "in_reply_to": "<4C6FA5E0.4060401@gmail.com>",
+      "references": [
+        "<AANLkTin+DoTwvQ4DfeavZZdh6hV9Zhg0qfnkeU=ty2Ju@mail.gmail.com>",
+        "<19566.38558.864035.633034@max.nulle.part>",
+        "<4C6EA125.4010601@araastat.com>",
+        "<AANLkTincqEA5ZK8Etdvo7D45oc0vVjrjf5cfNWrZAcr7@mail.gmail.com>",
+        "<4C6FA5E0.4060401@gmail.com>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100823/8fb0d7fb/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100823/8fb0d7fb/attachment.pl>",
+      "thread_id": "thread-7265ec798a19",
+      "thread_depth": 5,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-3a64abfec71e",
+      "message_id": "<AANLkTi=J1BA5p2OjWRcx3kDUO_LGD6KBz0FmdUo+BU4a@mail.gmail.com>",
+      "from_name": "Michel Lutz",
+      "from_email_hash": "a2ec4d4ee31b3d284a02c5181ab9b58959a1edf5e45699883c3bb08d7c1cabbd",
+      "date": "2010-08-24T10:47:22+02:00",
+      "subject": "[R-sig-hpc] Holtman's levelplot ?",
+      "subject_clean": "Holtman's levelplot ?",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100824/bdcfb889/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100824/bdcfb889/attachment.pl>",
+      "thread_id": "thread-3a64abfec71e",
+      "thread_depth": 0,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-ad1d631c1d92",
+      "message_id": "<AANLkTimqxkr-oA68gnMytAZTE1igHbWSO+8+ZPCeuvYP@mail.gmail.com>",
+      "from_name": "Michel Lutz",
+      "from_email_hash": "a2ec4d4ee31b3d284a02c5181ab9b58959a1edf5e45699883c3bb08d7c1cabbd",
+      "date": "2010-08-24T12:45:49+02:00",
+      "subject": "[R-sig-hpc] Holtman's levelplot ?",
+      "subject_clean": "Holtman's levelplot ?",
+      "in_reply_to": "<4C739BA7.6050405@braverock.com>",
+      "references": [
+        "<AANLkTi=J1BA5p2OjWRcx3kDUO_LGD6KBz0FmdUo+BU4a@mail.gmail.com>",
+        "<4C739BA7.6050405@braverock.com>"
+      ],
+      "body_plain": "Brian,\n\nThank you for you answer.\n\nHere enclosed the result I would like to get (levelplot.jpg) and an example\nof input file (CPU.csv, reflecting date as M/DD/YYY hh:mm and CPU as %).\n\nSo what I would like to have is a matrix with x = minutes within a day (here\nwith a 30min interval) and y = days of the month, and colors plotted in this\nframe to reflect the CPU usage level.\n\nbut... well, I' ve tried and tried this morning, but I cannot show\nanything... my ideas are too stupid (trust me, I spend time on this, I'm not\nlooking for a ready-to-use piece of code).\nAfter further testing, I think I should forget this idea : I am not enough\naware of the lattice package to go this way... too many settings that I\ndon't know.\nI'm afraid won't be able to do it alone.\n\nSo if someone has simple ideas or documentation for me to start building\nthis solution, I will appreciate, but if you consider this is too complex\nfor a lattice-beginner, I will understand.\n\nI any case, thank you very much for having taken time to answer me.\n\nBest regards,\n\nMichel\n\n\n\n\nOn Tue, Aug 24, 2010 at 12:15 PM, Brian G. Peterson <brian at braverock.com>wrote:\n\n> OK, good start.  Now follow the posting guide and show something you've\n> tried, and tell everybody what you expect, and what doesn't work...\n>\n> It will be difficult for people to help you if you don't provide a\n> reproducible example.\n>\n> I also suggest emailing the package maintainer, and possibly r-help, if\n> what I've suggested above doesn't resolve the problem for you.\n>\n> Regards,\n>\n>    - Brian\n>\n>\n> On 08/24/2010 03:47 AM, Michel Lutz wrote:\n>\n>>  Hello to all,\n>>\n>> I am sorry for disturbing you, but I really don't know where/who to ask...\n>> so if this distribution list is not dealing with my concern, please excuse\n>> me...\n>>\n>> Here is my concern : I am trying to do a levelplot as in Holtman, 2005\n>> (Visualization techniques for analysing patterns in system performance\n>> data), to display CPU usage according to the day of the month (y) and\n>> minutes (x).\n>>\n>> I am familiar with R basic features, but not at all with lattice package\n>> and\n>> I don't understand the logic of this leveplot function, especially in the\n>> particular case of a time series.\n>>\n>> I've read all the material found in the web, but I am completely stuck...\n>>\n>> Does someone have some clues or documentation that could help me to draw\n>> such a plot ? (which is nothing new : the plot I'm dreaming of is the\n>> Holtman's levelplot !).\n>>\n>> Thank you very much, and excuse-me if I'm not addressing the right\n>> distribution list.\n>>\n>> Best regards,\n>>\n>> Michel Lutz\n>> France - PhD Student\n>>\n>>        [[alternative HTML version deleted]]\n>>\n>> _______________________________________________\n>> R-sig-hpc mailing list\n>> R-sig-hpc at r-project.org\n>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>>\n>\n>\n> --\n> Brian G. Peterson\n> http://braverock.com/brian/\n> Ph: 773-459-4973\n> IM: bgpbraverock\n>\n-------------- next part --------------\nAn HTML attachment was scrubbed...\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100824/cac9da0e/attachment-0001.html>\n-------------- next part --------------\nA non-text attachment was scrubbed...\nName: levelplot.jpg\nType: image/jpeg\nSize: 50539 bytes\nDesc: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100824/cac9da0e/attachment-0001.jpg>\n-------------- next part --------------\nA non-text attachment was scrubbed...\nName: CPU.csv\nType: application/octet-stream\nSize: 44861 bytes\nDesc: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100824/cac9da0e/attachment-0001.obj>",
+      "body_snippet": "Brian,\n\nThank you for you answer.\n\nHere enclosed the result I would like to get (levelplot.jpg) and an example\nof input file (CPU.csv, reflecting date as M/DD/YYY hh:mm and CPU as %).\n\nSo what I would",
+      "thread_id": "thread-ad1d631c1d92",
+      "thread_depth": 0,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-d4d74b7368bf",
+      "message_id": "<AANLkTinXVxNoHOjhmHufhvW45WeGpjUV52uHQBFDC8-_@mail.gmail.com>",
+      "from_name": "Roman Luštrik",
+      "from_email_hash": "c0075bee7cf180735267468677bcb6c0b494c84c39ebc7ec1c97688bee0fa3df",
+      "date": "2010-08-24T14:13:26+02:00",
+      "subject": "[R-sig-hpc] help with a scoping issue with foreach",
+      "subject_clean": "help with a scoping issue with foreach",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100824/0a506bac/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100824/0a506bac/attachment.pl>",
+      "thread_id": "thread-d4d74b7368bf",
+      "thread_depth": 0,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-42f14d32e446",
+      "message_id": "<AANLkTinRVHayhW=Y21Q231+yt19qJ+q5W3RYkbT+kXO6@mail.gmail.com>",
+      "from_name": "Stephen Weston",
+      "from_email_hash": "507fe1aedccd9cb1c2bba1715ac24f959abe255adeeb866f82b6c8a1896cbd15",
+      "date": "2010-08-24T09:16:54-04:00",
+      "subject": "[R-sig-hpc] help with a scoping issue with foreach",
+      "subject_clean": "help with a scoping issue with foreach",
+      "in_reply_to": "<AANLkTinXVxNoHOjhmHufhvW45WeGpjUV52uHQBFDC8-_@mail.gmail.com>",
+      "references": [
+        "<AANLkTinXVxNoHOjhmHufhvW45WeGpjUV52uHQBFDC8-_@mail.gmail.com>"
+      ],
+      "body_plain": "Roman,\n\nWhen %dopar% is executed with certain parallel backends, it analyzes\nthe right hand expression to determine if there are any variables that need\nto be exported.  If a symbol is referenced in the expression that is defined\nin the enclosing environment, it will export that variable to the parallel\nworkers.  If it is defined in the global environment, or in some package,\nit will not automatically export it.\n\nYou don't show where \"effect.distance\" is defined.  If it is defined\nin the global environment, you could explicitly export it via the foreach\n\".export\" argument.  See the foreach man page for details.  If it is\ndefined in a package, you could use the \".packages\" argument to\nload that package on each of the parallel workers.\n\nNote that this process of automatically exporting variables is performed\nin doSNOW and doMPI, but not in doMC.  That is because the multicore\npackage uses the \"fork\" system call to create the worker processes.\nProcesses that are forked get a copy of the parent process's execution\nenvironment, and so variables don't generally need to be exported,\neither implicitly or explicitly.  Thus, you could run into problems with\nundefined variables with doSNOW, even though your program runs fine\nwith doMC.\n\n- Steve\n\n\n\nOn Tue, Aug 24, 2010 at 8:13 AM, Roman Lu?trik <roman.lustrik at gmail.com> wrote:\n> Dear list,\n>\n> I once again seek your advice in understanding the following.\n> makeDistances is a function I feed to foreach. The computation intensive\n> part is done by a second function calcDistance.\n>\n> ? ?# Run in parallel\n> ? ?makeDistances <- function(xy, rst, effect.distance, cnt, num.points) {\n> ? ? ? ?source(\"d:/workspace/Texas Ranger/calcDistance.R\")\n> ? ? ? ?for (j in 1:num.points) {\n> ? ? ? ? ? ?file.name <- paste(\"walker\", cnt, \"_\", j, sep = \"\")\n> ? ? ? ? ? ?clc <- calcDistance(object = rst, origin.point = xy[j,],\n> ? ? ? ? ? ? ? ? ? ? ?effect.distance = effect.distance)\n> ? ? ? ? ? ?writeRaster(clc, file.name, overwrite = TRUE)\n> ? ? ? ?}\n> ? ?}\n>\n> ? ?foreach(xy = xy.list, cnt = icount()) %do%\n> ? ? ? makeDistances(xy, rst = rst, effect.distance = effect.distance,\n> ? ? ? cnt, num.points = dim(xy.list[[cnt]])[1])\n>\n> When I run makeDistances via %do% things work out fine, but I'm unable to\n> run via %dopar%. The following error is returned:\n>\n> Error in makeDistances(xy, rst = rst, effect.distance = effect.distance, ?:\n> ?task 1 failed - \"object 'effect.distance' not found\"\n>\n>\n> It seems like a scoping issue, however I failed to comprehend how to feed\n> the argument to the function to make it work. Any advice will be much\n> appreciated.\n>\n>\n> Cheers,\n> Roman\n>\n> --\n> In God we trust, all others bring data.\n>\n> ? ? ? ?[[alternative HTML version deleted]]\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>",
+      "body_snippet": "Roman,\n\nWhen %dopar% is executed with certain parallel backends, it analyzes\nthe right hand expression to determine if there are any variables that need\nto be exported.  If a symbol is referenced in t",
+      "thread_id": "thread-d4d74b7368bf",
+      "thread_depth": 1,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-a4c58767aa6c",
+      "message_id": "<711171.4438.qm@web34504.mail.mud.yahoo.com>",
+      "from_name": "Red Roo",
+      "from_email_hash": "30dde1091a263451b46f34a93ff3288c3cec15c5b5d3d0edcfc3973c311e01fe",
+      "date": "2010-08-24T06:46:30-07:00",
+      "subject": "[R-sig-hpc] Holtman's levelplot ?",
+      "subject_clean": "Holtman's levelplot ?",
+      "in_reply_to": "<AANLkTimqxkr-oA68gnMytAZTE1igHbWSO+8+ZPCeuvYP@mail.gmail.com>",
+      "references": [
+        "<AANLkTi=J1BA5p2OjWRcx3kDUO_LGD6KBz0FmdUo+BU4a@mail.gmail.com>",
+        "<4C739BA7.6050405@braverock.com>",
+        "<AANLkTimqxkr-oA68gnMytAZTE1igHbWSO+8+ZPCeuvYP@mail.gmail.com>"
+      ],
+      "body_plain": "Michel,\n\nIf you ask your plotting questions over at r-help at r-project.org, Jim Holtman \nwill probably address them directly. He is also an instructor for my \"Guerrilla \nData Analysis Techniques\" class \nhttp://www.perfdynamics.com/Classes/Outlines/gdata.html and we just discussed \nthis plot 2 weeks ago.\n\n\n --Neil Gunther\n\nTaking The Pith Out Of Performance http://perfdynamics.blogspot.com/\nFollow me on Twitter http://twitter.com/DrQz\nPerformance Dynamics Company http://www.perfdynamics.com/\n\n\n>\n>From: Michel Lutz <miclutz at gmail.com>\n>To: Brian G. Peterson <brian at braverock.com>\n>Cc: \"r-sig-hpc at r-project.org\" <r-sig-hpc at r-project.org>\n>Sent: Tue, August 24, 2010 3:45:49 AM\n>Subject: Re: [R-sig-hpc] Holtman's levelplot ?\n>\n>\n>Brian,\n> \n>Thank you for you answer.\n> \n>Here enclosed the result I would like to get (levelplot.jpg) and an example of \n>input file (CPU.csv, reflecting date as M/DD/YYY hh:mm and CPU as %).\n> \n>So what I would like to have is a matrix with x = minutes within a day (here \n>with a 30min interval) and y = days of the month, and colors plotted in this \n>frame to reflect the CPU usage level.\n> \n>but... well, I' ve tried and tried this morning, but I cannot show anything... \n>my ideas are too stupid (trust me, I spend time on this, I'm not looking for a \n>ready-to-use piece of code).\n>After further testing, I think I should forget this idea : I am not enough aware \n>\n>of the lattice package to go this way... too many settings that I don't know.\n>I'm afraid won't be able to do it alone.\n> \n>So if someone has simple ideas or documentation for me to start building this \n>solution, I will appreciate, but if you consider this is too complex for a \n>lattice-beginner, I will understand.\n> \n>I any case, thank you very much for having taken time to answer me.\n> \n>Best regards,\n> \n>Michel\n> \n>\n>\n> \n>On Tue, Aug 24, 2010 at 12:15 PM, Brian G. Peterson <brian at braverock.com> \nwrote:\n>\n>OK, good start.  Now follow the posting guide and show something you've tried, \n>and tell everybody what you expect, and what doesn't work...\n>>\n>>It will be difficult for people to help you if you don't provide a reproducible \n>\n>>example.\n>>\n>>I also suggest emailing the package maintainer, and possibly r-help, if what \n>>I've suggested above doesn't resolve the problem for you.\n>>\n>>Regards,\n>>\n>>   - Brian \n>>\n>>\n>>On 08/24/2010 03:47 AM, Michel Lutz wrote:\n>>\n>>Hello to all,\n>>>\n>>>I am sorry for disturbing you, but I really don't know where/who to ask...\n>>>so if this distribution list is not dealing with my concern, please excuse\n>>>me...\n>>>\n>>>Here is my concern : I am trying to do a levelplot as in Holtman, 2005\n>>>(Visualization techniques for analysing patterns in system performance\n>>>data), to display CPU usage according to the day of the month (y) and\n>>>minutes (x).\n>>>\n>>>I am familiar with R basic features, but not at all with lattice package and\n>>>I don't understand the logic of this leveplot function, especially in the\n>>>particular case of a time series.\n>>>\n>>>I've read all the material found in the web, but I am completely stuck...\n>>>\n>>>Does someone have some clues or documentation that could help me to draw\n>>>such a plot ? (which is nothing new : the plot I'm dreaming of is the\n>>>Holtman's levelplot !).\n>>>\n>>>Thank you very much, and excuse-me if I'm not addressing the right\n>>>distribution list.\n>>>\n>>>Best regards,\n>>>\n>>>Michel Lutz\n>>>France - PhD Student\n>>>\n>>>\n>>>       [[alternative HTML version deleted]]\n>>>\n>>>_______________________________________________\n>>>R-sig-hpc mailing list\n>>>\n>>>R-sig-hpc at r-project.org\n>>>\n>>>https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>>>\n>\n>-- \n>Brian G. Peterson\n>http://braverock.com/brian/\n>Ph: 773-459-4973\n>IM: bgpbraverock\n>\n>",
+      "body_snippet": "Michel,\n\nIf you ask your plotting questions over at r-help at r-project.org, Jim Holtman \nwill probably address them directly. He is also an instructor for my \"Guerrilla \nData Analysis Techniques\" cla",
+      "thread_id": "thread-ad1d631c1d92",
+      "thread_depth": 1,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-1cfed133b83d",
+      "message_id": "<4C740146.4040803@gmail.com>",
+      "from_name": "Matthieu Stigler",
+      "from_email_hash": "8be7d9af3aa05df3cb73327099ca82a1e00b62ae5b6e52d77e9d9908c4ad6d37",
+      "date": "2010-08-24T19:28:38+02:00",
+      "subject": "[R-sig-hpc] unable to create localhost clusters with doSNOW",
+      "subject_clean": "unable to create localhost clusters with doSNOW",
+      "in_reply_to": "<AANLkTi=RkcL=wPqOHatUhej5BRjnf_2vGBrDVj3BUYKM@mail.gmail.com>",
+      "references": [
+        "<AANLkTin+DoTwvQ4DfeavZZdh6hV9Zhg0qfnkeU=ty2Ju@mail.gmail.com>",
+        "<19566.38558.864035.633034@max.nulle.part>",
+        "<4C6EA125.4010601@araastat.com>",
+        "<AANLkTincqEA5ZK8Etdvo7D45oc0vVjrjf5cfNWrZAcr7@mail.gmail.com>",
+        "<4C6FA5E0.4060401@gmail.com>",
+        "<AANLkTi=RkcL=wPqOHatUhej5BRjnf_2vGBrDVj3BUYKM@mail.gmail.com>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100824/bfb341c4/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100824/bfb341c4/attachment.pl>",
+      "thread_id": "thread-7265ec798a19",
+      "thread_depth": 6,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-40acc19f8fb8",
+      "message_id": "<AANLkTimK3hqwupkAzSu2BOFPLu1M7WeFB-h9PDg7h5FK@mail.gmail.com>",
+      "from_name": "Roman Luštrik",
+      "from_email_hash": "c0075bee7cf180735267468677bcb6c0b494c84c39ebc7ec1c97688bee0fa3df",
+      "date": "2010-08-25T11:46:18+02:00",
+      "subject": "[R-sig-hpc] help with a scoping issue with foreach",
+      "subject_clean": "help with a scoping issue with foreach",
+      "in_reply_to": "<AANLkTinRVHayhW=Y21Q231+yt19qJ+q5W3RYkbT+kXO6@mail.gmail.com>",
+      "references": [
+        "<AANLkTinXVxNoHOjhmHufhvW45WeGpjUV52uHQBFDC8-_@mail.gmail.com>",
+        "<AANLkTinRVHayhW=Y21Q231+yt19qJ+q5W3RYkbT+kXO6@mail.gmail.com>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100825/4652da2f/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100825/4652da2f/attachment.pl>",
+      "thread_id": "thread-d4d74b7368bf",
+      "thread_depth": 2,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-b9441f3c4da7",
+      "message_id": "<AANLkTi=_QHEPqG66FcjNBhi=3n-4styC-o25=aGbma-=@mail.gmail.com>",
+      "from_name": "Fabrizio Formisano",
+      "from_email_hash": "6fc84c2145c3c6bd3ee59e3a6b76854bdd154e0603d7e20dc13dca869dcd981e",
+      "date": "2010-08-25T12:14:35-04:00",
+      "subject": "[R-sig-hpc] Rmpi - slaves processes spawn only on master machine",
+      "subject_clean": "Rmpi - slaves processes spawn only on master machine",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100825/93cf3546/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100825/93cf3546/attachment.pl>",
+      "thread_id": "thread-b9441f3c4da7",
+      "thread_depth": 0,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-5167e673e3ae",
+      "message_id": "<AANLkTinuiO2ZfVo+gFXocVhiFs3Q8jfLmb6sNTuQcQdJ@mail.gmail.com>",
+      "from_name": "Fabrizio Formisano",
+      "from_email_hash": "6fc84c2145c3c6bd3ee59e3a6b76854bdd154e0603d7e20dc13dca869dcd981e",
+      "date": "2010-08-25T15:58:30-04:00",
+      "subject": "[R-sig-hpc] Rmpi - slaves processes spawn only on master machine",
+      "subject_clean": "Rmpi - slaves processes spawn only on master machine",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100825/1ee749d3/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100825/1ee749d3/attachment.pl>",
+      "thread_id": "thread-5167e673e3ae",
+      "thread_depth": 0,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-5057d7b20ab7",
+      "message_id": "<1282860852.10568.102.camel@peyserb-laptop>",
+      "from_name": "Brian D Peyser PhD",
+      "from_email_hash": "530bce1dec1c26d126f418e9443f134c63b1503239a004dc50464172c1d97b1f",
+      "date": "2010-08-26T18:14:12-04:00",
+      "subject": "[R-sig-hpc] foreach + doMC not fully parallel?",
+      "subject_clean": "foreach + doMC not fully parallel?",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Hi everyone,\n\nI am trying to run code in parallel across 4 cores with foreach and\ndoMC. The code runs fine, and it will spawn 4 R processes, but these\nprocesses aren't all on separate cores. Often, I will see one core maxed\nwith each R process taking about 24% of the CPU. I also see something\nlike 96%, 98%, 48%, 48% (3 of 4 cores being used) or 32%, 32%, 96%, 32%.\n(2 cores). This may change during the run, and I almost never see 4\ncores getting maxed.\n\nI am running like this (pseudo-code):\n\n> library(\"doMC\")\n> registerDoMC(cores=4) # I have a 4-core processor\n> \t# Read in data....\n> foreach(obj=gsub(\".txt\", \"\",\nfiles), .inorder=FALSE, .errorhandling=\"pass\", .options.multicore =\nlist(preschedule = FALSE)) %dopar% {\n> \t# Do lots of computation with get(obj)\n> \t# Output a PNG plot and some text\n> }\n\nI have also tried with preschedule=TRUE, which has the same problem,\nthough then a process or two will end early since it has been going on\nits own core instead of sharing. This is on Linux (Ubuntu 10.04 64-bit\ndesktop edition), and I am running R from Emacs with ESS (maybe I should\ntry from the terminal instead--hadn't thought to do that). Any thoughts\nthat could help?\n\nThanks,\n\nBrian\n\n(Here's my session info):\n\n> sessionInfo()\nR version 2.11.1 (2010-05-31) \nx86_64-pc-linux-gnu \n\nlocale:\n [1] LC_CTYPE=en_US.utf8       LC_NUMERIC=C             \n [3] LC_TIME=en_US.utf8        LC_COLLATE=en_US.utf8    \n [5] LC_MONETARY=C             LC_MESSAGES=en_US.utf8   \n [7] LC_PAPER=en_US.utf8       LC_NAME=C                \n [9] LC_ADDRESS=C              LC_TELEPHONE=C           \n[11] LC_MEASUREMENT=en_US.utf8 LC_IDENTIFICATION=C      \n\nattached base packages:\n[1] stats     graphics  grDevices utils     datasets  methods\nbase     \n\nother attached packages:\n[1] doMC_1.2.1      foreach_1.3.0   codetools_0.2-2 iterators_1.0.3\n[5] multicore_0.1-3",
+      "body_snippet": "Hi everyone,\n\nI am trying to run code in parallel across 4 cores with foreach and\ndoMC. The code runs fine, and it will spawn 4 R processes, but these\nprocesses aren't all on separate cores. Often, I ",
+      "thread_id": "thread-5057d7b20ab7",
+      "thread_depth": 0,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-3552004c0052",
+      "message_id": "<AANLkTin5MfN7H-UC2FL7tV10vh3Ki53XhHMXZAOUg129@mail.gmail.com>",
+      "from_name": "Sean Davis",
+      "from_email_hash": "5a8e0e6abee8db2f7eeaea6df4cbae4d8713a79b51ddc5ef74e7c509c4b05f87",
+      "date": "2010-08-26T18:35:01-04:00",
+      "subject": "[R-sig-hpc] foreach + doMC not fully parallel?",
+      "subject_clean": "foreach + doMC not fully parallel?",
+      "in_reply_to": "<1282860852.10568.102.camel@peyserb-laptop>",
+      "references": [
+        "<1282860852.10568.102.camel@peyserb-laptop>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100826/21d09f2b/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100826/21d09f2b/attachment.pl>",
+      "thread_id": "thread-5057d7b20ab7",
+      "thread_depth": 1,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-57d8ff7d8dc7",
+      "message_id": "<20100826233018.GA12002@laura>",
+      "from_name": "Norm Matloff",
+      "from_email_hash": "4db7a9be8e09c28ffe81d430bd8de418df530a8cc929aef3c751368ba81d90dc",
+      "date": "2010-08-26T16:30:18-07:00",
+      "subject": "[R-sig-hpc] foreach + doMC not fully parallel?",
+      "subject_clean": "foreach + doMC not fully parallel?",
+      "in_reply_to": "<AANLkTin5MfN7H-UC2FL7tV10vh3Ki53XhHMXZAOUg129@mail.gmail.com>",
+      "references": [
+        "<1282860852.10568.102.camel@peyserb-laptop>",
+        "<AANLkTin5MfN7H-UC2FL7tV10vh3Ki53XhHMXZAOUg129@mail.gmail.com>"
+      ],
+      "body_plain": "If your machine uses DMA for disk access, then your disk activity should\nnot be reflected in CPU utilization.  Some systems allow you to\nenable/disable DMA, and you may want to look into enabling it.\n\nBut even if the CPU is being used for disk actions, I don't see why it\nshould always be one particular core that is handling that action.  It\nshould be pretty much random across the cores.  Maybe I'm missing\nsomething?\n\nNorm Matloff\n\nOn Thu, Aug 26, 2010 at 06:35:01PM -0400, Sean Davis wrote:\n> On Thu, Aug 26, 2010 at 6:14 PM, Brian D Peyser PhD <bpeyser at jhmi.edu>wrote:\n> \n> > Hi everyone,\n> >\n> > I am trying to run code in parallel across 4 cores with foreach and\n> > doMC. The code runs fine, and it will spawn 4 R processes, but these\n> > processes aren't all on separate cores. Often, I will see one core maxed\n> > with each R process taking about 24% of the CPU. I also see something\n> > like 96%, 98%, 48%, 48% (3 of 4 cores being used) or 32%, 32%, 96%, 32%.\n> > (2 cores). This may change during the run, and I almost never see 4\n> > cores getting maxed.\n> >\n> > I am running like this (pseudo-code):\n> >\n> > > library(\"doMC\")\n> > > registerDoMC(cores=4) # I have a 4-core processor\n> > >       # Read in data....\n> > > foreach(obj=gsub(\".txt\", \"\",\n> > files), .inorder=FALSE, .errorhandling=\"pass\", .options.multicore =\n> > list(preschedule = FALSE)) %dopar% {\n> > >       # Do lots of computation with get(obj)\n> > >       # Output a PNG plot and some text\n> > > }\n> >\n> > I have also tried with preschedule=TRUE, which has the same problem,\n> > though then a process or two will end early since it has been going on\n> > its own core instead of sharing. This is on Linux (Ubuntu 10.04 64-bit\n> > desktop edition), and I am running R from Emacs with ESS (maybe I should\n> > try from the terminal instead--hadn't thought to do that). Any thoughts\n> > that could help?\n> >\n> >\n> Assuming there is nothing else running on the system?\n> \n> In any case, it appears that you are reading text files and writing to disk.\n>  Only one core can use the IO at a time, so that may explain this.  Try\n> running something entirely computational and see if you can get close to\n> 100% on all four cores.\n> \n> Sean\n> \n> \t[[alternative HTML version deleted]]\n> \n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc",
+      "body_snippet": "If your machine uses DMA for disk access, then your disk activity should\nnot be reflected in CPU utilization.  Some systems allow you to\nenable/disable DMA, and you may want to look into enabling it.\n",
+      "thread_id": "thread-5057d7b20ab7",
+      "thread_depth": 2,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-5a3f180c11b8",
+      "message_id": "<AANLkTin26=o=GC4794R_6sEjHJMJ8Xjhe5q45t8T8=z2@mail.gmail.com>",
+      "from_name": "Sean Davis",
+      "from_email_hash": "5a8e0e6abee8db2f7eeaea6df4cbae4d8713a79b51ddc5ef74e7c509c4b05f87",
+      "date": "2010-08-26T19:43:42-04:00",
+      "subject": "[R-sig-hpc] foreach + doMC not fully parallel?",
+      "subject_clean": "foreach + doMC not fully parallel?",
+      "in_reply_to": "<20100826233018.GA12002@laura>",
+      "references": [
+        "<1282860852.10568.102.camel@peyserb-laptop>",
+        "<AANLkTin5MfN7H-UC2FL7tV10vh3Ki53XhHMXZAOUg129@mail.gmail.com>",
+        "<20100826233018.GA12002@laura>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100826/e68aeb9a/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100826/e68aeb9a/attachment.pl>",
+      "thread_id": "thread-5057d7b20ab7",
+      "thread_depth": 3,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-db942a251548",
+      "message_id": "<1282923466.7049.50.camel@peyserb-laptop>",
+      "from_name": "Brian D Peyser PhD",
+      "from_email_hash": "530bce1dec1c26d126f418e9443f134c63b1503239a004dc50464172c1d97b1f",
+      "date": "2010-08-27T11:37:46-04:00",
+      "subject": "[R-sig-hpc] foreach + doMC not fully parallel?",
+      "subject_clean": "foreach + doMC not fully parallel?",
+      "in_reply_to": "<AANLkTin5MfN7H-UC2FL7tV10vh3Ki53XhHMXZAOUg129@mail.gmail.com>",
+      "references": [
+        "<1282860852.10568.102.camel@peyserb-laptop>",
+        "<AANLkTin5MfN7H-UC2FL7tV10vh3Ki53XhHMXZAOUg129@mail.gmail.com>"
+      ],
+      "body_plain": "On Thu, 2010-08-26 at 18:35 -0400, Sean Davis wrote: \n> Assuming there is nothing else running on the system? \n> \n> \n> In any case, it appears that you are reading text files and writing to\n> disk.  Only one core can use the IO at a time, so that may explain\n> this.  Try running something entirely computational and see if you can\n> get close to 100% on all four cores.  \n> \n> \n> Sean\n>  \n\nI hadn't thought about IO, but the fact that the processes always add up\nto almost 100% of 1/2/3 cores makes me think that something is\npreventing them from computing on all the cores rather than just waiting\nfor I/O. The I/O is actually very minor, but I took out all of it and\nstill had the same result.\n\nSo next I decided to stop my other resource hogs, such as Firefox and\nEvolution. that had no impact. I also ran from the terminal instead of\nfrom Emacs, with the same result.\n\nWhat's strange is the usage will vary over time. With preschedule=FALSE,\neach iteration will spawn a new process, and that seems to be when\nchanges in resource utilization tend to occur. I am thinking that there\nmay be some trouble with my kernel, since %dopar% is spawning 4\nadditional R processes as it should--my kernel just isn't handling it\nproperly. In fact, I did:\n> registerDoMC(cores=3)\nand got only 2 cores maxed, never 3. For some reason 2 (or more) of the\nprocesses are always on the same core. Although when I registered 3\ncores and only had 2 iterations left, both remaining processes used\n100%. And of course the last remaining process used 100% until it\nfinished as well. Just weird. To be thorough, I tried:\n> registerDoMC(cores=2)\nand never saw 2 cores used.\n\nLast, and interestingly, when I did:\n> registerDoMC(cores=5)\n(on my 4-core machine) I sometimes maxed all 4 cores. I also saw only 1,\n2, or 3 cores used during the computation. Running 5 processes on 1 core\ncertainly doesn't help, though! Frustrating....\n\nAnyone else using Ubuntu 10.04? Maybe it's my kernel screwing this up.\n\n$ uname -srvmo\nLinux 2.6.32-24-generic #38 SMP Mon Jul 26 15:08:51 EDT 2010 x86_64\nGNU/Linux\n\n-Brian",
+      "body_snippet": "On Thu, 2010-08-26 at 18:35 -0400, Sean Davis wrote: \n> Assuming there is nothing else running on the system? \n> \n> \n> In any case, it appears that you are reading text files and writing to\n> disk.  O",
+      "thread_id": "thread-5057d7b20ab7",
+      "thread_depth": 2,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-0b952c82b502",
+      "message_id": "<1283185388.2221.16.camel@peyserb-laptop>",
+      "from_name": "Brian D Peyser PhD",
+      "from_email_hash": "530bce1dec1c26d126f418e9443f134c63b1503239a004dc50464172c1d97b1f",
+      "date": "2010-08-30T12:23:08-04:00",
+      "subject": "[R-sig-hpc] foreach + doMC not fully parallel?",
+      "subject_clean": "foreach + doMC not fully parallel?",
+      "in_reply_to": "<AANLkTi=anRjhvfgP9UrOUv6FuiRsQbogMxxS44t8NcuR@mail.gmail.com>",
+      "references": [
+        "<1282860852.10568.102.camel@peyserb-laptop>",
+        "<AANLkTin5MfN7H-UC2FL7tV10vh3Ki53XhHMXZAOUg129@mail.gmail.com>",
+        "<1282923466.7049.50.camel@peyserb-laptop>",
+        "<AANLkTi=anRjhvfgP9UrOUv6FuiRsQbogMxxS44t8NcuR@mail.gmail.com>"
+      ],
+      "body_plain": "On Sun, 2010-08-29 at 11:56 +0800, Xie Chao wrote: \n> I suggest you try:\n> \n> 1) run your R code from R directly\n> 2) test similar code without IO from hard disk\n> 3) If combining 1) and 2) still give you the similar result, could you\n> provide a simple reproducible code? Especially the part you mentioned\n> as \"lots of computation\".\n> \n> Xie Chao\n> \n\n1 & 2 I had already tried.\n\nI did a reboot and %dopar% started working fully again. I then did\nsuspend/resume and the problem came back. i rarely reboot and use\nsuspend/resume all the time (running on my laptop). Most likely it's a\nkernel problem. I will have to investigate a little more thoroughly, but\nit's obvious now that this is not an R problem.\n\nThanks everyone here who gave advice! Seems time to ask the kernel folks\nat Ubuntu. Definitely there's a bug here (maybe something to do with\nSCI_EN--I'll have to troubleshoot).\n\n-Brian",
+      "body_snippet": "On Sun, 2010-08-29 at 11:56 +0800, Xie Chao wrote: \n> I suggest you try:\n> \n> 1) run your R code from R directly\n> 2) test similar code without IO from hard disk\n> 3) If combining 1) and 2) still give",
+      "thread_id": "thread-0b952c82b502",
+      "thread_depth": 0,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-9abe1fbcd0d9",
+      "message_id": "<AANLkTi=wEUu=4FWjuDA3yWPSW699_3WfKATSUP9C=kqS@mail.gmail.com>",
+      "from_name": "Scionforbai",
+      "from_email_hash": "84158fa5c48e8021ee4764da72865df13181876373e69aec96b9cd769d809c5c",
+      "date": "2010-08-31T13:16:01+02:00",
+      "subject": "[R-sig-hpc] foreach + doMC not fully parallel?",
+      "subject_clean": "foreach + doMC not fully parallel?",
+      "in_reply_to": "<1283185388.2221.16.camel@peyserb-laptop>",
+      "references": [
+        "<1282860852.10568.102.camel@peyserb-laptop>",
+        "<AANLkTin5MfN7H-UC2FL7tV10vh3Ki53XhHMXZAOUg129@mail.gmail.com>",
+        "<1282923466.7049.50.camel@peyserb-laptop>",
+        "<AANLkTi=anRjhvfgP9UrOUv6FuiRsQbogMxxS44t8NcuR@mail.gmail.com>",
+        "<1283185388.2221.16.camel@peyserb-laptop>"
+      ],
+      "body_plain": "> I did a reboot and %dopar% started working fully again. I then did\n> suspend/resume and the problem came back.\n\n> Linux 2.6.32-24-generic #38 SMP Mon Jul 26 15:08:51 EDT 2010 x86_64 GNU/Linux\n\nYes, looks like the scheduler is confused after resume. In the\nnot-fully-loaded-cores scenario, do you see maybe a high CPU usage by\nprocess like 'ksoftirqd' or 'kthreadd' (high can be also just 4-5%)?\nIf this is true, this is hardly a kernel problem (you are using the\nmost uptodate LongTimeSupport kernel, which is actually overtested).\nThe origin of this problem can be a daemon or some other\nhardware-dealing software (audio? video - like ati-nvidia-compiz?\nbluetooth? ethernet/wifi?) that doesn't get restarted properly after\nsuspend and clog the scheduler with a lot of soft-irq. I observed such\nbehavior for example with the license managers for matlab or eclipse,\nand this with a more recent kernel. Try to use powertop and see if you\nhave a big difference in interrupts between both scenarios, and take a\nnote in your logs for error messages after resume and the list of\nprocesses actually running after a fresh boot and after a resume. It\nshould point out (maybe) which resource blocks your scheduler.\n\nHave fun,\n\nScion",
+      "body_snippet": "> I did a reboot and %dopar% started working fully again. I then did\n> suspend/resume and the problem came back.\n\n> Linux 2.6.32-24-generic #38 SMP Mon Jul 26 15:08:51 EDT 2010 x86_64 GNU/Linux\n\nYes, ",
+      "thread_id": "thread-0b952c82b502",
+      "thread_depth": 1,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-6a47d0c7f6e2",
+      "message_id": "<4C7CFCEF.1020103@ibe.med.uni-muenchen.de>",
+      "from_name": "Markus Schmidberger",
+      "from_email_hash": "f8bfa84297de571d104d5331872fd43189cf7e374fa9dc4c24b6e4212d13663a",
+      "date": "2010-08-31T15:00:31+02:00",
+      "subject": "[R-sig-hpc] Munich R Course - Parallel Computing with R",
+      "subject_clean": "Munich R Course - Parallel Computing with R",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100831/be30cc2e/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100831/be30cc2e/attachment.pl>",
+      "thread_id": "thread-6a47d0c7f6e2",
+      "thread_depth": 0,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-d6a2bdcb2496",
+      "message_id": "<4C7CFEA7.8080008@ibe.med.uni-muenchen.de>",
+      "from_name": "Markus Schmidberger",
+      "from_email_hash": "f8bfa84297de571d104d5331872fd43189cf7e374fa9dc4c24b6e4212d13663a",
+      "date": "2010-08-31T15:07:51+02:00",
+      "subject": "[R-sig-hpc] [R] Short survey concerning the use of software engineering in the field of High Performance Computing",
+      "subject_clean": "Short survey concerning the use of software engineering in the field of High Performance Computing",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Already more than 2000 answers. Take the change and help to get a \ngeneral overview about the use of software engineering.\n\nBest\nMarkus\n\n----------------------------------------------------------------------\n\nDear Colleagues,\n\n\nthis is a short survey (21 questions that take about 10 minutes to \nanswer) in context of the research work for my PhD thesis and the Munich \nCenter of Advanced Computing (Project B2). It would be very helpful, if \nyou will take the time to answer my questions concerning the use of \nsoftware engineering in the field of High Performance Computing.\n\nPlease note, all questions are mandatory to answer!\n\nhttp://www.q-set.de/q-set.php?sCode=TCSBHMPZAASZ\n\n\nThank you very much, kind regards\n\nMiriam Schmidberger\n(Dipl. Medien-Inf.)\n\nschmi... at in.tum.de\n\nTechnische Universit?t M?nchen\nInstitut f?r Informatik\nBoltzmannstr. 3\n85748 Garching\nGermany\nOffice 01.07.037\nTel: +49 (89) 289-18226",
+      "body_snippet": "Already more than 2000 answers. Take the change and help to get a \ngeneral overview about the use of software engineering.\n\nBest\nMarkus\n\n---------------------------------------------------------------",
+      "thread_id": "thread-d6a2bdcb2496",
+      "thread_depth": 0,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-cda8865fd5e1",
+      "message_id": "<4C7D123D.9080108@gmail.com>",
+      "from_name": "Rainer M Krug",
+      "from_email_hash": "e11b90edace280d0de30dfc4fa9de87a9a079d3f2c2f179123fa9e4ae628223d",
+      "date": "2010-08-31T16:31:25+02:00",
+      "subject": "[R-sig-hpc] Munich R Course - Parallel Computing with R",
+      "subject_clean": "Munich R Course - Parallel Computing with R",
+      "in_reply_to": "<4C7CFCEF.1020103@ibe.med.uni-muenchen.de>",
+      "references": [
+        "<4C7CFCEF.1020103@ibe.med.uni-muenchen.de>"
+      ],
+      "body_plain": "-----BEGIN PGP SIGNED MESSAGE-----\nHash: SHA1\n\nHi Markus\n\nThis email bounced from your email address - so I have to send it to the\nlist - sorry for the inconvenience.\n\nCheers,\n\nRainer\n\nHallo Markus\n\nIch w?hre sehr an dem Kurs interessiert - Ich bin ein Postdoc an der Uni\nStellenbosch - was f?r Unterlagen br?uchte ich, um mich f?r den\nerm??igten Preis von EUR 300,- f?r Hochschulen zu qualifizieren?\n\nVielen Dank,\n\nRainer\n\n\nOn 31/08/10 15:00, Markus Schmidberger wrote:\n> Dear R users,\n>\n> at November 8. & 9., 2010, there will be an R course for 'Parallel\n> Computing with R' in Munich at the super computer center. The course is\n> part of the Munich R Course series and gives an introduction to parallel\n> computing with R. Especially the R packages snow, snowfall, multicore,\n> nws and Rmpi will be used. The course is a hands-on tutorial with a lot\n> of different examples. Furthermore, for exercises the super computer\n> HLRB2 (9728 cores) at the LRZ can be used.\n>\n> The course will be held in English. Further information, prices and\n> registration at http://www.statistik.lmu.de/R/inhalte.html#K3eng\n>\n> Please check for other Munich R courses: http://www.statistik.lmu.de/R\n>\n> Best regards\n> Markus Schmidberger\n>\n>\n>\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n\n\n- -- \nRainer M. Krug, PhD (Conservation Ecology, SUN), MSc (Conservation\nBiology, UCT), Dipl. Phys. (Germany)\n\nCentre of Excellence for Invasion Biology\nNatural Sciences Building\nOffice Suite 2039\nStellenbosch University\nMain Campus, Merriman Avenue\nStellenbosch\nSouth Africa\n\nTel:        +33 - (0)9 53 10 27 44\nCell:       +27 - (0)8 39 47 90 42\nFax (SA):   +27 - (0)8 65 16 27 82\nFax (D) :   +49 - (0)3 21 21 25 22 44\nFax (FR):   +33 - (0)9 58 10 27 44\nemail:      Rainer at krugs.de\n\nSkype:      RMkrug\n-----BEGIN PGP SIGNATURE-----\nVersion: GnuPG v1.4.10 (GNU/Linux)\nComment: Using GnuPG with Mozilla - http://enigmail.mozdev.org/\n\niEYEARECAAYFAkx9Ej0ACgkQoYgNqgF2egrphQCcCWc3eL6C6uBRn2Tvdl5unJ8g\nYnYAn1N0dSPInkFRVH12FO3t7jDshhtO\n=Veni\n-----END PGP SIGNATURE-----",
+      "body_snippet": "-----BEGIN PGP SIGNED MESSAGE-----\nHash: SHA1\n\nHi Markus\n\nThis email bounced from your email address - so I have to send it to the\nlist - sorry for the inconvenience.\n\nCheers,\n\nRainer\n\nHallo Markus\n\nI",
+      "thread_id": "thread-6a47d0c7f6e2",
+      "thread_depth": 1,
+      "month": "2010-08"
+    },
+    {
+      "id": "msg-a8c69b12d592",
+      "message_id": "<1283277561.7975.26.camel@peyserb-laptop>",
+      "from_name": "Brian D Peyser PhD",
+      "from_email_hash": "530bce1dec1c26d126f418e9443f134c63b1503239a004dc50464172c1d97b1f",
+      "date": "2010-08-31T13:59:21-04:00",
+      "subject": "[R-sig-hpc] foreach + doMC not fully parallel?",
+      "subject_clean": "foreach + doMC not fully parallel?",
+      "in_reply_to": "<AANLkTi=wEUu=4FWjuDA3yWPSW699_3WfKATSUP9C=kqS@mail.gmail.com>",
+      "references": [
+        "<1282860852.10568.102.camel@peyserb-laptop>",
+        "<AANLkTin5MfN7H-UC2FL7tV10vh3Ki53XhHMXZAOUg129@mail.gmail.com>",
+        "<1282923466.7049.50.camel@peyserb-laptop>",
+        "<AANLkTi=anRjhvfgP9UrOUv6FuiRsQbogMxxS44t8NcuR@mail.gmail.com>",
+        "<1283185388.2221.16.camel@peyserb-laptop>",
+        "<AANLkTi=wEUu=4FWjuDA3yWPSW699_3WfKATSUP9C=kqS@mail.gmail.com>"
+      ],
+      "body_plain": "On Tue, 2010-08-31 at 13:16 +0200, Scionforbai wrote: \n> > I did a reboot and %dopar% started working fully again. I then did\n> > suspend/resume and the problem came back.\n> \n> > Linux 2.6.32-24-generic #38 SMP Mon Jul 26 15:08:51 EDT 2010 x86_64 GNU/Linux\n> \n> Yes, looks like the scheduler is confused after resume. In the\n> not-fully-loaded-cores scenario, do you see maybe a high CPU usage by\n> process like 'ksoftirqd' or 'kthreadd' (high can be also just 4-5%)?\n\nI did not see any CPU usage from either of those processes when trying\nto run multicore following suspend/resume (when my cores were\nunderutilized).\n\n> If this is true, this is hardly a kernel problem (you are using the\n> most uptodate LongTimeSupport kernel, which is actually overtested).\n> The origin of this problem can be a daemon or some other\n> hardware-dealing software (audio? video - like ati-nvidia-compiz?\n> bluetooth? ethernet/wifi?) that doesn't get restarted properly after\n> suspend and clog the scheduler with a lot of soft-irq. I observed such\n> behavior for example with the license managers for matlab or eclipse,\n> and this with a more recent kernel. Try to use powertop and see if you\n> have a big difference in interrupts between both scenarios, and take a\n> note in your logs for error messages after resume and the list of\n> processes actually running after a fresh boot and after a resume. It\n> should point out (maybe) which resource blocks your scheduler.\n> \n> Have fun,\n> \n> Scion\n\nAccording to powertop, when the problem occurs \"[kernel scheduler] Load\nbalancing tick\" is performing fewer wakeups (~220 when a single core is\nused vs ~400 when all 4 or 3 are used, ~350 when only 2 cores are used).\nThat's the only difference I can find with powertop.\n\nI closed Skype and with that closed I am getting full multicore use\nsometimes, but even with Skype closed it sometimes fails to fully\nutilize all the cores. Maybe there is an issue with network utilization\ncausing this after suspend/resume. Since Skype is often communicating\nwith its server that could be the issue. I guess this will take some\nmore troubleshooting. That will have to wait for later.\n\n-Brian",
+      "body_snippet": "On Tue, 2010-08-31 at 13:16 +0200, Scionforbai wrote: \n> > I did a reboot and %dopar% started working fully again. I then did\n> > suspend/resume and the problem came back.\n> \n> > Linux 2.6.32-24-gener",
+      "thread_id": "thread-0b952c82b502",
+      "thread_depth": 2,
+      "month": "2010-08"
+    }
+  ],
+  "threads": [
+    {
+      "id": "thread-192ac028221d",
+      "subject": "Started uploading \"simple working example\" collection for parallel R",
+      "message_count": 1,
+      "participants": [
+        "Paul Johnson"
+      ],
+      "started": "2010-08-02T15:19:59-05:00",
+      "last_reply": "2010-08-02T15:19:59-05:00",
+      "root_message_id": "msg-192ac028221d"
+    },
+    {
+      "id": "thread-931ac5216795",
+      "subject": "doMC - Using the foreach function",
+      "message_count": 2,
+      "participants": [
+        "Fong Chun Chan",
+        "Stephen Weston"
+      ],
+      "started": "2010-08-03T15:51:33-07:00",
+      "last_reply": "2010-08-08T18:51:15-04:00",
+      "root_message_id": "msg-931ac5216795"
+    },
+    {
+      "id": "thread-540f87aea40e",
+      "subject": "Running jobs on a linux cluster: ways to communicate finished jobs, so fill in with new jobs",
+      "message_count": 2,
+      "participants": [
+        "Laura S",
+        "Paul Johnson"
+      ],
+      "started": "2010-08-10T08:15:03-07:00",
+      "last_reply": "2010-08-10T11:57:50-05:00",
+      "root_message_id": "msg-540f87aea40e"
+    },
+    {
+      "id": "thread-0756d1ca5c35",
+      "subject": "Error: serialization is too large to store in a raw vector",
+      "message_count": 4,
+      "participants": [
+        "Fong Chun Chan",
+        "Stephen Weston"
+      ],
+      "started": "2010-08-10T13:07:41-07:00",
+      "last_reply": "2010-08-11T07:59:10-04:00",
+      "root_message_id": "msg-0756d1ca5c35"
+    },
+    {
+      "id": "thread-6310d93c1cec",
+      "subject": "Rmpi and bigmemory",
+      "message_count": 1,
+      "participants": [
+        "Christian Davies (Macquarie Securities)"
+      ],
+      "started": "2010-08-11T17:22:53+01:00",
+      "last_reply": "2010-08-11T17:22:53+01:00",
+      "root_message_id": "msg-6310d93c1cec"
+    },
+    {
+      "id": "thread-599cded3abf5",
+      "subject": "Rmpi and bigmemory",
+      "message_count": 1,
+      "participants": [
+        "Christian Davies (Macquarie Securities)"
+      ],
+      "started": "2010-08-12T10:39:59+01:00",
+      "last_reply": "2010-08-12T10:39:59+01:00",
+      "root_message_id": "msg-599cded3abf5"
+    },
+    {
+      "id": "thread-5cd996e96d50",
+      "subject": "Cluster R \"environment\" trouble. Using Rmpi",
+      "message_count": 2,
+      "participants": [
+        "Hao Yu",
+        "Paul Johnson"
+      ],
+      "started": "2010-08-14T02:57:39-05:00",
+      "last_reply": "2010-08-18T14:05:10-04:00",
+      "root_message_id": "msg-5cd996e96d50"
+    },
+    {
+      "id": "thread-607c3d1cd04b",
+      "subject": "installing multicore package in W7",
+      "message_count": 1,
+      "participants": [
+        "romunov"
+      ],
+      "started": "2010-08-16T11:04:56+02:00",
+      "last_reply": "2010-08-16T11:04:56+02:00",
+      "root_message_id": "msg-607c3d1cd04b"
+    },
+    {
+      "id": "thread-6d1d16d3cc04",
+      "subject": "rmpi SGE",
+      "message_count": 2,
+      "participants": [
+        "bart",
+        "olivier.garo at laposte.net"
+      ],
+      "started": "2010-08-18T09:37:17+02:00",
+      "last_reply": "2010-08-23T10:38:36+02:00",
+      "root_message_id": "msg-6d1d16d3cc04"
+    },
+    {
+      "id": "thread-6d1875d13ddc",
+      "subject": "how to remove workers in doSMP",
+      "message_count": 2,
+      "participants": [
+        "Dirk Eddelbuettel",
+        "Roman Luštrik"
+      ],
+      "started": "2010-08-19T09:52:46+02:00",
+      "last_reply": "2010-08-19T08:32:44-05:00",
+      "root_message_id": "msg-6d1875d13ddc"
+    },
+    {
+      "id": "thread-7265ec798a19",
+      "subject": "unable to create localhost clusters with doSNOW",
+      "message_count": 8,
+      "participants": [
+        "Abhijit Dasgupta, PhD",
+        "Dirk Eddelbuettel",
+        "Matthieu Stigler",
+        "Roman Luštrik",
+        "luke at stat.uiowa.edu",
+        "mat",
+        "romunov"
+      ],
+      "started": "2010-08-20T11:32:07+02:00",
+      "last_reply": "2010-08-24T19:28:38+02:00",
+      "root_message_id": "msg-7265ec798a19"
+    },
+    {
+      "id": "thread-1d07a1578ba0",
+      "subject": "Making a series of similar, but modified .r files- suggested method(s)? Re: Running jobs on a linux cluster",
+      "message_count": 4,
+      "participants": [
+        "Kasper Daniel Hansen",
+        "Laura S",
+        "Patrick Brandt",
+        "bart"
+      ],
+      "started": "2010-08-21T11:03:27-07:00",
+      "last_reply": "2010-08-23T10:47:09+02:00",
+      "root_message_id": "msg-1d07a1578ba0"
+    },
+    {
+      "id": "thread-b70e2929aa3f",
+      "subject": "serialize() slow",
+      "message_count": 3,
+      "participants": [
+        "Fernando Saldanha",
+        "Martin Morgan",
+        "Paul Johnson"
+      ],
+      "started": "2010-08-21T15:16:47-04:00",
+      "last_reply": "2010-08-21T13:39:18-07:00",
+      "root_message_id": "msg-b70e2929aa3f"
+    },
+    {
+      "id": "thread-3a64abfec71e",
+      "subject": "Holtman's levelplot ?",
+      "message_count": 1,
+      "participants": [
+        "Michel Lutz"
+      ],
+      "started": "2010-08-24T10:47:22+02:00",
+      "last_reply": "2010-08-24T10:47:22+02:00",
+      "root_message_id": "msg-3a64abfec71e"
+    },
+    {
+      "id": "thread-ad1d631c1d92",
+      "subject": "Holtman's levelplot ?",
+      "message_count": 2,
+      "participants": [
+        "Michel Lutz",
+        "Red Roo"
+      ],
+      "started": "2010-08-24T12:45:49+02:00",
+      "last_reply": "2010-08-24T06:46:30-07:00",
+      "root_message_id": "msg-ad1d631c1d92"
+    },
+    {
+      "id": "thread-d4d74b7368bf",
+      "subject": "help with a scoping issue with foreach",
+      "message_count": 3,
+      "participants": [
+        "Roman Luštrik",
+        "Stephen Weston"
+      ],
+      "started": "2010-08-24T14:13:26+02:00",
+      "last_reply": "2010-08-25T11:46:18+02:00",
+      "root_message_id": "msg-d4d74b7368bf"
+    },
+    {
+      "id": "thread-b9441f3c4da7",
+      "subject": "Rmpi - slaves processes spawn only on master machine",
+      "message_count": 1,
+      "participants": [
+        "Fabrizio Formisano"
+      ],
+      "started": "2010-08-25T12:14:35-04:00",
+      "last_reply": "2010-08-25T12:14:35-04:00",
+      "root_message_id": "msg-b9441f3c4da7"
+    },
+    {
+      "id": "thread-5167e673e3ae",
+      "subject": "Rmpi - slaves processes spawn only on master machine",
+      "message_count": 1,
+      "participants": [
+        "Fabrizio Formisano"
+      ],
+      "started": "2010-08-25T15:58:30-04:00",
+      "last_reply": "2010-08-25T15:58:30-04:00",
+      "root_message_id": "msg-5167e673e3ae"
+    },
+    {
+      "id": "thread-5057d7b20ab7",
+      "subject": "foreach + doMC not fully parallel?",
+      "message_count": 5,
+      "participants": [
+        "Brian D Peyser PhD",
+        "Norm Matloff",
+        "Sean Davis"
+      ],
+      "started": "2010-08-26T18:14:12-04:00",
+      "last_reply": "2010-08-27T11:37:46-04:00",
+      "root_message_id": "msg-5057d7b20ab7"
+    },
+    {
+      "id": "thread-0b952c82b502",
+      "subject": "foreach + doMC not fully parallel?",
+      "message_count": 3,
+      "participants": [
+        "Brian D Peyser PhD",
+        "Scionforbai"
+      ],
+      "started": "2010-08-30T12:23:08-04:00",
+      "last_reply": "2010-08-31T13:59:21-04:00",
+      "root_message_id": "msg-0b952c82b502"
+    },
+    {
+      "id": "thread-6a47d0c7f6e2",
+      "subject": "Munich R Course - Parallel Computing with R",
+      "message_count": 2,
+      "participants": [
+        "Markus Schmidberger",
+        "Rainer M Krug"
+      ],
+      "started": "2010-08-31T15:00:31+02:00",
+      "last_reply": "2010-08-31T16:31:25+02:00",
+      "root_message_id": "msg-6a47d0c7f6e2"
+    },
+    {
+      "id": "thread-d6a2bdcb2496",
+      "subject": "Short survey concerning the use of software engineering in the field of High Performance Computing",
+      "message_count": 1,
+      "participants": [
+        "Markus Schmidberger"
+      ],
+      "started": "2010-08-31T15:07:51+02:00",
+      "last_reply": "2010-08-31T15:07:51+02:00",
+      "root_message_id": "msg-d6a2bdcb2496"
+    }
+  ]
+}

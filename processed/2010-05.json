@@ -1,0 +1,801 @@
+{
+  "list": "r-sig-hpc",
+  "description": "",
+  "month": "2010-05",
+  "messages": [
+    {
+      "id": "msg-5f953f66d24b",
+      "message_id": "<4BDEA92E.9020509@gmail.com>",
+      "from_name": "mat",
+      "from_email_hash": "8be7d9af3aa05df3cb73327099ca82a1e00b62ae5b6e52d77e9d9908c4ad6d37",
+      "date": "2010-05-03T16:15:02+05:30",
+      "subject": "[R-sig-hpc] foreach: using either %do% or %dopar% depending on condition",
+      "subject_clean": "foreach: using either %do% or %dopar% depending on condition",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Hi\n\nI wish to be able to substitute %do% or %dopar% depending on whether the \nuser wants or not to use the parallel feature. For this, I would do \nsomething like:\n\nif(hpc) foreach(icount(5), .combine = \"rbind\")  %dopar%\nelse foreach(icount(5), .combine = \"rbind\")  %do%\n    statement of function...\n\nI did not succeed in doing it, I tried:\n\nforeach(icount(5), .combine = \"rbind\")  %do% else  %dopar% \n{\na<-runif(1)\nb<-runif(1)\nc(a,b)\n}\n\nOr tried to assign outside the operator:\n\n\"%my%\" <-function(obj,ex) if(hpc==\"none\") \"%dopar%\" else \"%dopar%\"\n\nforeach(icount(5), .combine = \"rbind\")  %my% {\na<-runif(1)\nb<-runif(1)\nc(a,b)\n}\n\nBut it fails... any idea?\n\nThanks a lot!!\n\nMatthieu",
+      "body_snippet": "Hi\n\nI wish to be able to substitute %do% or %dopar% depending on whether the \nuser wants or not to use the parallel feature. For this, I would do \nsomething like:\n\nif(hpc) foreach(icount(5), .combine ",
+      "thread_id": "thread-5f953f66d24b",
+      "thread_depth": 0,
+      "month": "2010-05"
+    },
+    {
+      "id": "msg-a47de2b78eec",
+      "message_id": "<4BDEB146.8060709@braverock.com>",
+      "from_name": "Brian G. Peterson",
+      "from_email_hash": "2d44e89a02cb2a9eb2f2113de72098dcb74d077b13b61958f1336c3292aa0254",
+      "date": "2010-05-03T06:19:34-05:00",
+      "subject": "[R-sig-hpc] foreach: using either %do% or %dopar% depending on condition",
+      "subject_clean": "foreach: using either %do% or %dopar% depending on condition",
+      "in_reply_to": "<4BDEA92E.9020509@gmail.com>",
+      "references": [
+        "<4BDEA92E.9020509@gmail.com>"
+      ],
+      "body_plain": "I think you're over-complicating this.\n\nI only use %do% while testing something, to make certain that I can debug \ncleanly, and often not even that.\n\nI then convert *all* code to %dopar%\n\nThe user can registerDoSeq() to do sequentially on one core, and this is the \ndefault behavior if no parallel registerDo* engine is registered (e.g. foreach \nis installed, but none of the parallel backends, or the user has not registered \na backend).\n\nRegards,\n\n    - Brian\n\nmat wrote:\n> Hi\n> \n> I wish to be able to substitute %do% or %dopar% depending on whether the \n> user wants or not to use the parallel feature. For this, I would do \n> something like:\n> \n> if(hpc) foreach(icount(5), .combine = \"rbind\")  %dopar%\n> else foreach(icount(5), .combine = \"rbind\")  %do%\n>    statement of function...\n> \n> I did not succeed in doing it, I tried:\n> \n> foreach(icount(5), .combine = \"rbind\")  %do% else  %dopar% {\n> a<-runif(1)\n> b<-runif(1)\n> c(a,b)\n> }\n> \n> Or tried to assign outside the operator:\n> \n> \"%my%\" <-function(obj,ex) if(hpc==\"none\") \"%dopar%\" else \"%dopar%\"\n> \n> foreach(icount(5), .combine = \"rbind\")  %my% {\n> a<-runif(1)\n> b<-runif(1)\n> c(a,b)\n> }\n> \n> But it fails... any idea?\n> \n> Thanks a lot!!\n> \n> Matthieu\n> \n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n\n\n-- \nBrian G. Peterson\nhttp://braverock.com/brian/\nPh: 773-459-4973\nIM: bgpbraverock",
+      "body_snippet": "I think you're over-complicating this.\n\nI only use %do% while testing something, to make certain that I can debug \ncleanly, and often not even that.\n\nI then convert *all* code to %dopar%\n\nThe user can",
+      "thread_id": "thread-5f953f66d24b",
+      "thread_depth": 1,
+      "month": "2010-05"
+    },
+    {
+      "id": "msg-844fbd402b81",
+      "message_id": "<q2k57e838141005030422nb102a59cxe542634c0921558d@mail.gmail.com>",
+      "from_name": "Stephen Weston",
+      "from_email_hash": "507fe1aedccd9cb1c2bba1715ac24f959abe255adeeb866f82b6c8a1896cbd15",
+      "date": "2010-05-03T07:22:30-04:00",
+      "subject": "[R-sig-hpc] foreach: using either %do% or %dopar% depending on condition",
+      "subject_clean": "foreach: using either %do% or %dopar% depending on condition",
+      "in_reply_to": "<4BDEA92E.9020509@gmail.com>",
+      "references": [
+        "<4BDEA92E.9020509@gmail.com>"
+      ],
+      "body_plain": "You could try something like this:\n\n    > '%my%' <- if (hpc == \"none\") get('%do%') else get('%dopar%')\n\nHowever, why not just let the user decide by either registering a parallel\nbackend or not?  The main purpose of the \"registerDoSEQ\" function is\nto allow the user to say that parallel operations should be done sequentially.\nThe '%dopar%' function is the programmer's way to declare that the\nforeach loop can be executed in parallel.  It's the user's job to declare\nhow the '%dopar%' should be executed.  That also simplifies the code\nby not having to define and pass around yet another option to your\nfunctions.\n\n- Steve\n\n\n\n\nOn Mon, May 3, 2010 at 6:45 AM, mat <matthieu.stigler at gmail.com> wrote:\n> Hi\n>\n> I wish to be able to substitute %do% or %dopar% depending on whether the\n> user wants or not to use the parallel feature. For this, I would do\n> something like:\n>\n> if(hpc) foreach(icount(5), .combine = \"rbind\") ?%dopar%\n> else foreach(icount(5), .combine = \"rbind\") ?%do%\n> ? statement of function...\n>\n> I did not succeed in doing it, I tried:\n>\n> foreach(icount(5), .combine = \"rbind\") ?%do% else ?%dopar% {\n> a<-runif(1)\n> b<-runif(1)\n> c(a,b)\n> }\n>\n> Or tried to assign outside the operator:\n>\n> \"%my%\" <-function(obj,ex) if(hpc==\"none\") \"%dopar%\" else \"%dopar%\"\n>\n> foreach(icount(5), .combine = \"rbind\") ?%my% {\n> a<-runif(1)\n> b<-runif(1)\n> c(a,b)\n> }\n>\n> But it fails... any idea?\n>\n> Thanks a lot!!\n>\n> Matthieu\n>",
+      "body_snippet": "You could try something like this:\n\n    > '%my%' <- if (hpc == \"none\") get('%do%') else get('%dopar%')\n\nHowever, why not just let the user decide by either registering a parallel\nbackend or not?  The ",
+      "thread_id": "thread-5f953f66d24b",
+      "thread_depth": 1,
+      "month": "2010-05"
+    },
+    {
+      "id": "msg-ab270b6f0ef2",
+      "message_id": "<4BDEB571.6010607@gmail.com>",
+      "from_name": "mat",
+      "from_email_hash": "8be7d9af3aa05df3cb73327099ca82a1e00b62ae5b6e52d77e9d9908c4ad6d37",
+      "date": "2010-05-03T17:07:21+05:30",
+      "subject": "[R-sig-hpc] foreach: using either %do% or %dopar% depending on condition",
+      "subject_clean": "foreach: using either %do% or %dopar% depending on condition",
+      "in_reply_to": "<q2k57e838141005030422nb102a59cxe542634c0921558d@mail.gmail.com>",
+      "references": [
+        "<4BDEA92E.9020509@gmail.com>",
+        "<q2k57e838141005030422nb102a59cxe542634c0921558d@mail.gmail.com>"
+      ],
+      "body_plain": "Thanks a lot Brian and Steve for your prompt answer!!\n\nYou noth pointed out what I'm doing is a little bit complicated... let \nme precise why I do this, and maybe you will agree?\n\nThe function for end-user is not on parallel staff, it is a test for a \ntime series model, whose computations can be alleviated thanks to a \nparallel computing. Say the function is (using the names as in package \nstrucchange, which is to my knowledge the only one to make an explicit \ncall to foreach):\n\nmytest<-function(x, y, optionA=c(\"A\", \"B\"), hpc=c(\"none\", \"foreach\")\n\nSo the rationale is that one assumes that by default the user does not \nuse the parallel option, hence the %do% call (using by default %dopar% \nwould be adding an unexpected warning, no?). But if the user wants, then \nwe will call %dopar%\n\nDo you think it then makes sense? Are there any recomandations / \nstandardization efforts on how one should provide link to foreach or \nsnow from other packages?\n\nThanks a lot!!!\n\nMatthieu\n\n\n\n\n\nStephen Weston a ?crit :\n> You could try something like this:\n>\n>     > '%my%' <- if (hpc == \"none\") get('%do%') else get('%dopar%')\n>\n> However, why not just let the user decide by either registering a parallel\n> backend or not?  The main purpose of the \"registerDoSEQ\" function is\n> to allow the user to say that parallel operations should be done sequentially.\n> The '%dopar%' function is the programmer's way to declare that the\n> foreach loop can be executed in parallel.  It's the user's job to declare\n> how the '%dopar%' should be executed.  That also simplifies the code\n> by not having to define and pass around yet another option to your\n> functions.\n>\n> - Steve\n>\n>\n>\n>\n> On Mon, May 3, 2010 at 6:45 AM, mat <matthieu.stigler at gmail.com> wrote:\n>   \n>> Hi\n>>\n>> I wish to be able to substitute %do% or %dopar% depending on whether the\n>> user wants or not to use the parallel feature. For this, I would do\n>> something like:\n>>\n>> if(hpc) foreach(icount(5), .combine = \"rbind\")  %dopar%\n>> else foreach(icount(5), .combine = \"rbind\")  %do%\n>>   statement of function...\n>>\n>> I did not succeed in doing it, I tried:\n>>\n>> foreach(icount(5), .combine = \"rbind\")  %do% else  %dopar% {\n>> a<-runif(1)\n>> b<-runif(1)\n>> c(a,b)\n>> }\n>>\n>> Or tried to assign outside the operator:\n>>\n>> \"%my%\" <-function(obj,ex) if(hpc==\"none\") \"%dopar%\" else \"%dopar%\"\n>>\n>> foreach(icount(5), .combine = \"rbind\")  %my% {\n>> a<-runif(1)\n>> b<-runif(1)\n>> c(a,b)\n>> }\n>>\n>> But it fails... any idea?\n>>\n>> Thanks a lot!!\n>>\n>> Matthieu\n>>\n>>",
+      "body_snippet": "Thanks a lot Brian and Steve for your prompt answer!!\n\nYou noth pointed out what I'm doing is a little bit complicated... let \nme precise why I do this, and maybe you will agree?\n\nThe function for end",
+      "thread_id": "thread-5f953f66d24b",
+      "thread_depth": 2,
+      "month": "2010-05"
+    },
+    {
+      "id": "msg-a0650a01139b",
+      "message_id": "<4BDEB70A.2020605@braverock.com>",
+      "from_name": "Brian G. Peterson",
+      "from_email_hash": "2d44e89a02cb2a9eb2f2113de72098dcb74d077b13b61958f1336c3292aa0254",
+      "date": "2010-05-03T06:44:10-05:00",
+      "subject": "[R-sig-hpc] foreach: using either %do% or %dopar% depending on condition",
+      "subject_clean": "foreach: using either %do% or %dopar% depending on condition",
+      "in_reply_to": "<4BDEB571.6010607@gmail.com>",
+      "references": [
+        "<4BDEA92E.9020509@gmail.com>",
+        "<q2k57e838141005030422nb102a59cxe542634c0921558d@mail.gmail.com>",
+        "<4BDEB571.6010607@gmail.com>"
+      ],
+      "body_plain": "Matthieu,\n\nI think I understand what you're saying, but you still don't need it, in my \nopinion.\n\nregisterDoSEQ() does what you're describing, it instructs foreach to run \nwithout a parallel backend.  If no parallel backend is available, this is the \ndefault.\n\nAs for standardizations, just put foreach in 'Depends:' in your package \nDESCRIPTION file, as you would for any other package.  'foreach' will be \nrequired to install your package, and it will be loaded automatically when your \npackage loads, as with any other R package.\n\nI'll note again, that when foreach is loaded, if the user takes no explicit \naction to register a parallel backend, foreach will run sequentially, \nautomatically, without any of the complications you describe, or the workaround \nsuggested by Steve.\n\nRegards,\n\n    - Brian\n\nmat wrote:\n> Thanks a lot Brian and Steve for your prompt answer!!\n> \n> You noth pointed out what I'm doing is a little bit complicated... let \n> me precise why I do this, and maybe you will agree?\n> \n> The function for end-user is not on parallel staff, it is a test for a \n> time series model, whose computations can be alleviated thanks to a \n> parallel computing. Say the function is (using the names as in package \n> strucchange, which is to my knowledge the only one to make an explicit \n> call to foreach):\n> \n> mytest<-function(x, y, optionA=c(\"A\", \"B\"), hpc=c(\"none\", \"foreach\")\n> \n> So the rationale is that one assumes that by default the user does not \n> use the parallel option, hence the %do% call (using by default %dopar% \n> would be adding an unexpected warning, no?). But if the user wants, then \n> we will call %dopar%\n> \n> Do you think it then makes sense? Are there any recomandations / \n> standardization efforts on how one should provide link to foreach or \n> snow from other packages?\n> \n> Thanks a lot!!!\n> \n> Matthieu\n> \n> \n> \n> \n> \n> Stephen Weston a ?crit :\n>> You could try something like this:\n>>\n>>     > '%my%' <- if (hpc == \"none\") get('%do%') else get('%dopar%')\n>>\n>> However, why not just let the user decide by either registering a \n>> parallel\n>> backend or not?  The main purpose of the \"registerDoSEQ\" function is\n>> to allow the user to say that parallel operations should be done \n>> sequentially.\n>> The '%dopar%' function is the programmer's way to declare that the\n>> foreach loop can be executed in parallel.  It's the user's job to declare\n>> how the '%dopar%' should be executed.  That also simplifies the code\n>> by not having to define and pass around yet another option to your\n>> functions.\n>>\n>> - Steve\n>>\n>>\n>>\n>>\n>> On Mon, May 3, 2010 at 6:45 AM, mat <matthieu.stigler at gmail.com> wrote:\n>>  \n>>> Hi\n>>>\n>>> I wish to be able to substitute %do% or %dopar% depending on whether the\n>>> user wants or not to use the parallel feature. For this, I would do\n>>> something like:\n>>>\n>>> if(hpc) foreach(icount(5), .combine = \"rbind\")  %dopar%\n>>> else foreach(icount(5), .combine = \"rbind\")  %do%\n>>>   statement of function...\n>>>\n>>> I did not succeed in doing it, I tried:\n>>>\n>>> foreach(icount(5), .combine = \"rbind\")  %do% else  %dopar% {\n>>> a<-runif(1)\n>>> b<-runif(1)\n>>> c(a,b)\n>>> }\n>>>\n>>> Or tried to assign outside the operator:\n>>>\n>>> \"%my%\" <-function(obj,ex) if(hpc==\"none\") \"%dopar%\" else \"%dopar%\"\n>>>\n>>> foreach(icount(5), .combine = \"rbind\")  %my% {\n>>> a<-runif(1)\n>>> b<-runif(1)\n>>> c(a,b)\n>>> }\n>>>\n>>> But it fails... any idea?\n>>>\n>>> Thanks a lot!!\n>>>\n>>> Matthieu\n>>>\n>>>     \n\n\n-- \nBrian G. Peterson\nhttp://braverock.com/brian/\nPh: 773-459-4973\nIM: bgpbraverock",
+      "body_snippet": "Matthieu,\n\nI think I understand what you're saying, but you still don't need it, in my \nopinion.\n\nregisterDoSEQ() does what you're describing, it instructs foreach to run \nwithout a parallel backend. ",
+      "thread_id": "thread-5f953f66d24b",
+      "thread_depth": 3,
+      "month": "2010-05"
+    },
+    {
+      "id": "msg-e865b90c1d6a",
+      "message_id": "<4BDEDAC6.1010407@gmail.com>",
+      "from_name": "mat",
+      "from_email_hash": "8be7d9af3aa05df3cb73327099ca82a1e00b62ae5b6e52d77e9d9908c4ad6d37",
+      "date": "2010-05-03T19:46:38+05:30",
+      "subject": "[R-sig-hpc] foreach: using either %do% or %dopar% depending on condition",
+      "subject_clean": "foreach: using either %do% or %dopar% depending on condition",
+      "in_reply_to": "<4BDEB70A.2020605@braverock.com>",
+      "references": [
+        "<4BDEA92E.9020509@gmail.com>",
+        "<q2k57e838141005030422nb102a59cxe542634c0921558d@mail.gmail.com>",
+        "<4BDEB571.6010607@gmail.com>",
+        "<4BDEB70A.2020605@braverock.com>"
+      ],
+      "body_plain": "Brian G. Peterson a ?crit :\n> Matthieu,\n>\n> I think I understand what you're saying, but you still don't need it, \n> in my opinion.\n>\n> registerDoSEQ() does what you're describing, it instructs foreach to \n> run without a parallel backend.  If no parallel backend is available, \n> this is the default.\n>\ndo I understand it well that you would add something like:\n\nmytest<-function(x, y, optionA=c(\"A\", \"B\"), hpc=c(\"none\", \"foreach\") )\n    ...\n    if(hpc==\"none\") registerDoSEQ()\n    foreach() %dopar%\n    ...\n> As for standardizations, just put foreach in 'Depends:' in your \n> package DESCRIPTION file, as you would for any other package.  \n> 'foreach' will be required to install your package, and it will be \n> loaded automatically when your package loads, as with any other R \n> package.\n>\nI rather thought conventions in terms of naming arguments for functions \nwhich call parallel routines, whether there are recommandations so that \nthere is consitency for the user calling parallel tasks across packages.\n\n> I'll note again, that when foreach is loaded, if the user takes no \n> explicit action to register a parallel backend, foreach will run \n> sequentially, automatically, without any of the complications you \n> describe, or the workaround suggested by Steve.\n>\nbut it will issue a warning, right?\n\nthanks a lot!!\n\nMatthieu\n> Regards,\n>\n>    - Brian\n>\n> mat wrote:\n>> Thanks a lot Brian and Steve for your prompt answer!!\n>>\n>> You noth pointed out what I'm doing is a little bit complicated... \n>> let me precise why I do this, and maybe you will agree?\n>>\n>> The function for end-user is not on parallel staff, it is a test for \n>> a time series model, whose computations can be alleviated thanks to a \n>> parallel computing. Say the function is (using the names as in \n>> package strucchange, which is to my knowledge the only one to make an \n>> explicit call to foreach):\n>>\n>> mytest<-function(x, y, optionA=c(\"A\", \"B\"), hpc=c(\"none\", \"foreach\")\n>>\n>> So the rationale is that one assumes that by default the user does \n>> not use the parallel option, hence the %do% call (using by default \n>> %dopar% would be adding an unexpected warning, no?). But if the user \n>> wants, then we will call %dopar%\n>>\n>> Do you think it then makes sense? Are there any recomandations / \n>> standardization efforts on how one should provide link to foreach or \n>> snow from other packages?\n>>\n>> Thanks a lot!!!\n>>\n>> Matthieu\n>>\n>>\n>>\n>>\n>>\n>> Stephen Weston a ?crit :\n>>> You could try something like this:\n>>>\n>>>     > '%my%' <- if (hpc == \"none\") get('%do%') else get('%dopar%')\n>>>\n>>> However, why not just let the user decide by either registering a \n>>> parallel\n>>> backend or not?  The main purpose of the \"registerDoSEQ\" function is\n>>> to allow the user to say that parallel operations should be done \n>>> sequentially.\n>>> The '%dopar%' function is the programmer's way to declare that the\n>>> foreach loop can be executed in parallel.  It's the user's job to \n>>> declare\n>>> how the '%dopar%' should be executed.  That also simplifies the code\n>>> by not having to define and pass around yet another option to your\n>>> functions.\n>>>\n>>> - Steve\n>>>\n>>>\n>>>\n>>>\n>>> On Mon, May 3, 2010 at 6:45 AM, mat <matthieu.stigler at gmail.com> wrote:\n>>>  \n>>>> Hi\n>>>>\n>>>> I wish to be able to substitute %do% or %dopar% depending on \n>>>> whether the\n>>>> user wants or not to use the parallel feature. For this, I would do\n>>>> something like:\n>>>>\n>>>> if(hpc) foreach(icount(5), .combine = \"rbind\")  %dopar%\n>>>> else foreach(icount(5), .combine = \"rbind\")  %do%\n>>>>   statement of function...\n>>>>\n>>>> I did not succeed in doing it, I tried:\n>>>>\n>>>> foreach(icount(5), .combine = \"rbind\")  %do% else  %dopar% {\n>>>> a<-runif(1)\n>>>> b<-runif(1)\n>>>> c(a,b)\n>>>> }\n>>>>\n>>>> Or tried to assign outside the operator:\n>>>>\n>>>> \"%my%\" <-function(obj,ex) if(hpc==\"none\") \"%dopar%\" else \"%dopar%\"\n>>>>\n>>>> foreach(icount(5), .combine = \"rbind\")  %my% {\n>>>> a<-runif(1)\n>>>> b<-runif(1)\n>>>> c(a,b)\n>>>> }\n>>>>\n>>>> But it fails... any idea?\n>>>>\n>>>> Thanks a lot!!\n>>>>\n>>>> Matthieu\n>>>>\n>>>>     \n>\n>",
+      "body_snippet": "Brian G. Peterson a ?crit :\n> Matthieu,\n>\n> I think I understand what you're saying, but you still don't need it, \n> in my opinion.\n>\n> registerDoSEQ() does what you're describing, it instructs foreac",
+      "thread_id": "thread-5f953f66d24b",
+      "thread_depth": 4,
+      "month": "2010-05"
+    },
+    {
+      "id": "msg-a21272c60521",
+      "message_id": "<4BDFA11B.3000809@cscs.ch>",
+      "from_name": "Mario Valle",
+      "from_email_hash": "43d58c4b333b13a43d7282a03434599f50b8fac505c0757f0afca66585ad7ba3",
+      "date": "2010-05-04T06:22:51+02:00",
+      "subject": "[R-sig-hpc] How to check if %dopar% really run parallel?",
+      "subject_clean": "How to check if %dopar% really run parallel?",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Is there any way to check that %dopar% really runs parallel?\nThe following code (on a dual core laptop running windows+R 2.11.0pat \nand on Linux+R2.11.0) runs %dopar% more slowly than the same %do% code.\nBTW, if you see any obvious mistake in the code...\nThanks!\n\t\tmario\n\n\nlibrary(doSNOW)\nlibrary(foreach)\n\nfun <- function() for(q in 1:1000000) sqrt(3)\n\nsystem.time(times(10000) %do% fun, gcFirst = TRUE)\n#   user  system elapsed\n#   5.74    0.01    6.24\n\ncl <- makeCluster(2, type = \"SOCK\")\nregisterDoSNOW(cl)\n\nsystem.time(times(10000) %dopar% fun, gcFirst = TRUE)\n#   user  system elapsed\n#   7.89    0.19    9.01\n\nstopCluster(cl)\n\n-- \nIng. Mario Valle\nData Analysis and Visualization Group            | \nhttp://www.cscs.ch/~mvalle\nSwiss National Supercomputing Centre (CSCS)      | Tel:  +41 (91) 610.82.60\nv. Cantonale Galleria 2, 6928 Manno, Switzerland | Fax:  +41 (91) 610.82.82",
+      "body_snippet": "Is there any way to check that %dopar% really runs parallel?\nThe following code (on a dual core laptop running windows+R 2.11.0pat \nand on Linux+R2.11.0) runs %dopar% more slowly than the same %do% co",
+      "thread_id": "thread-a21272c60521",
+      "thread_depth": 0,
+      "month": "2010-05"
+    },
+    {
+      "id": "msg-1e63b55379f2",
+      "message_id": "<4BE000D7.2090205@braverock.com>",
+      "from_name": "Brian G. Peterson",
+      "from_email_hash": "2d44e89a02cb2a9eb2f2113de72098dcb74d077b13b61958f1336c3292aa0254",
+      "date": "2010-05-04T06:11:19-05:00",
+      "subject": "[R-sig-hpc] How to check if %dopar% really run parallel?",
+      "subject_clean": "How to check if %dopar% really run parallel?",
+      "in_reply_to": "<4BDFA11B.3000809@cscs.ch>",
+      "references": [
+        "<4BDFA11B.3000809@cscs.ch>"
+      ],
+      "body_plain": "Well, typically you can tell because all your CPU's go to 100% on your system \nmonitor(s).\n\nThis is what is called a 'toy example'.  The vignettes for foreach go over the \nfact that there is no free lunch, and for parallelism to make sense, you need \nto minimize communication costs between the master and slave nodes.  In your \nexample, the communication cost, and the cost of collecting the data, will be \nlarger than the cost of doing the calculation, making parallelism actually \ndetrimental.  A recent discussion on 'chunking' on this list should provide \npointers on what you can do when your application involves a large number of \nvery-small calculations to minimize communication overhead.\n\nWhile I must assume that your actual problem is more complex than replicating \nthe same number one million times, I suggest you (re)read the vignettes that \ncome with foreach.  I also suggest that when you post next, tell the list a \nlittle more about your actual application that you wish to parallelize, as this \nshould allow the list to give you better guidance.\n\nRegards,\n\n   - Brian\n\nMario Valle wrote:\n> Is there any way to check that %dopar% really runs parallel?\n> The following code (on a dual core laptop running windows+R 2.11.0pat \n> and on Linux+R2.11.0) runs %dopar% more slowly than the same %do% code.\n> BTW, if you see any obvious mistake in the code...\n> Thanks!\n>         mario\n> \n> \n> library(doSNOW)\n> library(foreach)\n> \n> fun <- function() for(q in 1:1000000) sqrt(3)\n> \n> system.time(times(10000) %do% fun, gcFirst = TRUE)\n> #   user  system elapsed\n> #   5.74    0.01    6.24\n> \n> cl <- makeCluster(2, type = \"SOCK\")\n> registerDoSNOW(cl)\n> \n> system.time(times(10000) %dopar% fun, gcFirst = TRUE)\n> #   user  system elapsed\n> #   7.89    0.19    9.01\n> \n> stopCluster(cl)\n> \n\n\n-- \nBrian G. Peterson\nhttp://braverock.com/brian/\nPh: 773-459-4973\nIM: bgpbraverock",
+      "body_snippet": "Well, typically you can tell because all your CPU's go to 100% on your system \nmonitor(s).\n\nThis is what is called a 'toy example'.  The vignettes for foreach go over the \nfact that there is no free l",
+      "thread_id": "thread-a21272c60521",
+      "thread_depth": 1,
+      "month": "2010-05"
+    },
+    {
+      "id": "msg-28852bcffef6",
+      "message_id": "<i2h57e838141005040555p9ba373fbkb07711e476f0c24@mail.gmail.com>",
+      "from_name": "Stephen Weston",
+      "from_email_hash": "507fe1aedccd9cb1c2bba1715ac24f959abe255adeeb866f82b6c8a1896cbd15",
+      "date": "2010-05-04T08:55:11-04:00",
+      "subject": "[R-sig-hpc] How to check if %dopar% really run parallel?",
+      "subject_clean": "How to check if %dopar% really run parallel?",
+      "in_reply_to": "<4BDFA11B.3000809@cscs.ch>",
+      "references": [
+        "<4BDFA11B.3000809@cscs.ch>"
+      ],
+      "body_plain": "There is a mistake.  Rather than:\n\n    times(10000) %dopar% fun\n\nyou should write:\n\n    times(10000) %dopar% fun()\n\nOn my machine, \"fun\" executes in about 0.4 seconds, so executing\nit 10,000 times should take over an hour to execute.  Your error turned\na real program into a toy program.  The error also resulted in more\ncommunication, since now the function itself is being returned by the\nworkers.\n\nWhen I ran your benchmark on my machine with 100, rather than 10,000\ntasks, I got the following results:\n\n   user  system elapsed\n 43.573   0.191  43.823\n   user  system elapsed\n  0.093   0.007  24.890\n\nThat's not so bad.\n\n- Steve\n\n\nOn Tue, May 4, 2010 at 12:22 AM, Mario Valle <mvalle at cscs.ch> wrote:\n> Is there any way to check that %dopar% really runs parallel?\n> The following code (on a dual core laptop running windows+R 2.11.0pat and on\n> Linux+R2.11.0) runs %dopar% more slowly than the same %do% code.\n> BTW, if you see any obvious mistake in the code...\n> Thanks!\n> ? ? ? ? ? ? ? ?mario\n>\n>\n> library(doSNOW)\n> library(foreach)\n>\n> fun <- function() for(q in 1:1000000) sqrt(3)\n>\n> system.time(times(10000) %do% fun, gcFirst = TRUE)\n> # ? user ?system elapsed\n> # ? 5.74 ? ?0.01 ? ?6.24\n>\n> cl <- makeCluster(2, type = \"SOCK\")\n> registerDoSNOW(cl)\n>\n> system.time(times(10000) %dopar% fun, gcFirst = TRUE)\n> # ? user ?system elapsed\n> # ? 7.89 ? ?0.19 ? ?9.01\n>\n> stopCluster(cl)\n>\n> --\n> Ing. Mario Valle\n> Data Analysis and Visualization Group ? ? ? ? ? ?|\n> http://www.cscs.ch/~mvalle\n> Swiss National Supercomputing Centre (CSCS) ? ? ?| Tel: ?+41 (91) 610.82.60\n> v. Cantonale Galleria 2, 6928 Manno, Switzerland | Fax: ?+41 (91) 610.82.82\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>",
+      "body_snippet": "There is a mistake.  Rather than:\n\n    times(10000) %dopar% fun\n\nyou should write:\n\n    times(10000) %dopar% fun()\n\nOn my machine, \"fun\" executes in about 0.4 seconds, so executing\nit 10,000 times sho",
+      "thread_id": "thread-a21272c60521",
+      "thread_depth": 1,
+      "month": "2010-05"
+    },
+    {
+      "id": "msg-7af045d88642",
+      "message_id": "<4BE02194.7090403@cscs.ch>",
+      "from_name": "Mario Valle",
+      "from_email_hash": "43d58c4b333b13a43d7282a03434599f50b8fac505c0757f0afca66585ad7ba3",
+      "date": "2010-05-04T15:31:00+02:00",
+      "subject": "[R-sig-hpc] How to check if %dopar% really run parallel?",
+      "subject_clean": "How to check if %dopar% really run parallel?",
+      "in_reply_to": "<i2h57e838141005040555p9ba373fbkb07711e476f0c24@mail.gmail.com>",
+      "references": [
+        "<4BDFA11B.3000809@cscs.ch>",
+        "<i2h57e838141005040555p9ba373fbkb07711e476f0c24@mail.gmail.com>"
+      ],
+      "body_plain": "*BIG RED FACE*\nI'm ashamed of myself, that's was the error!\nA small, stupid pair of parenthesis missing.\nNow the parallel version is faster than the serial one as it should.\n(serial: 57.41, parallel 2 cores: 39.31)\nThanks to Stephen and all.\n\n\t\t\t\tmario\n\nStephen Weston wrote:\n> There is a mistake.  Rather than:\n> \n>     times(10000) %dopar% fun\n> \n> you should write:\n> \n>     times(10000) %dopar% fun()\n> \n> On my machine, \"fun\" executes in about 0.4 seconds, so executing\n> it 10,000 times should take over an hour to execute.  Your error turned\n> a real program into a toy program.  The error also resulted in more\n> communication, since now the function itself is being returned by the\n> workers.\n> \n> When I ran your benchmark on my machine with 100, rather than 10,000\n> tasks, I got the following results:\n> \n>    user  system elapsed\n>  43.573   0.191  43.823\n>    user  system elapsed\n>   0.093   0.007  24.890\n> \n> That's not so bad.\n> \n> - Steve\n> \n> \n> On Tue, May 4, 2010 at 12:22 AM, Mario Valle <mvalle at cscs.ch> wrote:\n>> Is there any way to check that %dopar% really runs parallel?\n>> The following code (on a dual core laptop running windows+R 2.11.0pat and on\n>> Linux+R2.11.0) runs %dopar% more slowly than the same %do% code.\n>> BTW, if you see any obvious mistake in the code...\n>> Thanks!\n>>                mario\n>>\n>>\n>> library(doSNOW)\n>> library(foreach)\n>>\n>> fun <- function() for(q in 1:1000000) sqrt(3)\n>>\n>> system.time(times(10000) %do% fun, gcFirst = TRUE)\n>> #   user  system elapsed\n>> #   5.74    0.01    6.24\n>>\n>> cl <- makeCluster(2, type = \"SOCK\")\n>> registerDoSNOW(cl)\n>>\n>> system.time(times(10000) %dopar% fun, gcFirst = TRUE)\n>> #   user  system elapsed\n>> #   7.89    0.19    9.01\n>>\n>> stopCluster(cl)\n>>\n>> --\n>> Ing. Mario Valle\n>> Data Analysis and Visualization Group            |\n>> http://www.cscs.ch/~mvalle\n>> Swiss National Supercomputing Centre (CSCS)      | Tel:  +41 (91) 610.82.60\n>> v. Cantonale Galleria 2, 6928 Manno, Switzerland | Fax:  +41 (91) 610.82.82\n>>\n>> _______________________________________________\n>> R-sig-hpc mailing list\n>> R-sig-hpc at r-project.org\n>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>>\n\n-- \nIng. Mario Valle\nData Analysis and Visualization Group            | http://www.cscs.ch/~mvalle\nSwiss National Supercomputing Centre (CSCS)      | Tel:  +41 (91) 610.82.60\nv. Cantonale Galleria 2, 6928 Manno, Switzerland | Fax:  +41 (91) 610.82.82",
+      "body_snippet": "*BIG RED FACE*\nI'm ashamed of myself, that's was the error!\nA small, stupid pair of parenthesis missing.\nNow the parallel version is faster than the serial one as it should.\n(serial: 57.41, parallel 2",
+      "thread_id": "thread-a21272c60521",
+      "thread_depth": 2,
+      "month": "2010-05"
+    },
+    {
+      "id": "msg-d8434a6a062c",
+      "message_id": "<4BE0309C.3020905@cedrickjohnson.com>",
+      "from_name": "Cedrick W. Johnson",
+      "from_email_hash": "1d0f28c97aba8e77fca87a450f392f71e435182a74bd12144f21fc2895456e62",
+      "date": "2010-05-04T10:35:08-04:00",
+      "subject": "[R-sig-hpc] How to check if %dopar% really run parallel?",
+      "subject_clean": "How to check if %dopar% really run parallel?",
+      "in_reply_to": "<4BE02194.7090403@cscs.ch>",
+      "references": [
+        "<4BDFA11B.3000809@cscs.ch>",
+        "<i2h57e838141005040555p9ba373fbkb07711e476f0c24@mail.gmail.com>",
+        "<4BE02194.7090403@cscs.ch>"
+      ],
+      "body_plain": "Definitely works on an 8 core (new shiny toy, oh my!)... I have a return \nseries for about 40 instruments dating back to 2000. Before getting \nsnow/foreach/dopar to work, I previously would run the command:\n\nchart.VaRSensitivity(R, methods=c(\"HistoricalVaR\", \"ModifiedVaR\", \n\"GaussianVaR\"), clean=\"geltner\", colorset=bluefocus, lwd=2)\n\nThis took a bit of time to go through all the instruments and generate a \nVaR sensitivity graph\n\nThis code, sped that process up significantly on a single 8 core \nmachine, to less than 30 seconds by my estimate, code:\n\n#define the parallelization function\nrun.sens <- function(R) {\n         library(PerformanceAnalytics)\n         png(file=paste(\"VAR-Sens-\",R,\".png\", sep=\"\"), width=500, \nheight=500)\n         chart.VaRSensitivity(R, methods=c(\"HistoricalVaR\", \n\"ModifiedVaR\", \"GaussianVaR\"), clean=\"geltner\", colorset=bluefocus, lwd=2)\n         dev.off()\n     }\n#let?s do it, using the instrument returns\nforeach(R=MyGlobalInstruments.returns) %dopar% run.sens(R)\n\nAs some have mentioned, be careful what you choose to parallelize. This \nparticular example does *not* work well across networked clusters due to \nthe fact that I'm creating a .png file for each instrument. It *does* \nhowever make sense to run it across the full 8 cores available to me (or \nX cores is fine, I do the same routine on a 4 core Linux box) on the \nlocal machine.\n\n  \tUser\tSystem\tElapsed\nBefore\t722.03\t1.57\t763.18\nAfter\t0.04\t0.25\t572.01\n\nHTH,\ncedrick\n\n\n\n\nOn 5/4/2010 9:31 AM, Mario Valle wrote:\n> *BIG RED FACE*\n> I'm ashamed of myself, that's was the error!\n> A small, stupid pair of parenthesis missing.\n> Now the parallel version is faster than the serial one as it should.\n> (serial: 57.41, parallel 2 cores: 39.31)\n> Thanks to Stephen and all.\n>\n> \t\t\t\tmario\n>\n> Stephen Weston wrote:\n>> There is a mistake.  Rather than:\n>>\n>>      times(10000) %dopar% fun\n>>\n>> you should write:\n>>\n>>      times(10000) %dopar% fun()\n>>\n>> On my machine, \"fun\" executes in about 0.4 seconds, so executing\n>> it 10,000 times should take over an hour to execute.  Your error turned\n>> a real program into a toy program.  The error also resulted in more\n>> communication, since now the function itself is being returned by the\n>> workers.\n>>\n>> When I ran your benchmark on my machine with 100, rather than 10,000\n>> tasks, I got the following results:\n>>\n>>     user  system elapsed\n>>   43.573   0.191  43.823\n>>     user  system elapsed\n>>    0.093   0.007  24.890\n>>\n>> That's not so bad.\n>>\n>> - Steve\n>>\n>>\n>> On Tue, May 4, 2010 at 12:22 AM, Mario Valle<mvalle at cscs.ch>  wrote:\n>>> Is there any way to check that %dopar% really runs parallel?\n>>> The following code (on a dual core laptop running windows+R 2.11.0pat and on\n>>> Linux+R2.11.0) runs %dopar% more slowly than the same %do% code.\n>>> BTW, if you see any obvious mistake in the code...\n>>> Thanks!\n>>>                 mario\n>>>\n>>>\n>>> library(doSNOW)\n>>> library(foreach)\n>>>\n>>> fun<- function() for(q in 1:1000000) sqrt(3)\n>>>\n>>> system.time(times(10000) %do% fun, gcFirst = TRUE)\n>>> #   user  system elapsed\n>>> #   5.74    0.01    6.24\n>>>\n>>> cl<- makeCluster(2, type = \"SOCK\")\n>>> registerDoSNOW(cl)\n>>>\n>>> system.time(times(10000) %dopar% fun, gcFirst = TRUE)\n>>> #   user  system elapsed\n>>> #   7.89    0.19    9.01\n>>>\n>>> stopCluster(cl)\n>>>\n>>> --\n>>> Ing. Mario Valle\n>>> Data Analysis and Visualization Group            |\n>>> http://www.cscs.ch/~mvalle\n>>> Swiss National Supercomputing Centre (CSCS)      | Tel:  +41 (91) 610.82.60\n>>> v. Cantonale Galleria 2, 6928 Manno, Switzerland | Fax:  +41 (91) 610.82.82\n>>>\n>>> _______________________________________________\n>>> R-sig-hpc mailing list\n>>> R-sig-hpc at r-project.org\n>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>>>\n>",
+      "body_snippet": "Definitely works on an 8 core (new shiny toy, oh my!)... I have a return \nseries for about 40 instruments dating back to 2000. Before getting \nsnow/foreach/dopar to work, I previously would run the co",
+      "thread_id": "thread-a21272c60521",
+      "thread_depth": 3,
+      "month": "2010-05"
+    },
+    {
+      "id": "msg-10096a350aa9",
+      "message_id": "<4BE3C9B7.1050006@cscs.ch>",
+      "from_name": "Mario Valle",
+      "from_email_hash": "43d58c4b333b13a43d7282a03434599f50b8fac505c0757f0afca66585ad7ba3",
+      "date": "2010-05-07T10:05:11+02:00",
+      "subject": "[R-sig-hpc] Problem installing Rmpi with OpenMP",
+      "subject_clean": "Problem installing Rmpi with OpenMP",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "I'm trying to install Rmpi on our new cluster under 2.11.0 (linux)\nAfter loading OpenMPI, inside R I execute:\n\n  install.packages(\"Rmpi\", \nconfigure.args=c(\"--with-mpi=/usr/mpi/gcc/openmpi-1.4.1\", \n\"--with-mpi-type=OPENMPI\"))\ntrying URL 'http://stat.ethz.ch/CRAN/src/contrib/Rmpi_0.5-8.tar.gz'\nContent type 'application/x-gzip' length 87528 bytes (85 Kb)\nopened URL\n==================================================\ndownloaded 85 Kb\n\n* installing *source* package ?Rmpi? ...\nchecking for gcc... gcc -std=gnu99\nchecking for C compiler default output file name... a.out\nchecking whether the C compiler works... yes\nchecking whether we are cross compiling... no\nchecking for suffix of executables...\nchecking for suffix of object files... o\nchecking whether we are using the GNU C compiler... yes\nchecking whether gcc -std=gnu99 accepts -g... yes\nchecking for gcc -std=gnu99 option to accept ISO C89... none needed\nTrying to find mpi.h ...\nFound in /usr/mpi/gcc/openmpi-1.4.1/include\nTrying to find libmpi.so or libmpich.a ...\nchecking for main in -lmpi... no\nlibmpi not found. exiting...\nERROR: configuration failed for package ?Rmpi?\n* removing ?/gpfs/home/xt-home/mvalle/apps/R-2.11.0/library/Rmpi?\n\nThe downloaded packages are in\n         ?/tmp/RtmpaLhj2t/downloaded_packages?\nUpdating HTML index of packages in '.Library'\nWarning message:\nIn install.packages(\"Rmpi\", configure.args = \nc(\"--with-mpi=/usr/mpi/gcc/openmpi-1.4.1\",  :\n   installation of package 'Rmpi' had non-zero exit status\n >\n\nOur IT says that I should specify the use of the shared libraries and \nnot the static ones, because openmpi 1.4.1 does not provide these.\n\nCan you help me to find the correct configure.vars string?\nThanks a lot!\n\t\t\tmario\n\n\n-- \nIng. Mario Valle\nData Analysis and Visualization Group            | \nhttp://www.cscs.ch/~mvalle\nSwiss National Supercomputing Centre (CSCS)      | Tel:  +41 (91) 610.82.60\nv. Cantonale Galleria 2, 6928 Manno, Switzerland | Fax:  +41 (91) 610.82.82",
+      "body_snippet": "I'm trying to install Rmpi on our new cluster under 2.11.0 (linux)\nAfter loading OpenMPI, inside R I execute:\n\n  install.packages(\"Rmpi\", \nconfigure.args=c(\"--with-mpi=/usr/mpi/gcc/openmpi-1.4.1\", \n\"-",
+      "thread_id": "thread-10096a350aa9",
+      "thread_depth": 0,
+      "month": "2010-05"
+    },
+    {
+      "id": "msg-5535d67507db",
+      "message_id": "<4BE43F89.70704@cscs.ch>",
+      "from_name": "Mario Valle",
+      "from_email_hash": "43d58c4b333b13a43d7282a03434599f50b8fac505c0757f0afca66585ad7ba3",
+      "date": "2010-05-07T18:27:53+02:00",
+      "subject": "[R-sig-hpc] Problem installing Rmpi with OpenMP",
+      "subject_clean": "Problem installing Rmpi with OpenMP",
+      "in_reply_to": "<4BE3C9B7.1050006@cscs.ch>",
+      "references": [
+        "<4BE3C9B7.1050006@cscs.ch>"
+      ],
+      "body_plain": "Solved tanks to Hao Yu, Rmpi maintainer.\nThe steps are:\nDownload the Rmpi_0.5-8.tar.gz kit\n>\n> R CMD INSTALL \\\n> --configure-args=\"--with-Rmpi-include=/path_to_mpi_include \\\n> --with-Rmpi-libpath=/path_to_mpi_lib \\\n> --with-Rmpi-type=OPENMPI\" Rmpi_0.5-8.tar.gz\n>\n> Once done compiling, try to see if Rmpi can find all mpi libs\n> R CMD ldd path_to_Rmpi.so\n>\nHope can be useful to someone.\n\t\t\t\tmario\nMario Valle wrote:\n> I'm trying to install Rmpi on our new cluster under 2.11.0 (linux)\n> After loading OpenMPI, inside R I execute:\n> \n>   install.packages(\"Rmpi\", \n> configure.args=c(\"--with-mpi=/usr/mpi/gcc/openmpi-1.4.1\", \n> \"--with-mpi-type=OPENMPI\"))\n> trying URL 'http://stat.ethz.ch/CRAN/src/contrib/Rmpi_0.5-8.tar.gz'\n> Content type 'application/x-gzip' length 87528 bytes (85 Kb)\n> opened URL\n> ==================================================\n> downloaded 85 Kb\n> \n> * installing *source* package ?Rmpi? ...\n> checking for gcc... gcc -std=gnu99\n> checking for C compiler default output file name... a.out\n> checking whether the C compiler works... yes\n> checking whether we are cross compiling... no\n> checking for suffix of executables...\n> checking for suffix of object files... o\n> checking whether we are using the GNU C compiler... yes\n> checking whether gcc -std=gnu99 accepts -g... yes\n> checking for gcc -std=gnu99 option to accept ISO C89... none needed\n> Trying to find mpi.h ...\n> Found in /usr/mpi/gcc/openmpi-1.4.1/include\n> Trying to find libmpi.so or libmpich.a ...\n> checking for main in -lmpi... no\n> libmpi not found. exiting...\n> ERROR: configuration failed for package ?Rmpi?\n> * removing ?/gpfs/home/xt-home/mvalle/apps/R-2.11.0/library/Rmpi?\n> \n> The downloaded packages are in\n>          ?/tmp/RtmpaLhj2t/downloaded_packages?\n> Updating HTML index of packages in '.Library'\n> Warning message:\n> In install.packages(\"Rmpi\", configure.args = \n> c(\"--with-mpi=/usr/mpi/gcc/openmpi-1.4.1\",  :\n>    installation of package 'Rmpi' had non-zero exit status\n>  >\n> \n> Our IT says that I should specify the use of the shared libraries and \n> not the static ones, because openmpi 1.4.1 does not provide these.\n> \n> Can you help me to find the correct configure.vars string?\n> Thanks a lot!\n> \t\t\tmario\n> \n> \n\n-- \nIng. Mario Valle\nData Analysis and Visualization Group            | http://www.cscs.ch/~mvalle\nSwiss National Supercomputing Centre (CSCS)      | Tel:  +41 (91) 610.82.60\nv. Cantonale Galleria 2, 6928 Manno, Switzerland | Fax:  +41 (91) 610.82.82",
+      "body_snippet": "Solved tanks to Hao Yu, Rmpi maintainer.\nThe steps are:\nDownload the Rmpi_0.5-8.tar.gz kit\n>\n> R CMD INSTALL \\\n> --configure-args=\"--with-Rmpi-include=/path_to_mpi_include \\\n> --with-Rmpi-libpath=/pat",
+      "thread_id": "thread-10096a350aa9",
+      "thread_depth": 1,
+      "month": "2010-05"
+    },
+    {
+      "id": "msg-b9a9cbae9070",
+      "message_id": "<AANLkTilrGuTBNlr10Lh3VQpWn6FIhjVr4yS3urwSkHin@mail.gmail.com>",
+      "from_name": "Balazs Szappanos",
+      "from_email_hash": "a3dc4178755b0d5d6c3b3763f01650b64214ff09aeeb343f2d107297e405b7f2",
+      "date": "2010-05-11T11:09:52+02:00",
+      "subject": "[R-sig-hpc] SGE, OpenMPI and snow, 4+4 cores - only 4 from the 8 cores are used",
+      "subject_clean": "SGE, OpenMPI and snow, 4+4 cores - only 4 from the 8 cores are used",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100511/be653ceb/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100511/be653ceb/attachment.pl>",
+      "thread_id": "thread-b9a9cbae9070",
+      "thread_depth": 0,
+      "month": "2010-05"
+    },
+    {
+      "id": "msg-548735584da4",
+      "message_id": "<05A0B3AFAE21EC4CA2B1B5D901F6021A0113C9097EBB@MAILBANK.ensae.fr>",
+      "from_name": "To Maxime",
+      "from_email_hash": "8500d1f173022df73e7f844a7d5a1c713a29366098d44dd2cca344de90f2ddec",
+      "date": "2010-05-14T23:15:26+02:00",
+      "subject": "[R-sig-hpc] Parallel Optimization",
+      "subject_clean": "Parallel Optimization",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100514/827dd5a3/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100514/827dd5a3/attachment.pl>",
+      "thread_id": "thread-548735584da4",
+      "thread_depth": 0,
+      "month": "2010-05"
+    },
+    {
+      "id": "msg-feff96dbab3a",
+      "message_id": "<700557.232.qm@web45902.mail.sp1.yahoo.com>",
+      "from_name": "John Edward",
+      "from_email_hash": "418f2edfc117a9f79d599141ddf6831a55a007c7867f30ed2f312fd1b6b8451d",
+      "date": "2010-05-14T15:50:53-07:00",
+      "subject": "[R-sig-hpc] Call for papers : HPCS-10, USA, July 2010",
+      "subject_clean": "Call for papers : HPCS-10, USA, July 2010",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100514/e671294b/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100514/e671294b/attachment.pl>",
+      "thread_id": "thread-feff96dbab3a",
+      "thread_depth": 0,
+      "month": "2010-05"
+    },
+    {
+      "id": "msg-38674570acd9",
+      "message_id": "<208982.72369.qm@web32903.mail.mud.yahoo.com>",
+      "from_name": "Jacob van Etten",
+      "from_email_hash": "b63eccad2c2e172b485dcc5877180193803cc9f585d0c9e7cf921e89023deb0e",
+      "date": "2010-05-15T00:14:15-07:00",
+      "subject": "[R-sig-hpc] Parallel Optimization",
+      "subject_clean": "Parallel Optimization",
+      "in_reply_to": "<05A0B3AFAE21EC4CA2B1B5D901F6021A0113C9097EBB@MAILBANK.ensae.fr>",
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100515/e794098a/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100515/e794098a/attachment.pl>",
+      "thread_id": "thread-548735584da4",
+      "thread_depth": 1,
+      "month": "2010-05"
+    },
+    {
+      "id": "msg-81d8a25fc844",
+      "message_id": "<f91ae43fe1ef12823746fc52fde9b250.squirrel@mail.ecs.vuw.ac.nz>",
+      "from_name": "Kevin.Buckley at ecs.vuw.ac.nz",
+      "from_email_hash": "fb879ea72521cc5dcfc8958d067acbe7d85612ad10ad1eff3a8d2f9328015738",
+      "date": "2010-05-17T15:02:46+12:00",
+      "subject": "[R-sig-hpc] Rmpi on NetBSD with OpenMPI",
+      "subject_clean": "Rmpi on NetBSD with OpenMPI",
+      "in_reply_to": "<825fc8e152e00bdf7998195969f81b61.squirrel@mail.ecs.vuw.ac.nz>",
+      "references": [
+        "<825fc8e152e00bdf7998195969f81b61.squirrel@mail.ecs.vuw.ac.nz>"
+      ],
+      "body_plain": "It would appear there is a fix for the issue I was seeing.\n\nAfter some discussion around the underlying cause of the\nproblem on the OpenMPI devel list, Jeff Squyres wrote:\n\n> Now, all this being said, IIRC (and I very well may not!), the real\n> underlying issue here is that R is dlopening libmpi.so, which, in turn, is\n> dlopening its own DSOs.  Given the global linker scoping issues, OMPI's\n> DSOs are unable to find the symbols they need to resolve in the process\n> (because libmpi.so's was opened in a private scope).\n>\n> This probably is unfortunately larger than us (Open MPI) -- it's really a\n> POSIX issue.  What would be ideal is if different linker namespaces could\n> be something more fine-grained than \"global\" or \"private\" within a\n> process.  E.g., if the private namespace of libmpi.so in the process could\n> selectively make its symbol namespace available to the DSOs that it\n> dlopens.  Right now, the only option libmpi.so has is to be opened\n> with a public scope, which somewhat defeats the point of private\n> scoping.\n>\n\nTying in with the suggestions Jeff makes above, there would seem to\nbe a work-around fix for this, in the case of the Rmpi package\non NetBSD anyway.\n\nFurthermore, the fix does not require any alterations to OpenMPI.\n\nApparently, there has been a similar issue, symbol visibility\nwhen chaining shared library loading, within PAM on NetBSD.\n\nMark Davies has now determined a way to force the Rmpi package\nto load libmpi.so, ahead of loading the Rmpi shared library itself,\nso that what appear to be the missing symbols are then available,\nfor any future loads of the OpenMPI component libraries.\n\n\nOn the version of Rmpi that I have been using, 0.5-8, the \"fix\"\ncan be effected by the following, one, line, patch\n\n--- Rmpi/R/zzz.R        2009-02-04 05:27:08.000000000 +1300\n+++ Rmpi.local/R/zzz.R  2010-05-17 14:25:27.000000000 +1200\n@@ -7,6 +7,7 @@\n     #    cat(vertxt)\n\n     # Check if lam-mpi is running\n+    dyn.load(\"/usr/pkg/lib/libmpi.so\", local=FALSE)\n     library.dynam(\"Rmpi\", pkg, lib)\n     if (!TRUE)\n        stop(\"Fail to load Rmpi dynamic library.\")\n\n\nNote that this currently hard codes the path to the libmpi.so,\nwhich for our system is in the standard NetBSD PkgSrc location,\nthough there are probably \"nicer\" ways to achieve the same end,\nand greater flexibility, using R internals.\n\nHaving said that, this \"fix\" does not seem to be needed on\nplaforms that have a global scope for shared library symbols,\nso maybe attempts to make it generic may be pointless.\n\nKevin\n\n-- \nKevin M. Buckley                                  Room:  CO327\nSchool of Engineering and                         Phone: +64 4 463 5971\n Computer Science\nVictoria University of Wellington\nNew Zealand",
+      "body_snippet": "It would appear there is a fix for the issue I was seeing.\n\nAfter some discussion around the underlying cause of the\nproblem on the OpenMPI devel list, Jeff Squyres wrote:\n\n> Now, all this being said,",
+      "thread_id": "thread-81d8a25fc844",
+      "thread_depth": 0,
+      "month": "2010-05"
+    },
+    {
+      "id": "msg-9eb4fdc5bdab",
+      "message_id": "<4374bb2508989d1f271ed6dd6ee57168.squirrel@mail.ecs.vuw.ac.nz>",
+      "from_name": "Kevin.Buckley at ecs.vuw.ac.nz",
+      "from_email_hash": "fb879ea72521cc5dcfc8958d067acbe7d85612ad10ad1eff3a8d2f9328015738",
+      "date": "2010-05-18T10:06:26+12:00",
+      "subject": "[R-sig-hpc] Rmpi on NetBSD with OpenMPI",
+      "subject_clean": "Rmpi on NetBSD with OpenMPI",
+      "in_reply_to": "<f91ae43fe1ef12823746fc52fde9b250.squirrel@mail.ecs.vuw.ac.nz>",
+      "references": [
+        "<825fc8e152e00bdf7998195969f81b61.squirrel@mail.ecs.vuw.ac.nz>",
+        "<f91ae43fe1ef12823746fc52fde9b250.squirrel@mail.ecs.vuw.ac.nz>"
+      ],
+      "body_plain": "I have moved this off the OpenMPI devel list as this is more\nof an \"interaction with OpenMPI\" than an issue for the OpenMPI\ndevelopment community and moved it to the R HPC SIG list as\nthe discussion pertains to how the Rmpi package interacts with\nOpenMPI.\n\nAleksej (the NetBSD maintainer of OpenMPI) in response to this\n\n> > Mark Davies has now determined a way to force the Rmpi package to\n> > load libmpi.so, ahead of loading the Rmpi shared library itself,\n> > so that what appear to be the missing symbols are then available,\n> > for any future loads of the OpenMPI component libraries.\n> >\n> > On the version of Rmpi that I have been using, 0.5-8, the \"fix\"\n> > can be effected by the following, one, line, patch\n> >\n> > --- Rmpi/R/zzz.R        2009-02-04 05:27:08.000000000 +1300\n> > +++ Rmpi.local/R/zzz.R  2010-05-17 14:25:27.000000000 +1200\n> > @@ -7,6 +7,7 @@\n> >      #    cat(vertxt)\n> >\n> >      # Check if lam-mpi is running\n> > +    dyn.load(\"/usr/pkg/lib/libmpi.so\", local=FALSE)\n> >      library.dynam(\"Rmpi\", pkg, lib)\n> >      if (!TRUE)\n> >         stop(\"Fail to load Rmpi dynamic library.\")\n\nwrites as follows,\n\n> This patch is wrong even on NetBSD, some deployments use other\n> LOCALBASE rather than default \"/usr/pkg\". You identify it correct\n> that this isn't valid approach. Package should detect which library\n> it should use. In case you want it fixed as soon as possible, file\n> PR for pkgsrc, we'll handle it at packaging level.\n\nWe, Mark in determining a fix and myself in posting it, were not\nsuggesting that the patch was \"right\", merely demonstrating that\nit \"worked\".\n\nAs mentioned in the original R HPC SIG posting, the patch is wrong\nfrom an Rmpi persepective too: there's not enough R there!\n\nFurthermore, and here is where my (growing) NetBSD knowledge fails me,\nit would seem likely that the package is not going to be under PkgSrc\ncontrol.\n\nR the package, used to install Rmpi, has been patched to operate within\nPkgSrc, but once you have it up and ruuning, many/most R users/deployers\nwould expect to just be able to run\n\nR CMD INSTALL package\n\nfor any R add-on package.\n\nIs there then a \"standard\" way to tailor R add-on packages, such as\nRmpi, to make them NetBSD aware ?\n\nSimilarly, is there a \"standard\" way for R packages to test for, and/or\nfind, a library needed in a situation like this, which would surely be\nthe place at which a NetBSD-aware patch should be made.\n\nIt would seem that the Rmpi package would not lose anything by testing\nfor, and loading if not loaded, the library on ANY platform, however\nif it did so, it would then allow for a cleaner implemetation of any\nplatform-specific patches.\n\n-- \nKevin M. Buckley                                  Room:  CO327\nSchool of Engineering and                         Phone: +64 4 463 5971\n Computer Science\nVictoria University of Wellington\nNew Zealand",
+      "body_snippet": "I have moved this off the OpenMPI devel list as this is more\nof an \"interaction with OpenMPI\" than an issue for the OpenMPI\ndevelopment community and moved it to the R HPC SIG list as\nthe discussion p",
+      "thread_id": "thread-81d8a25fc844",
+      "thread_depth": 1,
+      "month": "2010-05"
+    },
+    {
+      "id": "msg-72475ee6c25a",
+      "message_id": "<f92708eafa93d616f701e36735dd3e68.squirrel@mail.ecs.vuw.ac.nz>",
+      "from_name": "Kevin.Buckley at ecs.vuw.ac.nz",
+      "from_email_hash": "fb879ea72521cc5dcfc8958d067acbe7d85612ad10ad1eff3a8d2f9328015738",
+      "date": "2010-05-19T09:56:12+12:00",
+      "subject": "[R-sig-hpc] Rmpi on NetBSD with OpenMPI",
+      "subject_clean": "Rmpi on NetBSD with OpenMPI",
+      "in_reply_to": "<87y6fhnko8.fsf@inbox.ru>",
+      "references": [
+        "<825fc8e152e00bdf7998195969f81b61.squirrel@mail.ecs.vuw.ac.nz>",
+        "<f91ae43fe1ef12823746fc52fde9b250.squirrel@mail.ecs.vuw.ac.nz>",
+        "<4374bb2508989d1f271ed6dd6ee57168.squirrel@mail.ecs.vuw.ac.nz>",
+        "<87y6fhnko8.fsf@inbox.ru>"
+      ],
+      "body_plain": "Aleksej writes\n\n> Ideally, R should allow installation of software into place outside\n> its PREFIX, this is good anyway, since user may have no permissions\n> to access anything within PREFIX.\n\nR does.\n\nI am not an R user but I have been involved in the development and\ndeployment of packages for users of R and I am aware you can put\nthe libraries where you want at package install time by using\n--library and then adding a \"lib.loc=\" when you load the package.\n\nFor example I've been using:\n\nR CMD INSTALL --library=/vol/grid/pkg/R/Rlibs Rmpi \\\n  --configure-args=--with-Rmpi-type=OPENMPI \\\n  --configure-args=--with-Rmpi-libpath=/usr/pkg/lib/openmpi \\\n  --configure-args=--with-Rmpi-include=/usr/pkg/include\n\nto get the Rmpi installed library where I want it, within the confines\nof the SGE grid, I am working with and then I add a\n\nlib.loc=\"/vol/grid/pkg/R/Rlibs\"\n\nclause to the library(Rmpi) loading in the Rprofile that gets sourced\nto actually load it and set it up.\n\nBut I am not sure that's the issue here.\n\nWhat we are talking about here is overcoming the vaguries of\ncross-platform shared-library symbol visibility, when shared\nlibraries are chain-loaded, by explicitly pre-loading a library\n(libmpi.so) that you will need anayway, whether the platform\nneeds it loaded explicitly or not.\n\nMy contention, for maintainer of Rmpi, is that if you did explicitly\nload it so as to facilitate platforms that have a \"local scope\"\nfor symbol visibility, you would not break anything for the platforms\nwith global scope BUT you would give platforms that might need to play\naround with the code a place at which to do so.\n\nAs things stand, because Rmpi assumes that there a global scoping\nin operation, and that libmpi.so will be loaded with any issues,\nthere is no obvious patch for systems, like NetBD, where that is\nnot true.\n\nIf Rmpi's installtion process explicitly looked for libmpi.so\nand provided the R code to explicitly load it, then any platform\nwhich needed to could provide a patch.\n\nBecause the loading of libmpi.so is currently implicit, as in, left\nto the chaining by anothe OpenMPI library,there is no clear way to\nproceed, for folks working in NetBSD-land.\n\nAs with many of these cross platform issues, it comes down to \"making\nthings explicit\".\n\nThat's my understanding of it anyway: you'll appreciate this has\npretty much crept up on me over the last month or so,\nKevin\n\n-- \nKevin M. Buckley                                  Room:  CO327\nSchool of Engineering and                         Phone: +64 4 463 5971\n Computer Science\nVictoria University of Wellington\nNew Zealand",
+      "body_snippet": "Aleksej writes\n\n> Ideally, R should allow installation of software into place outside\n> its PREFIX, this is good anyway, since user may have no permissions\n> to access anything within PREFIX.\n\nR does.",
+      "thread_id": "thread-72475ee6c25a",
+      "thread_depth": 0,
+      "month": "2010-05"
+    },
+    {
+      "id": "msg-85117b74b7f0",
+      "message_id": "<19443.4533.67373.918892@ron.nulle.part>",
+      "from_name": "Dirk Eddelbuettel",
+      "from_email_hash": "447d8de83a7b9c5d61116890bacb6dc0c76aee31b3011a41fb7d3c62dac9042f",
+      "date": "2010-05-18T17:16:21-05:00",
+      "subject": "[R-sig-hpc] Rmpi on NetBSD with OpenMPI",
+      "subject_clean": "Rmpi on NetBSD with OpenMPI",
+      "in_reply_to": "<f92708eafa93d616f701e36735dd3e68.squirrel@mail.ecs.vuw.ac.nz>",
+      "references": [
+        "<825fc8e152e00bdf7998195969f81b61.squirrel@mail.ecs.vuw.ac.nz>",
+        "<f91ae43fe1ef12823746fc52fde9b250.squirrel@mail.ecs.vuw.ac.nz>",
+        "<4374bb2508989d1f271ed6dd6ee57168.squirrel@mail.ecs.vuw.ac.nz>",
+        "<87y6fhnko8.fsf@inbox.ru>",
+        "<f92708eafa93d616f701e36735dd3e68.squirrel@mail.ecs.vuw.ac.nz>"
+      ],
+      "body_plain": "Kevin, Aleksej,\n\nSorry for jumping here late but ...\n\nOn 19 May 2010 at 09:56, Kevin.Buckley at ecs.vuw.ac.nz wrote:\n| Aleksej writes\n| \n| > Ideally, R should allow installation of software into place outside\n| > its PREFIX, this is good anyway, since user may have no permissions\n| > to access anything within PREFIX.\n| \n| R does.\n| \n| I am not an R user but I have been involved in the development and\n| deployment of packages for users of R and I am aware you can put\n| the libraries where you want at package install time by using\n| --library and then adding a \"lib.loc=\" when you load the package.\n| \n| For example I've been using:\n| \n| R CMD INSTALL --library=/vol/grid/pkg/R/Rlibs Rmpi \\\n|   --configure-args=--with-Rmpi-type=OPENMPI \\\n|   --configure-args=--with-Rmpi-libpath=/usr/pkg/lib/openmpi \\\n|   --configure-args=--with-Rmpi-include=/usr/pkg/include\n| \n| to get the Rmpi installed library where I want it, within the confines\n| of the SGE grid, I am working with and then I add a\n| \n| lib.loc=\"/vol/grid/pkg/R/Rlibs\"\n| \n| clause to the library(Rmpi) loading in the Rprofile that gets sourced\n| to actually load it and set it up.\n| \n| But I am not sure that's the issue here.\n| \n| What we are talking about here is overcoming the vaguries of\n| cross-platform shared-library symbol visibility, when shared\n| libraries are chain-loaded, by explicitly pre-loading a library\n| (libmpi.so) that you will need anayway, whether the platform\n| needs it loaded explicitly or not.\n\n... we had very similar issues with Open MPI 1.2.* and the global visibility\nof symbols which lead Hao Yu (Rmpi's author) and myself (Debian Rmpi\nmaintainer, and at one time also Debian openmpi co-maintainer) to do a lot of\ntests.  You can probably find old posts of mine on the openmpi lists.\n\nI believe that for us, the 'winning' change was \n\n#ifdef OPENMPI\n\tdlopen(\"libmpi.so.0\", RTLD_GLOBAL | RTLD_LAZY);\n#endif\n\nafter which we were golden.  *Bsd may well be different. Sorry if cannot be\nof more help here.  But symbol visibility and loading should be problem\ncommon to *Bsd and may get pointes from other projects.  \n\nDirk\n \n| My contention, for maintainer of Rmpi, is that if you did explicitly\n| load it so as to facilitate platforms that have a \"local scope\"\n| for symbol visibility, you would not break anything for the platforms\n| with global scope BUT you would give platforms that might need to play\n| around with the code a place at which to do so.\n| \n| As things stand, because Rmpi assumes that there a global scoping\n| in operation, and that libmpi.so will be loaded with any issues,\n| there is no obvious patch for systems, like NetBD, where that is\n| not true.\n| \n| If Rmpi's installtion process explicitly looked for libmpi.so\n| and provided the R code to explicitly load it, then any platform\n| which needed to could provide a patch.\n| \n| Because the loading of libmpi.so is currently implicit, as in, left\n| to the chaining by anothe OpenMPI library,there is no clear way to\n| proceed, for folks working in NetBSD-land.\n| \n| As with many of these cross platform issues, it comes down to \"making\n| things explicit\".\n| \n| That's my understanding of it anyway: you'll appreciate this has\n| pretty much crept up on me over the last month or so,\n| Kevin\n| \n| -- \n| Kevin M. Buckley                                  Room:  CO327\n| School of Engineering and                         Phone: +64 4 463 5971\n|  Computer Science\n| Victoria University of Wellington\n| New Zealand\n| \n| _______________________________________________\n| R-sig-hpc mailing list\n| R-sig-hpc at r-project.org\n| https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n\n-- \n  Regards, Dirk",
+      "body_snippet": "Kevin, Aleksej,\n\nSorry for jumping here late but ...\n\nOn 19 May 2010 at 09:56, Kevin.Buckley at ecs.vuw.ac.nz wrote:\n| Aleksej writes\n| \n| > Ideally, R should allow installation of software into place",
+      "thread_id": "thread-72475ee6c25a",
+      "thread_depth": 1,
+      "month": "2010-05"
+    },
+    {
+      "id": "msg-d9a80b8bd78e",
+      "message_id": "<a09ca4ac5750e2053e647ed9e58bdcb1.squirrel@mail.ecs.vuw.ac.nz>",
+      "from_name": "Kevin.Buckley at ecs.vuw.ac.nz",
+      "from_email_hash": "fb879ea72521cc5dcfc8958d067acbe7d85612ad10ad1eff3a8d2f9328015738",
+      "date": "2010-05-19T11:28:37+12:00",
+      "subject": "[R-sig-hpc] Rmpi on NetBSD with OpenMPI",
+      "subject_clean": "Rmpi on NetBSD with OpenMPI",
+      "in_reply_to": "<19443.4533.67373.918892@ron.nulle.part>",
+      "references": [
+        "<825fc8e152e00bdf7998195969f81b61.squirrel@mail.ecs.vuw.ac.nz>",
+        "<f91ae43fe1ef12823746fc52fde9b250.squirrel@mail.ecs.vuw.ac.nz>",
+        "<4374bb2508989d1f271ed6dd6ee57168.squirrel@mail.ecs.vuw.ac.nz>",
+        "<87y6fhnko8.fsf@inbox.ru>",
+        "<f92708eafa93d616f701e36735dd3e68.squirrel@mail.ecs.vuw.ac.nz>",
+        "<19443.4533.67373.918892@ron.nulle.part>"
+      ],
+      "body_plain": ">\n> Kevin, Aleksej,\n>\n> Sorry for jumping here late but ...\n\nNever a problem,\n\n> ... we had very similar issues with Open MPI 1.2.* and the global\n> visibility of symbols which lead Hao Yu (Rmpi's author) and myself\n> (Debian Rmpi maintainer, and at one time also Debian openmpi\n> co-maintainer) to do a lot of tests.  You can probably find old\n> posts of mine on the openmpi lists.\n\nI will certainly go and target my search using that info: sounds as\nthough it will be very instructive.\n\n> I believe that for us, the 'winning' change was\n>\n> #ifdef OPENMPI\n> \tdlopen(\"libmpi.so.0\", RTLD_GLOBAL | RTLD_LAZY);\n> #endif\n>\n> after which we were golden.\n\nExactly what I was rambling on about, that makes it explicit.\n\nHowever, I suppose the question that needs to be asked of you now\nis, if  that worked so well for you then, how come it is no longer\nvisible (explicit) in the current version of Rmpi.\n\nHad it still been there, then I believe that this issue would not\nhave arisen?\n\nKevin\n\n-- \nKevin M. Buckley                                  Room:  CO327\nSchool of Engineering and                         Phone: +64 4 463 5971\n Computer Science\nVictoria University of Wellington\nNew Zealand",
+      "body_snippet": ">\n> Kevin, Aleksej,\n>\n> Sorry for jumping here late but ...\n\nNever a problem,\n\n> ... we had very similar issues with Open MPI 1.2.* and the global\n> visibility of symbols which lead Hao Yu (Rmpi's aut",
+      "thread_id": "thread-72475ee6c25a",
+      "thread_depth": 2,
+      "month": "2010-05"
+    },
+    {
+      "id": "msg-7663b1787119",
+      "message_id": "<19444.61732.139155.227179@ron.nulle.part>",
+      "from_name": "Dirk Eddelbuettel",
+      "from_email_hash": "447d8de83a7b9c5d61116890bacb6dc0c76aee31b3011a41fb7d3c62dac9042f",
+      "date": "2010-05-20T03:21:56-05:00",
+      "subject": "[R-sig-hpc] Rmpi on NetBSD with OpenMPI",
+      "subject_clean": "Rmpi on NetBSD with OpenMPI",
+      "in_reply_to": "<87sk5nn92o.fsf@inbox.ru>",
+      "references": [
+        "<825fc8e152e00bdf7998195969f81b61.squirrel@mail.ecs.vuw.ac.nz>",
+        "<f91ae43fe1ef12823746fc52fde9b250.squirrel@mail.ecs.vuw.ac.nz>",
+        "<4374bb2508989d1f271ed6dd6ee57168.squirrel@mail.ecs.vuw.ac.nz>",
+        "<87y6fhnko8.fsf@inbox.ru>",
+        "<f92708eafa93d616f701e36735dd3e68.squirrel@mail.ecs.vuw.ac.nz>",
+        "<19443.4533.67373.918892@ron.nulle.part>",
+        "<87sk5nn92o.fsf@inbox.ru>"
+      ],
+      "body_plain": "On 19 May 2010 at 20:35, Aleksej Saushev wrote:\n| > I believe that for us, the 'winning' change was \n| >\n| > #ifdef OPENMPI\n| > \tdlopen(\"libmpi.so.0\", RTLD_GLOBAL | RTLD_LAZY);\n| > #endif\n| >\n| > after which we were golden.  *Bsd may well be different. Sorry if cannot be\n| > of more help here.  But symbol visibility and loading should be problem\n| > common to *Bsd and may get pointes from other projects.  \n| \n| It isn't BSDs that are \"different,\" this is wrong even on linux-based systems,\n| because it may pick _wrong_ library, the one that wasn't present neither\n| during building nor installation time, and the compatibility of which\n| wasn't checked. The choice of using explicit path to libraries and\n| interpreters isn't accidential, it is conscious. It avoids some catches,\n| and it allows at the same time simultaneous usage of software using\n| different versions of the same library (that is with the same SONAME,\n| only built differently) _without_tricky_plays_ with rtld.\n\nMaybe, maybe not. That is a very technical point, and many people have very\nstrong views on both sides of the aisle on this.  \n\nTo take one example I sometimes resolve to usng rpath information to embed a\npath to shared library (such as libR.so which is typically in a directory not\nknown to ld.so) and even that is frowned upon by many.   \n\nThis is just to say that this scheme worked reliably (with or without rpath)\nfor me for many years so I will just say that I do not share your point of\nview here.   But this is unlikely to be a fruitful discussion so I stop now.\n\n-- \n  Regards, Dirk",
+      "body_snippet": "On 19 May 2010 at 20:35, Aleksej Saushev wrote:\n| > I believe that for us, the 'winning' change was \n| >\n| > #ifdef OPENMPI\n| > \tdlopen(\"libmpi.so.0\", RTLD_GLOBAL | RTLD_LAZY);\n| > #endif\n| >\n| > afte",
+      "thread_id": "thread-7663b1787119",
+      "thread_depth": 0,
+      "month": "2010-05"
+    },
+    {
+      "id": "msg-4608b49fcfca",
+      "message_id": "<19444.61791.958899.322555@ron.nulle.part>",
+      "from_name": "Dirk Eddelbuettel",
+      "from_email_hash": "447d8de83a7b9c5d61116890bacb6dc0c76aee31b3011a41fb7d3c62dac9042f",
+      "date": "2010-05-20T03:22:55-05:00",
+      "subject": "[R-sig-hpc] Rmpi on NetBSD with OpenMPI",
+      "subject_clean": "Rmpi on NetBSD with OpenMPI",
+      "in_reply_to": "<a09ca4ac5750e2053e647ed9e58bdcb1.squirrel@mail.ecs.vuw.ac.nz>",
+      "references": [
+        "<825fc8e152e00bdf7998195969f81b61.squirrel@mail.ecs.vuw.ac.nz>",
+        "<f91ae43fe1ef12823746fc52fde9b250.squirrel@mail.ecs.vuw.ac.nz>",
+        "<4374bb2508989d1f271ed6dd6ee57168.squirrel@mail.ecs.vuw.ac.nz>",
+        "<87y6fhnko8.fsf@inbox.ru>",
+        "<f92708eafa93d616f701e36735dd3e68.squirrel@mail.ecs.vuw.ac.nz>",
+        "<19443.4533.67373.918892@ron.nulle.part>",
+        "<a09ca4ac5750e2053e647ed9e58bdcb1.squirrel@mail.ecs.vuw.ac.nz>"
+      ],
+      "body_plain": "On 19 May 2010 at 11:28, Kevin.Buckley at ecs.vuw.ac.nz wrote:\n| >\n| > Kevin, Aleksej,\n| >\n| > Sorry for jumping here late but ...\n| \n| Never a problem,\n| \n| > ... we had very similar issues with Open MPI 1.2.* and the global\n| > visibility of symbols which lead Hao Yu (Rmpi's author) and myself\n| > (Debian Rmpi maintainer, and at one time also Debian openmpi\n| > co-maintainer) to do a lot of tests.  You can probably find old\n| > posts of mine on the openmpi lists.\n| \n| I will certainly go and target my search using that info: sounds as\n| though it will be very instructive.\n| \n| > I believe that for us, the 'winning' change was\n| >\n| > #ifdef OPENMPI\n| > \tdlopen(\"libmpi.so.0\", RTLD_GLOBAL | RTLD_LAZY);\n| > #endif\n| >\n| > after which we were golden.\n| \n| Exactly what I was rambling on about, that makes it explicit.\n| \n| However, I suppose the question that needs to be asked of you now\n| is, if  that worked so well for you then, how come it is no longer\n| visible (explicit) in the current version of Rmpi.\n\nI quoted from the most current sources of Rmpi.\n \n| Had it still been there, then I believe that this issue would not\n| have arisen?\n\nIt is still there.\n\n-- \n  Regards, Dirk",
+      "body_snippet": "On 19 May 2010 at 11:28, Kevin.Buckley at ecs.vuw.ac.nz wrote:\n| >\n| > Kevin, Aleksej,\n| >\n| > Sorry for jumping here late but ...\n| \n| Never a problem,\n| \n| > ... we had very similar issues with Open",
+      "thread_id": "thread-72475ee6c25a",
+      "thread_depth": 3,
+      "month": "2010-05"
+    },
+    {
+      "id": "msg-d9857a16770a",
+      "message_id": "<ead6c1b4de7a9b8678494919a27eb2ea.squirrel@mail.ecs.vuw.ac.nz>",
+      "from_name": "Kevin.Buckley at ecs.vuw.ac.nz",
+      "from_email_hash": "fb879ea72521cc5dcfc8958d067acbe7d85612ad10ad1eff3a8d2f9328015738",
+      "date": "2010-05-21T10:32:27+12:00",
+      "subject": "[R-sig-hpc] Rmpi on NetBSD with OpenMPI",
+      "subject_clean": "Rmpi on NetBSD with OpenMPI",
+      "in_reply_to": "<19444.61791.958899.322555@ron.nulle.part>",
+      "references": [
+        "<825fc8e152e00bdf7998195969f81b61.squirrel@mail.ecs.vuw.ac.nz>",
+        "<f91ae43fe1ef12823746fc52fde9b250.squirrel@mail.ecs.vuw.ac.nz>",
+        "<4374bb2508989d1f271ed6dd6ee57168.squirrel@mail.ecs.vuw.ac.nz>",
+        "<87y6fhnko8.fsf@inbox.ru>",
+        "<f92708eafa93d616f701e36735dd3e68.squirrel@mail.ecs.vuw.ac.nz>",
+        "<19443.4533.67373.918892@ron.nulle.part>",
+        "<a09ca4ac5750e2053e647ed9e58bdcb1.squirrel@mail.ecs.vuw.ac.nz>",
+        "<19444.61791.958899.322555@ron.nulle.part>"
+      ],
+      "body_plain": "> > > I believe that for us, the 'winning' change was\n> > >\n> > > #ifdef OPENMPI\n> > > \tdlopen(\"libmpi.so.0\", RTLD_GLOBAL | RTLD_LAZY);\n> > > #endif\n> > >\n> > > after which we were golden.\n> >\n> > Exactly what I was rambling on about, that makes it explicit.\n> >\n> > However, I suppose the question that needs to be asked of you now\n> > is, if  that worked so well for you then, how come it is no longer\n> > visible (explicit) in the current version of Rmpi.\n>\n> I quoted from the most current sources of Rmpi.\n>\n> > Had it still been there, then I believe that this issue would not\n> > have arisen?\n>\n> It is still there.\n\nWow, so it is!\n\nI was assuming that must have been part of the R code and didn't look\nin the C code bits of Rmpi.\n\nGiven our Rmpi is compiled with\n\n  --configure-args=--with-Rmpi-type=OPENMPI\n\nyou would think that the ifdef would be true.\n\nSuffice to say that, even if it is, things don't work for us.\n\nWe had to place an explict load of libmpi.so, by R, into zzz.R to\nget symbols from that library to be scoped correctly.\n\n-- \nKevin M. Buckley                                  Room:  CO327\nSchool of Engineering and                         Phone: +64 4 463 5971\n Computer Science\nVictoria University of Wellington\nNew Zealand",
+      "body_snippet": "> > > I believe that for us, the 'winning' change was\n> > >\n> > > #ifdef OPENMPI\n> > > \tdlopen(\"libmpi.so.0\", RTLD_GLOBAL | RTLD_LAZY);\n> > > #endif\n> > >\n> > > after which we were golden.\n> >\n> > Exa",
+      "thread_id": "thread-72475ee6c25a",
+      "thread_depth": 4,
+      "month": "2010-05"
+    },
+    {
+      "id": "msg-f85050f8509b",
+      "message_id": "<AANLkTinItqCP_dj2sbovgg6vpwmzcNItoyfzC0vWl2Sx@mail.gmail.com>",
+      "from_name": "Daniel Elliott",
+      "from_email_hash": "68baecc9687adb1743280b02b0dd62bc7e0522ddf544bbf5564b56538544bb3c",
+      "date": "2010-05-20T21:38:31-05:00",
+      "subject": "[R-sig-hpc] snow's clusterApplyLB quits when a slave node stops",
+      "subject_clean": "snow's clusterApplyLB quits when a slave node stops",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Hello,\n\nI use SNOW to run a large number of processes on a large number of\ncomputers many of which are in a lab.  Sometimes my jobs are killed\nfor various reasons.  Lately, this has caused the clusterApplyLB\nfunction to stop running which means no additional jobs are run.\n\nIs there something I can do about this?  I am pretty sure that this\nwas not happening a few months ago (clusterApplyLB would keep running\njobs even when one of the slaves went down).\n\nThanks.\n\n- dan elliott",
+      "body_snippet": "Hello,\n\nI use SNOW to run a large number of processes on a large number of\ncomputers many of which are in a lab.  Sometimes my jobs are killed\nfor various reasons.  Lately, this has caused the cluster",
+      "thread_id": "thread-f85050f8509b",
+      "thread_depth": 0,
+      "month": "2010-05"
+    },
+    {
+      "id": "msg-d585e3c93a73",
+      "message_id": "<AANLkTild7gGwsvanQlEVBG0Db-WqWZ_gV6_wCUscbZT9@mail.gmail.com>",
+      "from_name": "Stephen Weston",
+      "from_email_hash": "507fe1aedccd9cb1c2bba1715ac24f959abe255adeeb866f82b6c8a1896cbd15",
+      "date": "2010-05-21T09:36:50-04:00",
+      "subject": "[R-sig-hpc] snow's clusterApplyLB quits when a slave node stops",
+      "subject_clean": "snow's clusterApplyLB quits when a slave node stops",
+      "in_reply_to": "<AANLkTinItqCP_dj2sbovgg6vpwmzcNItoyfzC0vWl2Sx@mail.gmail.com>",
+      "references": [
+        "<AANLkTinItqCP_dj2sbovgg6vpwmzcNItoyfzC0vWl2Sx@mail.gmail.com>"
+      ],
+      "body_plain": "Dan,\n\nThe snow package wasn't designed to be fault tolerant, and so\nI don't think it is surprising if clusterApplyLB hangs when a\njob gets killed.  I don't know why you've only started seeing\nthis behavior lately, especially since the version of snow hasn't\nchanged in quite a while.\n\nYou might want to investigate the snowFT package, which is\navailable on CRAN.  It depends on PVM/rpvm, however, so you\ncan't use MPI with snowFT, for example.\n\nYou might want to think about what behavior you'd like to see\nif a job is killed.  Some people want the job to be automatically\nresubmitted, but maybe you just want an appropriate error\nreported for that job.  Some people are happy as long as\nthe whole run doesn't hang forever, even if all of the results\nare lost.  Depending on your needs, you might be able to\nfigure out a solution to the problem.  It could also help you to\nevaluate whether someone else's proposed solution meets\nyour needs.\n\n- Steve\n\n\nOn Thu, May 20, 2010 at 10:38 PM, Daniel Elliott\n<danelliottster at gmail.com> wrote:\n> Hello,\n>\n> I use SNOW to run a large number of processes on a large number of\n> computers many of which are in a lab. ?Sometimes my jobs are killed\n> for various reasons. ?Lately, this has caused the clusterApplyLB\n> function to stop running which means no additional jobs are run.\n>\n> Is there something I can do about this? ?I am pretty sure that this\n> was not happening a few months ago (clusterApplyLB would keep running\n> jobs even when one of the slaves went down).\n>\n> Thanks.\n>\n> - dan elliott\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>",
+      "body_snippet": "Dan,\n\nThe snow package wasn't designed to be fault tolerant, and so\nI don't think it is surprising if clusterApplyLB hangs when a\njob gets killed.  I don't know why you've only started seeing\nthis beh",
+      "thread_id": "thread-f85050f8509b",
+      "thread_depth": 1,
+      "month": "2010-05"
+    },
+    {
+      "id": "msg-6c7f7768a099",
+      "message_id": "<AANLkTinpPiZz_bq4hbvzAKGvypZ1ZCaBrTxKjJyFYx95@mail.gmail.com>",
+      "from_name": "Daniel Elliott",
+      "from_email_hash": "68baecc9687adb1743280b02b0dd62bc7e0522ddf544bbf5564b56538544bb3c",
+      "date": "2010-05-21T10:14:37-05:00",
+      "subject": "[R-sig-hpc] snow's clusterApplyLB quits when a slave node stops",
+      "subject_clean": "snow's clusterApplyLB quits when a slave node stops",
+      "in_reply_to": "<AANLkTild7gGwsvanQlEVBG0Db-WqWZ_gV6_wCUscbZT9@mail.gmail.com>",
+      "references": [
+        "<AANLkTinItqCP_dj2sbovgg6vpwmzcNItoyfzC0vWl2Sx@mail.gmail.com>",
+        "<AANLkTild7gGwsvanQlEVBG0Db-WqWZ_gV6_wCUscbZT9@mail.gmail.com>"
+      ],
+      "body_plain": "Thanks, Steve.\n\nI know what I want and it is a good starting point for the other\nsolutions you mentioned: just keep sending jobs to the slave nodes\neven when one of them dies.  For me, each job is totally independent\nand the results are saved to a file so I just want the thing to keep\ngoing.\n\nI would be happy to be a part of any solution...\n\n- dan\n\nOn Fri, May 21, 2010 at 8:36 AM, Stephen Weston\n<stephen.b.weston at gmail.com> wrote:\n> Dan,\n>\n> The snow package wasn't designed to be fault tolerant, and so\n> I don't think it is surprising if clusterApplyLB hangs when a\n> job gets killed. ?I don't know why you've only started seeing\n> this behavior lately, especially since the version of snow hasn't\n> changed in quite a while.\n>\n> You might want to investigate the snowFT package, which is\n> available on CRAN. ?It depends on PVM/rpvm, however, so you\n> can't use MPI with snowFT, for example.\n>\n> You might want to think about what behavior you'd like to see\n> if a job is killed. ?Some people want the job to be automatically\n> resubmitted, but maybe you just want an appropriate error\n> reported for that job. ?Some people are happy as long as\n> the whole run doesn't hang forever, even if all of the results\n> are lost. ?Depending on your needs, you might be able to\n> figure out a solution to the problem. ?It could also help you to\n> evaluate whether someone else's proposed solution meets\n> your needs.\n>\n> - Steve\n>\n>\n> On Thu, May 20, 2010 at 10:38 PM, Daniel Elliott\n> <danelliottster at gmail.com> wrote:\n>> Hello,\n>>\n>> I use SNOW to run a large number of processes on a large number of\n>> computers many of which are in a lab. ?Sometimes my jobs are killed\n>> for various reasons. ?Lately, this has caused the clusterApplyLB\n>> function to stop running which means no additional jobs are run.\n>>\n>> Is there something I can do about this? ?I am pretty sure that this\n>> was not happening a few months ago (clusterApplyLB would keep running\n>> jobs even when one of the slaves went down).\n>>\n>> Thanks.\n>>\n>> - dan elliott\n>>\n>> _______________________________________________\n>> R-sig-hpc mailing list\n>> R-sig-hpc at r-project.org\n>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>>\n>",
+      "body_snippet": "Thanks, Steve.\n\nI know what I want and it is a good starting point for the other\nsolutions you mentioned: just keep sending jobs to the slave nodes\neven when one of them dies.  For me, each job is tot",
+      "thread_id": "thread-f85050f8509b",
+      "thread_depth": 2,
+      "month": "2010-05"
+    },
+    {
+      "id": "msg-9d1a3d08ffa5",
+      "message_id": "<AANLkTikFNRapZrvrzK66zp195r5stHoPDyqvnHob1Bau@mail.gmail.com>",
+      "from_name": "Stephen Weston",
+      "from_email_hash": "507fe1aedccd9cb1c2bba1715ac24f959abe255adeeb866f82b6c8a1896cbd15",
+      "date": "2010-05-21T11:45:42-04:00",
+      "subject": "[R-sig-hpc] snow's clusterApplyLB quits when a slave node stops",
+      "subject_clean": "snow's clusterApplyLB quits when a slave node stops",
+      "in_reply_to": "<AANLkTinpPiZz_bq4hbvzAKGvypZ1ZCaBrTxKjJyFYx95@mail.gmail.com>",
+      "references": [
+        "<AANLkTinItqCP_dj2sbovgg6vpwmzcNItoyfzC0vWl2Sx@mail.gmail.com>",
+        "<AANLkTild7gGwsvanQlEVBG0Db-WqWZ_gV6_wCUscbZT9@mail.gmail.com>",
+        "<AANLkTinpPiZz_bq4hbvzAKGvypZ1ZCaBrTxKjJyFYx95@mail.gmail.com>"
+      ],
+      "body_plain": "Dan,\n\nSo you don't care what is in the result list returned by clusterApplyLB?\nYou only care about the files created by the tasks, just as if you were\nsubmitting a bunch of independent batch jobs?  Do you care if a result\nfile is partially written when it gets killed?  Or is that condition easy to\ndetect?\n\nAlso, what snow transport are you using?\n\n- Steve\n\n\nOn Fri, May 21, 2010 at 11:14 AM, Daniel Elliott\n<danelliottster at gmail.com> wrote:\n> Thanks, Steve.\n>\n> I know what I want and it is a good starting point for the other\n> solutions you mentioned: just keep sending jobs to the slave nodes\n> even when one of them dies. ?For me, each job is totally independent\n> and the results are saved to a file so I just want the thing to keep\n> going.\n>\n> I would be happy to be a part of any solution...\n>\n> - dan\n>\n> On Fri, May 21, 2010 at 8:36 AM, Stephen Weston\n> <stephen.b.weston at gmail.com> wrote:\n>> Dan,\n>>\n>> The snow package wasn't designed to be fault tolerant, and so\n>> I don't think it is surprising if clusterApplyLB hangs when a\n>> job gets killed. ?I don't know why you've only started seeing\n>> this behavior lately, especially since the version of snow hasn't\n>> changed in quite a while.\n>>\n>> You might want to investigate the snowFT package, which is\n>> available on CRAN. ?It depends on PVM/rpvm, however, so you\n>> can't use MPI with snowFT, for example.\n>>\n>> You might want to think about what behavior you'd like to see\n>> if a job is killed. ?Some people want the job to be automatically\n>> resubmitted, but maybe you just want an appropriate error\n>> reported for that job. ?Some people are happy as long as\n>> the whole run doesn't hang forever, even if all of the results\n>> are lost. ?Depending on your needs, you might be able to\n>> figure out a solution to the problem. ?It could also help you to\n>> evaluate whether someone else's proposed solution meets\n>> your needs.\n>>\n>> - Steve\n>>\n>>\n>> On Thu, May 20, 2010 at 10:38 PM, Daniel Elliott\n>> <danelliottster at gmail.com> wrote:\n>>> Hello,\n>>>\n>>> I use SNOW to run a large number of processes on a large number of\n>>> computers many of which are in a lab. ?Sometimes my jobs are killed\n>>> for various reasons. ?Lately, this has caused the clusterApplyLB\n>>> function to stop running which means no additional jobs are run.\n>>>\n>>> Is there something I can do about this? ?I am pretty sure that this\n>>> was not happening a few months ago (clusterApplyLB would keep running\n>>> jobs even when one of the slaves went down).\n>>>\n>>> Thanks.\n>>>\n>>> - dan elliott\n>>>\n>>> _______________________________________________\n>>> R-sig-hpc mailing list\n>>> R-sig-hpc at r-project.org\n>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>>>\n>>\n>",
+      "body_snippet": "Dan,\n\nSo you don't care what is in the result list returned by clusterApplyLB?\nYou only care about the files created by the tasks, just as if you were\nsubmitting a bunch of independent batch jobs?  Do",
+      "thread_id": "thread-f85050f8509b",
+      "thread_depth": 3,
+      "month": "2010-05"
+    },
+    {
+      "id": "msg-94d057295ee9",
+      "message_id": "<AANLkTikaWik0M796rrVnIs6AY8Dz2XoO6tOQQfyNMB-n@mail.gmail.com>",
+      "from_name": "Daniel Elliott",
+      "from_email_hash": "68baecc9687adb1743280b02b0dd62bc7e0522ddf544bbf5564b56538544bb3c",
+      "date": "2010-05-21T11:19:17-05:00",
+      "subject": "[R-sig-hpc] snow's clusterApplyLB quits when a slave node stops",
+      "subject_clean": "snow's clusterApplyLB quits when a slave node stops",
+      "in_reply_to": "<AANLkTikFNRapZrvrzK66zp195r5stHoPDyqvnHob1Bau@mail.gmail.com>",
+      "references": [
+        "<AANLkTinItqCP_dj2sbovgg6vpwmzcNItoyfzC0vWl2Sx@mail.gmail.com>",
+        "<AANLkTild7gGwsvanQlEVBG0Db-WqWZ_gV6_wCUscbZT9@mail.gmail.com>",
+        "<AANLkTinpPiZz_bq4hbvzAKGvypZ1ZCaBrTxKjJyFYx95@mail.gmail.com>",
+        "<AANLkTikFNRapZrvrzK66zp195r5stHoPDyqvnHob1Bau@mail.gmail.com>"
+      ],
+      "body_plain": "A (partially written) file would be somewhat annoying, but otherwise,\nno, I do not care what happens to an unfinished job.  I detect these\nwhile collecting the results from the thousands of resulting files.\n\nTo give you and idea of how crude my SNOW usage is: for years I got by\nwith a script that spawned more scripts on each machine (one for each\nCPU I wanted to use) that read from a common file containing a list of\nshell commands.  However, SNOW is much nicer to work with.\n\nMany of the people I work with use SNOW in this way.  Not so much HPC\nbut trying to run repeated experiments on 100s of multi-core\nworkstations.  So, while I am at it, R's limit of around 127 socket\nconnections is also an irritation.\n\nI am using sockets via makeSOCKcluster.\n\nThank you.\n\n- dan\n\nOn Fri, May 21, 2010 at 10:45 AM, Stephen Weston\n<stephen.b.weston at gmail.com> wrote:\n> Dan,\n>\n> So you don't care what is in the result list returned by clusterApplyLB?\n> You only care about the files created by the tasks, just as if you were\n> submitting a bunch of independent batch jobs? ?Do you care if a result\n> file is partially written when it gets killed? ?Or is that condition easy to\n> detect?\n>\n> Also, what snow transport are you using?\n>\n> - Steve\n>\n>\n> On Fri, May 21, 2010 at 11:14 AM, Daniel Elliott\n> <danelliottster at gmail.com> wrote:\n>> Thanks, Steve.\n>>\n>> I know what I want and it is a good starting point for the other\n>> solutions you mentioned: just keep sending jobs to the slave nodes\n>> even when one of them dies. ?For me, each job is totally independent\n>> and the results are saved to a file so I just want the thing to keep\n>> going.\n>>\n>> I would be happy to be a part of any solution...\n>>\n>> - dan\n>>\n>> On Fri, May 21, 2010 at 8:36 AM, Stephen Weston\n>> <stephen.b.weston at gmail.com> wrote:\n>>> Dan,\n>>>\n>>> The snow package wasn't designed to be fault tolerant, and so\n>>> I don't think it is surprising if clusterApplyLB hangs when a\n>>> job gets killed. ?I don't know why you've only started seeing\n>>> this behavior lately, especially since the version of snow hasn't\n>>> changed in quite a while.\n>>>\n>>> You might want to investigate the snowFT package, which is\n>>> available on CRAN. ?It depends on PVM/rpvm, however, so you\n>>> can't use MPI with snowFT, for example.\n>>>\n>>> You might want to think about what behavior you'd like to see\n>>> if a job is killed. ?Some people want the job to be automatically\n>>> resubmitted, but maybe you just want an appropriate error\n>>> reported for that job. ?Some people are happy as long as\n>>> the whole run doesn't hang forever, even if all of the results\n>>> are lost. ?Depending on your needs, you might be able to\n>>> figure out a solution to the problem. ?It could also help you to\n>>> evaluate whether someone else's proposed solution meets\n>>> your needs.\n>>>\n>>> - Steve\n>>>\n>>>\n>>> On Thu, May 20, 2010 at 10:38 PM, Daniel Elliott\n>>> <danelliottster at gmail.com> wrote:\n>>>> Hello,\n>>>>\n>>>> I use SNOW to run a large number of processes on a large number of\n>>>> computers many of which are in a lab. ?Sometimes my jobs are killed\n>>>> for various reasons. ?Lately, this has caused the clusterApplyLB\n>>>> function to stop running which means no additional jobs are run.\n>>>>\n>>>> Is there something I can do about this? ?I am pretty sure that this\n>>>> was not happening a few months ago (clusterApplyLB would keep running\n>>>> jobs even when one of the slaves went down).\n>>>>\n>>>> Thanks.\n>>>>\n>>>> - dan elliott\n>>>>\n>>>> _______________________________________________\n>>>> R-sig-hpc mailing list\n>>>> R-sig-hpc at r-project.org\n>>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>>>>\n>>>\n>>\n>",
+      "body_snippet": "A (partially written) file would be somewhat annoying, but otherwise,\nno, I do not care what happens to an unfinished job.  I detect these\nwhile collecting the results from the thousands of resulting ",
+      "thread_id": "thread-f85050f8509b",
+      "thread_depth": 4,
+      "month": "2010-05"
+    },
+    {
+      "id": "msg-c5feb8d68381",
+      "message_id": "<AANLkTinvG7yRqzZupojBmeY7EhUL3Y_UOaHzVW03c-CV@mail.gmail.com>",
+      "from_name": "Ted Rosenbaum",
+      "from_email_hash": "15aefd29581ba3a828da865ee2981eed01128576735488ed772e5da774cffc2e",
+      "date": "2010-05-25T20:02:17-04:00",
+      "subject": "[R-sig-hpc] problem installing gputools",
+      "subject_clean": "problem installing gputools",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100525/f858d8ea/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100525/f858d8ea/attachment.pl>",
+      "thread_id": "thread-c5feb8d68381",
+      "thread_depth": 0,
+      "month": "2010-05"
+    },
+    {
+      "id": "msg-94f70b2ad057",
+      "message_id": "<COL119-W6233E88D4FE7987237417ADDE90@phx.gbl>",
+      "from_name": "Hamaad Shah",
+      "from_email_hash": "5c18ec887ec00c6a2c2c55f46c8d1a8e90956151fcf31f28b51fdec126f6320a",
+      "date": "2010-05-26T17:06:54+06:00",
+      "subject": "[R-sig-hpc] R-sig-hpc Digest, Vol 20, Issue 14",
+      "subject_clean": "R-sig-hpc Digest, Vol 20, Issue 14",
+      "in_reply_to": "<mailman.31.1274868012.9313.r-sig-hpc@r-project.org>",
+      "references": [
+        "<mailman.31.1274868012.9313.r-sig-hpc@r-project.org>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100526/4603ab97/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100526/4603ab97/attachment.pl>",
+      "thread_id": "thread-94f70b2ad057",
+      "thread_depth": 0,
+      "month": "2010-05"
+    },
+    {
+      "id": "msg-a6050656fdb8",
+      "message_id": "<AANLkTil9UxNJnsSWHBMWy3TOuJaHvJC3Vz_qZqZf5EEk@mail.gmail.com>",
+      "from_name": "Ted Rosenbaum",
+      "from_email_hash": "15aefd29581ba3a828da865ee2981eed01128576735488ed772e5da774cffc2e",
+      "date": "2010-05-26T09:32:01-04:00",
+      "subject": "[R-sig-hpc] R-sig-hpc Digest, Vol 20, Issue 14",
+      "subject_clean": "R-sig-hpc Digest, Vol 20, Issue 14",
+      "in_reply_to": "<COL119-W6233E88D4FE7987237417ADDE90@phx.gbl>",
+      "references": [
+        "<mailman.31.1274868012.9313.r-sig-hpc@r-project.org>",
+        "<COL119-W6233E88D4FE7987237417ADDE90@phx.gbl>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100526/51665b01/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100526/51665b01/attachment.pl>",
+      "thread_id": "thread-94f70b2ad057",
+      "thread_depth": 1,
+      "month": "2010-05"
+    },
+    {
+      "id": "msg-0f07f6898ecc",
+      "message_id": "<AANLkTik1VJ5vn_dtri4dc4Y0-8FSwRflre9Fl_gV0Tme@mail.gmail.com>",
+      "from_name": "Xiaochun Sun",
+      "from_email_hash": "a19673789b74a5b932b0c3bc81466e7ed2b472106a27f45b7ab5f1b2a5bffe82",
+      "date": "2010-05-26T16:40:19-05:00",
+      "subject": "[R-sig-hpc] Rmpi for 64bit R in Windows",
+      "subject_clean": "Rmpi for 64bit R in Windows",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100526/56aca451/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100526/56aca451/attachment.pl>",
+      "thread_id": "thread-0f07f6898ecc",
+      "thread_depth": 0,
+      "month": "2010-05"
+    }
+  ],
+  "threads": [
+    {
+      "id": "thread-5f953f66d24b",
+      "subject": "foreach: using either %do% or %dopar% depending on condition",
+      "message_count": 6,
+      "participants": [
+        "Brian G. Peterson",
+        "Stephen Weston",
+        "mat"
+      ],
+      "started": "2010-05-03T16:15:02+05:30",
+      "last_reply": "2010-05-03T19:46:38+05:30",
+      "root_message_id": "msg-5f953f66d24b"
+    },
+    {
+      "id": "thread-a21272c60521",
+      "subject": "How to check if %dopar% really run parallel?",
+      "message_count": 5,
+      "participants": [
+        "Brian G. Peterson",
+        "Cedrick W. Johnson",
+        "Mario Valle",
+        "Stephen Weston"
+      ],
+      "started": "2010-05-04T06:22:51+02:00",
+      "last_reply": "2010-05-04T10:35:08-04:00",
+      "root_message_id": "msg-a21272c60521"
+    },
+    {
+      "id": "thread-10096a350aa9",
+      "subject": "Problem installing Rmpi with OpenMP",
+      "message_count": 2,
+      "participants": [
+        "Mario Valle"
+      ],
+      "started": "2010-05-07T10:05:11+02:00",
+      "last_reply": "2010-05-07T18:27:53+02:00",
+      "root_message_id": "msg-10096a350aa9"
+    },
+    {
+      "id": "thread-b9a9cbae9070",
+      "subject": "SGE, OpenMPI and snow, 4+4 cores - only 4 from the 8 cores are used",
+      "message_count": 1,
+      "participants": [
+        "Balazs Szappanos"
+      ],
+      "started": "2010-05-11T11:09:52+02:00",
+      "last_reply": "2010-05-11T11:09:52+02:00",
+      "root_message_id": "msg-b9a9cbae9070"
+    },
+    {
+      "id": "thread-feff96dbab3a",
+      "subject": "Call for papers : HPCS-10, USA, July 2010",
+      "message_count": 1,
+      "participants": [
+        "John Edward"
+      ],
+      "started": "2010-05-14T15:50:53-07:00",
+      "last_reply": "2010-05-14T15:50:53-07:00",
+      "root_message_id": "msg-feff96dbab3a"
+    },
+    {
+      "id": "thread-548735584da4",
+      "subject": "Parallel Optimization",
+      "message_count": 2,
+      "participants": [
+        "Jacob van Etten",
+        "To Maxime"
+      ],
+      "started": "2010-05-14T23:15:26+02:00",
+      "last_reply": "2010-05-15T00:14:15-07:00",
+      "root_message_id": "msg-548735584da4"
+    },
+    {
+      "id": "thread-81d8a25fc844",
+      "subject": "Rmpi on NetBSD with OpenMPI",
+      "message_count": 2,
+      "participants": [
+        "Kevin.Buckley at ecs.vuw.ac.nz"
+      ],
+      "started": "2010-05-17T15:02:46+12:00",
+      "last_reply": "2010-05-18T10:06:26+12:00",
+      "root_message_id": "msg-81d8a25fc844"
+    },
+    {
+      "id": "thread-72475ee6c25a",
+      "subject": "Rmpi on NetBSD with OpenMPI",
+      "message_count": 5,
+      "participants": [
+        "Dirk Eddelbuettel",
+        "Kevin.Buckley at ecs.vuw.ac.nz"
+      ],
+      "started": "2010-05-19T09:56:12+12:00",
+      "last_reply": "2010-05-21T10:32:27+12:00",
+      "root_message_id": "msg-72475ee6c25a"
+    },
+    {
+      "id": "thread-7663b1787119",
+      "subject": "Rmpi on NetBSD with OpenMPI",
+      "message_count": 1,
+      "participants": [
+        "Dirk Eddelbuettel"
+      ],
+      "started": "2010-05-20T03:21:56-05:00",
+      "last_reply": "2010-05-20T03:21:56-05:00",
+      "root_message_id": "msg-7663b1787119"
+    },
+    {
+      "id": "thread-f85050f8509b",
+      "subject": "snow's clusterApplyLB quits when a slave node stops",
+      "message_count": 5,
+      "participants": [
+        "Daniel Elliott",
+        "Stephen Weston"
+      ],
+      "started": "2010-05-20T21:38:31-05:00",
+      "last_reply": "2010-05-21T11:19:17-05:00",
+      "root_message_id": "msg-f85050f8509b"
+    },
+    {
+      "id": "thread-c5feb8d68381",
+      "subject": "problem installing gputools",
+      "message_count": 1,
+      "participants": [
+        "Ted Rosenbaum"
+      ],
+      "started": "2010-05-25T20:02:17-04:00",
+      "last_reply": "2010-05-25T20:02:17-04:00",
+      "root_message_id": "msg-c5feb8d68381"
+    },
+    {
+      "id": "thread-0f07f6898ecc",
+      "subject": "Rmpi for 64bit R in Windows",
+      "message_count": 1,
+      "participants": [
+        "Xiaochun Sun"
+      ],
+      "started": "2010-05-26T16:40:19-05:00",
+      "last_reply": "2010-05-26T16:40:19-05:00",
+      "root_message_id": "msg-0f07f6898ecc"
+    },
+    {
+      "id": "thread-94f70b2ad057",
+      "subject": "R-sig-hpc Digest, Vol 20, Issue 14",
+      "message_count": 2,
+      "participants": [
+        "Hamaad Shah",
+        "Ted Rosenbaum"
+      ],
+      "started": "2010-05-26T17:06:54+06:00",
+      "last_reply": "2010-05-26T09:32:01-04:00",
+      "root_message_id": "msg-94f70b2ad057"
+    }
+  ]
+}

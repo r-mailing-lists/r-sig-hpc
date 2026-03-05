@@ -1,0 +1,1678 @@
+From stephen.b.weston at gmail.com  Sun Apr  3 02:14:05 2011
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Sat, 2 Apr 2011 20:14:05 -0400
+Subject: [R-sig-hpc] .combine in nested foreach loops !
+In-Reply-To: <9C2B89830110BF4A845878D9A31F3D925AE6C78630@UEAEXCHMBX.UEA.AC.UK>
+References: <9C2B89830110BF4A845878D9A31F3D925AE6C78630@UEAEXCHMBX.UEA.AC.UK>
+Message-ID: <BANLkTikv5hY5vCB-spLAL+=Hb4SzAKT6PQ@mail.gmail.com>
+
+I'm not sure exactly what you're trying to do, but I'm guessing that each
+of the 3 lists that you speak of is supposed to contain two 3x3xn arrays,
+where "two" is the number of lists of matrices that you're processing
+("a" and "b"), and "n" is the length of "a" and "b".
+
+If that's the case, then you can fix your code with a little bit of
+post-processing to the results of the inner-foreach loop.  The inner-
+foreach loop is returning a list containing two lists of n matrices.
+You need to convert that into a list containing two 3x3xn arrays.
+A simple way to do that is with a ".final" function.  The input to
+the .final function is the final result from the .combine function.
+The output from the .final function is returned by foreach.  That is
+particularly useful with nested foreach loops.
+
+So here's what I came up with, using the abind function from
+the abind package to create the 3x3xn arrays:
+
+library(abind)
+library(foreach)
+library(doMC)
+registerDoMC()
+
+cvec <- c(1, 2, 3)
+
+n <- 2
+s <- seq(length=n)
+a <- lapply(s, function(i) matrix(rnorm(9), 3))
+b <- lapply(s, function(i) matrix(rnorm(9), 3))
+
+init <- list(a=list(), b=list())
+
+comb <- function(accum, ...) {
+  s <- seq(along=accum)
+  names(s) <- names(accum)
+  lapply(s, function(i) c(accum[[i]], lapply(list(...), function(a) a[[i]])))
+}
+
+# Convert a list of lists of matrices into a list of arrays
+final <- function(r) {
+  lapply(r, function(s) abind(s, along=3))
+}
+
+results <- foreach(c=cvec) %:%
+  foreach(i=icount(length(a)), .combine=comb, .init=init,
+            .final=final, .multicombine=TRUE) %dopar% {
+    list(a=a[[i]]*c, b=b[[i]]*c)
+  }
+
+print(results)
+str(results)
+
+
+Note that this uses the default combine for the outer-foreach loop,
+which returns the inner-foreach values in a list, which seems to be
+what you want.
+
+- Steve
+
+
+
+On Thu, Mar 31, 2011 at 9:34 AM, Maas James Dr (MED) <J.Maas at uea.ac.uk> wrote:
+> I'm attempting to use nested foreach loops. ?My problem is trying to combine the results correctly from the outer foreach loop. ?Stephen Weston very graciously worked up an example for me of how to get outputs, in the form of matrices, back from a single foreach loop. ?I've changed the example to try to get it to work correctly for nested foreach loops. ?In this example the "results" object contains 6 lists however what I would like to get is a result containing only 3 lists, corresponding to the length of cvec, each list would be a 3x3x2 array. ?I've tried several things to combine the results in the outer loop, including functions using "abind", ?and not got it to work out, perhaps it is not possible directly from nested foreach loops?
+>
+> BTW, is there a location/way to search the R-sig-hpc listserv?
+>
+> Thanks a bunch,
+>
+> Jim
+>
+> library(doMPI)
+> cl <- startMPIcluster()
+> registerDoMPI(cl)
+> library(foreach)
+>
+> cvec <- c(1,2,3)
+>
+> n <- 2
+> s <- seq(length=n)
+> a <- lapply(s, function(i) matrix(rnorm(9), 3))
+> b <- lapply(s, function(i) matrix(rnorm(9), 3))
+>
+> init <- list(a=list(), b=list())
+>
+> comb <- function(accum, ...) {
+> ?s <- seq(along=accum)
+> ?names(s) <- names(accum)
+> ?lapply(s, function(i) c(accum[[i]], lapply(list(...), function(a) a[[i]])))
+> }
+>
+> results <- foreach (c=cvec, .combine="c") %:%
+> ? ?foreach(i=icount(length(a)), .combine=comb, .init=init,
+> ? ? ? ? ? ? ? ? ?.multicombine=TRUE) %dopar% {
+> ?list(a=a[[i]]*c, b=b[[i]]*c)
+> }
+>
+> results
+> names(results)
+>
+> closeCluster(cl)
+> mpi.quit()
+>
+> ===============================
+> Dr. Jim Maas
+> University of East Anglia
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From bsmith030465 at gmail.com  Wed Apr  6 19:32:36 2011
+From: bsmith030465 at gmail.com (Brian Smith)
+Date: Wed, 6 Apr 2011 13:32:36 -0400
+Subject: [R-sig-hpc] Rsge
+Message-ID: <BANLkTimnF6MZbCVVTRx1+5ZnCqb3T9oi5A@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110406/38cf5585/attachment.pl>
+
+From bsmith030465 at gmail.com  Wed Apr  6 20:46:00 2011
+From: bsmith030465 at gmail.com (Brian Smith)
+Date: Wed, 6 Apr 2011 14:46:00 -0400
+Subject: [R-sig-hpc] Rsge
+In-Reply-To: <BANLkTimnF6MZbCVVTRx1+5ZnCqb3T9oi5A@mail.gmail.com>
+References: <BANLkTimnF6MZbCVVTRx1+5ZnCqb3T9oi5A@mail.gmail.com>
+Message-ID: <BANLkTinzmAwo8YdEJwR9e6kBLyJsqm5bRQ@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110406/49bc93a6/attachment.pl>
+
+From brian at braverock.com  Wed Apr  6 21:16:43 2011
+From: brian at braverock.com (Brian G. Peterson)
+Date: Wed, 06 Apr 2011 14:16:43 -0500
+Subject: [R-sig-hpc] Rsge
+In-Reply-To: <BANLkTinzmAwo8YdEJwR9e6kBLyJsqm5bRQ@mail.gmail.com>
+References: <BANLkTimnF6MZbCVVTRx1+5ZnCqb3T9oi5A@mail.gmail.com>
+	<BANLkTinzmAwo8YdEJwR9e6kBLyJsqm5bRQ@mail.gmail.com>
+Message-ID: <4D9CBC1B.7040205@braverock.com>
+
+On 04/06/2011 01:46 PM, Brian Smith wrote:
+> However, if the package is loaded within the function call, then everything
+> seems to be ok. ...?? Where am I going wrong?
+
+did you try using the 'packages' argument to the sge.parRapply function?
+-- 
+Brian G. Peterson
+http://braverock.com/brian/
+Ph: 773-459-4973
+IM: bgpbraverock
+
+
+From bsmith030465 at gmail.com  Thu Apr  7 13:56:38 2011
+From: bsmith030465 at gmail.com (Brian Smith)
+Date: Thu, 7 Apr 2011 07:56:38 -0400
+Subject: [R-sig-hpc] Rsge - specify queue?
+Message-ID: <BANLkTinqNhHE=MOYtQQAt5Tr7H=GKTtbSA@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110407/22403a24/attachment.pl>
+
+From bart at njn.nl  Thu Apr  7 14:30:34 2011
+From: bart at njn.nl (bart)
+Date: Thu, 07 Apr 2011 14:30:34 +0200
+Subject: [R-sig-hpc] Rsge - specify queue?
+In-Reply-To: <BANLkTinqNhHE=MOYtQQAt5Tr7H=GKTtbSA@mail.gmail.com>
+References: <BANLkTinqNhHE=MOYtQQAt5Tr7H=GKTtbSA@mail.gmail.com>
+Message-ID: <4D9DAE6A.8070509@njn.nl>
+
+Hi you could look in sge.options there is and option called 
+sge.qsub.options i think using that you can select a queue
+
+Bart
+
+On 04/07/2011 01:56 PM, Brian Smith wrote:
+> Thanks Brian. That worked.
+>
+> Is there a way to specify the queue that the job will be submitted to? (e.g.
+> qsub -q long.q xx)
+>
+>
+>
+> On Wed, Apr 6, 2011 at 3:16 PM, Brian G. Peterson<brian at braverock.com>wrote:
+>
+>> On 04/06/2011 01:46 PM, Brian Smith wrote:
+>>
+>>> However, if the package is loaded within the function call, then
+>>> everything
+>>> seems to be ok. ...?? Where am I going wrong?
+>>>
+>>
+>> did you try using the 'packages' argument to the sge.parRapply function?
+>> --
+>> Brian G. Peterson
+>> http://braverock.com/brian/
+>> Ph: 773-459-4973
+>> IM: bgpbraverock
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>
+> 	[[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From pauljohn32 at gmail.com  Tue Apr 19 18:21:33 2011
+From: pauljohn32 at gmail.com (Paul Johnson)
+Date: Tue, 19 Apr 2011 11:21:33 -0500
+Subject: [R-sig-hpc] creating many separate streams (more streams than nodes)
+Message-ID: <BANLkTi=hAqEMkG7epe4RcX=Lm+53dfW_Ng@mail.gmail.com>
+
+Hi, everybody:
+
+I sat down to write a quick question, and it is turning into a very
+complicated mess.  I will give you the blunt question. And then I'll
+leave all those other words I had written so that future Googlers
+might learn from my experience. Or  you might understand me better.
+
+I want to spawn 8000 random generator streams and save their initial
+states. Then I want to be able to re-run simulations against those
+generators and get the same results, whether or not I'm on just one
+machine or on a cluster.
+
+The treatment of random seeds in packages like SNOW or Rmpi is aimed
+at initializing the cluster nodes, rather than initializing the
+separate streams.  My cluster has 60 nodes, and so the 60 separate
+streams from SNOW will not suffice.  So I'm reading code in rlecuyer
+and rstream to see how this might be done.  My background in
+agent-based simulation gives me some experience with serialization of
+PRNG objects, but R makes it very tough to see through the veil
+because there are hidden global objects like the base generator and
+the interface to it requires considerable care.
+
+Now the "blah blah blah". After hacking on this for a couple of hours,
+I think it boils down to 4 points.
+
+1. John Chambers seems to agree this would be a good idea.
+
+I got the idea that my plan should be do-able from John Chambers'
+book, Software for Data Analysis, where he discusses replication of
+simulations. For replication, he says one shold save the state of the
+generator with each stream that is drawn, then use that to
+re-instantiate identical streams in the future.  I have made that work
+on a single system using the scheme he describes, which basically
+involves grabbng .Random.seed and saving it.  If you look in the R
+code for the lsoda package (the one Chambers discusses), you will see
+it is not more complicated than saving .Random.seed like this.
+
+drawSample <- function(N=NULL, b0=NULL, b1=NULL, pm=NULL, setseed=NULL){
+  if (!is.null(setseed)){set.seed(setseed)  <- setseed; print("seed
+NOT NULL \n \n \n \n \n")};
+  inState <- .Random.seed
+  x <- rnorm(N, m=0, sd=1)
+  e <- rnorm(N, m=0, sd=sqrt(1-b1*b1))
+  y <- b0 + b1 * x + e
+  mm <- missingMask(N, pm)
+  s1 <- data.frame(y,x)
+  dat <- imposeMissings(s1, mm)
+  list("dat"=dat, "inState"=inState)
+}
+
+This is from an "actual project" I'm working on, please ignore the x
+and y part, just note it uses a seed object if given, and it saves the
+seed's inState.
+
+I've verified that saves the state, and if I pass that back in again,
+I can replicate the sample exactly, when working on exactly one
+system.  As long as we run the project 8000 times in a row, we can
+save those seed states and re-create them later.
+
+No, go parallel. Humphf.  Recently a poster in r-sigh-hpc said that
+these parallel generator packages seem to be not quite done, and I
+think there was some truth in that.
+
+
+2. rstream (by L'Ecuyer and Leydold) has a very promising writeup
+
+P. L?Ecuyer and J. Leydold (2005): rstream: Streams of Random Numbers
+for Stochastic Simulation, R News 5(2), 16?20.
+
+They say rstream  is 1) exactly what I want to do,  2) they claim to
+be faster & more efficient than rlecuyer,
+
+but 3) the saving and re-creation of the streams seems to be fraught with peril:
+
+Warning
+The underlying RngStreams library uses a global variable to store the
+package seed. This vari-
+able is also stored inside R. Whenever a new instance of a
+"rstream.lecuyer" object is created the
+value of global variable is set to the value of the R object. Thus
+there is no problem when such
+"rstream.lecuyer" objects are packed for using in later R sessions.
+However, if such packed objects
+are not stored in the workspace image, then the R variable gets lost
+and there is a (extremely small)
+chance that newly created objects are not stochastically independent
+from restored objects.
+
+Huh?  That's quite horrible, really.  Until that problem is solved and
+the warning is eliminated from the documentation, I can't say I'd ever
+have any confidence.
+
+
+3. The state of the rsprng package in R is not good, mainly because
+the state of the underlying C++ library is not good.
+
+I'd have to fix up rsprng if I wanted to keep going along my current
+path with the  MT19937  generator, of course, and the only open source
+implementation of the multiple streams from MT19937 approach is in
+SPRNG and the R package rsprng.  If you have looked at the code in
+SPRNG 2.0, you will know that it is not in a good condition. It does
+not compile cleanly with current GCC.  Just getting the C++ part to
+compile requires quite a bit of futzing about
+(https://stat.ethz.ch/pipermail/r-sig-hpc/2010-January/000527.html).
+The Fortran examples appear to be completely unworkable.  The SPRNG
+team has made several updates since rsprng was written, and they are
+not compatible with rsprng.  Conclusion: the state of the code is just
+not good.
+
+I've read that the MT19937 authors have developed their own
+implementation of the idea behind SPRNG, to spawn separate MT19937
+generators with unique 632 dimensional states so that they are unique
+streams.  However, as far as I can tell, that's no public code.  The
+Nvidia corporation is working on a commercial implementation of that
+same idea for their GPUs.
+
+4. The Many streams approach described here:
+
+P. L?Ecuyer, R. Simard, E.J.Chen and W.D.Kelton: An Object-Oriented
+Random-Number Package
+With Many Long Streams and Substreams; Operations Research, vol. 50,
+nr. 6, 2002.
+
+is still considered valid. The idea there is to take the very long
+stream of random numbers, and take Streams out of it in contiguous
+chunks.  Unlike MT19937, the backbone generator MRG232a, allows one to
+grab the starting points of those separate chunks without an
+inordinate amount of computation.
+
+One implementation of that idea within R is found in the rlecuyer
+package, which is the most prominent package for parallel random
+numbers (Hana Sevcikova & Tony Rossini have been contributors here).
+Since rlecuyer is literally built right on top of the C code by
+L'Ecuyer, and the R code itself is quite clear, I think I may be able
+to adapt that to the purpose.
+
+My fear about the rlecuyer package is that all of the methods start
+with periods, which means that the author's probably don't want idiots
+like me digging about in there.
+
+Then I found rstream, which appears to have the right idea for me,
+except that the saving and restoration of the stream objects is, well,
+frightening.
+
+I'll keep reading and hoping that some of  you email about it.
+
+-- 
+Paul E. Johnson
+Professor, Political Science
+1541 Lilac Lane, Room 504
+University of Kansas
+
+
+From hanas at uw.edu  Tue Apr 19 18:43:56 2011
+From: hanas at uw.edu (Hana Sevcikova)
+Date: Tue, 19 Apr 2011 09:43:56 -0700
+Subject: [R-sig-hpc] creating many separate streams (more streams than
+ nodes)
+In-Reply-To: <BANLkTi=hAqEMkG7epe4RcX=Lm+53dfW_Ng@mail.gmail.com>
+References: <BANLkTi=hAqEMkG7epe4RcX=Lm+53dfW_Ng@mail.gmail.com>
+Message-ID: <4DADBBCC.2020004@uw.edu>
+
+Paul,
+
+The functionality that you're describing is implemented in the snowFT 
+package. By default, the function
+performParallel (and the underlying clusterApplyFT) initializes one 
+stream per replicate, and thus provides
+reproducible results. The function that does the RNG initialization is 
+called clusterSetupRNGstreamRepli.
+
+Regarding your comment about the names of the rlecuyer functions: Yes, 
+our original intention was to
+keep those functions internal and let snow and snowFT to deal with them, 
+but there is no reason why
+you couldn't use them directly.
+
+Hana
+
+
+On 4/19/11 9:21 AM, Paul Johnson wrote:
+> Hi, everybody:
+>
+> I sat down to write a quick question, and it is turning into a very
+> complicated mess.  I will give you the blunt question. And then I'll
+> leave all those other words I had written so that future Googlers
+> might learn from my experience. Or  you might understand me better.
+>
+> I want to spawn 8000 random generator streams and save their initial
+> states. Then I want to be able to re-run simulations against those
+> generators and get the same results, whether or not I'm on just one
+> machine or on a cluster.
+>
+> The treatment of random seeds in packages like SNOW or Rmpi is aimed
+> at initializing the cluster nodes, rather than initializing the
+> separate streams.  My cluster has 60 nodes, and so the 60 separate
+> streams from SNOW will not suffice.  So I'm reading code in rlecuyer
+> and rstream to see how this might be done.  My background in
+> agent-based simulation gives me some experience with serialization of
+> PRNG objects, but R makes it very tough to see through the veil
+> because there are hidden global objects like the base generator and
+> the interface to it requires considerable care.
+>
+> Now the "blah blah blah". After hacking on this for a couple of hours,
+> I think it boils down to 4 points.
+>
+> 1. John Chambers seems to agree this would be a good idea.
+>
+> I got the idea that my plan should be do-able from John Chambers'
+> book, Software for Data Analysis, where he discusses replication of
+> simulations. For replication, he says one shold save the state of the
+> generator with each stream that is drawn, then use that to
+> re-instantiate identical streams in the future.  I have made that work
+> on a single system using the scheme he describes, which basically
+> involves grabbng .Random.seed and saving it.  If you look in the R
+> code for the lsoda package (the one Chambers discusses), you will see
+> it is not more complicated than saving .Random.seed like this.
+>
+> drawSample<- function(N=NULL, b0=NULL, b1=NULL, pm=NULL, setseed=NULL){
+>    if (!is.null(setseed)){set.seed(setseed)<- setseed; print("seed
+> NOT NULL \n \n \n \n \n")};
+>    inState<- .Random.seed
+>    x<- rnorm(N, m=0, sd=1)
+>    e<- rnorm(N, m=0, sd=sqrt(1-b1*b1))
+>    y<- b0 + b1 * x + e
+>    mm<- missingMask(N, pm)
+>    s1<- data.frame(y,x)
+>    dat<- imposeMissings(s1, mm)
+>    list("dat"=dat, "inState"=inState)
+> }
+>
+> This is from an "actual project" I'm working on, please ignore the x
+> and y part, just note it uses a seed object if given, and it saves the
+> seed's inState.
+>
+> I've verified that saves the state, and if I pass that back in again,
+> I can replicate the sample exactly, when working on exactly one
+> system.  As long as we run the project 8000 times in a row, we can
+> save those seed states and re-create them later.
+>
+> No, go parallel. Humphf.  Recently a poster in r-sigh-hpc said that
+> these parallel generator packages seem to be not quite done, and I
+> think there was some truth in that.
+>
+>
+> 2. rstream (by L'Ecuyer and Leydold) has a very promising writeup
+>
+> P. L?Ecuyer and J. Leydold (2005): rstream: Streams of Random Numbers
+> for Stochastic Simulation, R News 5(2), 16?20.
+>
+> They say rstream  is 1) exactly what I want to do,  2) they claim to
+> be faster&  more efficient than rlecuyer,
+>
+> but 3) the saving and re-creation of the streams seems to be fraught with peril:
+>
+> Warning
+> The underlying RngStreams library uses a global variable to store the
+> package seed. This vari-
+> able is also stored inside R. Whenever a new instance of a
+> "rstream.lecuyer" object is created the
+> value of global variable is set to the value of the R object. Thus
+> there is no problem when such
+> "rstream.lecuyer" objects are packed for using in later R sessions.
+> However, if such packed objects
+> are not stored in the workspace image, then the R variable gets lost
+> and there is a (extremely small)
+> chance that newly created objects are not stochastically independent
+> from restored objects.
+>
+> Huh?  That's quite horrible, really.  Until that problem is solved and
+> the warning is eliminated from the documentation, I can't say I'd ever
+> have any confidence.
+>
+>
+> 3. The state of the rsprng package in R is not good, mainly because
+> the state of the underlying C++ library is not good.
+>
+> I'd have to fix up rsprng if I wanted to keep going along my current
+> path with the  MT19937  generator, of course, and the only open source
+> implementation of the multiple streams from MT19937 approach is in
+> SPRNG and the R package rsprng.  If you have looked at the code in
+> SPRNG 2.0, you will know that it is not in a good condition. It does
+> not compile cleanly with current GCC.  Just getting the C++ part to
+> compile requires quite a bit of futzing about
+> (https://stat.ethz.ch/pipermail/r-sig-hpc/2010-January/000527.html).
+> The Fortran examples appear to be completely unworkable.  The SPRNG
+> team has made several updates since rsprng was written, and they are
+> not compatible with rsprng.  Conclusion: the state of the code is just
+> not good.
+>
+> I've read that the MT19937 authors have developed their own
+> implementation of the idea behind SPRNG, to spawn separate MT19937
+> generators with unique 632 dimensional states so that they are unique
+> streams.  However, as far as I can tell, that's no public code.  The
+> Nvidia corporation is working on a commercial implementation of that
+> same idea for their GPUs.
+>
+> 4. The Many streams approach described here:
+>
+> P. L?Ecuyer, R. Simard, E.J.Chen and W.D.Kelton: An Object-Oriented
+> Random-Number Package
+> With Many Long Streams and Substreams; Operations Research, vol. 50,
+> nr. 6, 2002.
+>
+> is still considered valid. The idea there is to take the very long
+> stream of random numbers, and take Streams out of it in contiguous
+> chunks.  Unlike MT19937, the backbone generator MRG232a, allows one to
+> grab the starting points of those separate chunks without an
+> inordinate amount of computation.
+>
+> One implementation of that idea within R is found in the rlecuyer
+> package, which is the most prominent package for parallel random
+> numbers (Hana Sevcikova&  Tony Rossini have been contributors here).
+> Since rlecuyer is literally built right on top of the C code by
+> L'Ecuyer, and the R code itself is quite clear, I think I may be able
+> to adapt that to the purpose.
+>
+> My fear about the rlecuyer package is that all of the methods start
+> with periods, which means that the author's probably don't want idiots
+> like me digging about in there.
+>
+> Then I found rstream, which appears to have the right idea for me,
+> except that the saving and restoration of the stream objects is, well,
+> frightening.
+>
+> I'll keep reading and hoping that some of  you email about it.
+>
+
+
+From pauljohn32 at gmail.com  Tue Apr 19 18:54:12 2011
+From: pauljohn32 at gmail.com (Paul Johnson)
+Date: Tue, 19 Apr 2011 11:54:12 -0500
+Subject: [R-sig-hpc] creating many separate streams (more streams than
+	nodes)
+In-Reply-To: <4DADBBCC.2020004@uw.edu>
+References: <BANLkTi=hAqEMkG7epe4RcX=Lm+53dfW_Ng@mail.gmail.com>
+	<4DADBBCC.2020004@uw.edu>
+Message-ID: <BANLkTikO8AMd8-Ua22uRN5huA1YmDnq3rw@mail.gmail.com>
+
+Dear Hana
+
+WOW. Thanks very much.  Your code in rlecuyer is very clear and easy
+to follow, but now I will read snowFT to see how you do it.
+
+My experience recently has been that when things go wrong in the use
+of the higher level packages like SNOW or NWS, it is very tough for me
+to find what is wrong.  If I write things directly on top of Rmpi, it
+cuts out one or two layers of possible trouble, so finding problems is
+easier.
+
+Am I alone in this experience?
+
+pj
+
+On Tue, Apr 19, 2011 at 11:43 AM, Hana Sevcikova <hanas at uw.edu> wrote:
+> Paul,
+>
+> The functionality that you're describing is implemented in the snowFT
+> package. By default, the function
+> performParallel (and the underlying clusterApplyFT) initializes one stream
+> per replicate, and thus provides
+> reproducible results. The function that does the RNG initialization is
+> called clusterSetupRNGstreamRepli.
+>
+> Regarding your comment about the names of the rlecuyer functions: Yes, our
+> original intention was to
+> keep those functions internal and let snow and snowFT to deal with them, but
+> there is no reason why
+> you couldn't use them directly.
+>
+> Hana
+>
+>
+> On 4/19/11 9:21 AM, Paul Johnson wrote:
+>>
+>> Hi, everybody:
+>>
+>> I sat down to write a quick question, and it is turning into a very
+>> complicated mess. ?I will give you the blunt question. And then I'll
+>> leave all those other words I had written so that future Googlers
+>> might learn from my experience. Or ?you might understand me better.
+>>
+>> I want to spawn 8000 random generator streams and save their initial
+>> states. Then I want to be able to re-run simulations against those
+>> generators and get the same results, whether or not I'm on just one
+>> machine or on a cluster.
+>>
+>> The treatment of random seeds in packages like SNOW or Rmpi is aimed
+>> at initializing the cluster nodes, rather than initializing the
+>> separate streams. ?My cluster has 60 nodes, and so the 60 separate
+>> streams from SNOW will not suffice. ?So I'm reading code in rlecuyer
+>> and rstream to see how this might be done. ?My background in
+>> agent-based simulation gives me some experience with serialization of
+>> PRNG objects, but R makes it very tough to see through the veil
+>> because there are hidden global objects like the base generator and
+>> the interface to it requires considerable care.
+>>
+>> Now the "blah blah blah". After hacking on this for a couple of hours,
+>> I think it boils down to 4 points.
+>>
+>> 1. John Chambers seems to agree this would be a good idea.
+>>
+>> I got the idea that my plan should be do-able from John Chambers'
+>> book, Software for Data Analysis, where he discusses replication of
+>> simulations. For replication, he says one shold save the state of the
+>> generator with each stream that is drawn, then use that to
+>> re-instantiate identical streams in the future. ?I have made that work
+>> on a single system using the scheme he describes, which basically
+>> involves grabbng .Random.seed and saving it. ?If you look in the R
+>> code for the lsoda package (the one Chambers discusses), you will see
+>> it is not more complicated than saving .Random.seed like this.
+>>
+>> drawSample<- function(N=NULL, b0=NULL, b1=NULL, pm=NULL, setseed=NULL){
+>> ? if (!is.null(setseed)){set.seed(setseed)<- setseed; print("seed
+>> NOT NULL \n \n \n \n \n")};
+>> ? inState<- .Random.seed
+>> ? x<- rnorm(N, m=0, sd=1)
+>> ? e<- rnorm(N, m=0, sd=sqrt(1-b1*b1))
+>> ? y<- b0 + b1 * x + e
+>> ? mm<- missingMask(N, pm)
+>> ? s1<- data.frame(y,x)
+>> ? dat<- imposeMissings(s1, mm)
+>> ? list("dat"=dat, "inState"=inState)
+>> }
+>>
+>> This is from an "actual project" I'm working on, please ignore the x
+>> and y part, just note it uses a seed object if given, and it saves the
+>> seed's inState.
+>>
+>> I've verified that saves the state, and if I pass that back in again,
+>> I can replicate the sample exactly, when working on exactly one
+>> system. ?As long as we run the project 8000 times in a row, we can
+>> save those seed states and re-create them later.
+>>
+>> No, go parallel. Humphf. ?Recently a poster in r-sigh-hpc said that
+>> these parallel generator packages seem to be not quite done, and I
+>> think there was some truth in that.
+>>
+>>
+>> 2. rstream (by L'Ecuyer and Leydold) has a very promising writeup
+>>
+>> P. L?Ecuyer and J. Leydold (2005): rstream: Streams of Random Numbers
+>> for Stochastic Simulation, R News 5(2), 16?20.
+>>
+>> They say rstream ?is 1) exactly what I want to do, ?2) they claim to
+>> be faster& ?more efficient than rlecuyer,
+>>
+>> but 3) the saving and re-creation of the streams seems to be fraught with
+>> peril:
+>>
+>> Warning
+>> The underlying RngStreams library uses a global variable to store the
+>> package seed. This vari-
+>> able is also stored inside R. Whenever a new instance of a
+>> "rstream.lecuyer" object is created the
+>> value of global variable is set to the value of the R object. Thus
+>> there is no problem when such
+>> "rstream.lecuyer" objects are packed for using in later R sessions.
+>> However, if such packed objects
+>> are not stored in the workspace image, then the R variable gets lost
+>> and there is a (extremely small)
+>> chance that newly created objects are not stochastically independent
+>> from restored objects.
+>>
+>> Huh? ?That's quite horrible, really. ?Until that problem is solved and
+>> the warning is eliminated from the documentation, I can't say I'd ever
+>> have any confidence.
+>>
+>>
+>> 3. The state of the rsprng package in R is not good, mainly because
+>> the state of the underlying C++ library is not good.
+>>
+>> I'd have to fix up rsprng if I wanted to keep going along my current
+>> path with the ?MT19937 ?generator, of course, and the only open source
+>> implementation of the multiple streams from MT19937 approach is in
+>> SPRNG and the R package rsprng. ?If you have looked at the code in
+>> SPRNG 2.0, you will know that it is not in a good condition. It does
+>> not compile cleanly with current GCC. ?Just getting the C++ part to
+>> compile requires quite a bit of futzing about
+>> (https://stat.ethz.ch/pipermail/r-sig-hpc/2010-January/000527.html).
+>> The Fortran examples appear to be completely unworkable. ?The SPRNG
+>> team has made several updates since rsprng was written, and they are
+>> not compatible with rsprng. ?Conclusion: the state of the code is just
+>> not good.
+>>
+>> I've read that the MT19937 authors have developed their own
+>> implementation of the idea behind SPRNG, to spawn separate MT19937
+>> generators with unique 632 dimensional states so that they are unique
+>> streams. ?However, as far as I can tell, that's no public code. ?The
+>> Nvidia corporation is working on a commercial implementation of that
+>> same idea for their GPUs.
+>>
+>> 4. The Many streams approach described here:
+>>
+>> P. L?Ecuyer, R. Simard, E.J.Chen and W.D.Kelton: An Object-Oriented
+>> Random-Number Package
+>> With Many Long Streams and Substreams; Operations Research, vol. 50,
+>> nr. 6, 2002.
+>>
+>> is still considered valid. The idea there is to take the very long
+>> stream of random numbers, and take Streams out of it in contiguous
+>> chunks. ?Unlike MT19937, the backbone generator MRG232a, allows one to
+>> grab the starting points of those separate chunks without an
+>> inordinate amount of computation.
+>>
+>> One implementation of that idea within R is found in the rlecuyer
+>> package, which is the most prominent package for parallel random
+>> numbers (Hana Sevcikova& ?Tony Rossini have been contributors here).
+>> Since rlecuyer is literally built right on top of the C code by
+>> L'Ecuyer, and the R code itself is quite clear, I think I may be able
+>> to adapt that to the purpose.
+>>
+>> My fear about the rlecuyer package is that all of the methods start
+>> with periods, which means that the author's probably don't want idiots
+>> like me digging about in there.
+>>
+>> Then I found rstream, which appears to have the right idea for me,
+>> except that the saving and restoration of the stream objects is, well,
+>> frightening.
+>>
+>> I'll keep reading and hoping that some of ?you email about it.
+>>
+>
+>
+
+
+
+-- 
+Paul E. Johnson
+Professor, Political Science
+1541 Lilac Lane, Room 504
+University of Kansas
+
+
+From ross at biostat.ucsf.edu  Wed Apr 20 00:17:44 2011
+From: ross at biostat.ucsf.edu (Ross Boylan)
+Date: Tue, 19 Apr 2011 15:17:44 -0700
+Subject: [R-sig-hpc] creating many separate streams (more streams
+	than	nodes)
+In-Reply-To: <BANLkTi=hAqEMkG7epe4RcX=Lm+53dfW_Ng@mail.gmail.com>
+References: <BANLkTi=hAqEMkG7epe4RcX=Lm+53dfW_Ng@mail.gmail.com>
+Message-ID: <1303251464.18773.63.camel@corn.betterworld.us>
+
+On Tue, 2011-04-19 at 11:21 -0500, Paul Johnson wrote:
+> Hi, everybody:
+> 
+> I sat down to write a quick question, and it is turning into a very
+> complicated mess.  I will give you the blunt question. And then I'll
+> leave all those other words I had written so that future Googlers
+> might learn from my experience. Or  you might understand me better.
+> 
+> I want to spawn 8000 random generator streams and save their initial
+> states. Then I want to be able to re-run simulations against those
+> generators and get the same results, whether or not I'm on just one
+> machine or on a cluster.
+> 
+> The treatment of random seeds in packages like SNOW or Rmpi is aimed
+> at initializing the cluster nodes, rather than initializing the
+> separate streams.  My cluster has 60 nodes, and so the 60 separate
+> streams from SNOW will not suffice.  So I'm reading code in rlecuyer
+> and rstream to see how this might be done.  My background in
+> agent-based simulation gives me some experience with serialization of
+> PRNG objects, but R makes it very tough to see through the veil
+> because there are hidden global objects like the
+I went down this path; the trick is to avoid thinking of initializing
+the streams on a per machine basis; do it for each chunk/job/stream.  I
+used rsrpng, but others said rlecuyer would be the same.  To be careful,
+I freed the stream generator at the end of the job.
+
+So, if you have 8,000 jobs you use the job number as an index, and
+initialize its stream by saying this is rank (job #) of a total of 8,000
+streams.
+
+You never need to save the stream state, since you know how you created
+it.
+
+I had some earlier posts about this, on this list I think, but that's
+the basic idea.
+
+Ross Boylan
+
+
+From pgilbert at bank-banque-canada.ca  Wed Apr 20 16:09:44 2011
+From: pgilbert at bank-banque-canada.ca (Paul Gilbert)
+Date: Wed, 20 Apr 2011 14:09:44 +0000
+Subject: [R-sig-hpc] creating many separate streams (more
+	streams	than	nodes)
+In-Reply-To: <1303251464.18773.63.camel@corn.betterworld.us>
+References: <BANLkTi=hAqEMkG7epe4RcX=Lm+53dfW_Ng@mail.gmail.com>
+	<1303251464.18773.63.camel@corn.betterworld.us>
+Message-ID: <6441154A9FF1CD4386AF4ABF141A056D21544854@WMEXOSCD2-N1.bocad.bank-banque-canada.ca>
+
+...
+> So, if you have 8,000 jobs you use the job number as an index, and
+> initialize its stream by saying this is rank (job #) of a total of
+> 8,000
+> streams.
+...
+
+When you adjust the RNG like this (or in the by machine way suggested in the original post), are the properties of the RNG the same as the single stream version?  Is there a literature on this?  I thought the trick with parallel RNG was to produce the same stream one would get with the well studied single stream generators (not that I know how to do that easily).
+
+Paul
+====================================================================================
+
+La version fran?aise suit le texte anglais.
+
+------------------------------------------------------------------------------------
+
+This email may contain privileged and/or confidential information, and the Bank of
+Canada does not waive any related rights. Any distribution, use, or copying of this
+email or the information it contains by other than the intended recipient is
+unauthorized. If you received this email in error please delete it immediately from
+your system and notify the sender promptly by email that you have done so. 
+
+------------------------------------------------------------------------------------
+
+Le pr?sent courriel peut contenir de l'information privil?gi?e ou confidentielle.
+La Banque du Canada ne renonce pas aux droits qui s'y rapportent. Toute diffusion,
+utilisation ou copie de ce courriel ou des renseignements qu'il contient par une
+personne autre que le ou les destinataires d?sign?s est interdite. Si vous recevez
+ce courriel par erreur, veuillez le supprimer imm?diatement et envoyer sans d?lai ?
+l'exp?diteur un message ?lectronique pour l'aviser que vous avez ?limin? de votre
+ordinateur toute copie du courriel re?u.
+
+From ross at biostat.ucsf.edu  Wed Apr 20 18:24:30 2011
+From: ross at biostat.ucsf.edu (Ross Boylan)
+Date: Wed, 20 Apr 2011 09:24:30 -0700
+Subject: [R-sig-hpc] creating many separate streams (more
+	streams	than	nodes)
+In-Reply-To: <6441154A9FF1CD4386AF4ABF141A056D21544854@WMEXOSCD2-N1.bocad.bank-banque-canada.ca>
+References: <BANLkTi=hAqEMkG7epe4RcX=Lm+53dfW_Ng@mail.gmail.com>
+	<1303251464.18773.63.camel@corn.betterworld.us>
+	<6441154A9FF1CD4386AF4ABF141A056D21544854@WMEXOSCD2-N1.bocad.bank-banque-canada.ca>
+Message-ID: <1303316670.10968.6.camel@corn.betterworld.us>
+
+On Wed, 2011-04-20 at 14:09 +0000, Paul Gilbert wrote:
+> ...
+> > So, if you have 8,000 jobs you use the job number as an index, and
+> > initialize its stream by saying this is rank (job #) of a total of
+> > 8,000
+> > streams.
+> ...
+> 
+> When you adjust the RNG like this (or in the by machine way suggested in the original post), are the properties of the RNG the same as the single stream version?  Is there a literature on this?  I thought the trick with parallel RNG was to produce the same stream one would get with the well studied single stream generators (not that I know how to do that easily).
+> 
+> Paul
+Parallel random number generators are supposed to behave well in exactly
+this scenario.
+Ross
+> ====================================================================================
+> 
+> La version fran?aise suit le texte anglais.
+> 
+> ------------------------------------------------------------------------------------
+> 
+> This email may contain privileged and/or confidential information, and the Bank of
+> Canada does not waive any related rights. Any distribution, use, or copying of this
+> email or the information it contains by other than the intended recipient is
+> unauthorized. If you received this email in error please delete it immediately from
+> your system and notify the sender promptly by email that you have done so. 
+> 
+> ------------------------------------------------------------------------------------
+> 
+> Le pr?sent courriel peut contenir de l'information privil?gi?e ou confidentielle.
+> La Banque du Canada ne renonce pas aux droits qui s'y rapportent. Toute diffusion,
+> utilisation ou copie de ce courriel ou des renseignements qu'il contient par une
+> personne autre que le ou les destinataires d?sign?s est interdite. Si vous recevez
+> ce courriel par erreur, veuillez le supprimer imm?diatement et envoyer sans d?lai ?
+> l'exp?diteur un message ?lectronique pour l'aviser que vous avez ?limin? de votre
+> ordinateur toute copie du courriel re?u.
+
+
+From pauljohn32 at gmail.com  Thu Apr 21 00:49:58 2011
+From: pauljohn32 at gmail.com (Paul Johnson)
+Date: Wed, 20 Apr 2011 17:49:58 -0500
+Subject: [R-sig-hpc] creating many separate streams (more streams than
+	nodes)
+In-Reply-To: <1303316670.10968.6.camel@corn.betterworld.us>
+References: <BANLkTi=hAqEMkG7epe4RcX=Lm+53dfW_Ng@mail.gmail.com>
+	<1303251464.18773.63.camel@corn.betterworld.us>
+	<6441154A9FF1CD4386AF4ABF141A056D21544854@WMEXOSCD2-N1.bocad.bank-banque-canada.ca>
+	<1303316670.10968.6.camel@corn.betterworld.us>
+Message-ID: <BANLkTi=1HY2aqM8Sy_EzBgYPcJEVdySF7A@mail.gmail.com>
+
+>>
+>> Paul
+> Parallel random number generators are supposed to behave well in exactly
+> this scenario.
+> Ross
+>>
+
+The rlecuyer package has this theory behind it.  Suppose the random
+stream is like this:
+
+
+------------------------------------------------------------------------------------------------------
+
+That is long enough that you can divide it into pieces and use them
+separately for separate jobs.
+There are not really 8000 separate generators, there are 8000 chunks
+out of the one long set of numbers.
+
+
+  for job 1            2                           3
+            4                      5
+|___________|____________|________________|_____________|_________
+
+
+So if you believe the 1 long stream is good, each individual piece is OK.
+
+This is published in the Lecuyer essay I mentioned in the first post,
+and so far as I know nobody has torn after it.
+
+In the snowFT code that Hana pointed me toward, the way they do this
+is clever.  I would have had to fight with it.   On each node,
+initiate the same 8000 streams, then when you run a job, just have the
+function you use grab the appropriate stream.
+
+As far as the publications on the verification of the SPRNG way, well,
+there are some, but I can't say if they are credible or not.  That
+approach spawns the generators with slightly different parameters. In
+theory , I find it more appealing, but the folks who know details are
+more dubious about it. Here's the one definite site I have.
+
+@article{srinivasan_testing_2003,
+        title = {Testing parallel random number generators},
+        volume = {29},
+        number = {1},
+        journal = {Parallel Comput.},
+        author = {Ashok Srinivasan and Michael Mascagni and David Ceperley},
+        year = {2003},
+        pages = {69--94}
+},
+
+Since rsprng is in bad shape, I don't know that a person really ought
+to pursue that at the moment.
+
+
+-- 
+Paul E. Johnson
+Professor, Political Science
+1541 Lilac Lane, Room 504
+University of Kansas
+
+
+From edd at debian.org  Thu Apr 21 02:05:49 2011
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Wed, 20 Apr 2011 19:05:49 -0500
+Subject: [R-sig-hpc] [OT] Tenure letters for Atlas author Clint Whaley
+Message-ID: <19887.29917.533652.782967@max.nulle.part>
+
+
+This came to me via the debian-science list.  Some of you here who have
+derived utility from the Atlas accelerated and tuned BLAS library may be in a
+position to send a letter of support for Dr Whaley.  
+
+Is this something we should even pass on to r-devel ?
+
+Regards, Dirk
+
+
+   From: Clint Whaley <whaley at cs.utsa.edu>
+   Date: Wed, Apr 20, 2011 at 7:24 AM
+   Subject: [atlas-devel] tenure letters
+   To: math-atlas-devel at lists.sourceforge.net
+   
+   
+   Guys,
+   
+   I go up for tenure this summer. ?The tenure committee has asked that I get
+   testimonials from ATLAS users so they can see the importance of the package
+   to the community. ?So, if ATLAS has been of use to you, this is the time
+   to write a letter saying it.
+   
+   If you are an individual researcher, discussing how ATLAS helps you in
+   your research will be very helpful.
+   
+   If you are a repackager of ATLAS, discussing how ATLAS helps your distro,
+   and how many people use it would be very helpful.
+   
+   If you are a sys admin who installs ATLAS for others to use, outlining
+   your lab and the types of research done their would be of great help.
+   
+   If you have read my papers and find them helpful, discussing that is good as
+   well, but you don't need to do that for this, since they will ask for
+   academic reviewers separately.
+   
+   If you know others that don't monitor this list who might be willing to
+   write letters, please pass this message on. ?My colleagues have specifically
+   asked for this information so they can give weight to my claims that
+   providing ATLAS is a service to a large number of communities, that
+   it is widely used, and that its continued production at UTSA will
+   raise our profile.
+   
+   If you are willing to write a letter and need further information,
+   please contact me directly if you like.
+   
+   Thanks,
+   Clint
+   
+   **************************************************************************
+   ** R. Clint Whaley, PhD ** Assist Prof, UTSA ** www.cs.utsa.edu/~whaley **
+   **************************************************************************
+
+   
+-- 
+Dirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com
+   
+
+
+From nakama at ki.rim.or.jp  Thu Apr 21 03:46:36 2011
+From: nakama at ki.rim.or.jp (Ei-ji Nakama)
+Date: Thu, 21 Apr 2011 10:46:36 +0900
+Subject: [R-sig-hpc] [OT] Tenure letters for Atlas author Clint Whaley
+In-Reply-To: <19887.29917.533652.782967@max.nulle.part>
+References: <19887.29917.533652.782967@max.nulle.part>
+Message-ID: <BANLkTik6FPfz9CD24St9YfbmPWOoFDABbw@mail.gmail.com>
+
+Hi,
+
+It is important.
+
+2011/4/21 Dirk Eddelbuettel <edd at debian.org>:
+>
+> This came to me via the debian-science list. ?Some of you here who have
+> derived utility from the Atlas accelerated and tuned BLAS library may be in a
+> position to send a letter of support for Dr Whaley.
+>
+> Is this something we should even pass on to r-devel ?
+>
+> Regards, Dirk
+
+Best Regards,
+--
+EI-JI Nakama? <nakama (a) ki.rim.or.jp>
+"\u4e2d\u9593\u6804\u6cbb"? <nakama (a) ki.rim.or.jp>
+
+
+From blindglobe at gmail.com  Thu Apr 21 14:13:18 2011
+From: blindglobe at gmail.com (A.J. Rossini)
+Date: Thu, 21 Apr 2011 14:13:18 +0200
+Subject: [R-sig-hpc] [OT] Tenure letters for Atlas author Clint Whaley
+In-Reply-To: <BANLkTik6FPfz9CD24St9YfbmPWOoFDABbw@mail.gmail.com>
+References: <19887.29917.533652.782967@max.nulle.part>
+	<BANLkTik6FPfz9CD24St9YfbmPWOoFDABbw@mail.gmail.com>
+Message-ID: <BANLkTikHpL=BiF5gpvU7jx6FFjmbgE3zew@mail.gmail.com>
+
+Strongly agree with Nakama-san.  No reason for him to end up like me.
+On the other hand, I'm doing pretty well and keeping amused, just
+doing different things...
+
+On Thu, Apr 21, 2011 at 3:46 AM, Ei-ji Nakama <nakama at ki.rim.or.jp> wrote:
+> Hi,
+>
+> It is important.
+>
+> 2011/4/21 Dirk Eddelbuettel <edd at debian.org>:
+>>
+>> This came to me via the debian-science list. ?Some of you here who have
+>> derived utility from the Atlas accelerated and tuned BLAS library may be in a
+>> position to send a letter of support for Dr Whaley.
+>>
+>> Is this something we should even pass on to r-devel ?
+>>
+>> Regards, Dirk
+>
+> Best Regards,
+> --
+> EI-JI Nakama? <nakama (a) ki.rim.or.jp>
+> "\u4e2d\u9593\u6804\u6cbb"? <nakama (a) ki.rim.or.jp>
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+
+-- 
+best,
+-tony
+
+blindglobe at gmail.com
+Muttenz, Switzerland.
+"Commit early,commit often, and commit in a repository from which we
+can easily roll-back your mistakes" (AJR, 4Jan05).
+
+Drink Coffee:? Do stupid things faster with more energy!
+
+
+From edd at debian.org  Thu Apr 21 14:50:26 2011
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Thu, 21 Apr 2011 07:50:26 -0500
+Subject: [R-sig-hpc] [OT] Tenure letters for Atlas author Clint Whaley
+In-Reply-To: <BANLkTik6FPfz9CD24St9YfbmPWOoFDABbw@mail.gmail.com>
+References: <19887.29917.533652.782967@max.nulle.part>
+	<BANLkTik6FPfz9CD24St9YfbmPWOoFDABbw@mail.gmail.com>
+Message-ID: <19888.10258.163810.360134@max.nulle.part>
+
+
+On 21 April 2011 at 10:46, Ei-ji Nakama wrote:
+| It is important.
+
+On 21 April 2011 at 14:13, A.J. Rossini wrote:
+| Strongly agree with Nakama-san.  No reason for him to end up like me.
+| On the other hand, I'm doing pretty well and keeping amused, just
+| doing different things...
+
+I agree too which is why I posted it here.  So how can we help him?
+
+The debian-science thread lead to this:
+
+    http://whiteboard.debian.net/atlas-testimonial.wb
+
+Shall we ask to join and post there?
+
+Dirk
+
+[ Off-topic geekery: whiteboard.debian.net seems to use a neat common
+  whiteboard a little lighter than a joint Google Doc. ]
+
+-- 
+Dirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com
+
+
+From my.r.help at gmail.com  Fri Apr 22 11:30:38 2011
+From: my.r.help at gmail.com (Michael Smith)
+Date: Fri, 22 Apr 2011 17:30:38 +0800
+Subject: [R-sig-hpc] Problem Running 'snow' on Several Machines
+Message-ID: <4DB14ABE.2010606@gmail.com>
+
+All,
+
+I want to run the following program:
+
+library("snow")
+cl <- makeSOCKcluster(c("localhost", "192.168.1.101"))
+clusterCall(cl, function() Sys.info()[c("nodename","machine")])
+stopCluster(cl)
+
+I have set up SSH keys so I don't need to type a password when logging
+in to 192.168.1.101. I'm using Fedora 13 on both machines.
+
+What happens is that the program somehow hangs after 'makeSOCKcluster'
+because it does not return to the R prompt and I have to hit Ctrl-C. It
+also fails to establish the cluster:
+
+$ R -q
+> library("snow")
+
+Attaching package: 'snow'
+
+The following object(s) are masked from 'package:base':
+
+    enquote
+
+> cl <- makeSOCKcluster(c("localhost", "192.168.1.101"))
+
+Attaching package: 'snow'
+
+The following object(s) are masked from 'package:base':
+
+    enquote
+
+
+Attaching package: 'snow'
+
+The following object(s) are masked from 'package:base':
+
+    enquote
+
+^C
+> clusterCall(cl, function() Sys.info()[c("nodename","machine")])
+Error in inherits(cl, "cluster") : object 'cl' not found
+
+
+When I use makeSOCKcluster(c("localhost", "localhost")) everything works
+fine locally.Below is more information on the system.
+
+Thanks,
+Michael
+
+
+
+> sessionInfo()
+R version 2.12.2 (2011-02-25)
+Platform: x86_64-redhat-linux-gnu (64-bit)
+
+locale:
+ [1] LC_CTYPE=en_US.utf8       LC_NUMERIC=C
+ [3] LC_TIME=en_US.utf8        LC_COLLATE=en_US.utf8
+ [5] LC_MONETARY=C             LC_MESSAGES=en_US.utf8
+ [7] LC_PAPER=en_US.utf8       LC_NAME=C
+ [9] LC_ADDRESS=C              LC_TELEPHONE=C
+[11] LC_MEASUREMENT=en_US.utf8 LC_IDENTIFICATION=C
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base
+
+other attached packages:
+[1] snow_0.3-3
+> Sys.getlocale()
+[1]
+"LC_CTYPE=en_US.utf8;LC_NUMERIC=C;LC_TIME=en_US.utf8;LC_COLLATE=en_US.utf8;LC_MONETARY=C;LC_MESSAGES=en_US.utf8;LC_PAPER=en_US.utf8;LC_NAME=C;LC_ADDRESS=C;LC_TELEPHONE=C;LC_MEASUREMENT=en_US.utf8;LC_IDENTIFICATION=C"
+> library(help=snow)
+
+
+
+
+                Information on package 'snow'
+
+Description:
+
+Package:       snow
+Title:         Simple Network of Workstations
+Version:       0.3-3
+Author:        Luke Tierney, A. J. Rossini, Na Li, H. Sevcikova
+Description:   Support for simple parallel computing in R.
+Maintainer:    Luke Tierney <luke at stat.uiowa.edu>
+Suggests:      Rmpi,rpvm,rlecuyer,rsprng,nws
+License:       GPL
+Depends:       R (>= 2.3), utils
+Packaged:      Fri Jul 4 18:07:30 2008; luke
+Built:         R 2.12.2; ; 2011-04-21 03:02:00 UTC; unix
+
+Index:
+
+clusterSetupRNG         Uniform Random Number Generation in SNOW
+                        Clusters
+clusterSplit            Cluster-Level SNOW Functions
+getMPIcluster           Starting and Stopping SNOW Clusters
+parLapply               Higher Level SNOW Functions
+
+
+From blindglobe at gmail.com  Fri Apr 22 14:32:53 2011
+From: blindglobe at gmail.com (A.J. Rossini)
+Date: Fri, 22 Apr 2011 14:32:53 +0200
+Subject: [R-sig-hpc] creating many separate streams (more streams than
+	nodes)
+In-Reply-To: <BANLkTi=1HY2aqM8Sy_EzBgYPcJEVdySF7A@mail.gmail.com>
+References: <BANLkTi=hAqEMkG7epe4RcX=Lm+53dfW_Ng@mail.gmail.com>
+	<1303251464.18773.63.camel@corn.betterworld.us>
+	<6441154A9FF1CD4386AF4ABF141A056D21544854@WMEXOSCD2-N1.bocad.bank-banque-canada.ca>
+	<1303316670.10968.6.camel@corn.betterworld.us>
+	<BANLkTi=1HY2aqM8Sy_EzBgYPcJEVdySF7A@mail.gmail.com>
+Message-ID: <BANLkTikJ6v1egYTJn1BeYGX8U1-RBR+5Hg@mail.gmail.com>
+
+On Thu, Apr 21, 2011 at 12:49 AM, Paul Johnson <pauljohn32 at gmail.com> wrote:
+>>>
+>>> Paul
+>> Parallel random number generators are supposed to behave well in exactly
+>> this scenario.
+>> Ross
+>>>
+>
+> The rlecuyer package has this theory behind it. ?Suppose the random
+> stream is like this:
+>
+>
+> ------------------------------------------------------------------------------------------------------
+>
+> That is long enough that you can divide it into pieces and use them
+> separately for separate jobs.
+> There are not really 8000 separate generators, there are 8000 chunks
+> out of the one long set of numbers.
+>
+>
+> ?for job 1 ? ? ? ? ? ?2 ? ? ? ? ? ? ? ? ? ? ? ? ? 3
+> ? ? ? ? ? ?4 ? ? ? ? ? ? ? ? ? ? ?5
+> |___________|____________|________________|_____________|_________
+>
+>
+> So if you believe the 1 long stream is good, each individual piece is OK.
+>
+> This is published in the Lecuyer essay I mentioned in the first post,
+> and so far as I know nobody has torn after it.
+>
+> In the snowFT code that Hana pointed me toward, the way they do this
+> is clever. ?I would have had to fight with it. ? On each node,
+> initiate the same 8000 streams, then when you run a job, just have the
+> function you use grab the appropriate stream.
+>
+> As far as the publications on the verification of the SPRNG way, well,
+> there are some, but I can't say if they are credible or not. ?That
+> approach spawns the generators with slightly different parameters. In
+> theory , I find it more appealing, but the folks who know details are
+> more dubious about it. Here's the one definite site I have.
+>
+> @article{srinivasan_testing_2003,
+> ? ? ? ?title = {Testing parallel random number generators},
+> ? ? ? ?volume = {29},
+> ? ? ? ?number = {1},
+> ? ? ? ?journal = {Parallel Comput.},
+> ? ? ? ?author = {Ashok Srinivasan and Michael Mascagni and David Ceperley},
+> ? ? ? ?year = {2003},
+> ? ? ? ?pages = {69--94}
+> },
+>
+> Since rsprng is in bad shape, I don't know that a person really ought
+> to pursue that at the moment.
+
+
+There are a number of issues here ..  first, we have the theory issue
+-- parallel pRNG theory is difficult (well, decent practically
+applicable theory for standard serial pRNG's is hard enough).  What
+I've seen and tried to wrap my head around, suggests that L'Ecuyer and
+his streams approach is about as good as it gets, perhaps with
+weaknesses, but that is a very technical discussion.  The older SPRNG
+stuff is dicey, I didn't really buy their arguments.  I've not seen
+the newer stuff.
+
+Then there is the implementation (sstreams and sprng implementations).
+ Also they have some issues, but I'm happier with the sstreams
+implementation.
+
+Then there is the integration (either via the SNOW* approach, or
+similar).   This is about the assignment of parallel streams of pRNG
+output with different components in the system -- either the compute
+node, or the compute job, or the serially-generated order of the
+compute job execution.  We did the first and third with SNOW, and the
+second, which is "the always reproducible way" with snowFT.
+
+Just like using a serial pRNG with lots of seeds being a reasonable
+way to do things (accidentally right, not right by design), the first
+and third ways are usually reproducible, but it's an accident, not by
+design.
+
+best,
+-tony
+
+blindglobe at gmail.com
+Muttenz, Switzerland.
+"Commit early,commit often, and commit in a repository from which we
+can easily roll-back your mistakes" (AJR, 4Jan05).
+
+Drink Coffee:? Do stupid things faster with more energy!
+
+
+From stephen.b.weston at gmail.com  Thu Apr 28 06:54:45 2011
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Thu, 28 Apr 2011 00:54:45 -0400
+Subject: [R-sig-hpc] Problem Running 'snow' on Several Machines
+In-Reply-To: <4DB14ABE.2010606@gmail.com>
+References: <4DB14ABE.2010606@gmail.com>
+Message-ID: <BANLkTi=6zvEKUfFCWohp7zra0HQaka_66A@mail.gmail.com>
+
+Unfortunately, there are dozens of possible reasons that makeSOCKcluster
+could hang, so it's impossible for us to guess what your particular problem is.
+You may have several issues to resolve before you'll get this running if
+you're unlucky.
+
+However, one common problem is that one of the workers (in your case
+"192.168.1.101") may be unable to connect back to the master process using
+the default name used by makeSOCKcluster.  It may work better to use the
+dot-separated IP address, which you might be able to compute using:
+
+    > master <- nsl(Sys.info()["nodename"])
+
+Then create the cluster with:
+
+    > cl <- makeSOCKcluster(c("localhost", "192.168.1.101"), master=master)
+
+But if that shot in the dark doesn't work, I suggest debugging it by setting
+the manual argument to TRUE:
+
+    > cl <- makeSOCKcluster(c("localhost", "192.168.1.101"), manual=TRUE)
+
+It will then tell you the command to use to start each of the workers.
+Open a terminal on each worker, and execute the commands as it prompts you.
+Now, you should see the error message, and finding the solution will be
+much easier.
+
+- Steve
+
+
+On Fri, Apr 22, 2011 at 5:30 AM, Michael Smith <my.r.help at gmail.com> wrote:
+> All,
+>
+> I want to run the following program:
+>
+> library("snow")
+> cl <- makeSOCKcluster(c("localhost", "192.168.1.101"))
+> clusterCall(cl, function() Sys.info()[c("nodename","machine")])
+> stopCluster(cl)
+>
+> I have set up SSH keys so I don't need to type a password when logging
+> in to 192.168.1.101. I'm using Fedora 13 on both machines.
+>
+> What happens is that the program somehow hangs after 'makeSOCKcluster'
+> because it does not return to the R prompt and I have to hit Ctrl-C. It
+> also fails to establish the cluster:
+>
+> $ R -q
+>> library("snow")
+>
+> Attaching package: 'snow'
+>
+> The following object(s) are masked from 'package:base':
+>
+> ? ?enquote
+>
+>> cl <- makeSOCKcluster(c("localhost", "192.168.1.101"))
+>
+> Attaching package: 'snow'
+>
+> The following object(s) are masked from 'package:base':
+>
+> ? ?enquote
+>
+>
+> Attaching package: 'snow'
+>
+> The following object(s) are masked from 'package:base':
+>
+> ? ?enquote
+>
+> ^C
+>> clusterCall(cl, function() Sys.info()[c("nodename","machine")])
+> Error in inherits(cl, "cluster") : object 'cl' not found
+>
+>
+> When I use makeSOCKcluster(c("localhost", "localhost")) everything works
+> fine locally.Below is more information on the system.
+>
+> Thanks,
+> Michael
+>
+>
+>
+>> sessionInfo()
+> R version 2.12.2 (2011-02-25)
+> Platform: x86_64-redhat-linux-gnu (64-bit)
+>
+> locale:
+> ?[1] LC_CTYPE=en_US.utf8 ? ? ? LC_NUMERIC=C
+> ?[3] LC_TIME=en_US.utf8 ? ? ? ?LC_COLLATE=en_US.utf8
+> ?[5] LC_MONETARY=C ? ? ? ? ? ? LC_MESSAGES=en_US.utf8
+> ?[7] LC_PAPER=en_US.utf8 ? ? ? LC_NAME=C
+> ?[9] LC_ADDRESS=C ? ? ? ? ? ? ?LC_TELEPHONE=C
+> [11] LC_MEASUREMENT=en_US.utf8 LC_IDENTIFICATION=C
+>
+> attached base packages:
+> [1] stats ? ? graphics ?grDevices utils ? ? datasets ?methods ? base
+>
+> other attached packages:
+> [1] snow_0.3-3
+>> Sys.getlocale()
+> [1]
+> "LC_CTYPE=en_US.utf8;LC_NUMERIC=C;LC_TIME=en_US.utf8;LC_COLLATE=en_US.utf8;LC_MONETARY=C;LC_MESSAGES=en_US.utf8;LC_PAPER=en_US.utf8;LC_NAME=C;LC_ADDRESS=C;LC_TELEPHONE=C;LC_MEASUREMENT=en_US.utf8;LC_IDENTIFICATION=C"
+>> library(help=snow)
+>
+>
+>
+>
+> ? ? ? ? ? ? ? ?Information on package 'snow'
+>
+> Description:
+>
+> Package: ? ? ? snow
+> Title: ? ? ? ? Simple Network of Workstations
+> Version: ? ? ? 0.3-3
+> Author: ? ? ? ?Luke Tierney, A. J. Rossini, Na Li, H. Sevcikova
+> Description: ? Support for simple parallel computing in R.
+> Maintainer: ? ?Luke Tierney <luke at stat.uiowa.edu>
+> Suggests: ? ? ?Rmpi,rpvm,rlecuyer,rsprng,nws
+> License: ? ? ? GPL
+> Depends: ? ? ? R (>= 2.3), utils
+> Packaged: ? ? ?Fri Jul 4 18:07:30 2008; luke
+> Built: ? ? ? ? R 2.12.2; ; 2011-04-21 03:02:00 UTC; unix
+>
+> Index:
+>
+> clusterSetupRNG ? ? ? ? Uniform Random Number Generation in SNOW
+> ? ? ? ? ? ? ? ? ? ? ? ?Clusters
+> clusterSplit ? ? ? ? ? ?Cluster-Level SNOW Functions
+> getMPIcluster ? ? ? ? ? Starting and Stopping SNOW Clusters
+> parLapply ? ? ? ? ? ? ? Higher Level SNOW Functions
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From my.r.help at gmail.com  Thu Apr 28 07:22:51 2011
+From: my.r.help at gmail.com (Michael Smith)
+Date: Thu, 28 Apr 2011 13:22:51 +0800
+Subject: [R-sig-hpc] Problem Running 'snow' on Several Machines
+In-Reply-To: <BANLkTi=6zvEKUfFCWohp7zra0HQaka_66A@mail.gmail.com>
+References: <4DB14ABE.2010606@gmail.com>
+	<BANLkTi=6zvEKUfFCWohp7zra0HQaka_66A@mail.gmail.com>
+Message-ID: <4DB8F9AB.2040604@gmail.com>
+
+Steve,
+
+Thank you so much! When I'm on 192.168.1.100 and I call it like
+
+    > cl <- makeSOCKcluster(c("192.168.1.100", "192.168.1.101"),
+master="192.168.1.100")
+
+everything works. The reason is that somehow Fedora does not "broadcast"
+the hostname on DHCP.
+
+Best,
+Michael
+
+
+On 04/28/2011 12:54 PM, Stephen Weston wrote:
+> Unfortunately, there are dozens of possible reasons that makeSOCKcluster
+> could hang, so it's impossible for us to guess what your particular problem is.
+> You may have several issues to resolve before you'll get this running if
+> you're unlucky.
+> 
+> However, one common problem is that one of the workers (in your case
+> "192.168.1.101") may be unable to connect back to the master process using
+> the default name used by makeSOCKcluster.  It may work better to use the
+> dot-separated IP address, which you might be able to compute using:
+> 
+>     > master <- nsl(Sys.info()["nodename"])
+> 
+> Then create the cluster with:
+> 
+>     > cl <- makeSOCKcluster(c("localhost", "192.168.1.101"), master=master)
+> 
+> But if that shot in the dark doesn't work, I suggest debugging it by setting
+> the manual argument to TRUE:
+> 
+>     > cl <- makeSOCKcluster(c("localhost", "192.168.1.101"), manual=TRUE)
+> 
+> It will then tell you the command to use to start each of the workers.
+> Open a terminal on each worker, and execute the commands as it prompts you.
+> Now, you should see the error message, and finding the solution will be
+> much easier.
+> 
+> - Steve
+> 
+> 
+> On Fri, Apr 22, 2011 at 5:30 AM, Michael Smith <my.r.help at gmail.com> wrote:
+>> All,
+>>
+>> I want to run the following program:
+>>
+>> library("snow")
+>> cl <- makeSOCKcluster(c("localhost", "192.168.1.101"))
+>> clusterCall(cl, function() Sys.info()[c("nodename","machine")])
+>> stopCluster(cl)
+>>
+>> I have set up SSH keys so I don't need to type a password when logging
+>> in to 192.168.1.101. I'm using Fedora 13 on both machines.
+>>
+>> What happens is that the program somehow hangs after 'makeSOCKcluster'
+>> because it does not return to the R prompt and I have to hit Ctrl-C. It
+>> also fails to establish the cluster:
+>>
+>> $ R -q
+>>> library("snow")
+>>
+>> Attaching package: 'snow'
+>>
+>> The following object(s) are masked from 'package:base':
+>>
+>>    enquote
+>>
+>>> cl <- makeSOCKcluster(c("localhost", "192.168.1.101"))
+>>
+>> Attaching package: 'snow'
+>>
+>> The following object(s) are masked from 'package:base':
+>>
+>>    enquote
+>>
+>>
+>> Attaching package: 'snow'
+>>
+>> The following object(s) are masked from 'package:base':
+>>
+>>    enquote
+>>
+>> ^C
+>>> clusterCall(cl, function() Sys.info()[c("nodename","machine")])
+>> Error in inherits(cl, "cluster") : object 'cl' not found
+>>
+>>
+>> When I use makeSOCKcluster(c("localhost", "localhost")) everything works
+>> fine locally.Below is more information on the system.
+>>
+>> Thanks,
+>> Michael
+>>
+>>
+>>
+>>> sessionInfo()
+>> R version 2.12.2 (2011-02-25)
+>> Platform: x86_64-redhat-linux-gnu (64-bit)
+>>
+>> locale:
+>>  [1] LC_CTYPE=en_US.utf8       LC_NUMERIC=C
+>>  [3] LC_TIME=en_US.utf8        LC_COLLATE=en_US.utf8
+>>  [5] LC_MONETARY=C             LC_MESSAGES=en_US.utf8
+>>  [7] LC_PAPER=en_US.utf8       LC_NAME=C
+>>  [9] LC_ADDRESS=C              LC_TELEPHONE=C
+>> [11] LC_MEASUREMENT=en_US.utf8 LC_IDENTIFICATION=C
+>>
+>> attached base packages:
+>> [1] stats     graphics  grDevices utils     datasets  methods   base
+>>
+>> other attached packages:
+>> [1] snow_0.3-3
+>>> Sys.getlocale()
+>> [1]
+>> "LC_CTYPE=en_US.utf8;LC_NUMERIC=C;LC_TIME=en_US.utf8;LC_COLLATE=en_US.utf8;LC_MONETARY=C;LC_MESSAGES=en_US.utf8;LC_PAPER=en_US.utf8;LC_NAME=C;LC_ADDRESS=C;LC_TELEPHONE=C;LC_MEASUREMENT=en_US.utf8;LC_IDENTIFICATION=C"
+>>> library(help=snow)
+>>
+>>
+>>
+>>
+>>                Information on package 'snow'
+>>
+>> Description:
+>>
+>> Package:       snow
+>> Title:         Simple Network of Workstations
+>> Version:       0.3-3
+>> Author:        Luke Tierney, A. J. Rossini, Na Li, H. Sevcikova
+>> Description:   Support for simple parallel computing in R.
+>> Maintainer:    Luke Tierney <luke at stat.uiowa.edu>
+>> Suggests:      Rmpi,rpvm,rlecuyer,rsprng,nws
+>> License:       GPL
+>> Depends:       R (>= 2.3), utils
+>> Packaged:      Fri Jul 4 18:07:30 2008; luke
+>> Built:         R 2.12.2; ; 2011-04-21 03:02:00 UTC; unix
+>>
+>> Index:
+>>
+>> clusterSetupRNG         Uniform Random Number Generation in SNOW
+>>                        Clusters
+>> clusterSplit            Cluster-Level SNOW Functions
+>> getMPIcluster           Starting and Stopping SNOW Clusters
+>> parLapply               Higher Level SNOW Functions
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+
+

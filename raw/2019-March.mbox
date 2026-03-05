@@ -1,0 +1,768 @@
+From @@d@tn|@ @end|ng |rom uw@edu  Thu Mar  7 18:14:10 2019
+From: @@d@tn|@ @end|ng |rom uw@edu (Nafis Sadat)
+Date: Thu, 7 Mar 2019 17:14:10 +0000
+Subject: [R-sig-hpc] A few questions on using R and CUDA
+In-Reply-To: <BYAPR08MB44391F9DC8ED7D9E89E5B3BCBA4C0@BYAPR08MB4439.namprd08.prod.outlook.com>
+References: <BYAPR08MB44391F9DC8ED7D9E89E5B3BCBA4C0@BYAPR08MB4439.namprd08.prod.outlook.com>
+Message-ID: <B24AE00E-8BE1-43DB-8C62-99F56911CB88@uw.edu>
+
+Hi everyone:
+
+My name is Nafis Sadat, and I am a software engineer at the University of Washington. I've been doing some research on the side recently on looking at R and GPU capabilities, and after pinging Dr. Dirk Eddelbuettel (after finding out his work on the 'gcbd' package), he suggested that I can send out my question to the r-sig-hpc mailing list hoping for some answers!
+
+I work in the geospatial sciences team in my institute, where we try to model diseases at the pixel level around the world using spatial modeling methods. The models that our researchers use are written using the R packages INLA (http://www.r-inla.org/) and TMB (https://github.com/kaskr/adcomp/wiki); all of the code base is entirely in R. One issue that we simply can't avoid is the large dimension of the data (so, if we were modeling at a finer mesh for example, we would have more parameters to optimize, and that leads to longer model runtimes).
+
+A year ago, there was no work done in the team to try and optimize this part of the process, but then I worked with another software engineer to compile R from source using the BLAS/LAPACK provided by Intel MKL, and that sped up things pretty decently when it came to a lot of matrix algebra. In fact, both the INLA and TMB packages are built by linking against BLAS (and I have confirmed that the MKL is indeed being used when I run the model by doing a verbose trace). Fast forward to now, and I came across this page: https://developer.nvidia.com/cublas.
+
+I have a machine lying around at home which has an Nvidia GPU and the line where Nvidia claims that "cuBLAS performs up to 35X faster than the latest version of the MKL BLAS on common benchmarks". I have not looked into super details about the backend of this (and only recently I have been coming across the .cu extensions...). In an ideal world, if I could simply build R by linking to the CUDA BLAS instead of the MKL BLAS and have everything else run as-is, then that would be the dream, but after fudging around earlier today where I tried to symlink 'libnvblas.so' to 'libblas.so', that build of R was quite a failure.
+
+If anyone here would happen to have any thoughts or suggestions on this, I would absolutely love your inputs. I have not found any answers on this on Google, and I just posted a question on Stack Overflow, so I'm hoping that I can learn more about this!
+
+Thanks everyone for your patience in reading through this!
+
+Nafis
+
+
+
+
+Nafis Sadat
+Software Engineer
+Institute for Health Metrics and Evaluation | University of Washington
+2301 5th Avenue, Suite 600 | Seattle, WA 98121| USA
+Tel: +1-206-897-3726<tel:+1%20206-897-3726> | Fax: +1-206-897-2899<tel:+1%20206-897-2899> | Campus Mailbox: 358210
+sadatnfs at uw.edu<mailto:sadatnfs at uw.edu> | http://www.healthdata.org<http://www.healthdata.org/>
+
+
+
+	[[alternative HTML version deleted]]
+
+
+From qkou @end|ng |rom |u@edu  Thu Mar  7 18:26:31 2019
+From: qkou @end|ng |rom |u@edu (Qiang Kou)
+Date: Thu, 7 Mar 2019 09:26:31 -0800
+Subject: [R-sig-hpc] A few questions on using R and CUDA
+In-Reply-To: <B24AE00E-8BE1-43DB-8C62-99F56911CB88@uw.edu>
+References: <BYAPR08MB44391F9DC8ED7D9E89E5B3BCBA4C0@BYAPR08MB4439.namprd08.prod.outlook.com>
+ <B24AE00E-8BE1-43DB-8C62-99F56911CB88@uw.edu>
+Message-ID: <CALQ1WmagbSJXM7a4NXDi5+36bRHqUSjfuu3iXqhijmV57beEDQ@mail.gmail.com>
+
+Hi, Nafis,
+
+To use NVBLAS with R, please see the page 8 in the slides below:
+
+http://www.parallelr.com/slides/ParallelR-Accelerating%20R%20Applications%20with%20CUDA.pdf
+
+Best wishes,
+
+KK
+
+On Thu, Mar 7, 2019 at 9:15 AM Nafis Sadat <sadatnfs at uw.edu> wrote:
+
+> Hi everyone:
+>
+> My name is Nafis Sadat, and I am a software engineer at the University of
+> Washington. I've been doing some research on the side recently on looking
+> at R and GPU capabilities, and after pinging Dr. Dirk Eddelbuettel (after
+> finding out his work on the 'gcbd' package), he suggested that I can send
+> out my question to the r-sig-hpc mailing list hoping for some answers!
+>
+> I work in the geospatial sciences team in my institute, where we try to
+> model diseases at the pixel level around the world using spatial modeling
+> methods. The models that our researchers use are written using the R
+> packages INLA (http://www.r-inla.org/) and TMB (
+> https://github.com/kaskr/adcomp/wiki); all of the code base is entirely
+> in R. One issue that we simply can't avoid is the large dimension of the
+> data (so, if we were modeling at a finer mesh for example, we would have
+> more parameters to optimize, and that leads to longer model runtimes).
+>
+> A year ago, there was no work done in the team to try and optimize this
+> part of the process, but then I worked with another software engineer to
+> compile R from source using the BLAS/LAPACK provided by Intel MKL, and that
+> sped up things pretty decently when it came to a lot of matrix algebra. In
+> fact, both the INLA and TMB packages are built by linking against BLAS (and
+> I have confirmed that the MKL is indeed being used when I run the model by
+> doing a verbose trace). Fast forward to now, and I came across this page:
+> https://developer.nvidia.com/cublas.
+>
+> I have a machine lying around at home which has an Nvidia GPU and the line
+> where Nvidia claims that "cuBLAS performs up to 35X faster than the latest
+> version of the MKL BLAS on common benchmarks". I have not looked into super
+> details about the backend of this (and only recently I have been coming
+> across the .cu extensions...). In an ideal world, if I could simply build R
+> by linking to the CUDA BLAS instead of the MKL BLAS and have everything
+> else run as-is, then that would be the dream, but after fudging around
+> earlier today where I tried to symlink 'libnvblas.so' to 'libblas.so', that
+> build of R was quite a failure.
+>
+> If anyone here would happen to have any thoughts or suggestions on this, I
+> would absolutely love your inputs. I have not found any answers on this on
+> Google, and I just posted a question on Stack Overflow, so I'm hoping that
+> I can learn more about this!
+>
+> Thanks everyone for your patience in reading through this!
+>
+> Nafis
+>
+>
+>
+>
+> Nafis Sadat
+> Software Engineer
+> Institute for Health Metrics and Evaluation | University of Washington
+> 2301 5th Avenue, Suite 600 | Seattle, WA 98121| USA
+> Tel: +1-206-897-3726<tel:+1%20206-897-3726> | Fax:
+> +1-206-897-2899<tel:+1%20206-897-2899> | Campus Mailbox: 358210
+> sadatnfs at uw.edu<mailto:sadatnfs at uw.edu> | http://www.healthdata.org<
+> http://www.healthdata.org/>
+>
+>
+>
+>         [[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+	[[alternative HTML version deleted]]
+
+
+From @ek@trom @end|ng |rom um|ch@edu  Thu Mar  7 19:35:11 2019
+From: @ek@trom @end|ng |rom um|ch@edu (Andrew Ekstrom)
+Date: Thu, 7 Mar 2019 13:35:11 -0500
+Subject: [R-sig-hpc] A few questions on using R and CUDA
+In-Reply-To: <CALQ1WmagbSJXM7a4NXDi5+36bRHqUSjfuu3iXqhijmV57beEDQ@mail.gmail.com>
+References: <BYAPR08MB44391F9DC8ED7D9E89E5B3BCBA4C0@BYAPR08MB4439.namprd08.prod.outlook.com>
+ <B24AE00E-8BE1-43DB-8C62-99F56911CB88@uw.edu>
+ <CALQ1WmagbSJXM7a4NXDi5+36bRHqUSjfuu3iXqhijmV57beEDQ@mail.gmail.com>
+Message-ID: <CAOCiBRf0EAxkDmwXbf3P8gKqWbCLOHfEwLK=zoVCrOzC=fQJ2Q@mail.gmail.com>
+
+When you use Cuda, make sure your GPU can handle the current version of
+Cuda C and that you have enough ram on your GPU to handle the amount of
+data you are processing. Also be aware that most Cuda programs use float,
+not double float. That can lead you to vastly different answers if you are
+using an iterative process.
+
+On Thu, Mar 7, 2019 at 1:21 PM Qiang Kou <qkou at iu.edu> wrote:
+
+> Hi, Nafis,
+>
+> To use NVBLAS with R, please see the page 8 in the slides below:
+>
+>
+> http://www.parallelr.com/slides/ParallelR-Accelerating%20R%20Applications%20with%20CUDA.pdf
+>
+> Best wishes,
+>
+> KK
+>
+> On Thu, Mar 7, 2019 at 9:15 AM Nafis Sadat <sadatnfs at uw.edu> wrote:
+>
+> > Hi everyone:
+> >
+> > My name is Nafis Sadat, and I am a software engineer at the University of
+> > Washington. I've been doing some research on the side recently on looking
+> > at R and GPU capabilities, and after pinging Dr. Dirk Eddelbuettel (after
+> > finding out his work on the 'gcbd' package), he suggested that I can send
+> > out my question to the r-sig-hpc mailing list hoping for some answers!
+> >
+> > I work in the geospatial sciences team in my institute, where we try to
+> > model diseases at the pixel level around the world using spatial modeling
+> > methods. The models that our researchers use are written using the R
+> > packages INLA (http://www.r-inla.org/) and TMB (
+> > https://github.com/kaskr/adcomp/wiki); all of the code base is entirely
+> > in R. One issue that we simply can't avoid is the large dimension of the
+> > data (so, if we were modeling at a finer mesh for example, we would have
+> > more parameters to optimize, and that leads to longer model runtimes).
+> >
+> > A year ago, there was no work done in the team to try and optimize this
+> > part of the process, but then I worked with another software engineer to
+> > compile R from source using the BLAS/LAPACK provided by Intel MKL, and
+> that
+> > sped up things pretty decently when it came to a lot of matrix algebra.
+> In
+> > fact, both the INLA and TMB packages are built by linking against BLAS
+> (and
+> > I have confirmed that the MKL is indeed being used when I run the model
+> by
+> > doing a verbose trace). Fast forward to now, and I came across this page:
+> > https://developer.nvidia.com/cublas.
+> >
+> > I have a machine lying around at home which has an Nvidia GPU and the
+> line
+> > where Nvidia claims that "cuBLAS performs up to 35X faster than the
+> latest
+> > version of the MKL BLAS on common benchmarks". I have not looked into
+> super
+> > details about the backend of this (and only recently I have been coming
+> > across the .cu extensions...). In an ideal world, if I could simply
+> build R
+> > by linking to the CUDA BLAS instead of the MKL BLAS and have everything
+> > else run as-is, then that would be the dream, but after fudging around
+> > earlier today where I tried to symlink 'libnvblas.so' to 'libblas.so',
+> that
+> > build of R was quite a failure.
+> >
+> > If anyone here would happen to have any thoughts or suggestions on this,
+> I
+> > would absolutely love your inputs. I have not found any answers on this
+> on
+> > Google, and I just posted a question on Stack Overflow, so I'm hoping
+> that
+> > I can learn more about this!
+> >
+> > Thanks everyone for your patience in reading through this!
+> >
+> > Nafis
+> >
+> >
+> >
+> >
+> > Nafis Sadat
+> > Software Engineer
+> > Institute for Health Metrics and Evaluation | University of Washington
+> > 2301 5th Avenue, Suite 600 | Seattle, WA 98121| USA
+> > Tel: +1-206-897-3726<tel:+1%20206-897-3726> | Fax:
+> > +1-206-897-2899<tel:+1%20206-897-2899> | Campus Mailbox: 358210
+> > sadatnfs at uw.edu<mailto:sadatnfs at uw.edu> | http://www.healthdata.org<
+> > http://www.healthdata.org/>
+> >
+> >
+> >
+> >         [[alternative HTML version deleted]]
+> >
+> > _______________________________________________
+> > R-sig-hpc mailing list
+> > R-sig-hpc at r-project.org
+> > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> >
+>
+>         [[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+	[[alternative HTML version deleted]]
+
+
+From @@d@tn|@ @end|ng |rom uw@edu  Thu Mar  7 19:37:12 2019
+From: @@d@tn|@ @end|ng |rom uw@edu (Nafis Sadat)
+Date: Thu, 7 Mar 2019 18:37:12 +0000
+Subject: [R-sig-hpc] A few questions on using R and CUDA
+In-Reply-To: <CAOCiBRf0EAxkDmwXbf3P8gKqWbCLOHfEwLK=zoVCrOzC=fQJ2Q@mail.gmail.com>
+References: <BYAPR08MB44391F9DC8ED7D9E89E5B3BCBA4C0@BYAPR08MB4439.namprd08.prod.outlook.com>
+ <B24AE00E-8BE1-43DB-8C62-99F56911CB88@uw.edu>
+ <CALQ1WmagbSJXM7a4NXDi5+36bRHqUSjfuu3iXqhijmV57beEDQ@mail.gmail.com>
+ <CAOCiBRf0EAxkDmwXbf3P8gKqWbCLOHfEwLK=zoVCrOzC=fQJ2Q@mail.gmail.com>
+Message-ID: <47C7676C-950C-4AE4-84F1-BEE2C6250141@uw.edu>
+
+Awesome, thanks Andrew and Qiang! One follow up question I have is: is it simply possible to just ?replace? the native BLAS that I built in R with the NVBLAS library? Hence, instead of calling a function explicitly from the CUDA headers, I would want to just have any BLAS functions be called from NVBLAS? is that even possible?
+
+From: Andrew Ekstrom <aekstrom at umich.edu>
+Date: Thursday, March 7, 2019 at 10:35 AM
+To: Qiang Kou <qkou at iu.edu>
+Cc: Nafis Sadat <sadatnfs at uw.edu>, "r-sig-hpc at r-project.org" <r-sig-hpc at r-project.org>
+Subject: Re: [R-sig-hpc] A few questions on using R and CUDA
+
+When you use Cuda, make sure your GPU can handle the current version of Cuda C and that you have enough ram on your GPU to handle the amount of data you are processing. Also be aware that most Cuda programs use float, not double float. That can lead you to vastly different answers if you are using an iterative process.
+
+On Thu, Mar 7, 2019 at 1:21 PM Qiang Kou <qkou at iu.edu<mailto:qkou at iu.edu>> wrote:
+Hi, Nafis,
+
+To use NVBLAS with R, please see the page 8 in the slides below:
+
+http://www.parallelr.com/slides/ParallelR-Accelerating%20R%20Applications%20with%20CUDA.pdf
+
+Best wishes,
+
+KK
+
+On Thu, Mar 7, 2019 at 9:15 AM Nafis Sadat <sadatnfs at uw.edu<mailto:sadatnfs at uw.edu>> wrote:
+
+> Hi everyone:
+>
+> My name is Nafis Sadat, and I am a software engineer at the University of
+> Washington. I've been doing some research on the side recently on looking
+> at R and GPU capabilities, and after pinging Dr. Dirk Eddelbuettel (after
+> finding out his work on the 'gcbd' package), he suggested that I can send
+> out my question to the r-sig-hpc mailing list hoping for some answers!
+>
+> I work in the geospatial sciences team in my institute, where we try to
+> model diseases at the pixel level around the world using spatial modeling
+> methods. The models that our researchers use are written using the R
+> packages INLA (http://www.r-inla.org/) and TMB (
+> https://github.com/kaskr/adcomp/wiki); all of the code base is entirely
+> in R. One issue that we simply can't avoid is the large dimension of the
+> data (so, if we were modeling at a finer mesh for example, we would have
+> more parameters to optimize, and that leads to longer model runtimes).
+>
+> A year ago, there was no work done in the team to try and optimize this
+> part of the process, but then I worked with another software engineer to
+> compile R from source using the BLAS/LAPACK provided by Intel MKL, and that
+> sped up things pretty decently when it came to a lot of matrix algebra. In
+> fact, both the INLA and TMB packages are built by linking against BLAS (and
+> I have confirmed that the MKL is indeed being used when I run the model by
+> doing a verbose trace). Fast forward to now, and I came across this page:
+> https://developer.nvidia.com/cublas.
+>
+> I have a machine lying around at home which has an Nvidia GPU and the line
+> where Nvidia claims that "cuBLAS performs up to 35X faster than the latest
+> version of the MKL BLAS on common benchmarks". I have not looked into super
+> details about the backend of this (and only recently I have been coming
+> across the .cu extensions...). In an ideal world, if I could simply build R
+> by linking to the CUDA BLAS instead of the MKL BLAS and have everything
+> else run as-is, then that would be the dream, but after fudging around
+> earlier today where I tried to symlink 'libnvblas.so' to 'libblas.so', that
+> build of R was quite a failure.
+>
+> If anyone here would happen to have any thoughts or suggestions on this, I
+> would absolutely love your inputs. I have not found any answers on this on
+> Google, and I just posted a question on Stack Overflow, so I'm hoping that
+> I can learn more about this!
+>
+> Thanks everyone for your patience in reading through this!
+>
+> Nafis
+>
+>
+>
+>
+> Nafis Sadat
+> Software Engineer
+> Institute for Health Metrics and Evaluation | University of Washington
+> 2301 5th Avenue, Suite 600 | Seattle, WA 98121| USA
+> Tel: +1-206-897-3726<tel:+1%20206-897-3726> | Fax:
+> +1-206-897-2899<tel:+1%20206-897-2899> | Campus Mailbox: 358210
+> sadatnfs at uw.edu<mailto:sadatnfs at uw.edu><mailto:sadatnfs at uw.edu<mailto:sadatnfs at uw.edu>> | http://www.healthdata.org<
+> http://www.healthdata.org/>
+>
+>
+>
+>         [[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org<mailto:R-sig-hpc at r-project.org>
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+        [[alternative HTML version deleted]]
+
+_______________________________________________
+R-sig-hpc mailing list
+R-sig-hpc at r-project.org<mailto:R-sig-hpc at r-project.org>
+https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+	[[alternative HTML version deleted]]
+
+
+From qkou @end|ng |rom |u@edu  Thu Mar  7 19:52:51 2019
+From: qkou @end|ng |rom |u@edu (Qiang Kou)
+Date: Thu, 7 Mar 2019 18:52:51 +0000
+Subject: [R-sig-hpc] A few questions on using R and CUDA
+In-Reply-To: <47C7676C-950C-4AE4-84F1-BEE2C6250141@uw.edu>
+References: <BYAPR08MB44391F9DC8ED7D9E89E5B3BCBA4C0@BYAPR08MB4439.namprd08.prod.outlook.com>
+ <B24AE00E-8BE1-43DB-8C62-99F56911CB88@uw.edu>
+ <CALQ1WmagbSJXM7a4NXDi5+36bRHqUSjfuu3iXqhijmV57beEDQ@mail.gmail.com>
+ <CAOCiBRf0EAxkDmwXbf3P8gKqWbCLOHfEwLK=zoVCrOzC=fQJ2Q@mail.gmail.com>
+ <47C7676C-950C-4AE4-84F1-BEE2C6250141@uw.edu>
+Message-ID: <MWHPR04MB126492C9672ABE9CB6530336A84C0@MWHPR04MB1264.namprd04.prod.outlook.com>
+
+The page 8 in the slides is showing what you are asking for.
+
+After putting libnvblas.so in LD_PRELOAD, when R calls any blas function, nvblas would be used.
+
+Best,
+
+KK
+
+?On 3/7/19, 10:41 AM, "R-sig-hpc on behalf of Nafis Sadat" <r-sig-hpc-bounces at r-project.org on behalf of sadatnfs at uw.edu> wrote:
+
+    Awesome, thanks Andrew and Qiang! One follow up question I have is: is it simply possible to just ?replace? the native BLAS that I built in R with the NVBLAS library? Hence, instead of calling a function explicitly from the CUDA headers, I would want to just have any BLAS functions be called from NVBLAS? is that even possible?
+    
+    From: Andrew Ekstrom <aekstrom at umich.edu>
+    Date: Thursday, March 7, 2019 at 10:35 AM
+    To: Qiang Kou <qkou at iu.edu>
+    Cc: Nafis Sadat <sadatnfs at uw.edu>, "r-sig-hpc at r-project.org" <r-sig-hpc at r-project.org>
+    Subject: Re: [R-sig-hpc] A few questions on using R and CUDA
+    
+    When you use Cuda, make sure your GPU can handle the current version of Cuda C and that you have enough ram on your GPU to handle the amount of data you are processing. Also be aware that most Cuda programs use float, not double float. That can lead you to vastly different answers if you are using an iterative process.
+    
+    On Thu, Mar 7, 2019 at 1:21 PM Qiang Kou <qkou at iu.edu<mailto:qkou at iu.edu>> wrote:
+    Hi, Nafis,
+    
+    To use NVBLAS with R, please see the page 8 in the slides below:
+    
+    http://www.parallelr.com/slides/ParallelR-Accelerating%20R%20Applications%20with%20CUDA.pdf
+    
+    Best wishes,
+    
+    KK
+    
+    On Thu, Mar 7, 2019 at 9:15 AM Nafis Sadat <sadatnfs at uw.edu<mailto:sadatnfs at uw.edu>> wrote:
+    
+    > Hi everyone:
+    >
+    > My name is Nafis Sadat, and I am a software engineer at the University of
+    > Washington. I've been doing some research on the side recently on looking
+    > at R and GPU capabilities, and after pinging Dr. Dirk Eddelbuettel (after
+    > finding out his work on the 'gcbd' package), he suggested that I can send
+    > out my question to the r-sig-hpc mailing list hoping for some answers!
+    >
+    > I work in the geospatial sciences team in my institute, where we try to
+    > model diseases at the pixel level around the world using spatial modeling
+    > methods. The models that our researchers use are written using the R
+    > packages INLA (http://www.r-inla.org/) and TMB (
+    > https://github.com/kaskr/adcomp/wiki); all of the code base is entirely
+    > in R. One issue that we simply can't avoid is the large dimension of the
+    > data (so, if we were modeling at a finer mesh for example, we would have
+    > more parameters to optimize, and that leads to longer model runtimes).
+    >
+    > A year ago, there was no work done in the team to try and optimize this
+    > part of the process, but then I worked with another software engineer to
+    > compile R from source using the BLAS/LAPACK provided by Intel MKL, and that
+    > sped up things pretty decently when it came to a lot of matrix algebra. In
+    > fact, both the INLA and TMB packages are built by linking against BLAS (and
+    > I have confirmed that the MKL is indeed being used when I run the model by
+    > doing a verbose trace). Fast forward to now, and I came across this page:
+    > https://developer.nvidia.com/cublas.
+    >
+    > I have a machine lying around at home which has an Nvidia GPU and the line
+    > where Nvidia claims that "cuBLAS performs up to 35X faster than the latest
+    > version of the MKL BLAS on common benchmarks". I have not looked into super
+    > details about the backend of this (and only recently I have been coming
+    > across the .cu extensions...). In an ideal world, if I could simply build R
+    > by linking to the CUDA BLAS instead of the MKL BLAS and have everything
+    > else run as-is, then that would be the dream, but after fudging around
+    > earlier today where I tried to symlink 'libnvblas.so' to 'libblas.so', that
+    > build of R was quite a failure.
+    >
+    > If anyone here would happen to have any thoughts or suggestions on this, I
+    > would absolutely love your inputs. I have not found any answers on this on
+    > Google, and I just posted a question on Stack Overflow, so I'm hoping that
+    > I can learn more about this!
+    >
+    > Thanks everyone for your patience in reading through this!
+    >
+    > Nafis
+    >
+    >
+    >
+    >
+    > Nafis Sadat
+    > Software Engineer
+    > Institute for Health Metrics and Evaluation | University of Washington
+    > 2301 5th Avenue, Suite 600 | Seattle, WA 98121| USA
+    > Tel: +1-206-897-3726<tel:+1%20206-897-3726> | Fax:
+    > +1-206-897-2899<tel:+1%20206-897-2899> | Campus Mailbox: 358210
+    > sadatnfs at uw.edu<mailto:sadatnfs at uw.edu><mailto:sadatnfs at uw.edu<mailto:sadatnfs at uw.edu>> | http://www.healthdata.org<
+    > http://www.healthdata.org/>
+    >
+    >
+    >
+    >         [[alternative HTML version deleted]]
+    >
+    > _______________________________________________
+    > R-sig-hpc mailing list
+    > R-sig-hpc at r-project.org<mailto:R-sig-hpc at r-project.org>
+    > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+    >
+    
+            [[alternative HTML version deleted]]
+    
+    _______________________________________________
+    R-sig-hpc mailing list
+    R-sig-hpc at r-project.org<mailto:R-sig-hpc at r-project.org>
+    https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+    
+    	[[alternative HTML version deleted]]
+    
+    _______________________________________________
+    R-sig-hpc mailing list
+    R-sig-hpc at r-project.org
+    https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+    
+
+From @@d@tn|@ @end|ng |rom uw@edu  Thu Mar  7 21:43:46 2019
+From: @@d@tn|@ @end|ng |rom uw@edu (Nafis Sadat)
+Date: Thu, 7 Mar 2019 20:43:46 +0000
+Subject: [R-sig-hpc] A few questions on using R and CUDA
+In-Reply-To: <MWHPR04MB126492C9672ABE9CB6530336A84C0@MWHPR04MB1264.namprd04.prod.outlook.com>
+References: <BYAPR08MB44391F9DC8ED7D9E89E5B3BCBA4C0@BYAPR08MB4439.namprd08.prod.outlook.com>
+ <B24AE00E-8BE1-43DB-8C62-99F56911CB88@uw.edu>
+ <CALQ1WmagbSJXM7a4NXDi5+36bRHqUSjfuu3iXqhijmV57beEDQ@mail.gmail.com>
+ <CAOCiBRf0EAxkDmwXbf3P8gKqWbCLOHfEwLK=zoVCrOzC=fQJ2Q@mail.gmail.com>
+ <47C7676C-950C-4AE4-84F1-BEE2C6250141@uw.edu>
+ <MWHPR04MB126492C9672ABE9CB6530336A84C0@MWHPR04MB1264.namprd04.prod.outlook.com>
+Message-ID: <604C5946-6F10-4C24-9399-4F96EC8752AE@uw.edu>
+
+Thanks everyone. Can confirm that it works!
+
+?On 3/7/19, 10:53 AM, "Qiang Kou" <qkou at iu.edu> wrote:
+
+    The page 8 in the slides is showing what you are asking for.
+    
+    After putting libnvblas.so in LD_PRELOAD, when R calls any blas function, nvblas would be used.
+    
+    Best,
+    
+    KK
+    
+    On 3/7/19, 10:41 AM, "R-sig-hpc on behalf of Nafis Sadat" <r-sig-hpc-bounces at r-project.org on behalf of sadatnfs at uw.edu> wrote:
+    
+        Awesome, thanks Andrew and Qiang! One follow up question I have is: is it simply possible to just ?replace? the native BLAS that I built in R with the NVBLAS library? Hence, instead of calling a function explicitly from the CUDA headers, I would want to just have any BLAS functions be called from NVBLAS? is that even possible?
+        
+        From: Andrew Ekstrom <aekstrom at umich.edu>
+        Date: Thursday, March 7, 2019 at 10:35 AM
+        To: Qiang Kou <qkou at iu.edu>
+        Cc: Nafis Sadat <sadatnfs at uw.edu>, "r-sig-hpc at r-project.org" <r-sig-hpc at r-project.org>
+        Subject: Re: [R-sig-hpc] A few questions on using R and CUDA
+        
+        When you use Cuda, make sure your GPU can handle the current version of Cuda C and that you have enough ram on your GPU to handle the amount of data you are processing. Also be aware that most Cuda programs use float, not double float. That can lead you to vastly different answers if you are using an iterative process.
+        
+        On Thu, Mar 7, 2019 at 1:21 PM Qiang Kou <qkou at iu.edu<mailto:qkou at iu.edu>> wrote:
+        Hi, Nafis,
+        
+        To use NVBLAS with R, please see the page 8 in the slides below:
+        
+        http://www.parallelr.com/slides/ParallelR-Accelerating%20R%20Applications%20with%20CUDA.pdf
+        
+        Best wishes,
+        
+        KK
+        
+        On Thu, Mar 7, 2019 at 9:15 AM Nafis Sadat <sadatnfs at uw.edu<mailto:sadatnfs at uw.edu>> wrote:
+        
+        > Hi everyone:
+        >
+        > My name is Nafis Sadat, and I am a software engineer at the University of
+        > Washington. I've been doing some research on the side recently on looking
+        > at R and GPU capabilities, and after pinging Dr. Dirk Eddelbuettel (after
+        > finding out his work on the 'gcbd' package), he suggested that I can send
+        > out my question to the r-sig-hpc mailing list hoping for some answers!
+        >
+        > I work in the geospatial sciences team in my institute, where we try to
+        > model diseases at the pixel level around the world using spatial modeling
+        > methods. The models that our researchers use are written using the R
+        > packages INLA (http://www.r-inla.org/) and TMB (
+        > https://github.com/kaskr/adcomp/wiki); all of the code base is entirely
+        > in R. One issue that we simply can't avoid is the large dimension of the
+        > data (so, if we were modeling at a finer mesh for example, we would have
+        > more parameters to optimize, and that leads to longer model runtimes).
+        >
+        > A year ago, there was no work done in the team to try and optimize this
+        > part of the process, but then I worked with another software engineer to
+        > compile R from source using the BLAS/LAPACK provided by Intel MKL, and that
+        > sped up things pretty decently when it came to a lot of matrix algebra. In
+        > fact, both the INLA and TMB packages are built by linking against BLAS (and
+        > I have confirmed that the MKL is indeed being used when I run the model by
+        > doing a verbose trace). Fast forward to now, and I came across this page:
+        > https://developer.nvidia.com/cublas.
+        >
+        > I have a machine lying around at home which has an Nvidia GPU and the line
+        > where Nvidia claims that "cuBLAS performs up to 35X faster than the latest
+        > version of the MKL BLAS on common benchmarks". I have not looked into super
+        > details about the backend of this (and only recently I have been coming
+        > across the .cu extensions...). In an ideal world, if I could simply build R
+        > by linking to the CUDA BLAS instead of the MKL BLAS and have everything
+        > else run as-is, then that would be the dream, but after fudging around
+        > earlier today where I tried to symlink 'libnvblas.so' to 'libblas.so', that
+        > build of R was quite a failure.
+        >
+        > If anyone here would happen to have any thoughts or suggestions on this, I
+        > would absolutely love your inputs. I have not found any answers on this on
+        > Google, and I just posted a question on Stack Overflow, so I'm hoping that
+        > I can learn more about this!
+        >
+        > Thanks everyone for your patience in reading through this!
+        >
+        > Nafis
+        >
+        >
+        >
+        >
+        > Nafis Sadat
+        > Software Engineer
+        > Institute for Health Metrics and Evaluation | University of Washington
+        > 2301 5th Avenue, Suite 600 | Seattle, WA 98121| USA
+        > Tel: +1-206-897-3726<tel:+1%20206-897-3726> | Fax:
+        > +1-206-897-2899<tel:+1%20206-897-2899> | Campus Mailbox: 358210
+        > sadatnfs at uw.edu<mailto:sadatnfs at uw.edu><mailto:sadatnfs at uw.edu<mailto:sadatnfs at uw.edu>> | http://www.healthdata.org<
+        > http://www.healthdata.org/>
+        >
+        >
+        >
+        >         [[alternative HTML version deleted]]
+        >
+        > _______________________________________________
+        > R-sig-hpc mailing list
+        > R-sig-hpc at r-project.org<mailto:R-sig-hpc at r-project.org>
+        > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+        >
+        
+                [[alternative HTML version deleted]]
+        
+        _______________________________________________
+        R-sig-hpc mailing list
+        R-sig-hpc at r-project.org<mailto:R-sig-hpc at r-project.org>
+        https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+        
+        	[[alternative HTML version deleted]]
+        
+        _______________________________________________
+        R-sig-hpc mailing list
+        R-sig-hpc at r-project.org
+        https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+        
+    
+
+
+From edd @end|ng |rom deb|@n@org  Fri Mar  8 00:15:07 2019
+From: edd @end|ng |rom deb|@n@org (Dirk Eddelbuettel)
+Date: Thu, 7 Mar 2019 17:15:07 -0600
+Subject: [R-sig-hpc] A few questions on using R and CUDA
+In-Reply-To: <604C5946-6F10-4C24-9399-4F96EC8752AE@uw.edu>
+References: <BYAPR08MB44391F9DC8ED7D9E89E5B3BCBA4C0@BYAPR08MB4439.namprd08.prod.outlook.com>
+ <B24AE00E-8BE1-43DB-8C62-99F56911CB88@uw.edu>
+ <CALQ1WmagbSJXM7a4NXDi5+36bRHqUSjfuu3iXqhijmV57beEDQ@mail.gmail.com>
+ <CAOCiBRf0EAxkDmwXbf3P8gKqWbCLOHfEwLK=zoVCrOzC=fQJ2Q@mail.gmail.com>
+ <47C7676C-950C-4AE4-84F1-BEE2C6250141@uw.edu>
+ <MWHPR04MB126492C9672ABE9CB6530336A84C0@MWHPR04MB1264.namprd04.prod.outlook.com>
+ <604C5946-6F10-4C24-9399-4F96EC8752AE@uw.edu>
+Message-ID: <23681.42491.971643.190508@rob.eddelbuettel.com>
+
+
+On 7 March 2019 at 20:43, Nafis Sadat wrote:
+| Thanks everyone. Can confirm that it works!
+
+Excellent!  Maybe to close this out you can do a really small quick benchmark
+to see if you can find where on your system "N" might be such that costs of
+transport to the GPU does not outweight the gain from computing on the GPU?
+Nothing too fancy -- just a set of QR or SVD or dgemm (mat.mult.) for three
+or so different sample sizes?  If you have the time that is ...
+
+Dirk
+
+-- 
+http://dirk.eddelbuettel.com | @eddelbuettel | edd at debian.org
+
+
+From @@d@tn|@ @end|ng |rom uw@edu  Wed Mar 20 01:38:03 2019
+From: @@d@tn|@ @end|ng |rom uw@edu (Nafis Sadat)
+Date: Wed, 20 Mar 2019 00:38:03 +0000
+Subject: [R-sig-hpc] A few questions on using R and CUDA
+In-Reply-To: <23681.42491.971643.190508@rob.eddelbuettel.com>
+References: <BYAPR08MB44391F9DC8ED7D9E89E5B3BCBA4C0@BYAPR08MB4439.namprd08.prod.outlook.com>
+ <B24AE00E-8BE1-43DB-8C62-99F56911CB88@uw.edu>
+ <CALQ1WmagbSJXM7a4NXDi5+36bRHqUSjfuu3iXqhijmV57beEDQ@mail.gmail.com>
+ <CAOCiBRf0EAxkDmwXbf3P8gKqWbCLOHfEwLK=zoVCrOzC=fQJ2Q@mail.gmail.com>
+ <47C7676C-950C-4AE4-84F1-BEE2C6250141@uw.edu>
+ <MWHPR04MB126492C9672ABE9CB6530336A84C0@MWHPR04MB1264.namprd04.prod.outlook.com>
+ <604C5946-6F10-4C24-9399-4F96EC8752AE@uw.edu>,
+ <23681.42491.971643.190508@rob.eddelbuettel.com>
+Message-ID: <BYAPR08MB44392B315E7138571BF4CF28BA410@BYAPR08MB4439.namprd08.prod.outlook.com>
+
+Hey everyone,
+
+Thanks so much for all your help in setting this up. One thing I am seeing with the packages I'm interested in is that: even after LD_PRELOADing with the NVBLAS shared object, the LAPACK is still coming from the MKL library.
+
+Would anyone happen to know if there's a LAPACK library I can overload as well on top of the NVBLAS? I'm not sure yet why my packages are not picking up all the CUDA innards (I wonder if I need to re-compile with NVBLAS...)
+________________________________
+From: Dirk Eddelbuettel <dirk.eddelbuettel at gmail.com> on behalf of Dirk Eddelbuettel <edd at debian.org>
+Sent: Thursday, March 7, 2019 3:15 PM
+To: Nafis Sadat
+Cc: Qiang Kou; Andrew Ekstrom; r-sig-hpc at r-project.org
+Subject: Re: [R-sig-hpc] A few questions on using R and CUDA
+
+
+On 7 March 2019 at 20:43, Nafis Sadat wrote:
+| Thanks everyone. Can confirm that it works!
+
+Excellent!  Maybe to close this out you can do a really small quick benchmark
+to see if you can find where on your system "N" might be such that costs of
+transport to the GPU does not outweight the gain from computing on the GPU?
+Nothing too fancy -- just a set of QR or SVD or dgemm (mat.mult.) for three
+or so different sample sizes?  If you have the time that is ...
+
+Dirk
+
+--
+http://dirk.eddelbuettel.com | @eddelbuettel | edd at debian.org
+
+	[[alternative HTML version deleted]]
+
+
+From cdeterm@njr @end|ng |rom gm@||@com  Thu Mar 21 18:22:39 2019
+From: cdeterm@njr @end|ng |rom gm@||@com (Charles Determan)
+Date: Thu, 21 Mar 2019 12:22:39 -0500
+Subject: [R-sig-hpc] A few questions on using R and CUDA
+In-Reply-To: <BYAPR08MB44392B315E7138571BF4CF28BA410@BYAPR08MB4439.namprd08.prod.outlook.com>
+References: <BYAPR08MB44391F9DC8ED7D9E89E5B3BCBA4C0@BYAPR08MB4439.namprd08.prod.outlook.com>
+ <B24AE00E-8BE1-43DB-8C62-99F56911CB88@uw.edu>
+ <CALQ1WmagbSJXM7a4NXDi5+36bRHqUSjfuu3iXqhijmV57beEDQ@mail.gmail.com>
+ <CAOCiBRf0EAxkDmwXbf3P8gKqWbCLOHfEwLK=zoVCrOzC=fQJ2Q@mail.gmail.com>
+ <47C7676C-950C-4AE4-84F1-BEE2C6250141@uw.edu>
+ <MWHPR04MB126492C9672ABE9CB6530336A84C0@MWHPR04MB1264.namprd04.prod.outlook.com>
+ <604C5946-6F10-4C24-9399-4F96EC8752AE@uw.edu>
+ <23681.42491.971643.190508@rob.eddelbuettel.com>
+ <BYAPR08MB44392B315E7138571BF4CF28BA410@BYAPR08MB4439.namprd08.prod.outlook.com>
+Message-ID: <CAKxd1KPQKTbDLP06hHa2=-sgX4HncoS0+cKDkQLJwikUo_OHJA@mail.gmail.com>
+
+To my knowledge there is no CUDA LAPACK plugin.  NVBLAS is a CUDA
+accelerated version of BLAS (https://developer.nvidia.com/cublas).  As
+such, I wouldn't expect it to have any LAPACK.  If someone knows otherwise
+or is aware of a GPU LAPACK plugin I would be very much interested.
+
+Regards,
+Charles
+
+On Tue, Mar 19, 2019 at 7:40 PM Nafis Sadat <sadatnfs at uw.edu> wrote:
+
+> Hey everyone,
+>
+> Thanks so much for all your help in setting this up. One thing I am seeing
+> with the packages I'm interested in is that: even after LD_PRELOADing with
+> the NVBLAS shared object, the LAPACK is still coming from the MKL library.
+>
+> Would anyone happen to know if there's a LAPACK library I can overload as
+> well on top of the NVBLAS? I'm not sure yet why my packages are not picking
+> up all the CUDA innards (I wonder if I need to re-compile with NVBLAS...)
+> ________________________________
+> From: Dirk Eddelbuettel <dirk.eddelbuettel at gmail.com> on behalf of Dirk
+> Eddelbuettel <edd at debian.org>
+> Sent: Thursday, March 7, 2019 3:15 PM
+> To: Nafis Sadat
+> Cc: Qiang Kou; Andrew Ekstrom; r-sig-hpc at r-project.org
+> Subject: Re: [R-sig-hpc] A few questions on using R and CUDA
+>
+>
+> On 7 March 2019 at 20:43, Nafis Sadat wrote:
+> | Thanks everyone. Can confirm that it works!
+>
+> Excellent!  Maybe to close this out you can do a really small quick
+> benchmark
+> to see if you can find where on your system "N" might be such that costs of
+> transport to the GPU does not outweight the gain from computing on the GPU?
+> Nothing too fancy -- just a set of QR or SVD or dgemm (mat.mult.) for three
+> or so different sample sizes?  If you have the time that is ...
+>
+> Dirk
+>
+> --
+> http://dirk.eddelbuettel.com | @eddelbuettel | edd at debian.org
+>
+>         [[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+	[[alternative HTML version deleted]]
+
+

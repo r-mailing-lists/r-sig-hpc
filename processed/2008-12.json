@@ -1,0 +1,701 @@
+{
+  "list": "r-sig-hpc",
+  "description": "",
+  "month": "2008-12",
+  "messages": [
+    {
+      "id": "msg-b613b6ba3266",
+      "message_id": "<C55AB253.B0B3%MAB@Stowers-Institute.org>",
+      "from_name": "Blanchette, Marco",
+      "from_email_hash": "3aabc715b9491bd33853913cfab00ebf4a92785f3bba7582d9d85fbb598c672e",
+      "date": "2008-12-02T09:37:23-06:00",
+      "subject": "[R-sig-hpc] Problem with the Rmpi package",
+      "subject_clean": "Problem with the Rmpi package",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Dear all,\n\nI just started to use the snow package to send multiple jobs on our cluster using MPI and the Rpmi package as the communication method.\n\nHowever, the Rmpi package have been behaving strangely. When I try to detach the Rmpi package I get the following error message:\n\n> library(Rmpi)\n> detach()\nError in dyn.unload(file.path(libpath, \"libs\", paste(\"Rmpi\", .Platform$dynlib.ext,  :\n  dynamic/shared library '/Users/mab/Library/R/2.8/library/Rmpi/libs/Rmpi.so' was not loaded\n\nFollowing that error, the snow package seems to be unable to initiate a new cluster, whatever method is used. The fix is to kill  and restart my R session.\n\nAny suggestion as to what is the problem?\n\n--\nMarco Blanchette, Ph.D.\nAssistant Investigator\nStowers Institute for Medical Research\n1000 East 50th St.\n\nKansas City, MO 64110\n\nTel: 816-926-4071\nCell: 816-726-8419\nFax: 816-926-2018",
+      "body_snippet": "Dear all,\n\nI just started to use the snow package to send multiple jobs on our cluster using MPI and the Rpmi package as the communication method.\n\nHowever, the Rmpi package have been behaving strange",
+      "thread_id": "thread-b613b6ba3266",
+      "thread_depth": 0,
+      "month": "2008-12"
+    },
+    {
+      "id": "msg-c49f4deb54dc",
+      "message_id": "<37aa46ae2f2500a009213a9ccee1dfd3.squirrel@www.stats.uwo.ca>",
+      "from_name": "Hao Yu",
+      "from_email_hash": "f90343116b4a1720ab706b8b458137d0f188602a07689c3a137d7f8799e4a179",
+      "date": "2008-12-02T11:00:37-05:00",
+      "subject": "[R-sig-hpc] Problem with the Rmpi package",
+      "subject_clean": "Problem with the Rmpi package",
+      "in_reply_to": "<C55AB253.B0B3%MAB@Stowers-Institute.org>",
+      "references": [
+        "<C55AB253.B0B3%MAB@Stowers-Institute.org>"
+      ],
+      "body_plain": "It is related to MPI_INITIALIZE and MPI_FINALIZE. Either one can only be\ncalled once. Hence once detach() is used, R is no longer to be a MPI aware\nprocess and cannot be a MPI process again.\n\nHao\n\n\nBlanchette, Marco wrote:\n> Dear all,\n>\n> I just started to use the snow package to send multiple jobs on our\n> cluster using MPI and the Rpmi package as the communication method.\n>\n> However, the Rmpi package have been behaving strangely. When I try to\n> detach the Rmpi package I get the following error message:\n>\n>> library(Rmpi)\n>> detach()\n> Error in dyn.unload(file.path(libpath, \"libs\", paste(\"Rmpi\",\n> .Platform$dynlib.ext,  :\n>   dynamic/shared library\n> '/Users/mab/Library/R/2.8/library/Rmpi/libs/Rmpi.so' was not loaded\n>\n> Following that error, the snow package seems to be unable to initiate a\n> new cluster, whatever method is used. The fix is to kill  and restart my R\n> session.\n>\n> Any suggestion as to what is the problem?\n>\n> --\n> Marco Blanchette, Ph.D.\n> Assistant Investigator\n> Stowers Institute for Medical Research\n> 1000 East 50th St.\n>\n> Kansas City, MO 64110\n>\n> Tel: 816-926-4071\n> Cell: 816-726-8419\n> Fax: 816-926-2018\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>\n\n\n-- \nDepartment of Statistics & Actuarial Sciences\nFax Phone#:(519)-661-3813\nThe University of Western Ontario\nOffice Phone#:(519)-661-3622\nLondon, Ontario N6A 5B7\nhttp://www.stats.uwo.ca/faculty/yu",
+      "body_snippet": "It is related to MPI_INITIALIZE and MPI_FINALIZE. Either one can only be\ncalled once. Hence once detach() is used, R is no longer to be a MPI aware\nprocess and cannot be a MPI process again.\n\nHao\n\n\nBl",
+      "thread_id": "thread-b613b6ba3266",
+      "thread_depth": 1,
+      "month": "2008-12"
+    },
+    {
+      "id": "msg-ed9101e14a1d",
+      "message_id": "<b0f0ada60812021138sf248c3fs2f2b36f26c73efe6@mail.gmail.com>",
+      "from_name": "Gang Chen",
+      "from_email_hash": "af663321f5a18be30cc81be49fad0e4e1811d914ffd4c4b8c20a303b8f5e234e",
+      "date": "2008-12-02T14:38:15-05:00",
+      "subject": "[R-sig-hpc] Using snow on a looping structure",
+      "subject_clean": "Using snow on a looping structure",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "I'm a newbie running parallel computing, so, sorry for this simple question.\n\nMy original code without parallel computing is like this:\n\nrunAna <- function(myData, Model, ...) {\n      myStat <- wFun(myData, Model, ...)   # myStat: a vector with a\nlength of nStat\n      return(myStat)\n}\n\nrStat <- array(0, dim=c(dimx, dimy, dimz, nStat))\nfor (i in 1:dimx)\nfor (j in 1:dimy)\nfor (k in 1:dimz)\n     rStat[i, j, k,] <- runAna(rData[i, j, k,], Model, ...)   # each\nanalysis is on the 4th dimension, and returns nStat numbers which are\nstored in the 4th dimension of rStat\n\nI'm trying to run the above analysis using snow on a machine with two\nprocessors, but could not figure out how to correctly set it up:\n\nnNodes <- 2\nlibrary(snow)\ncl <- makeCluster(nNodes, type = \"SOCK\")\t\n\nI thought I would use parApply, but how should I combine the looping\nwith parApply? Or no looping at all with something like parApply(cl,\nrData, c(1,2,3), ...)?\n\nThanks in advance,\nGang",
+      "body_snippet": "I'm a newbie running parallel computing, so, sorry for this simple question.\n\nMy original code without parallel computing is like this:\n\nrunAna <- function(myData, Model, ...) {\n      myStat <- wFun(m",
+      "thread_id": "thread-ed9101e14a1d",
+      "thread_depth": 0,
+      "month": "2008-12"
+    },
+    {
+      "id": "msg-5604ff3da999",
+      "message_id": "<6phy6yx6vg4.fsf@gopher4.fhcrc.org>",
+      "from_name": "Martin Morgan",
+      "from_email_hash": "9f5a643078023be7f11cfed10069ce2b31d0a2cc98705fa84c2ae0e157a1fb93",
+      "date": "2008-12-03T09:05:15-08:00",
+      "subject": "[R-sig-hpc] Using snow on a looping structure",
+      "subject_clean": "Using snow on a looping structure",
+      "in_reply_to": null,
+      "references": [
+        "<b0f0ada60812021138sf248c3fs2f2b36f26c73efe6@mail.gmail.com>"
+      ],
+      "body_plain": "Hi Gang --\n\n\"Gang Chen\" <gangchen6 at gmail.com> writes:\n\n> I'm a newbie running parallel computing, so, sorry for this simple question.\n>\n> My original code without parallel computing is like this:\n>\n> runAna <- function(myData, Model, ...) {\n>       myStat <- wFun(myData, Model, ...)   # myStat: a vector with a\n> length of nStat\n>       return(myStat)\n> }\n>\n> rStat <- array(0, dim=c(dimx, dimy, dimz, nStat))\n> for (i in 1:dimx)\n> for (j in 1:dimy)\n> for (k in 1:dimz)\n>      rStat[i, j, k,] <- runAna(rData[i, j, k,], Model, ...)   # each\n> analysis is on the 4th dimension, and returns nStat numbers which are\n> stored in the 4th dimension of rStat\n\nI think what you want is along the lines of\n\n> a <- array(1:(2*3*4*5), c(2,3,4,5))\n> b <- apply(a, c(1,2,3), range)\n\nand then as you guessed\n\n> library(snow)\n> cl <- makeCluster(nNodes, type=\"SOCK\")\n> d <- parApply(cl, a, c(1,2,3), range)\n> identical(b, d)\n[1] TRUE\n\nso for your example, I'd guess\n\nrunStat <- parApply(cl, rData, c(1,2,3), runAna, Model=Model)\n\nThis is not quite what you want -- the 'result' dimension is the first\nrather than last\n\n> dim(a)\n[1] 2 3 4 5\n> dim(b)\n[1] 2 2 3 4\n\narray-munging is not a speciality of mine, but a simple work-around is\nto reorder the dimensions of the original array, so you're applying\nto, and writing in, the slice indexed by the first entry\n\n> a <- array(1:(5*2*3*4), c(5,2,3,4))\n> b <- apply(a, c(2,3,4), range)\n> dim(a)\n[1] 5 2 3 4\n> dim(b)\n[1] 2 2 3 4\n> d <- parApply(cl, a, c(2,3,4), range)\n\nHope that helps,\n\nMartin\n\n> I'm trying to run the above analysis using snow on a machine with two\n> processors, but could not figure out how to correctly set it up:\n>\n> nNodes <- 2\n> library(snow)\n> cl <- makeCluster(nNodes, type = \"SOCK\")\t\n>\n> I thought I would use parApply, but how should I combine the looping\n> with parApply? Or no looping at all with something like parApply(cl,\n> rData, c(1,2,3), ...)?\n>\n> Thanks in advance,\n> Gang\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n\n-- \nMartin Morgan\nComputational Biology / Fred Hutchinson Cancer Research Center\n1100 Fairview Ave. N.\nPO Box 19024 Seattle, WA 98109\n\nLocation: Arnold Building M2 B169\nPhone: (206) 667-2793",
+      "body_snippet": "Hi Gang --\n\n\"Gang Chen\" <gangchen6 at gmail.com> writes:\n\n> I'm a newbie running parallel computing, so, sorry for this simple question.\n>\n> My original code without parallel computing is like this:\n>",
+      "thread_id": "thread-ed9101e14a1d",
+      "thread_depth": 1,
+      "month": "2008-12"
+    },
+    {
+      "id": "msg-ecf73c324798",
+      "message_id": "<b0f0ada60812041423y118ae94cge969ca89034488af@mail.gmail.com>",
+      "from_name": "Gang Chen",
+      "from_email_hash": "af663321f5a18be30cc81be49fad0e4e1811d914ffd4c4b8c20a303b8f5e234e",
+      "date": "2008-12-04T17:23:54-05:00",
+      "subject": "[R-sig-hpc] Using snow on a looping structure",
+      "subject_clean": "Using snow on a looping structure",
+      "in_reply_to": "<6phy6yx6vg4.fsf@gopher4.fhcrc.org>",
+      "references": [
+        "<b0f0ada60812021138sf248c3fs2f2b36f26c73efe6@mail.gmail.com>",
+        "<6phy6yx6vg4.fsf@gopher4.fhcrc.org>"
+      ],
+      "body_plain": "Hi Martin,\n\nYour suggestion really helps! It's exactly what I wanted. I really\nappreciate it...\n\nRegarding the array-munging part, the following will do:\n\nb <- aperm(b, c(2,3,4,1))\n\nI have a couple of related issues now:\n\n(1) When running the following I get two warnings on my Mac OS X\n10.4.11 (one from each processor, I guess):\n\n> cl <- makeCluster(2, type = \"SOCK\")\t\nWARNING: ignoring environment value of R_HOME\nWARNING: ignoring environment value of R_HOME\n\nWhy is this warning? How to correct it?\n\n(2) Previously I could follow up the progress of the job by sticking\nthe following\n\nprint(format(Sys.time(), \"%D %H:%M:%OS3\"))\n\ninside the outermost for loop (with ii index), but now with parallel\ncomputing I couldn't find a similar way to trace the progress. Do you\nor anybody know how to do that?\n\nThanks again,\nGang\n\n\nOn Wed, Dec 3, 2008 at 12:05 PM, Martin Morgan <mtmorgan at fhcrc.org> wrote:\n> Hi Gang --\n>\n> \"Gang Chen\" <gangchen6 at gmail.com> writes:\n>\n>> I'm a newbie running parallel computing, so, sorry for this simple question.\n>>\n>> My original code without parallel computing is like this:\n>>\n>> runAna <- function(myData, Model, ...) {\n>>       myStat <- wFun(myData, Model, ...)   # myStat: a vector with a\n>> length of nStat\n>>       return(myStat)\n>> }\n>>\n>> rStat <- array(0, dim=c(dimx, dimy, dimz, nStat))\n>> for (i in 1:dimx)\n>> for (j in 1:dimy)\n>> for (k in 1:dimz)\n>>      rStat[i, j, k,] <- runAna(rData[i, j, k,], Model, ...)   # each\n>> analysis is on the 4th dimension, and returns nStat numbers which are\n>> stored in the 4th dimension of rStat\n>\n> I think what you want is along the lines of\n>\n>> a <- array(1:(2*3*4*5), c(2,3,4,5))\n>> b <- apply(a, c(1,2,3), range)\n>\n> and then as you guessed\n>\n>> library(snow)\n>> cl <- makeCluster(nNodes, type=\"SOCK\")\n>> d <- parApply(cl, a, c(1,2,3), range)\n>> identical(b, d)\n> [1] TRUE\n>\n> so for your example, I'd guess\n>\n> runStat <- parApply(cl, rData, c(1,2,3), runAna, Model=Model)\n>\n> This is not quite what you want -- the 'result' dimension is the first\n> rather than last\n>\n>> dim(a)\n> [1] 2 3 4 5\n>> dim(b)\n> [1] 2 2 3 4\n>\n> array-munging is not a speciality of mine, but a simple work-around is\n> to reorder the dimensions of the original array, so you're applying\n> to, and writing in, the slice indexed by the first entry\n>\n>> a <- array(1:(5*2*3*4), c(5,2,3,4))\n>> b <- apply(a, c(2,3,4), range)\n>> dim(a)\n> [1] 5 2 3 4\n>> dim(b)\n> [1] 2 2 3 4\n>> d <- parApply(cl, a, c(2,3,4), range)\n>\n> Hope that helps,\n>\n> Martin\n>\n>> I'm trying to run the above analysis using snow on a machine with two\n>> processors, but could not figure out how to correctly set it up:\n>>\n>> nNodes <- 2\n>> library(snow)\n>> cl <- makeCluster(nNodes, type = \"SOCK\")\n>>\n>> I thought I would use parApply, but how should I combine the looping\n>> with parApply? Or no looping at all with something like parApply(cl,\n>> rData, c(1,2,3), ...)?\n>>\n>> Thanks in advance,\n>> Gang\n>>\n>> _______________________________________________\n>> R-sig-hpc mailing list\n>> R-sig-hpc at r-project.org\n>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>\n> --\n> Martin Morgan\n> Computational Biology / Fred Hutchinson Cancer Research Center\n> 1100 Fairview Ave. N.\n> PO Box 19024 Seattle, WA 98109\n>\n> Location: Arnold Building M2 B169\n> Phone: (206) 667-2793",
+      "body_snippet": "Hi Martin,\n\nYour suggestion really helps! It's exactly what I wanted. I really\nappreciate it...\n\nRegarding the array-munging part, the following will do:\n\nb <- aperm(b, c(2,3,4,1))\n\nI have a couple of",
+      "thread_id": "thread-ed9101e14a1d",
+      "thread_depth": 2,
+      "month": "2008-12"
+    },
+    {
+      "id": "msg-06b9d0f57df8",
+      "message_id": "<fb7c7e870812042249r22d896f7u2b9196232509112c@mail.gmail.com>",
+      "from_name": "Rainer M Krug",
+      "from_email_hash": "e11b90edace280d0de30dfc4fa9de87a9a079d3f2c2f179123fa9e4ae628223d",
+      "date": "2008-12-05T08:49:00+02:00",
+      "subject": "[R-sig-hpc] Sun Grid Engine (SGE) and Rsge package",
+      "subject_clean": "Sun Grid Engine (SGE) and Rsge package",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Hi\n\nI just found the Rsge package which seems to suit my need to do\nparallel processing on a cluster with SGE. I did not manage to use\nRmpi or snow (which would have been nice).\n\nMy only problem is, that I can't find any documentation on how to use\nRsge (apart from the one included in the source package) - it seems to\nutilise several options which might be useful to set.\nDoes anybody has any experience with this package or can show me a way\nof using snow or Rmpi in an environment where I have to use SGE (qsub\n...)?\n\nThanks\n\nRainer\n\n-- \nRainer M. Krug, PhD (Conservation Ecology, SUN), MSc (Conservation\nBiology, UCT), Dipl. Phys. (Germany)\n\nCentre of Excellence for Invasion Biology\nFaculty of Science\nNatural Sciences Building\nPrivate Bag X1\nUniversity of Stellenbosch\nMatieland 7602\nSouth Africa",
+      "body_snippet": "Hi\n\nI just found the Rsge package which seems to suit my need to do\nparallel processing on a cluster with SGE. I did not manage to use\nRmpi or snow (which would have been nice).\n\nMy only problem is, t",
+      "thread_id": "thread-06b9d0f57df8",
+      "thread_depth": 0,
+      "month": "2008-12"
+    },
+    {
+      "id": "msg-0f4c93f54c0d",
+      "message_id": "<fb7c7e870812042320w184a1ea4i7215da400a211951@mail.gmail.com>",
+      "from_name": "Rainer M Krug",
+      "from_email_hash": "e11b90edace280d0de30dfc4fa9de87a9a079d3f2c2f179123fa9e4ae628223d",
+      "date": "2008-12-05T09:20:26+02:00",
+      "subject": "[R-sig-hpc] littler with --slave option?",
+      "subject_clean": "littler with --slave option?",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Is it possible to use the --slave option with r?\n\nThe reason I am asking is, that\nhttps://www.nbcr.net/pub/wiki/index.php?title=R_and_Snow#SGE_Example\nuses R CMD BATCH and I would use r instead.\n\nThanks\n\nRainer\n\n\n-- \nRainer M. Krug, PhD (Conservation Ecology, SUN), MSc (Conservation\nBiology, UCT), Dipl. Phys. (Germany)\n\nCentre of Excellence for Invasion Biology\nFaculty of Science\nNatural Sciences Building\nPrivate Bag X1\nUniversity of Stellenbosch\nMatieland 7602\nSouth Africa",
+      "body_snippet": "Is it possible to use the --slave option with r?\n\nThe reason I am asking is, that\nhttps://www.nbcr.net/pub/wiki/index.php?title=R_and_Snow#SGE_Example\nuses R CMD BATCH and I would use r instead.\n\nThan",
+      "thread_id": "thread-0f4c93f54c0d",
+      "thread_depth": 0,
+      "month": "2008-12"
+    },
+    {
+      "id": "msg-cba6e1ad9013",
+      "message_id": "<18745.9129.921249.224271@ron.nulle.part>",
+      "from_name": "Dirk Eddelbuettel",
+      "from_email_hash": "447d8de83a7b9c5d61116890bacb6dc0c76aee31b3011a41fb7d3c62dac9042f",
+      "date": "2008-12-05T06:50:49-06:00",
+      "subject": "[R-sig-hpc] littler with --slave option?",
+      "subject_clean": "littler with --slave option?",
+      "in_reply_to": "<fb7c7e870812042320w184a1ea4i7215da400a211951@mail.gmail.com>",
+      "references": [
+        "<fb7c7e870812042320w184a1ea4i7215da400a211951@mail.gmail.com>"
+      ],
+      "body_plain": "On 5 December 2008 at 09:20, Rainer M Krug wrote:\n| Is it possible to use the --slave option with r?\n\nYes, it is the default for littler. You can turn --slave off by using\n--verbose.\n\nDirk\n\n| The reason I am asking is, that\n| https://www.nbcr.net/pub/wiki/index.php?title=R_and_Snow#SGE_Example\n| uses R CMD BATCH and I would use r instead.\n| \n| Thanks\n| \n| Rainer\n| \n| \n| -- \n| Rainer M. Krug, PhD (Conservation Ecology, SUN), MSc (Conservation\n| Biology, UCT), Dipl. Phys. (Germany)\n| \n| Centre of Excellence for Invasion Biology\n| Faculty of Science\n| Natural Sciences Building\n| Private Bag X1\n| University of Stellenbosch\n| Matieland 7602\n| South Africa\n| \n| _______________________________________________\n| R-sig-hpc mailing list\n| R-sig-hpc at r-project.org\n| https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n\n-- \nThree out of two people have difficulties with fractions.",
+      "body_snippet": "On 5 December 2008 at 09:20, Rainer M Krug wrote:\n| Is it possible to use the --slave option with r?\n\nYes, it is the default for littler. You can turn --slave off by using\n--verbose.\n\nDirk\n\n| The reas",
+      "thread_id": "thread-0f4c93f54c0d",
+      "thread_depth": 1,
+      "month": "2008-12"
+    },
+    {
+      "id": "msg-e7872045e7ae",
+      "message_id": "<fb7c7e870812050554o37a266d2sdfa2bc0c0d412904@mail.gmail.com>",
+      "from_name": "Rainer M Krug",
+      "from_email_hash": "e11b90edace280d0de30dfc4fa9de87a9a079d3f2c2f179123fa9e4ae628223d",
+      "date": "2008-12-05T15:54:49+02:00",
+      "subject": "[R-sig-hpc] littler with --slave option?",
+      "subject_clean": "littler with --slave option?",
+      "in_reply_to": "<18745.9129.921249.224271@ron.nulle.part>",
+      "references": [
+        "<fb7c7e870812042320w184a1ea4i7215da400a211951@mail.gmail.com>",
+        "<18745.9129.921249.224271@ron.nulle.part>"
+      ],
+      "body_plain": "On Fri, Dec 5, 2008 at 2:50 PM, Dirk Eddelbuettel <edd at debian.org> wrote:\n>\n> On 5 December 2008 at 09:20, Rainer M Krug wrote:\n> | Is it possible to use the --slave option with r?\n>\n> Yes, it is the default for littler. You can turn --slave off by using\n> --verbose.\n\nThanks a lot,\n\nRainer\n\n>\n> Dirk\n>\n> | The reason I am asking is, that\n> | https://www.nbcr.net/pub/wiki/index.php?title=R_and_Snow#SGE_Example\n> | uses R CMD BATCH and I would use r instead.\n> |\n> | Thanks\n> |\n> | Rainer\n> |\n> |\n> | --\n> | Rainer M. Krug, PhD (Conservation Ecology, SUN), MSc (Conservation\n> | Biology, UCT), Dipl. Phys. (Germany)\n> |\n> | Centre of Excellence for Invasion Biology\n> | Faculty of Science\n> | Natural Sciences Building\n> | Private Bag X1\n> | University of Stellenbosch\n> | Matieland 7602\n> | South Africa\n> |\n> | _______________________________________________\n> | R-sig-hpc mailing list\n> | R-sig-hpc at r-project.org\n> | https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>\n> --\n> Three out of two people have difficulties with fractions.\n>\n\n\n\n-- \nRainer M. Krug, PhD (Conservation Ecology, SUN), MSc (Conservation\nBiology, UCT), Dipl. Phys. (Germany)\n\nCentre of Excellence for Invasion Biology\nFaculty of Science\nNatural Sciences Building\nPrivate Bag X1\nUniversity of Stellenbosch\nMatieland 7602\nSouth Africa",
+      "body_snippet": "On Fri, Dec 5, 2008 at 2:50 PM, Dirk Eddelbuettel <edd at debian.org> wrote:\n>\n> On 5 December 2008 at 09:20, Rainer M Krug wrote:\n> | Is it possible to use the --slave option with r?\n>\n> Yes, it is t",
+      "thread_id": "thread-0f4c93f54c0d",
+      "thread_depth": 2,
+      "month": "2008-12"
+    },
+    {
+      "id": "msg-5b7917e6831a",
+      "message_id": "<6phzljaa54q.fsf@gopher4.fhcrc.org>",
+      "from_name": "Martin Morgan",
+      "from_email_hash": "9f5a643078023be7f11cfed10069ce2b31d0a2cc98705fa84c2ae0e157a1fb93",
+      "date": "2008-12-05T09:44:37-08:00",
+      "subject": "[R-sig-hpc] Using snow on a looping structure",
+      "subject_clean": "Using snow on a looping structure",
+      "in_reply_to": "<b0f0ada60812041423y118ae94cge969ca89034488af@mail.gmail.com> (Gang Chen's message of \"Thu, 4 Dec 2008 17:23:54 -0500\")",
+      "references": [
+        "<b0f0ada60812021138sf248c3fs2f2b36f26c73efe6@mail.gmail.com>",
+        "<6phy6yx6vg4.fsf@gopher4.fhcrc.org>",
+        "<b0f0ada60812041423y118ae94cge969ca89034488af@mail.gmail.com>"
+      ],
+      "body_plain": "\"Gang Chen\" <gangchen6 at gmail.com> writes:\n\n> Hi Martin,\n>\n> Your suggestion really helps! It's exactly what I wanted. I really\n> appreciate it...\n>\n> Regarding the array-munging part, the following will do:\n>\n> b <- aperm(b, c(2,3,4,1))\n>\n> I have a couple of related issues now:\n>\n> (1) When running the following I get two warnings on my Mac OS X\n> 10.4.11 (one from each processor, I guess):\n>\n>> cl <- makeCluster(2, type = \"SOCK\")\t\n> WARNING: ignoring environment value of R_HOME\n> WARNING: ignoring environment value of R_HOME\n>\n> Why is this warning? How to correct it?\n\nI guess you have a variable R_HOME specified in your environment, and\nit is different from the location where the R workers are running\nfrom. I suspect though that R is easily fooled, e.g., by symbolic\nlinks. You might want to make sure that you're actually starting the\nright R (ask, e.g., for the worker sessionInfo()).\n\n> (2) Previously I could follow up the progress of the job by sticking\n> the following\n>\n> print(format(Sys.time(), \"%D %H:%M:%OS3\"))\n>\n> inside the outermost for loop (with ii index), but now with parallel\n> computing I couldn't find a similar way to trace the progress. Do you\n> or anybody know how to do that?\n\nYou might modify runAna to write a timestamp to a (worker-specific)\nfile, and track that. It is not a nice hack. Maybe others have better\nideas?\n\nMartin\n\n> Thanks again,\n> Gang\n>\n>\n> On Wed, Dec 3, 2008 at 12:05 PM, Martin Morgan <mtmorgan at fhcrc.org> wrote:\n>> Hi Gang --\n>>\n>> \"Gang Chen\" <gangchen6 at gmail.com> writes:\n>>\n>>> I'm a newbie running parallel computing, so, sorry for this simple question.\n>>>\n>>> My original code without parallel computing is like this:\n>>>\n>>> runAna <- function(myData, Model, ...) {\n>>>       myStat <- wFun(myData, Model, ...)   # myStat: a vector with a\n>>> length of nStat\n>>>       return(myStat)\n>>> }\n>>>\n>>> rStat <- array(0, dim=c(dimx, dimy, dimz, nStat))\n>>> for (i in 1:dimx)\n>>> for (j in 1:dimy)\n>>> for (k in 1:dimz)\n>>>      rStat[i, j, k,] <- runAna(rData[i, j, k,], Model, ...)   # each\n>>> analysis is on the 4th dimension, and returns nStat numbers which are\n>>> stored in the 4th dimension of rStat\n>>\n>> I think what you want is along the lines of\n>>\n>>> a <- array(1:(2*3*4*5), c(2,3,4,5))\n>>> b <- apply(a, c(1,2,3), range)\n>>\n>> and then as you guessed\n>>\n>>> library(snow)\n>>> cl <- makeCluster(nNodes, type=\"SOCK\")\n>>> d <- parApply(cl, a, c(1,2,3), range)\n>>> identical(b, d)\n>> [1] TRUE\n>>\n>> so for your example, I'd guess\n>>\n>> runStat <- parApply(cl, rData, c(1,2,3), runAna, Model=Model)\n>>\n>> This is not quite what you want -- the 'result' dimension is the first\n>> rather than last\n>>\n>>> dim(a)\n>> [1] 2 3 4 5\n>>> dim(b)\n>> [1] 2 2 3 4\n>>\n>> array-munging is not a speciality of mine, but a simple work-around is\n>> to reorder the dimensions of the original array, so you're applying\n>> to, and writing in, the slice indexed by the first entry\n>>\n>>> a <- array(1:(5*2*3*4), c(5,2,3,4))\n>>> b <- apply(a, c(2,3,4), range)\n>>> dim(a)\n>> [1] 5 2 3 4\n>>> dim(b)\n>> [1] 2 2 3 4\n>>> d <- parApply(cl, a, c(2,3,4), range)\n>>\n>> Hope that helps,\n>>\n>> Martin\n>>\n>>> I'm trying to run the above analysis using snow on a machine with two\n>>> processors, but could not figure out how to correctly set it up:\n>>>\n>>> nNodes <- 2\n>>> library(snow)\n>>> cl <- makeCluster(nNodes, type = \"SOCK\")\n>>>\n>>> I thought I would use parApply, but how should I combine the looping\n>>> with parApply? Or no looping at all with something like parApply(cl,\n>>> rData, c(1,2,3), ...)?\n>>>\n>>> Thanks in advance,\n>>> Gang\n>>>\n>>> _______________________________________________\n>>> R-sig-hpc mailing list\n>>> R-sig-hpc at r-project.org\n>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>>\n>> --\n>> Martin Morgan\n>> Computational Biology / Fred Hutchinson Cancer Research Center\n>> 1100 Fairview Ave. N.\n>> PO Box 19024 Seattle, WA 98109\n>>\n>> Location: Arnold Building M2 B169\n>> Phone: (206) 667-2793\n\n-- \nMartin Morgan\nComputational Biology / Fred Hutchinson Cancer Research Center\n1100 Fairview Ave. N.\nPO Box 19024 Seattle, WA 98109\n\nLocation: Arnold Building M2 B169\nPhone: (206) 667-2793",
+      "body_snippet": "\"Gang Chen\" <gangchen6 at gmail.com> writes:\n\n> Hi Martin,\n>\n> Your suggestion really helps! It's exactly what I wanted. I really\n> appreciate it...\n>\n> Regarding the array-munging part, the following",
+      "thread_id": "thread-ed9101e14a1d",
+      "thread_depth": 3,
+      "month": "2008-12"
+    },
+    {
+      "id": "msg-a765c39c2539",
+      "message_id": "<493974DD.6010905@ibe.med.uni-muenchen.de>",
+      "from_name": "Markus Schmidberger",
+      "from_email_hash": "f8bfa84297de571d104d5331872fd43189cf7e374fa9dc4c24b6e4212d13663a",
+      "date": "2008-12-05T10:37:17-08:00",
+      "subject": "[R-sig-hpc] Sun Grid Engine (SGE) and Rsge package",
+      "subject_clean": "Sun Grid Engine (SGE) and Rsge package",
+      "in_reply_to": "<fb7c7e870812042249r22d896f7u2b9196232509112c@mail.gmail.com>",
+      "references": [
+        "<fb7c7e870812042249r22d896f7u2b9196232509112c@mail.gmail.com>"
+      ],
+      "body_plain": "Hi,\n\nwe have a cluster with SGE, R, LAM/MPI, Rmpi and snow. And it is working\nfine. But configuration of SGE was a long and stressful job.\n\nI had a look to the Rsge job. I think first of all you need a working\nSGE with MPI and R. The package will not help you to configure your SGE.\n\nBest\nMarkus\n\n\n\nRainer M Krug wrote:\n> Hi\n> \n> I just found the Rsge package which seems to suit my need to do\n> parallel processing on a cluster with SGE. I did not manage to use\n> Rmpi or snow (which would have been nice).\n> \n> My only problem is, that I can't find any documentation on how to use\n> Rsge (apart from the one included in the source package) - it seems to\n> utilise several options which might be useful to set.\n> Does anybody has any experience with this package or can show me a way\n> of using snow or Rmpi in an environment where I have to use SGE (qsub\n> ...)?\n> \n> Thanks\n> \n> Rainer\n> \n\n\n-- \nDipl.-Tech. Math. Markus Schmidberger\n\nLudwig-Maximilians-Universit?t M?nchen\nIBE - Institut f?r medizinische Informationsverarbeitung,\nBiometrie und Epidemiologie\nMarchioninistr. 15, D-81377 Muenchen\nURL: http://www.ibe.med.uni-muenchen.de\nMail: Markus.Schmidberger [at] ibe.med.uni-muenchen.de\nTel: +49 (089) 7095 - 4599",
+      "body_snippet": "Hi,\n\nwe have a cluster with SGE, R, LAM/MPI, Rmpi and snow. And it is working\nfine. But configuration of SGE was a long and stressful job.\n\nI had a look to the Rsge job. I think first of all you need ",
+      "thread_id": "thread-06b9d0f57df8",
+      "thread_depth": 1,
+      "month": "2008-12"
+    },
+    {
+      "id": "msg-f3603ea7ef44",
+      "message_id": "<fb7c7e870812060357n7d4cececw14461025a878b409@mail.gmail.com>",
+      "from_name": "Rainer M Krug",
+      "from_email_hash": "e11b90edace280d0de30dfc4fa9de87a9a079d3f2c2f179123fa9e4ae628223d",
+      "date": "2008-12-06T13:57:45+02:00",
+      "subject": "[R-sig-hpc] Sun Grid Engine (SGE) and Rsge package",
+      "subject_clean": "Sun Grid Engine (SGE) and Rsge package",
+      "in_reply_to": "<09B410A28535E545922E81CFCD399C61B2FF@exchange.ud.com>",
+      "references": [
+        "<fb7c7e870812042249r22d896f7u2b9196232509112c@mail.gmail.com>",
+        "<09B410A28535E545922E81CFCD399C61B2FF@exchange.ud.com>"
+      ],
+      "body_plain": "On Fri, Dec 5, 2008 at 7:42 PM, Dan Bode <dbode at univaud.com> wrote:\n> I wrote the package for a customer that is just starting to build use cases around it.\n>\n> I will be updating to the latest and probably last planned version for now (.6) in the next week or so.\n>\n> The version available should be enough to get you started, but .6 contains some code changes that increase performance dramastically, it also provides more flexibility with the parallell distribution of local and global environments.\n\nSounds great - the performance increase will probably come from a\nstreamlined submitting (writing files,...) and getting results\n(reading files)? Looking forward to that.\nI actualy managed to use it in a few examples, and apart from the\noverhang due to submitting, it really looks great.\n\n>\n> I would be more than willing to assist you with getting started with the package.\n\nGreat - thanks.\n\n>\n> I am assumming that you already have an SGE cluster installed?\n\nYes - I am just a normal user on the cluster and have (luckily?)\nnothing to do with it's admin.\n\n>\n> We are working on open source packages around SGE for provisioning and configuration management with additional GLOBUS features.  http://www.grid.org/downloads\n>\n> all of the functions are documented here\n>\n> http://cran.r-project.org/web/packages/Rsge/Rsge.pdf, (although I am sure that you already found this)\n\nYes - but I was missing a simple example. I found one in the \"test\"\ndirectory in the source package.\n\n>\n> In particular you should be interested in sge.parApply or sge.submit, depending on your use cases.\n\nTrue.\n\n>\n> sge.apply(X, MARGIN, FUN, ..., njobs, packages, savelist)\n>\n> those are prob all of the params that you may need to get started.\n>\n> This will split the data structure defined by X into njobs data structures, FUN is applied against these data structures on the remote execution hosts, then the results will be merged togehther using the join.method.\n\nOK - sounds straight forward.\n\n>\n> packages and savelist are both a vector of strings\n> savelist is used to add objects from the global environment (this will change in the next version)\n\nOK.\n\n> packages lists the packages that need to be loaded in the remote execution environments\n\nNice.\n\n>\n> and X, MARGIN, FUN, and ... should be the same as regular apply.\n>\n> I hope this is enough to get you started.\n\nYes - thanks a lot for the additional info.\n\n>\n> Also, you are the first person to contact me, how did you find the package?\n\nI am having tremendous problems getting parallel processing in R on a\ncluster running opnmpi and SGE (mpich is also available). I tried to\nuse snow and Rmpi, but all the processes were spawned on the same node\non which the master session of R was running. Therefore I googled for\nsge and R and found your package. It looks really promising.\n\nDo you have any ideas, if I can use snow (through Rmpi) on a SGE -\nopenmpi cluster? if yes, how? I have to use qsub to start the job.\n\n>\n> Enjoy the package!\n\nI already do,\n\nThanks,\n\nRainer\n\n>\n> Dan Bode\n>\n>\n>\n> -----Eredeti ?zenet-----\n> Felad?: Rainer M Krug [mailto:r.m.krug at gmail.com]\n> K?ldve: 12/4/2008, Cs 6:49 du.\n> C?mzett: r-sig-hpc at stat.math.ethz.ch\n> M?solatot kap: Dan Bode\n> T?rgy: Sun Grid Engine (SGE) and Rsge package\n>\n> Hi\n>\n> I just found the Rsge package which seems to suit my need to do\n> parallel processing on a cluster with SGE. I did not manage to use\n> Rmpi or snow (which would have been nice).\n>\n> My only problem is, that I can't find any documentation on how to use\n> Rsge (apart from the one included in the source package) - it seems to\n> utilise several options which might be useful to set.\n> Does anybody has any experience with this package or can show me a way\n> of using snow or Rmpi in an environment where I have to use SGE (qsub\n> ...)?\n>\n> Thanks\n>\n> Rainer\n>\n> --\n> Rainer M. Krug, PhD (Conservation Ecology, SUN), MSc (Conservation\n> Biology, UCT), Dipl. Phys. (Germany)\n>\n> Centre of Excellence for Invasion Biology\n> Faculty of Science\n> Natural Sciences Building\n> Private Bag X1\n> University of Stellenbosch\n> Matieland 7602\n> South Africa\n>\n>\n> ---------------------------------------------------------------------\n>\n> Notice from Univa UD Postmaster:\n>\n>\n> This email message is for the sole use of the intended...{{dropped:25}}",
+      "body_snippet": "On Fri, Dec 5, 2008 at 7:42 PM, Dan Bode <dbode at univaud.com> wrote:\n> I wrote the package for a customer that is just starting to build use cases around it.\n>\n> I will be updating to the latest and",
+      "thread_id": "thread-f3603ea7ef44",
+      "thread_depth": 0,
+      "month": "2008-12"
+    },
+    {
+      "id": "msg-b2e50c7763c5",
+      "message_id": "<fb7c7e870812070211h2e7d4e8fg9624b79483fcce8@mail.gmail.com>",
+      "from_name": "Rainer M Krug",
+      "from_email_hash": "e11b90edace280d0de30dfc4fa9de87a9a079d3f2c2f179123fa9e4ae628223d",
+      "date": "2008-12-07T12:11:20+02:00",
+      "subject": "[R-sig-hpc] Sun Grid Engine (SGE) and Rsge package",
+      "subject_clean": "Sun Grid Engine (SGE) and Rsge package",
+      "in_reply_to": "<09B410A28535E545922E81CFCD399C61B304@exchange.ud.com>",
+      "references": [
+        "<fb7c7e870812042249r22d896f7u2b9196232509112c@mail.gmail.com>",
+        "<09B410A28535E545922E81CFCD399C61B2FF@exchange.ud.com>",
+        "<fb7c7e870812060357n7d4cececw14461025a878b409@mail.gmail.com>",
+        "<09B410A28535E545922E81CFCD399C61B304@exchange.ud.com>"
+      ],
+      "body_plain": "On Sun, Dec 7, 2008 at 12:37 AM, Dan Bode <dbode at univaud.com> wrote:\n> The file transfer still relies on full reads and writes on the filesystem, just fixed a bug that could cause objects to be written more than once in some cases.\n\nOK.\n\n>\n> Maybe one day I can sit and think about ways to speed it up, I wanted to optimize memory usage, but I didnt want to go that low level with the R language.\n>\n> The pre and post processing is heavy but something similar will be required with any solution. This function is only recommended for applications that have a good ratio of data size to compute time.\n\nYes - that is exactly what I need: long processing, and no\ncommunication between the different processes. So mty approcah will\nwork nicely with Rsge. Tge only reason why I tried to use snow and\nRmpi / mpi was because it seemed the easiest approach.  But Rsge is\nmuch easier.\n\n>\n> I have only ever gotten snow to work with the client server method (tcp mode). I was thinking about using it as the base code for the project, but there was a feature that I did not like, something about the timing of job completions or something, I have to search through my notes to find what it was. (my package actually requires snow, because it uses its same function for splitting)\n\nOK - I was wondering already.\n\n>\n> I have never used Rmpi, mpi can be tricky though, you may want to ask your sge admin (which is a fun and rewarding job :) if they can assist you with setting up the Parallel execution environments.\n\nI spoke to them, and they heve not used R and have therefore no\nexperience in how to use Rmpi and snow. In addition, the main admin\nwas given the job in addition to his other duties...\nThe parallel environment with MPI is working - that's fine.\n>\n> I ported Rsge from Rlsf which provided support for Rmpi, porting the Rmpi stuff was not a requirement, so I havent gotten around to it. There is some commented out code on in the remote execution script that refers to the Rmpi stuff. It could be added with some work, but again, I am not sure when I will find the time.\n>\n> To be sure, you need message passing for your algorithm? There is some kind of boundary condition or something? I just have to ask because I see alot of people using MPI where it could be easy to rework the algorithm to fit into the scatter-gather paradigm. MPI adds a lot of additional complexity to anything that it touches.\n\nAs mentioned above, I don't need any communication between the nodes\n(at the moment), so Rsge will be perfect.\n\nThanks\n\nRainer\n\n>\n>\n> -----Original Message-----\n> From: Rainer M Krug [mailto:r.m.krug at gmail.com]\n> Sent: Fri 12/5/2008 11:57 PM\n> To: Dan Bode\n> Cc: r-sig-hpc at stat.math.ethz.ch\n> Subject: Re: Sun Grid Engine (SGE) and Rsge package\n>\n> On Fri, Dec 5, 2008 at 7:42 PM, Dan Bode <dbode at univaud.com> wrote:\n>> I wrote the package for a customer that is just starting to build use cases around it.\n>>\n>> I will be updating to the latest and probably last planned version for now (.6) in the next week or so.\n>>\n>> The version available should be enough to get you started, but .6 contains some code changes that increase performance dramastically, it also provides more flexibility with the parallell distribution of local and global environments.\n>\n> Sounds great - the performance increase will probably come from a\n> streamlined submitting (writing files,...) and getting results\n> (reading files)? Looking forward to that.\n> I actualy managed to use it in a few examples, and apart from the\n> overhang due to submitting, it really looks great.\n>\n>>\n>> I would be more than willing to assist you with getting started with the package.\n>\n> Great - thanks.\n>\n>>\n>> I am assumming that you already have an SGE cluster installed?\n>\n> Yes - I am just a normal user on the cluster and have (luckily?)\n> nothing to do with it's admin.\n>\n>>\n>> We are working on open source packages around SGE for provisioning and configuration management with additional GLOBUS features.  http://www.grid.org/downloads\n>>\n>> all of the functions are documented here\n>>\n>> http://cran.r-project.org/web/packages/Rsge/Rsge.pdf, (although I am sure that you already found this)\n>\n> Yes - but I was missing a simple example. I found one in the \"test\"\n> directory in the source package.\n>\n>>\n>> In particular you should be interested in sge.parApply or sge.submit, depending on your use cases.\n>\n> True.\n>\n>>\n>> sge.apply(X, MARGIN, FUN, ..., njobs, packages, savelist)\n>>\n>> those are prob all of the params that you may need to get started.\n>>\n>> This will split the data structure defined by X into njobs data structures, FUN is applied against these data structures on the remote execution hosts, then the results will be merged togehther using the join.method.\n>\n> OK - sounds straight forward.\n>\n>>\n>> packages and savelist are both a vector of strings\n>> savelist is used to add objects from the global environment (this will change in the next version)\n>\n> OK.\n>\n>> packages lists the packages that need to be loaded in the remote execution environments\n>\n> Nice.\n>\n>>\n>> and X, MARGIN, FUN, and ... should be the same as regular apply.\n>>\n>> I hope this is enough to get you started.\n>\n> Yes - thanks a lot for the additional info.\n>\n>>\n>> Also, you are the first person to contact me, how did you find the package?\n>\n> I am having tremendous problems getting parallel processing in R on a\n> cluster running opnmpi and SGE (mpich is also available). I tried to\n> use snow and Rmpi, but all the processes were spawned on the same node\n> on which the master session of R was running. Therefore I googled for\n> sge and R and found your package. It looks really promising.\n>\n> Do you have any ideas, if I can use snow (through Rmpi) on a SGE -\n> openmpi cluster? if yes, how? I have to use qsub to start the job.\n>\n>>\n>> Enjoy the package!\n>\n> I already do,\n>\n> Thanks,\n>\n> Rainer\n>\n>>\n>> Dan Bode\n>>\n>>\n>>\n>> -----Eredeti ?zenet-----\n>> Felad?: Rainer M Krug [mailto:r.m.krug at gmail.com]\n>> K?ldve: 12/4/2008, Cs 6:49 du.\n>> C?mzett: r-sig-hpc at stat.math.ethz.ch\n>> M?solatot kap: Dan Bode\n>> T?rgy: Sun Grid Engine (SGE) and Rsge package\n>>\n>> Hi\n>>\n>> I just found the Rsge package which seems to suit my need to do\n>> parallel processing on a cluster with SGE. I did not manage to use\n>> Rmpi or snow (which would have been nice).\n>>\n>> My only problem is, that I can't find any documentation on how to use\n>> Rsge (apart from the one included in the source package) - it seems to\n>> utilise several options which might be useful to set.\n>> Does anybody has any experience with this package or can show me a way\n>> of using snow or Rmpi in an environment where I have to use SGE (qsub\n>> ...)?\n>>\n>> Thanks\n>>\n>> Rainer\n>>\n>> --\n>> Rainer M. Krug, PhD (Conservation Ecology, SUN), MSc (Conservation\n>> Biology, UCT), Dipl. Phys. (Germany)\n>>\n>> Centre of Excellence for Invasion Biology\n>> Faculty of Science\n>> Natural Sciences Building\n>> Private Bag X1\n>> University of Stellenbosch\n>> Matieland 7602\n>> South Africa\n>>\n>>\n>> ---------------------------------------------------------------------\n>>\n>> Notice from Univa UD Postmaster:\n>>\n>>\n>> This email message is for the sole use of the intended recipient(s) and may contain confidential and privileged information. Any unauthorized review, use, disclosure or distribution is prohibited. If you are not the intended recipient, please contact the sender by reply email and destroy all copies of the original message. This message has been content scanned by the Univa UD Tumbleweed MailGate.\n>>\n>>\n>> ---------------------------------------------------------------------\n>>\n>\n>\n>\n> --\n> Rainer M. Krug, PhD (Conservation Ecology, SUN), MSc (Conservation\n> Biology, UCT), Dipl. Phys. (Germany)\n>\n> Centre of Excellence for Invasion Biology\n> Faculty of Science\n> Natural Sciences Building\n> Private Bag X1\n> University of Stellenbosch\n> Matieland 7602\n> South Africa\n>\n>\n> ---------------------------------------------------------------------\n>\n> Notice from Univa UD Postmaster:\n>\n>\n> This email message is for the sole use of the intended...{{dropped:25}}",
+      "body_snippet": "On Sun, Dec 7, 2008 at 12:37 AM, Dan Bode <dbode at univaud.com> wrote:\n> The file transfer still relies on full reads and writes on the filesystem, just fixed a bug that could cause objects to be wri",
+      "thread_id": "thread-b2e50c7763c5",
+      "thread_depth": 0,
+      "month": "2008-12"
+    },
+    {
+      "id": "msg-7ad7cfd5b038",
+      "message_id": "<C562C047.B504%MAB@Stowers-Institute.org>",
+      "from_name": "Blanchette, Marco",
+      "from_email_hash": "3aabc715b9491bd33853913cfab00ebf4a92785f3bba7582d9d85fbb598c672e",
+      "date": "2008-12-08T12:15:03-06:00",
+      "subject": "[R-sig-hpc] Problem compiling Rmpi on Linux",
+      "subject_clean": "Problem compiling Rmpi on Linux",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Dear list,\n\nI am trying without success to install the Rmpi package on our large computing cluster but it keeps failing at compilation time. The machine is:\nbash-3.2$ uname -a\nLinux cluster04 2.6.18-53.el5 x86_64 x86_64 x86_64 GNU/Linux\n\nI have downloaded and successfully installed LAM-MPI under $HOME.\n\nIf I try to install the Rmpi package by\n$  R CMD INSTALL Rmpi --configure-args=--with-mpi=$HOME\n\nI am getting the following error at compilation time (I also put the full transcript of the instalation at the end of this message).\n/usr/bin/ld: /home/mab/lib/libmpi.a(recv.o): relocation R_X86_64_32 against `a local symbol' can not be used when making a shared object; recompile with -fPIC\n/home/mab/lib/libmpi.a: could not read symbols: Bad value\n\nAny help to resolve that issue would be greatly appreciated.\n\nThanks\n\nMarco\n\n\n---Instalation transcript ---\nmab cluster04 ~/src$ R CMD INSTALL Rmpi --configure-args=--with-mpi=$HOME\n* Installing to library '/home/mab/RLibrary'\n* Installing *source* package 'Rmpi' ...\nchecking for gcc... gcc\nchecking for C compiler default output file name... a.out\nchecking whether the C compiler works... yes\nchecking whether we are cross compiling... no\nchecking for suffix of executables...\nchecking for suffix of object files... o\nchecking whether we are using the GNU C compiler... yes\nchecking whether gcc accepts -g... yes\nchecking for gcc option to accept ISO C89... none needed\nTry to find mpi.h ...\nFound in /home/mab/include\nTry to find libmpi.so or libmpich.a\nchecking for main in -lmpi... yes\nTry to find liblam.so ...\nchecking for main in -llam... yes\nchecking for openpty in -lutil... yes\nchecking for main in -lpthread... yes\nconfigure: creating ./config.status\nconfig.status: creating src/Makevars\n** libs\ngcc -std=gnu99 -shared -L/usr/local/lib64 -o Rmpi.so RegQuery.o Rmpi.o conversion.o internal.o -L/home/mab/lib -lmpi -llam -lutil -lpthread -fPIC   -L/n/site/inst/Linux-x86_64/bioinfo/R/2.8.0/lib64/R/lib -lR\n/usr/bin/ld: /home/mab/lib/libmpi.a(recv.o): relocation R_X86_64_32 against `a local symbol' can not be used when making a shared object; recompile with -fPIC\n/home/mab/lib/libmpi.a: could not read symbols: Bad value\ncollect2: ld returned 1 exit status\nmake: *** [Rmpi.so] Error 1\nchmod: cannot access `/home/mab/RLibrary/Rmpi/libs/*': No such file or directory\nERROR: compilation failed for package 'Rmpi'\n** Removing '/home/mab/RLibrary/Rmpi'\n--\nMarco Blanchette, Ph.D.\nAssistant Investigator\nStowers Institute for Medical Research\n1000 East 50th St.\n\nKansas City, MO 64110\n\nTel: 816-926-4071\nCell: 816-726-8419\nFax: 816-926-2018",
+      "body_snippet": "Dear list,\n\nI am trying without success to install the Rmpi package on our large computing cluster but it keeps failing at compilation time. The machine is:\nbash-3.2$ uname -a\nLinux cluster04 2.6.18-5",
+      "thread_id": "thread-7ad7cfd5b038",
+      "thread_depth": 0,
+      "month": "2008-12"
+    },
+    {
+      "id": "msg-440931c20ab0",
+      "message_id": "<b25e30c780a54aafc36459cac92c7c14.squirrel@www.stats.uwo.ca>",
+      "from_name": "Hao Yu",
+      "from_email_hash": "f90343116b4a1720ab706b8b458137d0f188602a07689c3a137d7f8799e4a179",
+      "date": "2008-12-08T13:24:59-05:00",
+      "subject": "[R-sig-hpc] Problem compiling Rmpi on Linux",
+      "subject_clean": "Problem compiling Rmpi on Linux",
+      "in_reply_to": "<C562C047.B504%MAB@Stowers-Institute.org>",
+      "references": [
+        "<C562C047.B504%MAB@Stowers-Institute.org>"
+      ],
+      "body_plain": "Make sure when you are compiling LAM to use --enable-shared in configure.\nSomehow LAM creates static lib as default and Rmpi needs dynamic lib to\nwork.\n\nHao\n\nBlanchette, Marco wrote:\n> Dear list,\n>\n> I am trying without success to install the Rmpi package on our large\n> computing cluster but it keeps failing at compilation time. The machine\n> is:\n> bash-3.2$ uname -a\n> Linux cluster04 2.6.18-53.el5 x86_64 x86_64 x86_64 GNU/Linux\n>\n> I have downloaded and successfully installed LAM-MPI under $HOME.\n>\n> If I try to install the Rmpi package by\n> $  R CMD INSTALL Rmpi --configure-args=--with-mpi=$HOME\n>\n> I am getting the following error at compilation time (I also put the full\n> transcript of the instalation at the end of this message).\n> /usr/bin/ld: /home/mab/lib/libmpi.a(recv.o): relocation R_X86_64_32\n> against `a local symbol' can not be used when making a shared object;\n> recompile with -fPIC\n> /home/mab/lib/libmpi.a: could not read symbols: Bad value\n>\n> Any help to resolve that issue would be greatly appreciated.\n>\n> Thanks\n>\n> Marco\n>\n>\n> ---Instalation transcript ---\n> mab cluster04 ~/src$ R CMD INSTALL Rmpi --configure-args=--with-mpi=$HOME\n> * Installing to library '/home/mab/RLibrary'\n> * Installing *source* package 'Rmpi' ...\n> checking for gcc... gcc\n> checking for C compiler default output file name... a.out\n> checking whether the C compiler works... yes\n> checking whether we are cross compiling... no\n> checking for suffix of executables...\n> checking for suffix of object files... o\n> checking whether we are using the GNU C compiler... yes\n> checking whether gcc accepts -g... yes\n> checking for gcc option to accept ISO C89... none needed\n> Try to find mpi.h ...\n> Found in /home/mab/include\n> Try to find libmpi.so or libmpich.a\n> checking for main in -lmpi... yes\n> Try to find liblam.so ...\n> checking for main in -llam... yes\n> checking for openpty in -lutil... yes\n> checking for main in -lpthread... yes\n> configure: creating ./config.status\n> config.status: creating src/Makevars\n> ** libs\n> gcc -std=gnu99 -shared -L/usr/local/lib64 -o Rmpi.so RegQuery.o Rmpi.o\n> conversion.o internal.o -L/home/mab/lib -lmpi -llam -lutil -lpthread -fPIC\n>   -L/n/site/inst/Linux-x86_64/bioinfo/R/2.8.0/lib64/R/lib -lR\n> /usr/bin/ld: /home/mab/lib/libmpi.a(recv.o): relocation R_X86_64_32\n> against `a local symbol' can not be used when making a shared object;\n> recompile with -fPIC\n> /home/mab/lib/libmpi.a: could not read symbols: Bad value\n> collect2: ld returned 1 exit status\n> make: *** [Rmpi.so] Error 1\n> chmod: cannot access `/home/mab/RLibrary/Rmpi/libs/*': No such file or\n> directory\n> ERROR: compilation failed for package 'Rmpi'\n> ** Removing '/home/mab/RLibrary/Rmpi'\n> --\n> Marco Blanchette, Ph.D.\n> Assistant Investigator\n> Stowers Institute for Medical Research\n> 1000 East 50th St.\n>\n> Kansas City, MO 64110\n>\n> Tel: 816-926-4071\n> Cell: 816-726-8419\n> Fax: 816-926-2018\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>\n\n\n-- \nDepartment of Statistics & Actuarial Sciences\nFax Phone#:(519)-661-3813\nThe University of Western Ontario\nOffice Phone#:(519)-661-3622\nLondon, Ontario N6A 5B7\nhttp://www.stats.uwo.ca/faculty/yu",
+      "body_snippet": "Make sure when you are compiling LAM to use --enable-shared in configure.\nSomehow LAM creates static lib as default and Rmpi needs dynamic lib to\nwork.\n\nHao\n\nBlanchette, Marco wrote:\n> Dear list,\n>\n> ",
+      "thread_id": "thread-7ad7cfd5b038",
+      "thread_depth": 1,
+      "month": "2008-12"
+    },
+    {
+      "id": "msg-0226e4c4a53f",
+      "message_id": "<18749.27334.602558.929131@ron.nulle.part>",
+      "from_name": "Dirk Eddelbuettel",
+      "from_email_hash": "447d8de83a7b9c5d61116890bacb6dc0c76aee31b3011a41fb7d3c62dac9042f",
+      "date": "2008-12-08T12:43:18-06:00",
+      "subject": "[R-sig-hpc] Problem compiling Rmpi on Linux",
+      "subject_clean": "Problem compiling Rmpi on Linux",
+      "in_reply_to": "<C562C047.B504%MAB@Stowers-Institute.org>",
+      "references": [
+        "<C562C047.B504%MAB@Stowers-Institute.org>"
+      ],
+      "body_plain": "Hi Marco,\n\nOn 8 December 2008 at 12:15, Blanchette, Marco wrote:\n| I am trying without success to install the Rmpi package on our large computing cluster but it keeps failing at compilation time. The machine is:\n| bash-3.2$ uname -a\n| Linux cluster04 2.6.18-53.el5 x86_64 x86_64 x86_64 GNU/Linux\n| \n| I have downloaded and successfully installed LAM-MPI under $HOME.\n\nJust checking -- are you aware that 'sudo apt-get install r-cran-rmpi' gives\na pre-built and working Rmpi (albeit based off Open MPI) ?\n\nBy the same token, do you know that 'sudo apt-get install lam4-dev' gets you\na working LAM implementation ... for which Rmpi should automatically find\nheaders and libraries.  \n \n| If I try to install the Rmpi package by\n| $  R CMD INSTALL Rmpi --configure-args=--with-mpi=$HOME\n| \n| I am getting the following error at compilation time (I also put the full transcript of the instalation at the end of this message).\n| /usr/bin/ld: /home/mab/lib/libmpi.a(recv.o): relocation R_X86_64_32 against `a local symbol' can not be used when making a shared object; recompile with -fPIC\n| /home/mab/lib/libmpi.a: could not read symbols: Bad value\n| \n| Any help to resolve that issue would be greatly appreciated.\n\nAs Hoa indicated in the earlier reply, this error seems to stem from the fact\nthat your local libmpia.a is statically built wheresas R needs it as a\ndynamic library.  \n\nBut as suggested above, maybe you can use the prebuilt packages?  \n\nCheers, Dirk\n\n-- \nThree out of two people have difficulties with fractions.",
+      "body_snippet": "Hi Marco,\n\nOn 8 December 2008 at 12:15, Blanchette, Marco wrote:\n| I am trying without success to install the Rmpi package on our large computing cluster but it keeps failing at compilation time. The ",
+      "thread_id": "thread-7ad7cfd5b038",
+      "thread_depth": 1,
+      "month": "2008-12"
+    },
+    {
+      "id": "msg-99c6fd8c29b8",
+      "message_id": "<C562C9A3.B518%MAB@Stowers-Institute.org>",
+      "from_name": "Blanchette, Marco",
+      "from_email_hash": "3aabc715b9491bd33853913cfab00ebf4a92785f3bba7582d9d85fbb598c672e",
+      "date": "2008-12-08T12:54:59-06:00",
+      "subject": "[R-sig-hpc] Problem compiling Rmpi on Linux",
+      "subject_clean": "Problem compiling Rmpi on Linux",
+      "in_reply_to": "<18749.27334.602558.929131@ron.nulle.part>",
+      "references": [],
+      "body_plain": "Thanks Dirk for the suggestions. I am just starting to experiment with our large Linux computation cluster and I am not completely familiar with alternative strategies for installing libraries. (I have been running on a Mac workstation for the past 10 years...).\n\nIn addition I don't have sudo privileges and I wanted to test whether this would be a valuable solution before bugging our sys admin.\n\nHoa solution fixed all my problems. Here is the final strategy that gave me satisfactory results\n\n./configure prefix=$HOME/lam-mpi --enable-shared\nmake -j 8\nmake -j 8 install\nR CMD INSTALL Rmpi --configure-args=--with-mpi=$HOME/lam-mpi\n\nThanks all,\n\nMarco\n\nOn 12/8/08 12:43 PM, \"Dirk Eddelbuettel\" <edd at debian.org> wrote:\n\n\n\nHi Marco,\n\nOn 8 December 2008 at 12:15, Blanchette, Marco wrote:\n| I am trying without success to install the Rmpi package on our large computing cluster but it keeps failing at compilation time. The machine is:\n| bash-3.2$ uname -a\n| Linux cluster04 2.6.18-53.el5 x86_64 x86_64 x86_64 GNU/Linux\n|\n| I have downloaded and successfully installed LAM-MPI under $HOME.\n\nJust checking -- are you aware that 'sudo apt-get install r-cran-rmpi' gives\na pre-built and working Rmpi (albeit based off Open MPI) ?\n\nBy the same token, do you know that 'sudo apt-get install lam4-dev' gets you\na working LAM implementation ... for which Rmpi should automatically find\nheaders and libraries.\n\n| If I try to install the Rmpi package by\n| $  R CMD INSTALL Rmpi --configure-args=--with-mpi=$HOME\n|\n| I am getting the following error at compilation time (I also put the full transcript of the instalation at the end of this message).\n| /usr/bin/ld: /home/mab/lib/libmpi.a(recv.o): relocation R_X86_64_32 against `a local symbol' can not be used when making a shared object; recompile with -fPIC\n| /home/mab/lib/libmpi.a: could not read symbols: Bad value\n|\n| Any help to resolve that issue would be greatly appreciated.\n\nAs Hoa indicated in the earlier reply, this error seems to stem from the fact\nthat your local libmpia.a is statically built wheresas R needs it as a\ndynamic library.\n\nBut as suggested above, maybe you can use the prebuilt packages?\n\nCheers, Dirk\n\n--\nThree out of two people have difficulties with fractions.\n\n\n--\nMarco Blanchette, Ph.D.\nAssistant Investigator\nStowers Institute for Medical Research\n1000 East 50th St.\n\nKansas City, MO 64110\n\nTel: 816-926-4071\nCell: 816-726-8419\nFax: 816-926-2018",
+      "body_snippet": "Thanks Dirk for the suggestions. I am just starting to experiment with our large Linux computation cluster and I am not completely familiar with alternative strategies for installing libraries. (I hav",
+      "thread_id": "thread-7ad7cfd5b038",
+      "thread_depth": 2,
+      "month": "2008-12"
+    },
+    {
+      "id": "msg-3af3abb4f2b1",
+      "message_id": "<alpine.LFD.2.00.0812091232430.29240@home-av-server.home-av>",
+      "from_name": "Joshua Kramer",
+      "from_email_hash": "209a3c79910be83d5e02b2131b66cae921aa41cfee2d50c5928450099e93e71f",
+      "date": "2008-12-09T12:35:00-05:00",
+      "subject": "[R-sig-hpc] AMQP Interface for R?",
+      "subject_clean": "AMQP Interface for R?",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Howdy Folks,\n\nIs anyone developing - or anyone interested in developing - an interface \nto R via AMQP?\n\nThis would most likely be much like rmpi, but use AMQP as the message \nqueueing and passing interface.\n\nhttp://qpid.apache.org/\n\nCheers,\n-Josh\n\n-- \n\n-----\nhttp://www.globalherald.net/jb01\nGlobalHerald.NET, the Smarter Social Network! (tm)",
+      "body_snippet": "Howdy Folks,\n\nIs anyone developing - or anyone interested in developing - an interface \nto R via AMQP?\n\nThis would most likely be much like rmpi, but use AMQP as the message \nqueueing and passing inte",
+      "thread_id": "thread-3af3abb4f2b1",
+      "thread_depth": 0,
+      "month": "2008-12"
+    },
+    {
+      "id": "msg-538f1afbbc0e",
+      "message_id": "<462af7860812110247x727ccff0v83ed7881016143d4@mail.gmail.com>",
+      "from_name": "Marce",
+      "from_email_hash": "8cd8a3fab156417d3aba3ed1717a58ddf69409a8e144cc603b760b328bf9f4e4",
+      "date": "2008-12-11T11:47:37+01:00",
+      "subject": "[R-sig-hpc]  Problem about config Rmpi with LAM on 64 bits",
+      "subject_clean": "Problem about config Rmpi with LAM on 64 bits",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Hi all, now I'm trying to configure Rmpi in a 64 bit-cluster with LAM.\nI have installed R 2.6.2 and LAM 7.1.4. When I compiled LAM, I\nconfigured it with --enable-shared option, and all went ok. After\nthat, I defined LD_LIBRARY_PATH with the libs of LAM that I want to\nuse.\nThe problem is when I want to install Rmpi (0.5.5 and 0.5.6 give me\nthe same error), this one:\n\n> library(Rmpi)\nError in dyn.load(file, ...) :\n  imposible cargar la biblioteca compartida\n'/home/aplicaciones/R/lib64/R/library/Rmpi/libs/Rmpi.so':\n  /home/aplicaciones/R/lib64/R/library/Rmpi/libs/Rmpi.so: undefined\nsymbol: lam_mpi_double\nError en library(Rmpi) : .First.lib failed for 'Rmpi'\nError in dyn.unload(file.path(libpath, \"libs\", paste(\"Rmpi\",\n.Platform$dynlib.ext,  :\n  la biblioteca din?mica/compartida\n'/home/aplicaciones/R/lib64/R/library/Rmpi/libs/Rmpi.so' no fu?\ncargada\n.\n\nIf you do an ldd of Rmpi.so:\n\n[marce at cluster ~]$ ldd /home/aplicaciones/R/lib64/R/library/Rmpi/libs/Rmpi.so\n        libmpi.so.0 => /home/aplicaciones/LAM/lib/libmpi.so.0\n(0x0000002a95663000)\n        liblam.so.0 => /home/aplicaciones/LAM/lib/liblam.so.0\n(0x0000002a9580c000)\n        libutil.so.1 => /lib64/libutil.so.1 (0x0000002a95978000)\n        libpthread.so.0 => /lib64/tls/libpthread.so.0 (0x0000002a95a7c000)\n        libc.so.6 => /lib64/tls/libc.so.6 (0x0000002a95b91000)\n        libdl.so.2 => /lib64/libdl.so.2 (0x0000002a95dc6000)\n        /lib64/ld-linux-x86-64.so.2 (0x000000552aaaa000)\n\nI have installed R and LAM-MPI in a shared file-system (with Lustre)\nby all nodes. Install LAM localy in all nodes is a better option?\nSomebody has configured a cluster with R, LAM and Rmpi? Now I am in a\n\"bypass mode\", I don't know the course to follow :s.\n\nThanks for all\n\nPD:  The output of laminfo is:\n\n[marce at cluster ~]$ /home/aplicaciones/LAM/bin/laminfo\n         LAM/MPI: 7.1.4\n         Prefix: /home/aplicaciones/LAM/\n         Architecture: x86_64-unknown-linux-gnu\n         Configured by: root\n         Configured on: Wed Dec 10 11:45:49 CET 2008\n         Configure host: cluster\n         Memory manager: ptmalloc2\n         C bindings: yes\n         C++ bindings: yes\n         Fortran bindings: yes\n         C compiler: gcc\n         C++ compiler: g++\n         Fortran compiler: g77\n         Fortran symbols: double_underscore\n         C profiling: yes\n         C++ profiling: yes\n         Fortran profiling: yes\n         C++ exceptions: no\n         Thread support: yes\n         ROMIO support: yes\n         IMPI support: no\n         Debug support: no\n         Purify clean: no\n            SSI boot: globus (API v1.1, Module v0.6)\n            SSI boot: rsh (API v1.1, Module v1.1)\n            SSI boot: slurm (API v1.1, Module v1.0)\n            SSI coll: lam_basic (API v1.1, Module v7.1)\n            SSI coll: shmem (API v1.1, Module v1.0)\n            SSI coll: smp (API v1.1, Module v1.2)\n            SSI rpi: crtcp (API v1.1, Module v1.1)\n            SSI rpi: lamd (API v1.0, Module v7.1)\n            SSI rpi: sysv (API v1.0, Module v7.1)\n            SSI rpi: tcp (API v1.0, Module v7.1)\n            SSI rpi: usysv (API v1.0, Module v7.1)\n            SSI cr: self (API v1.0, Module v1.0)",
+      "body_snippet": "Hi all, now I'm trying to configure Rmpi in a 64 bit-cluster with LAM.\nI have installed R 2.6.2 and LAM 7.1.4. When I compiled LAM, I\nconfigured it with --enable-shared option, and all went ok. After\n",
+      "thread_id": "thread-538f1afbbc0e",
+      "thread_depth": 0,
+      "month": "2008-12"
+    },
+    {
+      "id": "msg-5c2bc51b83f1",
+      "message_id": "<7E2FEAC4-0300-47EF-97B7-3BE3E84C8010@me.com>",
+      "from_name": "David Marra",
+      "from_email_hash": "9a45be0b02991db03fb2b8a467c6d8680af8e255ffe664928672ee5e2d6d10b3",
+      "date": "2008-12-11T22:31:17+09:00",
+      "subject": "[R-sig-hpc] Help installing sprng libraries",
+      "subject_clean": "Help installing sprng libraries",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20081211/7571e6f3/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20081211/7571e6f3/attachment.pl>",
+      "thread_id": "thread-5c2bc51b83f1",
+      "thread_depth": 0,
+      "month": "2008-12"
+    },
+    {
+      "id": "msg-08969616de39",
+      "message_id": "<494116F5.9030709@wu-wien.ac.at>",
+      "from_name": "Stefan Theussl",
+      "from_email_hash": "70e8bee0526e3cac6b44f6b75b3c1dc402cf6df4c6b9a60357ba6c6b6872f44c",
+      "date": "2008-12-11T14:34:45+01:00",
+      "subject": "[R-sig-hpc] Problem about config Rmpi with LAM on 64 bits",
+      "subject_clean": "Problem about config Rmpi with LAM on 64 bits",
+      "in_reply_to": "<462af7860812110247x727ccff0v83ed7881016143d4@mail.gmail.com>",
+      "references": [
+        "<462af7860812110247x727ccff0v83ed7881016143d4@mail.gmail.com>"
+      ],
+      "body_plain": "Hello Marce,\n\nI can load version 0.5.6 as well as 0.5.5 of Rmpi without any problems \non our cluster. My LAM installation is on a shared filesystem (although \nNFS), so this should really not be a problem. The only thing what is \ndifferent is that I use R 2.8.0 patched and LAM version 7.1.3. I didn't \nupgrade to the new LAM yet.\n\nAnyway, have you tried to to compile and run a simple MPI program? Is \nthere a reason why you use R 2.6.2? Otherwise I would recommend to use \nthe latest version of R.\n\nFurthermore, I strongly recommend to use gfortran instead of g77 to \ncompile LAM. I see from your laminfo output that you have\n\nFortran compiler: g77\nFortran symbols: double_underscore\n\nwhereas I have\n\nFortran compiler: gfortran\nFortran symbols: underscore\n\nI typically call configure with these parameters:\n\n./configure --enable-shared CC=gcc CXX=g++  FC=gfortran \n--prefix=/some/path/on/NFS_storage\n\nHope this helps.\n\nBest,\nStefan\n\nMarce wrote:\n> Hi all, now I'm trying to configure Rmpi in a 64 bit-cluster with LAM.\n> I have installed R 2.6.2 and LAM 7.1.4. When I compiled LAM, I\n> configured it with --enable-shared option, and all went ok. After\n> that, I defined LD_LIBRARY_PATH with the libs of LAM that I want to\n> use.\n> The problem is when I want to install Rmpi (0.5.5 and 0.5.6 give me\n> the same error), this one:\n>\n>   \n>> library(Rmpi)\n>>     \n> Error in dyn.load(file, ...) :\n>   imposible cargar la biblioteca compartida\n> '/home/aplicaciones/R/lib64/R/library/Rmpi/libs/Rmpi.so':\n>   /home/aplicaciones/R/lib64/R/library/Rmpi/libs/Rmpi.so: undefined\n> symbol: lam_mpi_double\n> Error en library(Rmpi) : .First.lib failed for 'Rmpi'\n> Error in dyn.unload(file.path(libpath, \"libs\", paste(\"Rmpi\",\n> .Platform$dynlib.ext,  :\n>   la biblioteca din?mica/compartida\n> '/home/aplicaciones/R/lib64/R/library/Rmpi/libs/Rmpi.so' no fu?\n> cargada\n> .\n>\n> If you do an ldd of Rmpi.so:\n>\n> [marce at cluster ~]$ ldd /home/aplicaciones/R/lib64/R/library/Rmpi/libs/Rmpi.so\n>         libmpi.so.0 => /home/aplicaciones/LAM/lib/libmpi.so.0\n> (0x0000002a95663000)\n>         liblam.so.0 => /home/aplicaciones/LAM/lib/liblam.so.0\n> (0x0000002a9580c000)\n>         libutil.so.1 => /lib64/libutil.so.1 (0x0000002a95978000)\n>         libpthread.so.0 => /lib64/tls/libpthread.so.0 (0x0000002a95a7c000)\n>         libc.so.6 => /lib64/tls/libc.so.6 (0x0000002a95b91000)\n>         libdl.so.2 => /lib64/libdl.so.2 (0x0000002a95dc6000)\n>         /lib64/ld-linux-x86-64.so.2 (0x000000552aaaa000)\n>\n> I have installed R and LAM-MPI in a shared file-system (with Lustre)\n> by all nodes. Install LAM localy in all nodes is a better option?\n> Somebody has configured a cluster with R, LAM and Rmpi? Now I am in a\n> \"bypass mode\", I don't know the course to follow :s.\n>\n> Thanks for all\n>\n> PD:  The output of laminfo is:\n>\n> [marce at cluster ~]$ /home/aplicaciones/LAM/bin/laminfo\n>          LAM/MPI: 7.1.4\n>          Prefix: /home/aplicaciones/LAM/\n>          Architecture: x86_64-unknown-linux-gnu\n>          Configured by: root\n>          Configured on: Wed Dec 10 11:45:49 CET 2008\n>          Configure host: cluster\n>          Memory manager: ptmalloc2\n>          C bindings: yes\n>          C++ bindings: yes\n>          Fortran bindings: yes\n>          C compiler: gcc\n>          C++ compiler: g++\n>          Fortran compiler: g77\n>          Fortran symbols: double_underscore\n>          C profiling: yes\n>          C++ profiling: yes\n>          Fortran profiling: yes\n>          C++ exceptions: no\n>          Thread support: yes\n>          ROMIO support: yes\n>          IMPI support: no\n>          Debug support: no\n>          Purify clean: no\n>             SSI boot: globus (API v1.1, Module v0.6)\n>             SSI boot: rsh (API v1.1, Module v1.1)\n>             SSI boot: slurm (API v1.1, Module v1.0)\n>             SSI coll: lam_basic (API v1.1, Module v7.1)\n>             SSI coll: shmem (API v1.1, Module v1.0)\n>             SSI coll: smp (API v1.1, Module v1.2)\n>             SSI rpi: crtcp (API v1.1, Module v1.1)\n>             SSI rpi: lamd (API v1.0, Module v7.1)\n>             SSI rpi: sysv (API v1.0, Module v7.1)\n>             SSI rpi: tcp (API v1.0, Module v7.1)\n>             SSI rpi: usysv (API v1.0, Module v7.1)\n>             SSI cr: self (API v1.0, Module v1.0)\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>",
+      "body_snippet": "Hello Marce,\n\nI can load version 0.5.6 as well as 0.5.5 of Rmpi without any problems \non our cluster. My LAM installation is on a shared filesystem (although \nNFS), so this should really not be a prob",
+      "thread_id": "thread-538f1afbbc0e",
+      "thread_depth": 1,
+      "month": "2008-12"
+    },
+    {
+      "id": "msg-4824a783fcf5",
+      "message_id": "<49411AC0.5050801@wu-wien.ac.at>",
+      "from_name": "Stefan Theussl",
+      "from_email_hash": "70e8bee0526e3cac6b44f6b75b3c1dc402cf6df4c6b9a60357ba6c6b6872f44c",
+      "date": "2008-12-11T14:50:56+01:00",
+      "subject": "[R-sig-hpc] Help installing sprng libraries",
+      "subject_clean": "Help installing sprng libraries",
+      "in_reply_to": "<7E2FEAC4-0300-47EF-97B7-3BE3E84C8010@me.com>",
+      "references": [
+        "<7E2FEAC4-0300-47EF-97B7-3BE3E84C8010@me.com>"
+      ],
+      "body_plain": "Hi David,\n\nit seems to me that your unpacked sprng library and header files are not \nin a standard path. If so, you can install rsprng directly from R using\ninstall.packages(\"rsprng\", configure.args = \n\"--with-sprng=/path/to/your/unpacked/sprng\")\n\nBest,\nStefan\n\nDavid Marra wrote:\n> Dear All,\n>\n> I need help installing sprng libraries to enable use of rspring and  \n> Rmpi packages. The machine is a Mac Pro 8 core machine running OS X  \n> 10.5.5 Leopard and 64-bit R.\n>\n> So far, I have downloaded a SPRNG binary file, sprng-2.0a-i386- \n> darwin.tar.bz2, from Na Li's website:http://www.biostat.umn.edu/~nali/SoftwareListing.html \n> .\n>\n> In Terminal I did two commands:\n>  > bunzip2 spr*\n>  > tar -xvf spr*\n> which produced the following output:\n> include/sprng.h\n> include/sprng_f.h\n> include/interface.h\n> lib/libsprng.a\n>\n> In the R 64-bit GUI I attempted an installation or rsprng from CRAN  \n> sources which resulted in failure (full output below), namely:\n> Cannot find sprng 2.0 header file.\n>\n> What am I doing wrong and how can I install these libraries?\n> (Terminal code much appreciated!)\n>\n> Thanks in advance,\n> David\n>\n> \t[[alternative HTML version deleted]]\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>",
+      "body_snippet": "Hi David,\n\nit seems to me that your unpacked sprng library and header files are not \nin a standard path. If so, you can install rsprng directly from R using\ninstall.packages(\"rsprng\", configure.args =",
+      "thread_id": "thread-5c2bc51b83f1",
+      "thread_depth": 1,
+      "month": "2008-12"
+    },
+    {
+      "id": "msg-598f89833562",
+      "message_id": "<7DC25476-76A9-40F4-AAE2-7411EAC4C0AE@me.com>",
+      "from_name": "David Marra",
+      "from_email_hash": "9a45be0b02991db03fb2b8a467c6d8680af8e255ffe664928672ee5e2d6d10b3",
+      "date": "2008-12-11T23:19:13+09:00",
+      "subject": "[R-sig-hpc] Help installing sprng libraries",
+      "subject_clean": "Help installing sprng libraries",
+      "in_reply_to": "<49411AC0.5050801@wu-wien.ac.at>",
+      "references": [
+        "<7E2FEAC4-0300-47EF-97B7-3BE3E84C8010@me.com>",
+        "<49411AC0.5050801@wu-wien.ac.at>"
+      ],
+      "body_plain": "Hi Stefan/Everyone,\n\nThank you for the suggestion. I am getting the following message now:\n\nWarning message:\npackage ?rsprng? is not available\n\nAny thoughts?\n\nDavid\n\nOn Dec 11, 2008, at 10:50 PM, Stefan Theussl wrote:\n\n> Hi David,\n>\n> it seems to me that your unpacked sprng library and header files are  \n> not in a standard path. If so, you can install rsprng directly from  \n> R using\n> install.packages(\"rsprng\", configure.args = \"--with-sprng=/path/to/ \n> your/unpacked/sprng\")\n>\n> Best,\n> Stefan\n>\n> David Marra wrote:\n>> Dear All,\n>>\n>> I need help installing sprng libraries to enable use of rspring  \n>> and  Rmpi packages. The machine is a Mac Pro 8 core machine running  \n>> OS X  10.5.5 Leopard and 64-bit R.\n>>\n>> So far, I have downloaded a SPRNG binary file, sprng-2.0a-i386-  \n>> darwin.tar.bz2, from Na Li's website:http://www.biostat.umn.edu/~nali/SoftwareListing.html \n>>  .\n>>\n>> In Terminal I did two commands:\n>> > bunzip2 spr*\n>> > tar -xvf spr*\n>> which produced the following output:\n>> include/sprng.h\n>> include/sprng_f.h\n>> include/interface.h\n>> lib/libsprng.a\n>>\n>> In the R 64-bit GUI I attempted an installation or rsprng from  \n>> CRAN  sources which resulted in failure (full output below), namely:\n>> Cannot find sprng 2.0 header file.\n>>\n>> What am I doing wrong and how can I install these libraries?\n>> (Terminal code much appreciated!)\n>>\n>> Thanks in advance,\n>> David\n>>\n>> \t[[alternative HTML version deleted]]\n>>\n>> _______________________________________________\n>> R-sig-hpc mailing list\n>> R-sig-hpc at r-project.org\n>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>>\n>",
+      "body_snippet": "Hi Stefan/Everyone,\n\nThank you for the suggestion. I am getting the following message now:\n\nWarning message:\npackage ?rsprng? is not available\n\nAny thoughts?\n\nDavid\n\nOn Dec 11, 2008, at 10:50 PM, Stef",
+      "thread_id": "thread-5c2bc51b83f1",
+      "thread_depth": 2,
+      "month": "2008-12"
+    },
+    {
+      "id": "msg-4409fcfc7c04",
+      "message_id": "<49412618.8040502@wu-wien.ac.at>",
+      "from_name": "Stefan Theussl",
+      "from_email_hash": "70e8bee0526e3cac6b44f6b75b3c1dc402cf6df4c6b9a60357ba6c6b6872f44c",
+      "date": "2008-12-11T15:39:20+01:00",
+      "subject": "[R-sig-hpc] Help installing sprng libraries",
+      "subject_clean": "Help installing sprng libraries",
+      "in_reply_to": "<7DC25476-76A9-40F4-AAE2-7411EAC4C0AE@me.com>",
+      "references": [
+        "<7E2FEAC4-0300-47EF-97B7-3BE3E84C8010@me.com>",
+        "<49411AC0.5050801@wu-wien.ac.at>",
+        "<7DC25476-76A9-40F4-AAE2-7411EAC4C0AE@me.com>"
+      ],
+      "body_plain": "David Marra wrote:\n> Hi Stefan/Everyone,\n>\n> Thank you for the suggestion. I am getting the following message now:\n>\n> Warning message:\n> package ?rsprng? is not available\nYes, I see. I'm not a Mac OS X expert, I only use it from time to time \nwithin my R-Forge work.\n\nAnyway, there are two more things I forgot:\n\n1) You need of course the right sprng library for your architecture. As \nfar as I understood you'd like to run code on 64 bit R, then you need of \ncourse to get the 64 bit sprng from Na Li's website (this was not the \ncase as far as I see from your initial mail).\n\n2) Mac OS X has a binary package repository (the default) where rsprng \nis obviously not available.\nThat means you have to install rsprng via\n\ninstall.packages(\"rsprng\", configure.args=\"LD_FLAGS=\\\"-lgmp\\\" \n--with-sprng=/pathto/lib/sprng\", type=\"source\")\n\nthe latter argument indicates that you want to access the source part of \nCRAN (the package tarballs).\n\nThis works for me (at least when using 32 bit R and sprng on Leopard) \nbut introduces a new problem:\n\n > install.packages(\"rsprng\", configure.args=\"LD_FLAGS=\\\"-lgmp\\\" \n--with-sprng=/Users/theussl/lib/sprng\", type=\"source\")\ntrying URL 'http://cran.at.r-project.org/src/contrib/rsprng_0.4.tar.gz'\nContent type 'application/x-gzip' length 36435 bytes (35 Kb)\nopened URL\n==================================================\ndownloaded 35 Kb\n\n* Installing *source* package 'rsprng' ...\nchecking for gcc... gcc\nchecking for C compiler default output file name... a.out\nchecking whether the C compiler works... yes\nchecking whether we are cross compiling... no\nchecking for suffix of executables...\nchecking for suffix of object files... o\nchecking whether we are using the GNU C compiler... yes\nchecking whether gcc accepts -g... yes\nchecking for gcc option to accept ANSI C... none needed\nTry to find sprng.h ...\nFound in /Users/theussl/lib/sprng/include\nTry to find libsprng.a ...\nFound in /Users/theussl/lib/sprng/lib\nTry to find libgmp.a if we need it ...\nchecking for main in -lgmp... no\nlibgmp not found. exiting...\nERROR: configuration failed for package 'rsprng'\n** Removing '/Library/Frameworks/R.framework/Resources/library/rsprng'\n\nThe downloaded packages are in\n        /private/tmp/RtmpmMmU4y/downloaded_packages\nUpdating HTML index of packages in '.Library'\nWarning message:\nIn install.packages(\"rsprng\", configure.args = \"LD_FLAGS=\\\"-lgmp\\\" \n--with-sprng=/Users/theussl/lib/sprng\",  :\n  installation of package 'rsprng' had non-zero exit status\n\nBut this is the point where my knowledge ends. I don't know if the GMP \nlibrary is somewhere available in binary form. In the worst case you \nhave to compile it yourself.\n\nBest,\nStefan\n>\n> Any thoughts?\n>\n> David\n>\n> On Dec 11, 2008, at 10:50 PM, Stefan Theussl wrote:\n>\n>> Hi David,\n>>\n>> it seems to me that your unpacked sprng library and header files are \n>> not in a standard path. If so, you can install rsprng directly from R \n>> using\n>> install.packages(\"rsprng\", configure.args = \n>> \"--with-sprng=/path/to/your/unpacked/sprng\")\n>>\n>> Best,\n>> Stefan\n>>\n>> David Marra wrote:\n>>> Dear All,\n>>>\n>>> I need help installing sprng libraries to enable use of rspring and  \n>>> Rmpi packages. The machine is a Mac Pro 8 core machine running OS X  \n>>> 10.5.5 Leopard and 64-bit R.\n>>>\n>>> So far, I have downloaded a SPRNG binary file, sprng-2.0a-i386- \n>>> darwin.tar.bz2, from Na Li's \n>>> website:http://www.biostat.umn.edu/~nali/SoftwareListing.html .\n>>>\n>>> In Terminal I did two commands:\n>>> > bunzip2 spr*\n>>> > tar -xvf spr*\n>>> which produced the following output:\n>>> include/sprng.h\n>>> include/sprng_f.h\n>>> include/interface.h\n>>> lib/libsprng.a\n>>>\n>>> In the R 64-bit GUI I attempted an installation or rsprng from CRAN  \n>>> sources which resulted in failure (full output below), namely:\n>>> Cannot find sprng 2.0 header file.\n>>>\n>>> What am I doing wrong and how can I install these libraries?\n>>> (Terminal code much appreciated!)\n>>>\n>>> Thanks in advance,\n>>> David\n>>>\n>>>     [[alternative HTML version deleted]]\n>>>\n>>> _______________________________________________\n>>> R-sig-hpc mailing list\n>>> R-sig-hpc at r-project.org\n>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>>>\n>>\n>",
+      "body_snippet": "David Marra wrote:\n> Hi Stefan/Everyone,\n>\n> Thank you for the suggestion. I am getting the following message now:\n>\n> Warning message:\n> package ?rsprng? is not available\nYes, I see. I'm not a Mac OS",
+      "thread_id": "thread-5c2bc51b83f1",
+      "thread_depth": 3,
+      "month": "2008-12"
+    },
+    {
+      "id": "msg-c0529c3a02ed",
+      "message_id": "<37b6bde3aae4cf4a093785b13a081b7d.squirrel@www.stats.uwo.ca>",
+      "from_name": "Hao Yu",
+      "from_email_hash": "f90343116b4a1720ab706b8b458137d0f188602a07689c3a137d7f8799e4a179",
+      "date": "2008-12-11T09:49:53-05:00",
+      "subject": "[R-sig-hpc] Problem about config Rmpi with LAM on 64 bits",
+      "subject_clean": "Problem about config Rmpi with LAM on 64 bits",
+      "in_reply_to": "<462af7860812110247x727ccff0v83ed7881016143d4@mail.gmail.com>",
+      "references": [
+        "<462af7860812110247x727ccff0v83ed7881016143d4@mail.gmail.com>"
+      ],
+      "body_plain": "Hi Marce,\n\nR and Lam on nfs should work. Your errors seem indicating that R cannot\nfind the path to lam lib. Can you make sure LAM is working: try\nlamboot -v\nlamnodes\nlamexec C hostname\n\nAny errors will indicate Lam is not configured right and Rmpi will not work.\n\nIf Lam is working but R still has the same errors, can you modify the R\nscript within R's bin dir to add something like (in the third line)\nLD_LIBRARY_PATH=/usr/local/lam/lib\n\nThis is how I configure R and Lam to work on my cluster. I have LAM and\nOpenMPI coexist but I separate them on different paths (not in PATH). I\ninstalled two R's and modify R script with different LD_LIBRARY_PATH and\nboth R's work under different MPI.\n\nHao\n\nMarce wrote:\n> Hi all, now I'm trying to configure Rmpi in a 64 bit-cluster with LAM.\n> I have installed R 2.6.2 and LAM 7.1.4. When I compiled LAM, I\n> configured it with --enable-shared option, and all went ok. After\n> that, I defined LD_LIBRARY_PATH with the libs of LAM that I want to\n> use.\n> The problem is when I want to install Rmpi (0.5.5 and 0.5.6 give me\n> the same error), this one:\n>\n>> library(Rmpi)\n> Error in dyn.load(file, ...) :\n>   imposible cargar la biblioteca compartida\n> '/home/aplicaciones/R/lib64/R/library/Rmpi/libs/Rmpi.so':\n>   /home/aplicaciones/R/lib64/R/library/Rmpi/libs/Rmpi.so: undefined\n> symbol: lam_mpi_double\n> Error en library(Rmpi) : .First.lib failed for 'Rmpi'\n> Error in dyn.unload(file.path(libpath, \"libs\", paste(\"Rmpi\",\n> .Platform$dynlib.ext,  :\n>   la biblioteca din?mica/compartida\n> '/home/aplicaciones/R/lib64/R/library/Rmpi/libs/Rmpi.so' no fu?\n> cargada\n> .\n>\n> If you do an ldd of Rmpi.so:\n>\n> [marce at cluster ~]$ ldd\n> /home/aplicaciones/R/lib64/R/library/Rmpi/libs/Rmpi.so\n>         libmpi.so.0 => /home/aplicaciones/LAM/lib/libmpi.so.0\n> (0x0000002a95663000)\n>         liblam.so.0 => /home/aplicaciones/LAM/lib/liblam.so.0\n> (0x0000002a9580c000)\n>         libutil.so.1 => /lib64/libutil.so.1 (0x0000002a95978000)\n>         libpthread.so.0 => /lib64/tls/libpthread.so.0 (0x0000002a95a7c000)\n>         libc.so.6 => /lib64/tls/libc.so.6 (0x0000002a95b91000)\n>         libdl.so.2 => /lib64/libdl.so.2 (0x0000002a95dc6000)\n>         /lib64/ld-linux-x86-64.so.2 (0x000000552aaaa000)\n>\n> I have installed R and LAM-MPI in a shared file-system (with Lustre)\n> by all nodes. Install LAM localy in all nodes is a better option?\n> Somebody has configured a cluster with R, LAM and Rmpi? Now I am in a\n> \"bypass mode\", I don't know the course to follow :s.\n>\n> Thanks for all\n>\n> PD:  The output of laminfo is:\n>\n> [marce at cluster ~]$ /home/aplicaciones/LAM/bin/laminfo\n>          LAM/MPI: 7.1.4\n>          Prefix: /home/aplicaciones/LAM/\n>          Architecture: x86_64-unknown-linux-gnu\n>          Configured by: root\n>          Configured on: Wed Dec 10 11:45:49 CET 2008\n>          Configure host: cluster\n>          Memory manager: ptmalloc2\n>          C bindings: yes\n>          C++ bindings: yes\n>          Fortran bindings: yes\n>          C compiler: gcc\n>          C++ compiler: g++\n>          Fortran compiler: g77\n>          Fortran symbols: double_underscore\n>          C profiling: yes\n>          C++ profiling: yes\n>          Fortran profiling: yes\n>          C++ exceptions: no\n>          Thread support: yes\n>          ROMIO support: yes\n>          IMPI support: no\n>          Debug support: no\n>          Purify clean: no\n>             SSI boot: globus (API v1.1, Module v0.6)\n>             SSI boot: rsh (API v1.1, Module v1.1)\n>             SSI boot: slurm (API v1.1, Module v1.0)\n>             SSI coll: lam_basic (API v1.1, Module v7.1)\n>             SSI coll: shmem (API v1.1, Module v1.0)\n>             SSI coll: smp (API v1.1, Module v1.2)\n>             SSI rpi: crtcp (API v1.1, Module v1.1)\n>             SSI rpi: lamd (API v1.0, Module v7.1)\n>             SSI rpi: sysv (API v1.0, Module v7.1)\n>             SSI rpi: tcp (API v1.0, Module v7.1)\n>             SSI rpi: usysv (API v1.0, Module v7.1)\n>             SSI cr: self (API v1.0, Module v1.0)\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>\n\n\n-- \nDepartment of Statistics & Actuarial Sciences\nFax Phone#:(519)-661-3813\nThe University of Western Ontario\nOffice Phone#:(519)-661-3622\nLondon, Ontario N6A 5B7\nhttp://www.stats.uwo.ca/faculty/yu",
+      "body_snippet": "Hi Marce,\n\nR and Lam on nfs should work. Your errors seem indicating that R cannot\nfind the path to lam lib. Can you make sure LAM is working: try\nlamboot -v\nlamnodes\nlamexec C hostname\n\nAny errors wi",
+      "thread_id": "thread-538f1afbbc0e",
+      "thread_depth": 1,
+      "month": "2008-12"
+    },
+    {
+      "id": "msg-8cec62cc00fd",
+      "message_id": "<6208C559-6C11-4C69-A0A7-BDFB9E9BB347@me.com>",
+      "from_name": "David Marra",
+      "from_email_hash": "9a45be0b02991db03fb2b8a467c6d8680af8e255ffe664928672ee5e2d6d10b3",
+      "date": "2008-12-11T23:57:58+09:00",
+      "subject": "[R-sig-hpc] Help installing sprng libraries",
+      "subject_clean": "Help installing sprng libraries",
+      "in_reply_to": "<49412618.8040502@wu-wien.ac.at>",
+      "references": [
+        "<7E2FEAC4-0300-47EF-97B7-3BE3E84C8010@me.com>",
+        "<49411AC0.5050801@wu-wien.ac.at>",
+        "<7DC25476-76A9-40F4-AAE2-7411EAC4C0AE@me.com>",
+        "<49412618.8040502@wu-wien.ac.at>"
+      ],
+      "body_plain": "Stefan/Everyone,\n\nThis is helpful. Using the code you provided I am able to install  \nrsprng for 32 bit Leopard, but still leaves open how to achieve this  \nfor 64-bit.\n\nIs anyone aware of whether the Linux 64-bit sprng on Na Li's website  \nwill work with Leopard or alternatively where one can download a 64- \nbit sprng for Leopard?\n\nmany thanks,\nDavid\n\n\nOn Dec 11, 2008, at 11:39 PM, Stefan Theussl wrote:\n\n> David Marra wrote:\n>> Hi Stefan/Everyone,\n>>\n>> Thank you for the suggestion. I am getting the following message now:\n>>\n>> Warning message:\n>> package ?rsprng? is not available\n> Yes, I see. I'm not a Mac OS X expert, I only use it from time to  \n> time within my R-Forge work.\n>\n> Anyway, there are two more things I forgot:\n>\n> 1) You need of course the right sprng library for your architecture.  \n> As far as I understood you'd like to run code on 64 bit R, then you  \n> need of course to get the 64 bit sprng from Na Li's website (this  \n> was not the case as far as I see from your initial mail).\n>\n> 2) Mac OS X has a binary package repository (the default) where  \n> rsprng is obviously not available.\n> That means you have to install rsprng via\n>\n> install.packages(\"rsprng\", configure.args=\"LD_FLAGS=\\\"-lgmp\\\" --with- \n> sprng=/pathto/lib/sprng\", type=\"source\")\n>\n> the latter argument indicates that you want to access the source  \n> part of CRAN (the package tarballs).\n>\n> This works for me (at least when using 32 bit R and sprng on  \n> Leopard) but introduces a new problem:\n>\n> > install.packages(\"rsprng\", configure.args=\"LD_FLAGS=\\\"-lgmp\\\" -- \n> with-sprng=/Users/theussl/lib/sprng\", type=\"source\")\n> trying URL 'http://cran.at.r-project.org/src/contrib/ \n> rsprng_0.4.tar.gz'\n> Content type 'application/x-gzip' length 36435 bytes (35 Kb)\n> opened URL\n> ==================================================\n> downloaded 35 Kb\n>\n> * Installing *source* package 'rsprng' ...\n> checking for gcc... gcc\n> checking for C compiler default output file name... a.out\n> checking whether the C compiler works... yes\n> checking whether we are cross compiling... no\n> checking for suffix of executables...\n> checking for suffix of object files... o\n> checking whether we are using the GNU C compiler... yes\n> checking whether gcc accepts -g... yes\n> checking for gcc option to accept ANSI C... none needed\n> Try to find sprng.h ...\n> Found in /Users/theussl/lib/sprng/include\n> Try to find libsprng.a ...\n> Found in /Users/theussl/lib/sprng/lib\n> Try to find libgmp.a if we need it ...\n> checking for main in -lgmp... no\n> libgmp not found. exiting...\n> ERROR: configuration failed for package 'rsprng'\n> ** Removing '/Library/Frameworks/R.framework/Resources/library/rsprng'\n>\n> The downloaded packages are in\n>       /private/tmp/RtmpmMmU4y/downloaded_packages\n> Updating HTML index of packages in '.Library'\n> Warning message:\n> In install.packages(\"rsprng\", configure.args = \"LD_FLAGS=\\\"-lgmp\\\" -- \n> with-sprng=/Users/theussl/lib/sprng\",  :\n> installation of package 'rsprng' had non-zero exit status\n>\n> But this is the point where my knowledge ends. I don't know if the  \n> GMP library is somewhere available in binary form. In the worst case  \n> you have to compile it yourself.\n>\n> Best,\n> Stefan\n>>\n>> Any thoughts?\n>>\n>> David\n>>\n>> On Dec 11, 2008, at 10:50 PM, Stefan Theussl wrote:\n>>\n>>> Hi David,\n>>>\n>>> it seems to me that your unpacked sprng library and header files  \n>>> are not in a standard path. If so, you can install rsprng directly  \n>>> from R using\n>>> install.packages(\"rsprng\", configure.args = \"--with-sprng=/path/to/ \n>>> your/unpacked/sprng\")\n>>>\n>>> Best,\n>>> Stefan\n>>>\n>>> David Marra wrote:\n>>>> Dear All,\n>>>>\n>>>> I need help installing sprng libraries to enable use of rspring  \n>>>> and  Rmpi packages. The machine is a Mac Pro 8 core machine  \n>>>> running OS X  10.5.5 Leopard and 64-bit R.\n>>>>\n>>>> So far, I have downloaded a SPRNG binary file, sprng-2.0a-i386-  \n>>>> darwin.tar.bz2, from Na Li's website:http://www.biostat.umn.edu/~nali/SoftwareListing.html \n>>>>  .\n>>>>\n>>>> In Terminal I did two commands:\n>>>> > bunzip2 spr*\n>>>> > tar -xvf spr*\n>>>> which produced the following output:\n>>>> include/sprng.h\n>>>> include/sprng_f.h\n>>>> include/interface.h\n>>>> lib/libsprng.a\n>>>>\n>>>> In the R 64-bit GUI I attempted an installation or rsprng from  \n>>>> CRAN  sources which resulted in failure (full output below),  \n>>>> namely:\n>>>> Cannot find sprng 2.0 header file.\n>>>>\n>>>> What am I doing wrong and how can I install these libraries?\n>>>> (Terminal code much appreciated!)\n>>>>\n>>>> Thanks in advance,\n>>>> David\n>>>>\n>>>>    [[alternative HTML version deleted]]\n>>>>\n>>>> _______________________________________________\n>>>> R-sig-hpc mailing list\n>>>> R-sig-hpc at r-project.org\n>>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>>>>\n>>>\n>>\n>",
+      "body_snippet": "Stefan/Everyone,\n\nThis is helpful. Using the code you provided I am able to install  \nrsprng for 32 bit Leopard, but still leaves open how to achieve this  \nfor 64-bit.\n\nIs anyone aware of whether the",
+      "thread_id": "thread-5c2bc51b83f1",
+      "thread_depth": 4,
+      "month": "2008-12"
+    },
+    {
+      "id": "msg-bdf967d0f013",
+      "message_id": "<18753.13823.305490.870912@ron.nulle.part>",
+      "from_name": "Dirk Eddelbuettel",
+      "from_email_hash": "447d8de83a7b9c5d61116890bacb6dc0c76aee31b3011a41fb7d3c62dac9042f",
+      "date": "2008-12-11T09:47:11-06:00",
+      "subject": "[R-sig-hpc] Help installing sprng libraries",
+      "subject_clean": "Help installing sprng libraries",
+      "in_reply_to": "<6208C559-6C11-4C69-A0A7-BDFB9E9BB347@me.com>",
+      "references": [
+        "<7E2FEAC4-0300-47EF-97B7-3BE3E84C8010@me.com>",
+        "<49411AC0.5050801@wu-wien.ac.at>",
+        "<7DC25476-76A9-40F4-AAE2-7411EAC4C0AE@me.com>",
+        "<49412618.8040502@wu-wien.ac.at>",
+        "<6208C559-6C11-4C69-A0A7-BDFB9E9BB347@me.com>"
+      ],
+      "body_plain": "On 11 December 2008 at 23:57, David Marra wrote:\n| Stefan/Everyone,\n| \n| This is helpful. Using the code you provided I am able to install  \n| rsprng for 32 bit Leopard, but still leaves open how to achieve this  \n| for 64-bit.\n| \n| Is anyone aware of whether the Linux 64-bit sprng on Na Li's website  \n| will work with Leopard or alternatively where one can download a 64- \n| bit sprng for Leopard?\n\nI cannot help you with respect to Leopard and other four-legged cats ;-) but\nwhen I added rsprng (and hence sprng) to Debian years ago, I mod'ed the sprng\nMakefile etc to make it cope with the standard so that it would build on all\n11 or 12 Debian architectures.  Now, these are all Linux -- but they span\ntiny to large systems and do work on a number of 64 bit systems.  You could\nglance at the diff and see if it helps.\n\nYou can start e.g. here \n  http://packages.debian.org/source/sid/sprng\nand fetch the .diff.gz from the bar on the right. \n\nDirk\n\n-- \nThree out of two people have difficulties with fractions.",
+      "body_snippet": "On 11 December 2008 at 23:57, David Marra wrote:\n| Stefan/Everyone,\n| \n| This is helpful. Using the code you provided I am able to install  \n| rsprng for 32 bit Leopard, but still leaves open how to a",
+      "thread_id": "thread-5c2bc51b83f1",
+      "thread_depth": 5,
+      "month": "2008-12"
+    },
+    {
+      "id": "msg-1874f2a5b3a2",
+      "message_id": "<51F6A58A-7E59-4D75-9474-3937F90E475B@gmail.com>",
+      "from_name": "Guillaume Chapron",
+      "from_email_hash": "02f0693d3cf4841364a66299e93b6e320512d36e2bc8437af934be976baf96cc",
+      "date": "2008-12-28T16:03:08+01:00",
+      "subject": "[R-sig-hpc] Avoiding looping on vector with stochastic dependency",
+      "subject_clean": "Avoiding looping on vector with stochastic dependency",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Hello,\n\nI need to perform a computation on a vector, where the value at index  \ni is a stochastic function of the value at index i-1. A example would  \nthe following code:\n\n\nw <- numeric(100)\nw[1] <- 10\n\n# set.seed(2)\n\nfor (i in 2:length(w)) {\n\t\tw[i] <- sum(rbinom(w[i-1],1,0.5)) + sum(rpois(w[i-1],0.5))\n\t}\n\n\nIn my program, this code would be executed many times, and I would  \nlike to have it running faster. I assume I could do this be removing  \nthe loop and using a vector operation. But, whatever the way I think,  \nI cannot figure out how to remove the loop on the index. I would be  \ngrateful if you could tell me if this is possible?\n\nThanks so much!!\n\nGuillaume",
+      "body_snippet": "Hello,\n\nI need to perform a computation on a vector, where the value at index  \ni is a stochastic function of the value at index i-1. A example would  \nthe following code:\n\n\nw <- numeric(100)\nw[1] <- ",
+      "thread_id": "thread-1874f2a5b3a2",
+      "thread_depth": 0,
+      "month": "2008-12"
+    },
+    {
+      "id": "msg-beb084ceb80e",
+      "message_id": "<4957C76E.4010405@fhcrc.org>",
+      "from_name": "Martin Morgan",
+      "from_email_hash": "9f5a643078023be7f11cfed10069ce2b31d0a2cc98705fa84c2ae0e157a1fb93",
+      "date": "2008-12-28T10:37:34-08:00",
+      "subject": "[R-sig-hpc] Avoiding looping on vector with stochastic dependency",
+      "subject_clean": "Avoiding looping on vector with stochastic dependency",
+      "in_reply_to": "<51F6A58A-7E59-4D75-9474-3937F90E475B@gmail.com>",
+      "references": [
+        "<51F6A58A-7E59-4D75-9474-3937F90E475B@gmail.com>"
+      ],
+      "body_plain": "Hi Guillaume --\n\nGuillaume Chapron wrote:\n> Hello,\n> \n> I need to perform a computation on a vector, where the value at index i \n> is a stochastic function of the value at index i-1. A example would the \n> following code:\n> \n> \n> w <- numeric(100)\n> w[1] <- 10\n> \n> # set.seed(2)\n> \n> for (i in 2:length(w)) {\n>         w[i] <- sum(rbinom(w[i-1],1,0.5)) + sum(rpois(w[i-1],0.5))\n>     }\n> \n> \n> In my program, this code would be executed many times, and I would like \n> to have it running faster. I assume I could do this be removing the loop \n> and using a vector operation. But, whatever the way I think, I cannot \n> figure out how to remove the loop on the index. I would be grateful if \n> you could tell me if this is possible?\n\nThis question really belongs on the R-help list; this list is for \nquestions related to cluster and other parallel computing solutions.\n\nThe sum of binomial or Poisson random variables are themselves binomial \nor Poisson distributed, so that sum(rpois(...)) can be replaced by \nrpois(sum(...), ...), etc. This replaces several 'expensive' calls \n(rbinom, rpois) with just one.\n\nThe transitions you describe are time-invariant (independent of i), so \nthat you can pre-compute, probably analytically but certainly \nnumerically, a matrix T[i,j] describing the probability of transition to \nstate i, given current state j. The 'simulation' of a single transition \nis to sample from the distribution described by column j.\n\nThe simulation describes a first-order Markov process. For this there \nare explicit solutions, e.g., for the stationary distribution (wikipedia \nMarkov Chain gives an introduction). So for the problem you outline what \nyou likely want to do is to calculate T, and solve for the properties \nyou're interested in. This will most easily involve a combination of \nanalytic (formulating the solution in an abstract way) and numeric \n(finding the solution for your particular parameters) approaches.\n\nThis is not my area of expertise, so better advice might well be available.\n\nMartin\n\n> Thanks so much!!\n> \n> Guillaume\n> \n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc",
+      "body_snippet": "Hi Guillaume --\n\nGuillaume Chapron wrote:\n> Hello,\n> \n> I need to perform a computation on a vector, where the value at index i \n> is a stochastic function of the value at index i-1. A example would t",
+      "thread_id": "thread-1874f2a5b3a2",
+      "thread_depth": 1,
+      "month": "2008-12"
+    },
+    {
+      "id": "msg-003fe7d44034",
+      "message_id": "<6BFA84D3-914F-45BB-9DA7-095029E2FB85@gmail.com>",
+      "from_name": "Guillaume Chapron",
+      "from_email_hash": "02f0693d3cf4841364a66299e93b6e320512d36e2bc8437af934be976baf96cc",
+      "date": "2008-12-28T19:48:16+01:00",
+      "subject": "[R-sig-hpc] Avoiding looping on vector with stochastic dependency",
+      "subject_clean": "Avoiding looping on vector with stochastic dependency",
+      "in_reply_to": "<4957C76E.4010405@fhcrc.org>",
+      "references": [
+        "<51F6A58A-7E59-4D75-9474-3937F90E475B@gmail.com>",
+        "<4957C76E.4010405@fhcrc.org>"
+      ],
+      "body_plain": "Thanks for your reply. In fact my code example was simplified from  \nsomething more general\n\nfor (i in 2:length(w[,1])) {\n\t\tw[i,] <- foo( w[i-1,] )\n\t}\n\nand I was trying to write this without a loop. I will look at the  \nmethod you describe, but  I'm not sure if it can still be applied if  \nfoo() is quite complex. (sorry for sending this to the wrong list, I  \nthought this one was about everything that can make R running faster!)\n\nCheers\n\nGuillaume",
+      "body_snippet": "Thanks for your reply. In fact my code example was simplified from  \nsomething more general\n\nfor (i in 2:length(w[,1])) {\n\t\tw[i,] <- foo( w[i-1,] )\n\t}\n\nand I was trying to write this without a loop. I",
+      "thread_id": "thread-1874f2a5b3a2",
+      "thread_depth": 2,
+      "month": "2008-12"
+    },
+    {
+      "id": "msg-4ab0d1ec478d",
+      "message_id": "<f8e6ff050812281127t6071f437s60f3d8aff1571b42@mail.gmail.com>",
+      "from_name": "hadley wickham",
+      "from_email_hash": "78ed178a2a834406115d2917490a5d6eb6217493116357bc9bb8ae3e96968152",
+      "date": "2008-12-28T13:27:40-06:00",
+      "subject": "[R-sig-hpc] Avoiding looping on vector with stochastic dependency",
+      "subject_clean": "Avoiding looping on vector with stochastic dependency",
+      "in_reply_to": "<6BFA84D3-914F-45BB-9DA7-095029E2FB85@gmail.com>",
+      "references": [
+        "<51F6A58A-7E59-4D75-9474-3937F90E475B@gmail.com>",
+        "<4957C76E.4010405@fhcrc.org>",
+        "<6BFA84D3-914F-45BB-9DA7-095029E2FB85@gmail.com>"
+      ],
+      "body_plain": "On Sun, Dec 28, 2008 at 12:48 PM, Guillaume Chapron\n<carnivorescience at gmail.com> wrote:\n> Thanks for your reply. In fact my code example was simplified from something\n> more general\n>\n> for (i in 2:length(w[,1])) {\n>                w[i,] <- foo( w[i-1,] )\n>        }\n>\n> and I was trying to write this without a loop. I will look at the method you\n> describe, but  I'm not sure if it can still be applied if foo() is quite\n> complex. (sorry for sending this to the wrong list, I thought this one was\n> about everything that can make R running faster!)\n\nIn general, it is not possible to write out such recurrence relations\nexplicitly in closed form - see (e.g.)\nhttp://en.wikipedia.org/wiki/Recurrence_relation for more details.\n\nHadley\n\n-- \nhttp://had.co.nz/",
+      "body_snippet": "On Sun, Dec 28, 2008 at 12:48 PM, Guillaume Chapron\n<carnivorescience at gmail.com> wrote:\n> Thanks for your reply. In fact my code example was simplified from something\n> more general\n>\n> for (i in 2",
+      "thread_id": "thread-1874f2a5b3a2",
+      "thread_depth": 3,
+      "month": "2008-12"
+    }
+  ],
+  "threads": [
+    {
+      "id": "thread-b613b6ba3266",
+      "subject": "Problem with the Rmpi package",
+      "message_count": 2,
+      "participants": [
+        "Blanchette, Marco",
+        "Hao Yu"
+      ],
+      "started": "2008-12-02T09:37:23-06:00",
+      "last_reply": "2008-12-02T11:00:37-05:00",
+      "root_message_id": "msg-b613b6ba3266"
+    },
+    {
+      "id": "thread-ed9101e14a1d",
+      "subject": "Using snow on a looping structure",
+      "message_count": 4,
+      "participants": [
+        "Gang Chen",
+        "Martin Morgan"
+      ],
+      "started": "2008-12-02T14:38:15-05:00",
+      "last_reply": "2008-12-05T09:44:37-08:00",
+      "root_message_id": "msg-ed9101e14a1d"
+    },
+    {
+      "id": "thread-06b9d0f57df8",
+      "subject": "Sun Grid Engine (SGE) and Rsge package",
+      "message_count": 2,
+      "participants": [
+        "Markus Schmidberger",
+        "Rainer M Krug"
+      ],
+      "started": "2008-12-05T08:49:00+02:00",
+      "last_reply": "2008-12-05T10:37:17-08:00",
+      "root_message_id": "msg-06b9d0f57df8"
+    },
+    {
+      "id": "thread-0f4c93f54c0d",
+      "subject": "littler with --slave option?",
+      "message_count": 3,
+      "participants": [
+        "Dirk Eddelbuettel",
+        "Rainer M Krug"
+      ],
+      "started": "2008-12-05T09:20:26+02:00",
+      "last_reply": "2008-12-05T15:54:49+02:00",
+      "root_message_id": "msg-0f4c93f54c0d"
+    },
+    {
+      "id": "thread-f3603ea7ef44",
+      "subject": "Sun Grid Engine (SGE) and Rsge package",
+      "message_count": 1,
+      "participants": [
+        "Rainer M Krug"
+      ],
+      "started": "2008-12-06T13:57:45+02:00",
+      "last_reply": "2008-12-06T13:57:45+02:00",
+      "root_message_id": "msg-f3603ea7ef44"
+    },
+    {
+      "id": "thread-b2e50c7763c5",
+      "subject": "Sun Grid Engine (SGE) and Rsge package",
+      "message_count": 1,
+      "participants": [
+        "Rainer M Krug"
+      ],
+      "started": "2008-12-07T12:11:20+02:00",
+      "last_reply": "2008-12-07T12:11:20+02:00",
+      "root_message_id": "msg-b2e50c7763c5"
+    },
+    {
+      "id": "thread-7ad7cfd5b038",
+      "subject": "Problem compiling Rmpi on Linux",
+      "message_count": 4,
+      "participants": [
+        "Blanchette, Marco",
+        "Dirk Eddelbuettel",
+        "Hao Yu"
+      ],
+      "started": "2008-12-08T12:15:03-06:00",
+      "last_reply": "2008-12-08T12:54:59-06:00",
+      "root_message_id": "msg-7ad7cfd5b038"
+    },
+    {
+      "id": "thread-3af3abb4f2b1",
+      "subject": "AMQP Interface for R?",
+      "message_count": 1,
+      "participants": [
+        "Joshua Kramer"
+      ],
+      "started": "2008-12-09T12:35:00-05:00",
+      "last_reply": "2008-12-09T12:35:00-05:00",
+      "root_message_id": "msg-3af3abb4f2b1"
+    },
+    {
+      "id": "thread-538f1afbbc0e",
+      "subject": "Problem about config Rmpi with LAM on 64 bits",
+      "message_count": 3,
+      "participants": [
+        "Hao Yu",
+        "Marce",
+        "Stefan Theussl"
+      ],
+      "started": "2008-12-11T11:47:37+01:00",
+      "last_reply": "2008-12-11T09:49:53-05:00",
+      "root_message_id": "msg-538f1afbbc0e"
+    },
+    {
+      "id": "thread-5c2bc51b83f1",
+      "subject": "Help installing sprng libraries",
+      "message_count": 6,
+      "participants": [
+        "David Marra",
+        "Dirk Eddelbuettel",
+        "Stefan Theussl"
+      ],
+      "started": "2008-12-11T22:31:17+09:00",
+      "last_reply": "2008-12-11T09:47:11-06:00",
+      "root_message_id": "msg-5c2bc51b83f1"
+    },
+    {
+      "id": "thread-1874f2a5b3a2",
+      "subject": "Avoiding looping on vector with stochastic dependency",
+      "message_count": 4,
+      "participants": [
+        "Guillaume Chapron",
+        "Martin Morgan",
+        "hadley wickham"
+      ],
+      "started": "2008-12-28T16:03:08+01:00",
+      "last_reply": "2008-12-28T13:27:40-06:00",
+      "root_message_id": "msg-1874f2a5b3a2"
+    }
+  ]
+}

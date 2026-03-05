@@ -1,0 +1,490 @@
+From serge.cohen at synchrotron-soleil.fr  Sat Sep  5 03:07:56 2015
+From: serge.cohen at synchrotron-soleil.fr (Serge Cohen)
+Date: Sat, 5 Sep 2015 03:07:56 +0200
+Subject: [R-sig-hpc] NVidia bug in OpenCL ?
+Message-ID: <EC4D666F-D448-4C50-AD81-BDA7FFFC1853@synchrotron-soleil.fr>
+
+Hello there,
+
+this is not strictly an R bug but I found it while using OpenCL package in R.
+
+library(OpenCL)
+help(oclRun)
+
+provides an OpenCL example to run into R. The kernel proposed is a simple one computing dnorm, here it is verbatim :
+
+__kernel void dnorm(
+                    __global float* output,
+                    const unsigned int count,
+                    __global float* input,
+                    const float mu, const float sigma)
+{
+  int i = get_global_id(0);
+  if(i < count)
+    output[i] = exp(-0.5f * ((input[i] - mu) / sigma) * ((input[i] - mu) / sigma))
+      / (sigma * sqrt( 2 * 3.14159265358979323846264338327950288 ) );
+}
+
+On most machine/devices this runs ok. But on some Mac with NVidia GPU (GT 755 and GT 750M) this causes huge difference between the standard dnorm and the OpenCL computed one (up to 1e+18). This is not the case on the intel-graphics of these same machine, nor on AMD graphics or even on Tesla under linux.
+
+Here is the result of the example :
+> f(1:10/2) - dnorm(1:10/2)
+ [1] 4.600014e+18 4.597886e+18 4.593834e+18 4.587942e+18 4.580709e+18 4.571760e+18 4.561188e+18 4.549069e+18 4.535339e+18
+[10] 4.519628e+18
+
+
+Still on the faulty machines, if I run the fp64 version of the example all goes well.
+
+After some investigation, I though of trying to get the full computation explicitly in fp32 (avoiding implicit conversion) : turning all constant to fp32 literals.
+
+__kernel void dnorm(
+                    __global float* output,
+                    const unsigned int count,
+                    __global float* input,
+                    const float mu, const float sigma)
+{
+  int i = get_global_id(0);
+  if(i < count)
+    output[i] = exp(-0.5f * ((input[i] - mu) / sigma) * ((input[i] - mu) / sigma))
+      / (sigma * sqrt( 2.0f * 3.14159265358979323846264338327950288f ) );
+}
+
+This now works ok on the ?faulty? machines.
+To be sure the problem comes from some conversion at the later stage, I tried to perform and explicit conversion to either fp32 or fp64 before assignment :
+
+__kernel void dnorm(
+                    __global float* output,
+                    const unsigned int count,
+                    __global float* input,
+                    const float mu, const float sigma)
+{
+  int i = get_global_id(0);
+  if(i < count)
+    output[i] = convert_float(exp(-0.5f * ((input[i] - mu) / sigma) * ((input[i] - mu) / sigma))
+                               / (sigma * sqrt( 2 * 3.14159265358979323846264338327950288 ) ));
+}
+
+this works ok
+
+__kernel void dnorm(
+                    __global float* output,
+                    const unsigned int count,
+                    __global float* input,
+                    const float mu, const float sigma)
+{
+  int i = get_global_id(0);
+  if(i < count)
+    output[i] = convert_double(exp(-0.5f * ((input[i] - mu) / sigma) * ((input[i] - mu) / sigma))
+                               / (sigma * sqrt( 2 * 3.14159265358979323846264338327950288 ) ));
+}
+is NOT working (same level as error).
+
+Further more if one performs an explicit fp32 conversion on the denominator of this one, it now works :
+__kernel void dnorm(
+                    __global float* output,
+                    const unsigned int count,
+                    __global float* input,
+                    const float mu, const float sigma)
+{
+  int i = get_global_id(0);
+  if(i < count)
+    output[i] = convert_double(exp(-0.5f * ((input[i] - mu) / sigma) * ((input[i] - mu) / sigma))
+                               / convert_float(sigma * sqrt( 2 * 3.14159265358979323846264338327950288 ) ));
+}
+while
+__kernel void dnorm(
+                    __global float* output,
+                    const unsigned int count,
+                    __global float* input,
+                    const float mu, const float sigma)
+{
+  int i = get_global_id(0);
+  if(i < count)
+    output[i] = convert_double(exp(-0.5f * ((input[i] - mu) / sigma) * ((input[i] - mu) / sigma))
+                               / convert_double(sigma * sqrt( 2 * 3.14159265358979323846264338327950288 ) ));
+}
+is dead ?
+
+I fail to understand the precise effect of the various conversions in the way the computation is done.
+
+
+
+Still all of those would work ok on the other settings.
+
+
+I guess to avoid someone else spend so much time again on this issue it would be helpful to :
+
+* Use a version of the exemple not involving any type conversion (be-it implicit or explicit)
+* Warn the user that type conversion on some architecture+driver might generate totally wrong results.
+
+Hope this is not too much work and will help other that would face the same issue I had for a day or two.
+
+Cheers,
+
+Serge.
+
+
+++++++++++++++++++++++++++++++++++++++++
+Serge Cohen
+GPG Key ID: 0B5CDAEC
+
+IPANEMA USR 3461 CNRS/MCC
+
+site Synchrotron SOLEIL
+L'Orme des Merisiers
+Saint-Aubin - BP48
+91192 Gif-sur-Yvette cedex
+FRANCE
+++++++++++++++++++++++++++++++++++++++++
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: signature.asc
+Type: application/pgp-signature
+Size: 841 bytes
+Desc: Message signed with OpenPGP using GPGMail
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20150905/27b83aa4/attachment.bin>
+
+From HodgessE at uhd.edu  Sun Sep 27 01:02:25 2015
+From: HodgessE at uhd.edu (Hodgess, Erin)
+Date: Sat, 26 Sep 2015 23:02:25 +0000
+Subject: [R-sig-hpc] A question about Cores vs. tasks using Slurm for R
+Message-ID: <FF9DB805FC41CC4E95825A50F6806302B48EE733@columbia.uhd.campus>
+
+Hello!
+
+I'm experimenting with some of the very interesting code in Prof. Matloff's new book "Parallel Computing for Data Science with Examples in R, C++ and CUDA".
+
+I have access to a supercomputer and am using SLURM to run my batch jobs in R.
+
+Here is what I have in my SBATCH file:
+
+
+!/bin/bash
+
+#SBATCH -t 00:05:00
+
+#SBATCH -n 32
+
+#SBATCH -p development
+
+#SBATCH -J myparb
+
+#SBATCH -o myparb.%j.out
+
+#SBATCH -e myparb.%j.err
+
+
+
+
+module load intel/15.0.2 Rstats/3.2.1
+
+
+source ~/.profile_user
+
+
+R CMD BATCH --slave ~/MutLinkPar2.R parb.txt
+
+
+Fair enough.  Here is a little section of my R file:
+
+
+cores <- detectCores()
+
+cls <- initmc(cores)
+
+cat("cores",cores,"\n")
+
+sim(500,500,cls)
+
+
+
+However, the output for the "cat" statement shows the number of cores to be 16.
+
+Why is this, please?  Shouldn't it be 32, please?
+
+Thank you in advance for any help!
+
+Note:  This is R version 3.2.1.
+
+Sincerely,
+Erin Hodgess
+
+
+
+	[[alternative HTML version deleted]]
+
+
+From nsmatloff at ucdavis.edu  Sun Sep 27 02:23:18 2015
+From: nsmatloff at ucdavis.edu (Norm Matloff)
+Date: Sat, 26 Sep 2015 17:23:18 -0700
+Subject: [R-sig-hpc] A question about Cores vs. tasks using Slurm for R
+Message-ID: <20150927002318.GA16022@laura>
+
+
+(Apologies if this message is circulated twice.)
+
+Erin, specifically, what machine (and not machineS, plural, as in a
+cluster) are you running this on, and what specific OS?  The number of
+cores that are sensed here could depend on either or both.  See R's
+online help for 'detectCores' for a brief discussion, as well as the
+material on hyperthreading in my book (Ch.1).  
+
+In addition, there are probably definitional issues regarding SLURM
+here.  I'm not a SLURM user, but I'm sure others on this list can
+comment on that.
+
+Norm
+
+On Sat, Sep 26, 2015 at 11:02:25PM +0000, Hodgess, Erin wrote:
+> Hello!
+> 
+> I'm experimenting with some of the very interesting code in Prof. Matloff's new book "Parallel Computing for Data Science with Examples in R, C++ and CUDA".
+> 
+> I have access to a supercomputer and am using SLURM to run my batch jobs in R.
+> 
+> Here is what I have in my SBATCH file:
+> 
+> 
+> !/bin/bash
+> 
+> #SBATCH -t 00:05:00
+> 
+> #SBATCH -n 32
+> 
+> #SBATCH -p development
+> 
+> #SBATCH -J myparb
+> 
+> #SBATCH -o myparb.%j.out
+> 
+> #SBATCH -e myparb.%j.err
+> 
+> 
+> 
+> 
+> module load intel/15.0.2 Rstats/3.2.1
+> 
+> 
+> source ~/.profile_user
+> 
+> 
+> R CMD BATCH --slave ~/MutLinkPar2.R parb.txt
+> 
+> 
+> Fair enough.  Here is a little section of my R file:
+> 
+> 
+> cores <- detectCores()
+> 
+> cls <- initmc(cores)
+> 
+> cat("cores",cores,"\n")
+> 
+> sim(500,500,cls)
+> 
+> 
+> 
+> However, the output for the "cat" statement shows the number of cores to be 16.
+> 
+> Why is this, please?  Shouldn't it be 32, please?
+> 
+> Thank you in advance for any help!
+> 
+> Note:  This is R version 3.2.1.
+> 
+> Sincerely,
+> Erin Hodgess
+> 
+> 
+> 
+> 	[[alternative HTML version deleted]]
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From HodgessE at uhd.edu  Sun Sep 27 02:39:44 2015
+From: HodgessE at uhd.edu (Hodgess, Erin)
+Date: Sun, 27 Sep 2015 00:39:44 +0000
+Subject: [R-sig-hpc] A question about Cores vs. tasks using Slurm for R
+In-Reply-To: <20150927002318.GA16022@laura>
+References: <20150927002318.GA16022@laura>
+Message-ID: <FF9DB805FC41CC4E95825A50F6806302B48EE787@columbia.uhd.campus>
+
+Hello!
+
+This was my fault...my max was 16, not 32 on SLURM.
+Sorry for submitting and wasting air time.
+
+Sincerely,
+Erin
+
+________________________________________
+From: Norm Matloff [nsmatloff at ucdavis.edu]
+Sent: Saturday, September 26, 2015 7:23 PM
+To: Hodgess, Erin; R-sig-hpc at r-project.org
+Subject: Re: [R-sig-hpc] A question about Cores vs. tasks using Slurm for R
+
+(Apologies if this message is circulated twice.)
+
+Erin, specifically, what machine (and not machineS, plural, as in a
+cluster) are you running this on, and what specific OS?  The number of
+cores that are sensed here could depend on either or both.  See R's
+online help for 'detectCores' for a brief discussion, as well as the
+material on hyperthreading in my book (Ch.1).
+
+In addition, there are probably definitional issues regarding SLURM
+here.  I'm not a SLURM user, but I'm sure others on this list can
+comment on that.
+
+Norm
+
+On Sat, Sep 26, 2015 at 11:02:25PM +0000, Hodgess, Erin wrote:
+> Hello!
+>
+> I'm experimenting with some of the very interesting code in Prof. Matloff's new book "Parallel Computing for Data Science with Examples in R, C++ and CUDA".
+>
+> I have access to a supercomputer and am using SLURM to run my batch jobs in R.
+>
+> Here is what I have in my SBATCH file:
+>
+>
+> !/bin/bash
+>
+> #SBATCH -t 00:05:00
+>
+> #SBATCH -n 32
+>
+> #SBATCH -p development
+>
+> #SBATCH -J myparb
+>
+> #SBATCH -o myparb.%j.out
+>
+> #SBATCH -e myparb.%j.err
+>
+>
+>
+>
+> module load intel/15.0.2 Rstats/3.2.1
+>
+>
+> source ~/.profile_user
+>
+>
+> R CMD BATCH --slave ~/MutLinkPar2.R parb.txt
+>
+>
+> Fair enough.  Here is a little section of my R file:
+>
+>
+> cores <- detectCores()
+>
+> cls <- initmc(cores)
+>
+> cat("cores",cores,"\n")
+>
+> sim(500,500,cls)
+>
+>
+>
+> However, the output for the "cat" statement shows the number of cores to be 16.
+>
+> Why is this, please?  Shouldn't it be 32, please?
+>
+> Thank you in advance for any help!
+>
+> Note:  This is R version 3.2.1.
+>
+> Sincerely,
+> Erin Hodgess
+>
+>
+>
+>       [[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From benjamin.nutter at gmail.com  Tue Sep 29 14:43:51 2015
+From: benjamin.nutter at gmail.com (Benjamin Nutter)
+Date: Tue, 29 Sep 2015 08:43:51 -0400
+Subject: [R-sig-hpc] Differing Behaviors in makeCluster between parallel and
+	snow
+Message-ID: <CAMNjZkRe3YdfyNqEewf7Y79htQtF1NiQaWwwXZ2BY-W3oXOwUg@mail.gmail.com>
+
+For the past couple of weeks I've been working on constructing a cluster of
+Windows computers into a cluster I can use for simulation studies.  For
+now, I'm using my local machine and a single remote machine.  With a great
+deal of reading and--admittedly--trial and error, I eventually got a
+cluster working using the `snow` package.  I haven't been able to get the
+same cluster to work using the `parallel` package, and I'm curious as to
+why this is the case.
+
+The details of how I've put together my configuration are on a question on
+Stack Overflow (
+http://stackoverflow.com/questions/32571996/multi-computer-makepsockcluster-on-windows-building-a-step-by-step-guide
+).
+
+After getting all of the configurations on both of the machines set up to
+be identical, I can run
+
+library(snow)
+cl <- snow::makeCluster(c(rep("localhost", 1), rep("[remote_ip]", 4)),
+                  rscript = "RScript",
+                  rshcmd = "C:/PuTTY/plink.exe -pw [password]",
+                  host = "[local_ip]")
+
+This provides a working cluster.
+
+If I run what I believe to be the equivalent code for the `parallel` package
+
+library(parallel)
+cl <- parallel::makeCluster(c(rep("localhost", 1), rep("[remote_ip]", 4)),
+                  rscript = "RScript",
+                  rshcmd = "C:/PuTTY/plink.exe -pw [password]",
+                  master = "[local_ip]")
+
+This results in a single SSH session starting on my remote computer which
+immediately terminates, and then the function appears to stop processing.
+No errors, warnings, or messages are returned.
+
+Admittedly, I haven't set up silent authentication (I'm having trouble
+getting my SSH server to accept private tokens).  So my first question
+would be if the lack of silent authentication is the likely cause for
+`parallel` not completing the cluster while `snow` is able to complete the
+cluster with a password being passed.  This behavior certainly qualifies as
+"setups which require a password to be supplied may or may not work." (from
+the parallel vignette) so I might be incorrectly anticipating that
+`parallel` would tolerate the password when `snow` tolerates it.
+
+Might there be any other details I'm missing in putting together a cluster
+using `parallel`?
+
+System Details:
+Both computers are running R-3.2.2 on 64-bit Windows 7.
+R is installed to the same directory on both systems
+The .libPaths() are identical on each system.
+The packages installed are nearly identical on each system, with the
+exception of a couple of Bioconductor packages.
+
+Many thanks,
+Benjamin
+
+
+-- 
+
+
+_________________________
+Benjamin Nutter
+benjamin.nutter at gmail.com
+
+	[[alternative HTML version deleted]]
+
+

@@ -1,0 +1,1635 @@
+From paleologo at gmail.com  Sat Jun  4 16:39:03 2011
+From: paleologo at gmail.com (Giuseppe Paleologo)
+Date: Sat, 4 Jun 2011 10:39:03 -0400
+Subject: [R-sig-hpc] Overhead in computation of SVD
+Message-ID: <BANLkTinSpwGYCqKKej4W+KzKZnZ2=z8TCQ@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110604/0e0afcd5/attachment.pl>
+
+From jeff.a.ryan at gmail.com  Sat Jun  4 16:48:56 2011
+From: jeff.a.ryan at gmail.com (Jeff Ryan)
+Date: Sat, 4 Jun 2011 09:48:56 -0500
+Subject: [R-sig-hpc] Overhead in computation of SVD
+In-Reply-To: <BANLkTinSpwGYCqKKej4W+KzKZnZ2=z8TCQ@mail.gmail.com>
+References: <BANLkTinSpwGYCqKKej4W+KzKZnZ2=z8TCQ@mail.gmail.com>
+Message-ID: <FD002A8D-8428-45FC-93CE-1F2CFB345BCB@gmail.com>
+
+Try
+
+http://bigcomputing.blogspot.com/2011/05/bryan-lewiss-vignette-on-irlba-for-svd.html
+
+Jeff
+
+Jeffrey Ryan    |    Founder    |    jeffrey.ryan at lemnica.com
+
+www.lemnica.com
+
+On Jun 4, 2011, at 9:39 AM, Giuseppe Paleologo <paleologo at gmail.com> wrote:
+
+> R uses LAPACK for svd computation, but it is my understanding from a post on
+> Radford Neal's blog (
+> http://radfordneal.wordpress.com/2011/05/21/slowing-down-matrix-multiplication-in-r/#more-739),
+> that additional checks are performed to propagate NA/NaNs and Inf, (at least
+> on level-3 BLAS calls, not sure LAPACK). I have to run a large number of
+> svds on large dense matrices, and am looking for efficient execution of
+> these decompositions. I think a truncated svd would be acceptable, and R
+> does not have a base routine for this. My questions:
+> 
+> 1. when there are no NAs, Is there a benefit in binding directly to DGESVD
+> 2. has anyone tried packages svd (uses PROPACK routines) and irlba?
+> 
+> Thanks,
+> 
+> gappy
+> 
+>   [[alternative HTML version deleted]]
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From edd at debian.org  Sat Jun  4 17:38:29 2011
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Sat, 4 Jun 2011 10:38:29 -0500
+Subject: [R-sig-hpc] Overhead in computation of SVD
+In-Reply-To: <BANLkTinSpwGYCqKKej4W+KzKZnZ2=z8TCQ@mail.gmail.com>
+References: <BANLkTinSpwGYCqKKej4W+KzKZnZ2=z8TCQ@mail.gmail.com>
+Message-ID: <19946.20853.403785.637811@max.nulle.part>
+
+
+Hi Gappy,
+
+On 4 June 2011 at 10:39, Giuseppe Paleologo wrote:
+| R uses LAPACK for svd computation, but it is my understanding from a post on
+| Radford Neal's blog (
+| http://radfordneal.wordpress.com/2011/05/21/slowing-down-matrix-multiplication-in-r/#more-739),
+| that additional checks are performed to propagate NA/NaNs and Inf, (at least
+| on level-3 BLAS calls, not sure LAPACK). I have to run a large number of
+| svds on large dense matrices, and am looking for efficient execution of
+
+How large is large?  
+
+Would a transfer to a GPU be worth it?  My initial explorations in the gcbd
+package/vignette (using the gputools package) showed that there is a
+crossover point, but it requires 'large' data.  And it will also depend
+somewhat on which BLAS implementation this would replace etc pp. This is a
+fast moving target and new solutions appear --- check e.g. this (commercial)
+offering of drop-in BLAS replacements using the GPU: http://www.culatools.com.
+The single precision version is free, double precisionis not.
+
+And what do you actually need?  It seems you can truncate the number of
+eigenvectors to just a few, so speed gains can be had (as per the help page
+of svd() in R itself) and also via irlba (more below).
+
+| these decompositions. I think a truncated svd would be acceptable, and R
+| does not have a base routine for this. My questions:
+| 
+| 1. when there are no NAs, Is there a benefit in binding directly to DGESVD
+
+I would call that an empirical issue, and would suggest you try it on a few
+different matrix sizes and approaches.
+
+| 2. has anyone tried packages svd (uses PROPACK routines) and irlba?
+
+Jeff already pointed you to the irlba docs. Jeff and I are true fanboys of
+Bryan Lewis who has been working on this for a while now.  Givem that irlba
+is now on CRAN, nothing stops you from including this in the empirical tests
+suggested above.  We are all eager to hear about timing comparisons...
+
+If however you need all eigenvectors then maybe the gain _may_ be less
+drastic. It all depends.
+
+Lastly, I have a lot of respect for Radford Neal and his critique, but I feel
+he forgets what John Chambers (in Chapter 1 of his "Software for Data
+Analysis") called the 'prime directive': "trustworthy software".  R has no
+choice but to test for NAs so it is a little unfair to bemoan the fact that
+it is rigorous about checking and validating inputs.  You cannot have your
+cake ("fastest possible R") and eat it too ("general purpose data programming
+environment").  We have seen in some Rcpp benchmarks that skipping tests for
+NAs etc can increase speed. That said, I think Knuth's "root of all evil"
+comment is important too here.  But if you can be sure your matrices are all
+good then skipping the tests may be an alternative for a specific solution.
+
+Cheers, Dirk
+
+
+-- 
+Gauss once played himself in a zero-sum game and won $50.
+                      -- #11 at http://www.gaussfacts.com
+
+
+From jayemerson at gmail.com  Sun Jun  5 17:16:41 2011
+From: jayemerson at gmail.com (Jay Emerson)
+Date: Sun, 5 Jun 2011 11:16:41 -0400
+Subject: [R-sig-hpc] Partial SVD
+Message-ID: <BANLkTi=cU5xWMHgz6cC4178yXKFjsr0meg@mail.gmail.com>
+
+Yes, Bryan put irlba up on CRAN.  It works on either matrix or
+big.matrix objects, too.  However (as Bryan would note) it is a pure R
+implementation and its performance could be greatly improved by moving
+much of the algorithm to C (maybe I'll try to get a grad student
+interested in working on it).  So it might not be surprising if the
+performance in "small-medium" simulations is unimpressive.  Just
+remember: it can do a *really big* partial SVD, which most other
+alternatives (that I'm aware of) wouldn't be able to handle.  We've
+used it on an 80 GB data set (Netflix data without using a sparse
+representation) successfully.
+
+Jay
+
+-- 
+John W. Emerson (Jay)
+Associate Professor of Statistics
+Department of Statistics
+Yale University
+http://www.stat.yale.edu/~jay
+
+
+From mauricio.zambrano at jrc.ec.europa.eu  Fri Jun 24 11:12:33 2011
+From: mauricio.zambrano at jrc.ec.europa.eu (Mauricio Zambrano-Bigiarini)
+Date: Fri, 24 Jun 2011 11:12:33 +0200
+Subject: [R-sig-hpc] multicore with functions calling an exe/.sh file
+Message-ID: <4E045501.9080307@jrc.ec.europa.eu>
+
+Dear List,
+
+I'm just doing my first trials with HPC, and I would like to ask your 
+opinion regarding the following issue.
+
+In R 2.13.0, I have an optimization algorithm for hydrological models, 
+which internally runs the .exe/.sh file of the model, and then computes 
+and writes into a file the results of different parameter values.
+
+So far this algorithm runs only in a sequential mode, i.e., trying 
+different parameter values one after another, and I would like to 
+parallelize it.
+
+My first attempt was using the multicore library, and changing the 
+existing 'lapply' loop for an 'mclapply' one. However, when I run the 
+optimization algorithm, I got several error messages:
+
+forrtl: Sharing violation
+forrtl: Sharing violation
+forrtl: Sharing violation
+
+forrtl: severe (30): open failure, unit 1, file 
+Z:\home\zambrhe\S090-test\file.cio
+
+which are due to the fact that all the 4 process are trying to access 
+the same .exe/.sh file and to modify the same input files at the same time.
+
+
+Is there any way to use multicore for parallelizing this type of 
+optimization function or should I move to some master/slave option ?
+
+
+Thanks in advance for any help.
+
+
+Mauricio Zambrano-Bigiarini
+
+
+PS,
+SesionInfo():
+R version 2.13.0 (2011-04-13)
+Platform: i386-redhat-linux-gnu (32-bit)
+
+-- 
+=======================================================
+FLOODS Action
+Land Management and Natural Hazards Unit
+Institute for Environment and Sustainability (IES)
+European Commission, Joint Research Centre (JRC)
+TP 261, Via Enrico Fermi 2749, 21027 Ispra (VA), Italy
+webinfo    : http://floods.jrc.ec.europa.eu/
+work-phone : (+39)-(0332)-789588
+work-fax   : (+39)-(0332)-786653
+=======================================================
+DISCLAIMER:\ "The views expressed are purely those of th...{{dropped:11}}
+
+
+From stephen.b.weston at gmail.com  Fri Jun 24 15:01:48 2011
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Fri, 24 Jun 2011 09:01:48 -0400
+Subject: [R-sig-hpc] multicore with functions calling an exe/.sh file
+In-Reply-To: <4E045501.9080307@jrc.ec.europa.eu>
+References: <4E045501.9080307@jrc.ec.europa.eu>
+Message-ID: <BANLkTi=TuK=1AtWKM+9NsdyZV+PpOcg8zQ@mail.gmail.com>
+
+If you're executing an external program from R using mclapply, and that
+program is creating output files, then you need to arrange for that
+program to create the output files with different names, or to create them
+in different directories.  Usually that would be done with a command line
+argument to the program.  If it doesn't have such an argument, the best
+thing to do is add one.  If you can't do that, you could try executing them
+from different directories by executing setwd in the parallel function
+before executing the external program.  Unfortunately, that could cause
+other problems, especially if the program is reading data files from the
+current working directory.  But hopefully, the program supports an option
+to change the output file name or directory.
+
+- Steve
+
+P.S.  Why is a program running on a Linux machine using a file with
+the path "Z:\home\zambrhe\S090-test\file.cio"?
+
+
+On Fri, Jun 24, 2011 at 5:12 AM, Mauricio Zambrano-Bigiarini
+<mauricio.zambrano at jrc.ec.europa.eu> wrote:
+> Dear List,
+>
+> I'm just doing my first trials with HPC, and I would like to ask your
+> opinion regarding the following issue.
+>
+> In R 2.13.0, I have an optimization algorithm for hydrological models, which
+> internally runs the .exe/.sh file of the model, and then computes and writes
+> into a file the results of different parameter values.
+>
+> So far this algorithm runs only in a sequential mode, i.e., trying different
+> parameter values one after another, and I would like to parallelize it.
+>
+> My first attempt was using the multicore library, and changing the existing
+> 'lapply' loop for an 'mclapply' one. However, when I run the optimization
+> algorithm, I got several error messages:
+>
+> forrtl: Sharing violation
+> forrtl: Sharing violation
+> forrtl: Sharing violation
+>
+> forrtl: severe (30): open failure, unit 1, file
+> Z:\home\zambrhe\S090-test\file.cio
+>
+> which are due to the fact that all the 4 process are trying to access the
+> same .exe/.sh file and to modify the same input files at the same time.
+>
+>
+> Is there any way to use multicore for parallelizing this type of
+> optimization function or should I move to some master/slave option ?
+>
+>
+> Thanks in advance for any help.
+>
+>
+> Mauricio Zambrano-Bigiarini
+>
+>
+> PS,
+> SesionInfo():
+> R version 2.13.0 (2011-04-13)
+> Platform: i386-redhat-linux-gnu (32-bit)
+>
+> --
+> =======================================================
+> FLOODS Action
+> Land Management and Natural Hazards Unit
+> Institute for Environment and Sustainability (IES)
+> European Commission, Joint Research Centre (JRC)
+> TP 261, Via Enrico Fermi 2749, 21027 Ispra (VA), Italy
+> webinfo ? ?: http://floods.jrc.ec.europa.eu/
+> work-phone : (+39)-(0332)-789588
+> work-fax ? : (+39)-(0332)-786653
+> =======================================================
+> DISCLAIMER:\ "The views expressed are purely those of th...{{dropped:11}}
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From mauricio.zambrano at jrc.ec.europa.eu  Fri Jun 24 17:51:38 2011
+From: mauricio.zambrano at jrc.ec.europa.eu (Mauricio Zambrano-Bigiarini)
+Date: Fri, 24 Jun 2011 17:51:38 +0200
+Subject: [R-sig-hpc] multicore with functions calling an exe/.sh file
+In-Reply-To: <BANLkTi=TuK=1AtWKM+9NsdyZV+PpOcg8zQ@mail.gmail.com>
+References: <4E045501.9080307@jrc.ec.europa.eu>
+	<BANLkTi=TuK=1AtWKM+9NsdyZV+PpOcg8zQ@mail.gmail.com>
+Message-ID: <4E04B28A.3010503@jrc.ec.europa.eu>
+
+Thanks Steve for your answer.
+
+Stephen Weston wrote:
+> If you're executing an external program from R using mclapply, and that
+> program is creating output files, then you need to arrange for that
+> program to create the output files with different names, or to create them
+> in different directories.  
+
+Yes, I'm running an external program with mclapply, and I thought that 
+there could exist some package that mange this automatically, by 
+creating a copy of the working process (and all the files) on the local 
+memory, in some way, but probably it was just too much imagination :)
+
+
+Usually that would be done with a command line
+> argument to the program.  If it doesn't have such an argument, the best
+> thing to do is add one. 
+
+I think this could be the only way of solving my problem. However, I 
+also the additional issue that each process needs to modify the same 
+position of the same input files at the same time. So I should also add 
+an argument for the location of the input files.
+
+  If you can't do that, you could try executing them
+> from different directories by executing setwd in the parallel function
+> before executing the external program.  Unfortunately, that could cause
+> other problems, especially if the program is reading data files from the
+> current working directory.  But hopefully, the program supports an option
+> to change the output file name or directory.
+
+
+The external program I'm running now doesn't have an option for setting 
+the location of the input/output files. So probably the fastest solution 
+could be to create as many copies of the input files as the amount of 
+cores I want to use, and then to re-direct (in some way) each process to 
+a different directory, each one storing all the necessary input files.
+
+I wanted to avoid the previous solution, but I think is the only way to 
+go forward...
+
+
+> 
+> - Steve
+> 
+> P.S.  Why is a program running on a Linux machine using a file with
+> the path "Z:\home\zambrhe\S090-test\file.cio"?
+
+Good question.
+The directory that hold the input/output/exe/.sh files is:
+
+model.drty <- "/home/zambrhe/S090-test"
+
+and that is the argument I pass to R for executing my script.
+
+However, my '/home/zambrhe/' directory is in a network drive, ad 
+probably R see it as "Z:\home\zambrhe\S090-test\file.cio" for some reason...
+
+
+
+Thanks you very much again.
+
+Mauricio
+
+-- 
+=======================================================
+FLOODS Action
+Land Management and Natural Hazards Unit
+Institute for Environment and Sustainability (IES)
+European Commission, Joint Research Centre (JRC)
+=======================================================
+DISCLAIMER:
+"The views expressed are purely those of the writer
+and may not in any circumstances be regarded as stating
+an official position of the European Commission."
+=======================================================
+Linux user #454569 -- Ubuntu user #17469
+=======================================================
+"Don't wish for less problems, wish for more skills.
+Don't wish it were easier, wish you were better."
+(Jim Rohn)
+
+
+> 
+> 
+> On Fri, Jun 24, 2011 at 5:12 AM, Mauricio Zambrano-Bigiarini
+> <mauricio.zambrano at jrc.ec.europa.eu> wrote:
+>> Dear List,
+>>
+>> I'm just doing my first trials with HPC, and I would like to ask your
+>> opinion regarding the following issue.
+>>
+>> In R 2.13.0, I have an optimization algorithm for hydrological models, which
+>> internally runs the .exe/.sh file of the model, and then computes and writes
+>> into a file the results of different parameter values.
+>>
+>> So far this algorithm runs only in a sequential mode, i.e., trying different
+>> parameter values one after another, and I would like to parallelize it.
+>>
+>> My first attempt was using the multicore library, and changing the existing
+>> 'lapply' loop for an 'mclapply' one. However, when I run the optimization
+>> algorithm, I got several error messages:
+>>
+>> forrtl: Sharing violation
+>> forrtl: Sharing violation
+>> forrtl: Sharing violation
+>>
+>> forrtl: severe (30): open failure, unit 1, file
+>> Z:\home\zambrhe\S090-test\file.cio
+>>
+>> which are due to the fact that all the 4 process are trying to access the
+>> same .exe/.sh file and to modify the same input files at the same time.
+>>
+>>
+>> Is there any way to use multicore for parallelizing this type of
+>> optimization function or should I move to some master/slave option ?
+>>
+>>
+>> Thanks in advance for any help.
+>>
+>>
+>> Mauricio Zambrano-Bigiarini
+>>
+>>
+>> PS,
+>> SesionInfo():
+>> R version 2.13.0 (2011-04-13)
+>> Platform: i386-redhat-linux-gnu (32-bit)
+>>
+>> --
+>> =======================================================
+>> FLOODS Action
+>> Land Management and Natural Hazards Unit
+>> Institute for Environment and Sustainability (IES)
+>> European Commission, Joint Research Centre (JRC)
+>> TP 261, Via Enrico Fermi 2749, 21027 Ispra (VA), Italy
+>> webinfo    : http://floods.jrc.ec.europa.eu/
+>> work-phone : (+39)-(0332)-789588
+>> work-fax   : (+39)-(0332)-786653
+>> =======================================================
+>> DISCLAIMER:\ "The views expressed are purely those of th...{{dropped:11}}
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>
+
+
+From haavard.kongsgaard at gmail.com  Sun Jun 26 09:07:33 2011
+From: haavard.kongsgaard at gmail.com (=?ISO-8859-1?Q?H=E5vard_Wahl_Kongsg=E5rd?=)
+Date: Sun, 26 Jun 2011 09:07:33 +0200
+Subject: [R-sig-hpc] Handling data with thousands of variables
+Message-ID: <BANLkTi=9+f3h5uFRSa41hRXA7RRgrWcQ8g@mail.gmail.com>
+
+In machine learning settings it's not uncommon that the data has
+thousands of variables. The same is also the case with genetic
+studies.
+
+In R what is the best approach for handling such data? Any personal
+experience with handling such data in R?
+
+For my case the raw data is a response variable and a unstructured
+tuple with string keywords.
+
+1341,{"Harry","Larry","Kline"}
+54232,{"Mary","Kline","Larry"}
+54232,{"David","Line","Lars"}
+
+
+- H?vard
+
+
+From brian at braverock.com  Sun Jun 26 12:12:29 2011
+From: brian at braverock.com (Brian G. Peterson)
+Date: Sun, 26 Jun 2011 05:12:29 -0500
+Subject: [R-sig-hpc] Handling data with thousands of variables
+In-Reply-To: <BANLkTi=9+f3h5uFRSa41hRXA7RRgrWcQ8g@mail.gmail.com>
+References: <BANLkTi=9+f3h5uFRSa41hRXA7RRgrWcQ8g@mail.gmail.com>
+Message-ID: <1309083149.22117.869.camel@brian-desktop>
+
+On Sun, 2011-06-26 at 09:07 +0200, H?vard Wahl Kongsg?rd wrote:
+> In machine learning settings it's not uncommon that the data has
+> thousands of variables. The same is also the case with genetic
+> studies.
+> 
+> In R what is the best approach for handling such data? Any personal
+> experience with handling such data in R?
+> 
+> For my case the raw data is a response variable and a unstructured
+> tuple with string keywords.
+> 
+> 1341,{"Harry","Larry","Kline"}
+> 54232,{"Mary","Kline","Larry"}
+> 54232,{"David","Line","Lars"}
+
+You haven't given us a lot of information to go on, and certainly
+nothing reproducible.  My response necessarily makes several
+assumptions. 
+
+Thousands (or even millions) or records doesn't really seem like an
+overly large amount of data to me. 
+
+If each of your rows above is a 'record', the first thing I would do is
+separate the tuple into separate fields using common factors for the
+string keywords.  Processing factor levels should be generally faster
+than processing strings.  If the length of the tuple is also variable,
+then it may be useful to use a list with slots $response and $tuple.  If
+your tuples are immutable and have some finite set of combinations which
+they may attain, then perhaps the factors could be constructed of the
+entire tuple, rather than the tuple elements.
+
+If you intend to parallelize some part of your calculation (and that is
+why you are writing to the High Performance Computing list), then you
+should consider how to chunk up groups of records to send to each
+computational worker or node to avoid interprocess communication
+overhead.
+
+It is not unlikely that my assumptions are incorrect for your problem.
+In follow-up emails perhaps you could consult the posting guide and
+provide more details and clarification.
+
+Regards,
+
+   - Brian
+
+-- 
+Brian G. Peterson
+http://braverock.com/brian/
+Ph: 773-459-4973
+IM: bgpbraverock
+
+
+From haavard.kongsgaard at gmail.com  Sun Jun 26 12:52:16 2011
+From: haavard.kongsgaard at gmail.com (=?ISO-8859-1?Q?H=E5vard_Wahl_Kongsg=E5rd?=)
+Date: Sun, 26 Jun 2011 12:52:16 +0200
+Subject: [R-sig-hpc] Handling data with thousands of variables
+In-Reply-To: <1309083149.22117.869.camel@brian-desktop>
+References: <BANLkTi=9+f3h5uFRSa41hRXA7RRgrWcQ8g@mail.gmail.com>
+	<1309083149.22117.869.camel@brian-desktop>
+Message-ID: <BANLkTikaOJN-xrz1uDXYnY34q=LCCZsYLA@mail.gmail.com>
+
+Thanks, I am not very good at describing issues. Your assumptions are
+correct, however in my case I have 20 000 different keywords and 10
+000000 records so it's a big data set.
+
+I don't use R for programming, but are slots more or less a dictionary
+class(python) in R?
+
+-H?vard
+
+2011/6/26 Brian G. Peterson <brian at braverock.com>:
+> On Sun, 2011-06-26 at 09:07 +0200, H?vard Wahl Kongsg?rd wrote:
+>> In machine learning settings it's not uncommon that the data has
+>> thousands of variables. The same is also the case with genetic
+>> studies.
+>>
+>> In R what is the best approach for handling such data? Any personal
+>> experience with handling such data in R?
+>>
+>> For my case the raw data is a response variable and a unstructured
+>> tuple with string keywords.
+>>
+>> 1341,{"Harry","Larry","Kline"}
+>> 54232,{"Mary","Kline","Larry"}
+>> 54232,{"David","Line","Lars"}
+>
+> You haven't given us a lot of information to go on, and certainly
+> nothing reproducible. ?My response necessarily makes several
+> assumptions.
+>
+> Thousands (or even millions) or records doesn't really seem like an
+> overly large amount of data to me.
+>
+> If each of your rows above is a 'record', the first thing I would do is
+> separate the tuple into separate fields using common factors for the
+> string keywords. ?Processing factor levels should be generally faster
+> than processing strings. ?If the length of the tuple is also variable,
+> then it may be useful to use a list with slots $response and $tuple. ?If
+> your tuples are immutable and have some finite set of combinations which
+> they may attain, then perhaps the factors could be constructed of the
+> entire tuple, rather than the tuple elements.
+>
+> If you intend to parallelize some part of your calculation (and that is
+> why you are writing to the High Performance Computing list), then you
+> should consider how to chunk up groups of records to send to each
+> computational worker or node to avoid interprocess communication
+> overhead.
+>
+> It is not unlikely that my assumptions are incorrect for your problem.
+> In follow-up emails perhaps you could consult the posting guide and
+> provide more details and clarification.
+>
+> Regards,
+>
+> ? - Brian
+>
+> --
+> Brian G. Peterson
+> http://braverock.com/brian/
+> Ph: 773-459-4973
+> IM: bgpbraverock
+>
+>
+
+
+From brian at braverock.com  Sun Jun 26 13:06:14 2011
+From: brian at braverock.com (Brian G. Peterson)
+Date: Sun, 26 Jun 2011 06:06:14 -0500
+Subject: [R-sig-hpc] Handling data with thousands of variables
+In-Reply-To: <BANLkTikaOJN-xrz1uDXYnY34q=LCCZsYLA@mail.gmail.com>
+References: <BANLkTi=9+f3h5uFRSa41hRXA7RRgrWcQ8g@mail.gmail.com>
+	<1309083149.22117.869.camel@brian-desktop>
+	<BANLkTikaOJN-xrz1uDXYnY34q=LCCZsYLA@mail.gmail.com>
+Message-ID: <1309086374.22117.879.camel@brian-desktop>
+
+On Sun, 2011-06-26 at 12:52 +0200, H?vard Wahl Kongsg?rd wrote:
+> Thanks, I am not very good at describing issues. Your assumptions are
+> correct, however in my case I have 20 000 different keywords and 10
+> 000000 records so it's a big data set.
+
+OK, so then I would definitely reiterate the suggestion to pre-process
+the tuples into factors, so that each of your 20000 keywords will have a
+numeric representation.
+
+> I don't use R for programming, but are slots more or less a dictionary
+> class(python) in R?
+
+'slots' are the (named) list elements in the older S3 class system in R,
+and many people (including me) use the word 'slot' generically to refer
+to named list elements in general.  lists in R can contain elements that
+hold any other arbitrary class of object/data, and so are useful for
+'mixed type' collections.
+
+Given the additional information you've provided, and making the further
+assumption that your tuples are always the same length (three keywords):
+
+I would probably first construct the factor levels for your keywords,
+see ?factor 
+
+I would 'flatten' the data into a four-column representation
+
+response,tuple1,tuple2,tuple3
+
+using the factor-numeric representation for each tuple.  This could be
+stored using either a data.frame or a matrix.  If you use the pure
+numeric representation, a matrix will be faster.
+
+Then, as discussed previously, if you intend to parallelize, since your
+individual records are small, consider how to batch them up for sending
+to your worker/compute processes.
+
+Regards,
+
+   - Brian
+ 
+-- 
+Brian G. Peterson
+http://braverock.com/brian/
+Ph: 773-459-4973
+IM: bgpbraverock
+
+
+From haavard.kongsgaard at gmail.com  Sun Jun 26 14:09:43 2011
+From: haavard.kongsgaard at gmail.com (=?ISO-8859-1?Q?H=E5vard_Wahl_Kongsg=E5rd?=)
+Date: Sun, 26 Jun 2011 14:09:43 +0200
+Subject: [R-sig-hpc] Handling data with thousands of variables
+In-Reply-To: <1309086374.22117.879.camel@brian-desktop>
+References: <BANLkTi=9+f3h5uFRSa41hRXA7RRgrWcQ8g@mail.gmail.com>
+	<1309083149.22117.869.camel@brian-desktop>
+	<BANLkTikaOJN-xrz1uDXYnY34q=LCCZsYLA@mail.gmail.com>
+	<1309086374.22117.879.camel@brian-desktop>
+Message-ID: <BANLkTimoArXGV_A0QJKVB00KLrwtD+dy_A@mail.gmail.com>
+
+Again sorry about the bad example. The tuples are not the same length,
+some have 20 object others 150...
+
+-H?vard
+
+
+From brian at braverock.com  Sun Jun 26 16:06:20 2011
+From: brian at braverock.com (Brian G. Peterson)
+Date: Sun, 26 Jun 2011 09:06:20 -0500
+Subject: [R-sig-hpc] Handling data with thousands of variables
+In-Reply-To: <BANLkTimoArXGV_A0QJKVB00KLrwtD+dy_A@mail.gmail.com>
+References: <BANLkTi=9+f3h5uFRSa41hRXA7RRgrWcQ8g@mail.gmail.com>
+	<1309083149.22117.869.camel@brian-desktop>
+	<BANLkTikaOJN-xrz1uDXYnY34q=LCCZsYLA@mail.gmail.com>
+	<1309086374.22117.879.camel@brian-desktop>
+	<BANLkTimoArXGV_A0QJKVB00KLrwtD+dy_A@mail.gmail.com>
+Message-ID: <1309097180.22117.886.camel@brian-desktop>
+
+On Sun, 2011-06-26 at 14:09 +0200, H?vard Wahl Kongsg?rd wrote:
+> Again sorry about the bad example. The tuples are not the same length,
+> some have 20 object others 150...
+
+Some facts about your job:
+~ 10 000 000 records
+~     20 000 keywords
+- each record consists of a combination of 
+  + response variable and
+  + structured string-based tuple of ~20-150 keywords 
+
+So, to ask more questions and avoid more assumptions:
+
+- are the response variables numeric? (integer or floating point?)
+- does the order of the tuples matter ?
+- do you know all the possible keywords ?
+  (so that they could be encoded with numerical representations)
+
+Regards,
+
+  - Brian
+-- 
+Brian G. Peterson
+http://braverock.com/brian/
+Ph: 773-459-4973
+IM: bgpbraverock
+
+
+From haavard.kongsgaard at gmail.com  Sun Jun 26 16:42:00 2011
+From: haavard.kongsgaard at gmail.com (=?ISO-8859-1?Q?H=E5vard_Wahl_Kongsg=E5rd?=)
+Date: Sun, 26 Jun 2011 16:42:00 +0200
+Subject: [R-sig-hpc] Handling data with thousands of variables
+In-Reply-To: <1309097180.22117.886.camel@brian-desktop>
+References: <BANLkTi=9+f3h5uFRSa41hRXA7RRgrWcQ8g@mail.gmail.com>
+	<1309083149.22117.869.camel@brian-desktop>
+	<BANLkTikaOJN-xrz1uDXYnY34q=LCCZsYLA@mail.gmail.com>
+	<1309086374.22117.879.camel@brian-desktop>
+	<BANLkTimoArXGV_A0QJKVB00KLrwtD+dy_A@mail.gmail.com>
+	<1309097180.22117.886.camel@brian-desktop>
+Message-ID: <BANLkTinUW0aWMAcM7USqRRqTZ0AWG8U_WA@mail.gmail.com>
+
+> - are the response variables numeric? (integer or floating point?)
+integer
+
+> - does the order of the tuples matter ?
+no,
+
+> - do you know all the possible keywords ?
+> ?(so that they could be encoded with numerical representations)
+nope..
+
+The database relates to file sharing activity, the keywords are plot
+keywords. Like http://www.imdb.com/title/tt1133985/keywords
+
+-H?vard
+
+
+From sdavis2 at mail.nih.gov  Sun Jun 26 17:21:08 2011
+From: sdavis2 at mail.nih.gov (Sean Davis)
+Date: Sun, 26 Jun 2011 11:21:08 -0400
+Subject: [R-sig-hpc] Handling data with thousands of variables
+In-Reply-To: <BANLkTinUW0aWMAcM7USqRRqTZ0AWG8U_WA@mail.gmail.com>
+References: <BANLkTi=9+f3h5uFRSa41hRXA7RRgrWcQ8g@mail.gmail.com>
+	<1309083149.22117.869.camel@brian-desktop>
+	<BANLkTikaOJN-xrz1uDXYnY34q=LCCZsYLA@mail.gmail.com>
+	<1309086374.22117.879.camel@brian-desktop>
+	<BANLkTimoArXGV_A0QJKVB00KLrwtD+dy_A@mail.gmail.com>
+	<1309097180.22117.886.camel@brian-desktop>
+	<BANLkTinUW0aWMAcM7USqRRqTZ0AWG8U_WA@mail.gmail.com>
+Message-ID: <BANLkTimYfN8E1AuQp7OfisNK09QeeoCBMw@mail.gmail.com>
+
+It might be really useful for you to describe the analytical question
+or problem, not just the data.  Dealing with millions of data points
+does not make the problem special, really; R is quite happy with very
+large datasets and with little work can even be used with datasets
+that are much larger than available memory.  What is it that you are
+trying to show for your data?  Do you have an example of another
+analysis done by someone else that you would like to reproduce using
+your data?
+
+Sean
+
+2011/6/26 H?vard Wahl Kongsg?rd <haavard.kongsgaard at gmail.com>:
+>> - are the response variables numeric? (integer or floating point?)
+> integer
+>
+>> - does the order of the tuples matter ?
+> no,
+>
+>> - do you know all the possible keywords ?
+>> ?(so that they could be encoded with numerical representations)
+> nope..
+>
+> The database relates to file sharing activity, the keywords are plot
+> keywords. Like http://www.imdb.com/title/tt1133985/keywords
+>
+> -H?vard
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From haavard.kongsgaard at gmail.com  Sun Jun 26 17:53:04 2011
+From: haavard.kongsgaard at gmail.com (=?ISO-8859-1?Q?H=E5vard_Wahl_Kongsg=E5rd?=)
+Date: Sun, 26 Jun 2011 17:53:04 +0200
+Subject: [R-sig-hpc] Handling data with thousands of variables
+In-Reply-To: <BANLkTimYfN8E1AuQp7OfisNK09QeeoCBMw@mail.gmail.com>
+References: <BANLkTi=9+f3h5uFRSa41hRXA7RRgrWcQ8g@mail.gmail.com>
+	<1309083149.22117.869.camel@brian-desktop>
+	<BANLkTikaOJN-xrz1uDXYnY34q=LCCZsYLA@mail.gmail.com>
+	<1309086374.22117.879.camel@brian-desktop>
+	<BANLkTimoArXGV_A0QJKVB00KLrwtD+dy_A@mail.gmail.com>
+	<1309097180.22117.886.camel@brian-desktop>
+	<BANLkTinUW0aWMAcM7USqRRqTZ0AWG8U_WA@mail.gmail.com>
+	<BANLkTimYfN8E1AuQp7OfisNK09QeeoCBMw@mail.gmail.com>
+Message-ID: <BANLkTi=K=o9XcfmSpyMLXKuJPsqrbtkmoQ@mail.gmail.com>
+
+Hi, just wanted to try a svm on the keywords to find significant
+keywords, for example for US users (
+http://havard.security-review.net/Bittorent.pdf ). But first had to
+find a ideal approach to pre-process the data in R
+
+-H?vard
+
+
+From cedrick at cedrickjohnson.com  Sun Jun 26 19:40:34 2011
+From: cedrick at cedrickjohnson.com (Johnson, Cedrick W.)
+Date: Sun, 26 Jun 2011 13:40:34 -0400
+Subject: [R-sig-hpc] doSMP warnings and crash on WinXP
+In-Reply-To: <BANLkTi=9+f3h5uFRSa41hRXA7RRgrWcQ8g@mail.gmail.com>
+References: <BANLkTi=9+f3h5uFRSa41hRXA7RRgrWcQ8g@mail.gmail.com>
+Message-ID: <4E076F12.2080902@cedrickjohnson.com>
+
+Howdy-
+
+When I first initialize a doSMP object (specifying two cores) as below, 
+within RStudio (latest) it crashes the app. I brought up the regular R 
+console (2.13.0) and tried to do the same thing but received some 
+interesting warnings:
+
+ > library(doSMP)
+Loading required package: foreach
+Loading required package: iterators
+Loading required package: codetools
+foreach: simple, scalable parallel programming from Revolution Analytics
+Use Revolution R for scalability, fault tolerance and more.
+http://www.revolutionanalytics.com
+Loading required package: revoIPC
+ > tmp = startWorkers(2)
+Warning messages:
+1: In startWorkers(2) : there is an existing doSMP session using doSMP1
+2: In startWorkers(2) : there is an existing doSMP session using doSMP2
+ >
+
+Here's my dillemma. Where is said existing doSMP session? Could it be a 
+"dirty" file leftover somewhere from a previous call that's causing this 
+to 1) crash RStudio and 2) generate these warnings? A quick look at the 
+processlist doesn't show anything running. I've even tried doing this 
+after a clean reboot with the same error.
+
+SessionInfo:
+
+R version 2.13.0 (2011-04-13)
+Platform: i386-pc-mingw32/i386 (32-bit)
+
+locale:
+[1] LC_COLLATE=English_United States.1252  LC_CTYPE=English_United 
+States.1252
+[3] LC_MONETARY=English_United States.1252 LC_NUMERIC=C
+[5] LC_TIME=English_United States.1252
+
+attached base packages:
+[1] stats     graphics  grDevices datasets  utils     methods   base
+
+other attached packages:
+[1] doSMP_1.0-1     revoIPC_1.0-3   foreach_1.3.2   codetools_0.2-8 
+iterators_1.0.4
+[6] rcom_2.2-3.1    rscproxy_1.3-1
+
+loaded via a namespace (and not attached):
+[1] tools_2.13.0
+
+Thanks for any guidance.
+
+c
+
+
+From cedrick at cedrickjohnson.com  Sun Jun 26 20:53:26 2011
+From: cedrick at cedrickjohnson.com (Cedrick Johnson)
+Date: Sun, 26 Jun 2011 14:53:26 -0400
+Subject: [R-sig-hpc] doSMP warnings and crash on WinXP
+Message-ID: <4E078026.4030900@cedrickjohnson.com>
+
+I think I found out what was causing the problem and it seems to be 
+working now for the time being:
+
+c:\Documents and Settings\username\Local Settings\Temp
+
+In the directory boost_interprocess when I create the workers using 
+startWorkers a file named: doSMP1(Shm) gets created. When things are 
+working normally, after I issue stopWorkers this file is supposed to be 
+deleted. What happened previously was this file did not get deleted and 
+thus why I got the original warnings (and RStudio crashed) below.
+
+I manually just cleaned out the temp folder, restarted and everything 
+appears to be working normally now.
+
+Thanks
+c
+
+
+Original Message >>>>
+Howdy-
+
+When I first initialize a doSMP object (specifying two cores) as below,
+within RStudio (latest) it crashes the app. I brought up the regular R
+console (2.13.0) and tried to do the same thing but received some
+interesting warnings:
+
+  >  library(doSMP)
+Loading required package: foreach
+Loading required package: iterators
+Loading required package: codetools
+foreach: simple, scalable parallel programming from Revolution Analytics
+Use Revolution R for scalability, fault tolerance and more.
+http://www.revolutionanalytics.com  <http://www.revolutionanalytics.com/>
+Loading required package: revoIPC
+  >  tmp = startWorkers(2)
+Warning messages:
+1: In startWorkers(2) : there is an existing doSMP session using doSMP1
+2: In startWorkers(2) : there is an existing doSMP session using doSMP2
+  >
+
+Here's my dillemma. Where is said existing doSMP session? Could it be a
+"dirty" file leftover somewhere from a previous call that's causing this
+to 1) crash RStudio and 2) generate these warnings? A quick look at the
+processlist doesn't show anything running. I've even tried doing this
+after a clean reboot with the same error.
+
+SessionInfo:
+
+R version 2.13.0 (2011-04-13)
+Platform: i386-pc-mingw32/i386 (32-bit)
+
+locale:
+[1] LC_COLLATE=English_United States.1252  LC_CTYPE=English_United
+States.1252
+[3] LC_MONETARY=English_United States.1252 LC_NUMERIC=C
+[5] LC_TIME=English_United States.1252
+
+attached base packages:
+[1] stats     graphics  grDevices datasets  utils     methods   base
+
+other attached packages:
+[1] doSMP_1.0-1     revoIPC_1.0-3   foreach_1.3.2   codetools_0.2-8
+iterators_1.0.4
+[6] rcom_2.2-3.1    rscproxy_1.3-1
+
+loaded via a namespace (and not attached):
+[1] tools_2.13.0
+
+Thanks for any guidance.
+
+c
+
+
+From schmidbe at in.tum.de  Mon Jun 27 14:35:13 2011
+From: schmidbe at in.tum.de (Markus Schmidberger)
+Date: Mon, 27 Jun 2011 14:35:13 +0200
+Subject: [R-sig-hpc] doSMP warnings and crash on WinXP
+In-Reply-To: <4E078026.4030900@cedrickjohnson.com>
+References: <4E078026.4030900@cedrickjohnson.com>
+Message-ID: <1309178113.14600.2.camel@schmidb-TravelMate8572TG>
+
+I have some similar problems and there was a similar post in R-sig-hpc.
+Using the multicore or snow package in combination with Rstudio creates
+some strange error. As workers additional Rstudio sessions will be
+started. I am currently figuring out what is going wrong.
+
+Best
+Markus
+
+Am Sonntag, den 26.06.2011, 14:53 -0400 schrieb Cedrick Johnson:
+> I think I found out what was causing the problem and it seems to be 
+> working now for the time being:
+> 
+> c:\Documents and Settings\username\Local Settings\Temp
+> 
+> In the directory boost_interprocess when I create the workers using 
+> startWorkers a file named: doSMP1(Shm) gets created. When things are 
+> working normally, after I issue stopWorkers this file is supposed to be 
+> deleted. What happened previously was this file did not get deleted and 
+> thus why I got the original warnings (and RStudio crashed) below.
+> 
+> I manually just cleaned out the temp folder, restarted and everything 
+> appears to be working normally now.
+> 
+> Thanks
+> c
+> 
+> 
+> Original Message >>>>
+> Howdy-
+> 
+> When I first initialize a doSMP object (specifying two cores) as below,
+> within RStudio (latest) it crashes the app. I brought up the regular R
+> console (2.13.0) and tried to do the same thing but received some
+> interesting warnings:
+> 
+>   >  library(doSMP)
+> Loading required package: foreach
+> Loading required package: iterators
+> Loading required package: codetools
+> foreach: simple, scalable parallel programming from Revolution Analytics
+> Use Revolution R for scalability, fault tolerance and more.
+> http://www.revolutionanalytics.com  <http://www.revolutionanalytics.com/>
+> Loading required package: revoIPC
+>   >  tmp = startWorkers(2)
+> Warning messages:
+> 1: In startWorkers(2) : there is an existing doSMP session using doSMP1
+> 2: In startWorkers(2) : there is an existing doSMP session using doSMP2
+>   >
+> 
+> Here's my dillemma. Where is said existing doSMP session? Could it be a
+> "dirty" file leftover somewhere from a previous call that's causing this
+> to 1) crash RStudio and 2) generate these warnings? A quick look at the
+> processlist doesn't show anything running. I've even tried doing this
+> after a clean reboot with the same error.
+> 
+> SessionInfo:
+> 
+> R version 2.13.0 (2011-04-13)
+> Platform: i386-pc-mingw32/i386 (32-bit)
+> 
+> locale:
+> [1] LC_COLLATE=English_United States.1252  LC_CTYPE=English_United
+> States.1252
+> [3] LC_MONETARY=English_United States.1252 LC_NUMERIC=C
+> [5] LC_TIME=English_United States.1252
+> 
+> attached base packages:
+> [1] stats     graphics  grDevices datasets  utils     methods   base
+> 
+> other attached packages:
+> [1] doSMP_1.0-1     revoIPC_1.0-3   foreach_1.3.2   codetools_0.2-8
+> iterators_1.0.4
+> [6] rcom_2.2-3.1    rscproxy_1.3-1
+> 
+> loaded via a namespace (and not attached):
+> [1] tools_2.13.0
+> 
+> Thanks for any guidance.
+> 
+> c
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+-- 
+Dr. rer. nat. Markus Schmidberger 
+Senior Community Manager 
+
+Cloudnumbers.com GmbH
+Chausseestra?e 6
+10119 Berlin 
+
+www.cloudnumbers.com 
+E-Mail: markus.schmidberger at cloudnumbers.com 
+
+
+************************* 
+Amtsgericht M?nchen, HRB 191138 
+Gesch?ftsf?hrer: Erik Muttersbach, Markus Fensterer, Moritz v. 
+Petersdorff-Campen 
+
+
+
+Diese Nachricht kann vertrauliche Informationen enthalten. Sollten Sie 
+nicht der vorgesehene Empf?nger sein, so bitten wir um eine kurze 
+Nachricht. Jede unbefugte Weiterleitung oder Fertigung einer Kopie ist 
+unzul?ssig. Da wir nicht die Echtheit oder  Vollst?ndigkeit der in 
+dieser Nachricht enthaltenen Informationen garantieren k?nnen, 
+schlie?en wir die rechtliche Verbindlichkeit der vorstehenden 
+Erkl?rungen und ?u?erungen aus. 
+This message may contain confidential information. If yo...{{dropped:6}}
+
+
+From mauricio.zambrano at jrc.ec.europa.eu  Tue Jun 28 09:46:35 2011
+From: mauricio.zambrano at jrc.ec.europa.eu (Mauricio Zambrano-Bigiarini)
+Date: Tue, 28 Jun 2011 09:46:35 +0200
+Subject: [R-sig-hpc] Handling data with thousands of variables
+In-Reply-To: <BANLkTi=9+f3h5uFRSa41hRXA7RRgrWcQ8g@mail.gmail.com>
+References: <BANLkTi=9+f3h5uFRSa41hRXA7RRgrWcQ8g@mail.gmail.com>
+Message-ID: <4E0986DB.40908@jrc.ec.europa.eu>
+
+H?vard Wahl Kongsg?rd wrote:
+> In machine learning settings it's not uncommon that the data has
+> thousands of variables. The same is also the case with genetic
+> studies.
+> 
+> In R what is the best approach for handling such data? Any personal
+> experience with handling such data in R?
+> 
+> For my case the raw data is a response variable and a unstructured
+> tuple with string keywords.
+> 
+> 1341,{"Harry","Larry","Kline"}
+> 54232,{"Mary","Kline","Larry"}
+> 54232,{"David","Line","Lars"}
+> 
+> 
+> - H?vard
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+Did you have a look to Bioconductor :
+
+http://www.bioconductor.org/
+
+http://manuals.bioinformatics.ucr.edu/home/ht-seq#R_BACK
+
+?
+
+IHTH.
+
+Kinds,
+
+Mauricio
+
+-- 
+=======================================================
+Linux user #454569 -- Ubuntu user #17469
+=======================================================
+"Don't wish for less problems, wish for more skills.
+Don't wish it were easier, wish you were better."
+(Jim Rohn)
+
+
+From haavard.kongsgaard at gmail.com  Tue Jun 28 10:51:31 2011
+From: haavard.kongsgaard at gmail.com (=?ISO-8859-1?Q?H=E5vard_Wahl_Kongsg=E5rd?=)
+Date: Tue, 28 Jun 2011 10:51:31 +0200
+Subject: [R-sig-hpc] Handling data with thousands of variables
+In-Reply-To: <4E0986DB.40908@jrc.ec.europa.eu>
+References: <BANLkTi=9+f3h5uFRSa41hRXA7RRgrWcQ8g@mail.gmail.com>
+	<4E0986DB.40908@jrc.ec.europa.eu>
+Message-ID: <CAKH9109g2Xm+Lhu_vmvTUcPm6kCayNrWrwR9C=odBUSUS6qSCA@mail.gmail.com>
+
+Yes, as the problem is more or less identical to DNA microarray
+analysis, using bioconductor is a possibility. Don't have much
+experience with Bioconductor, microarray data and genome mapping etc.
+But converting the data first to a dictionary like class and then to
+an array would be a possibility.
+
+-H?vard
+
+
+From mauricio.zambrano at jrc.ec.europa.eu  Tue Jun 28 11:45:54 2011
+From: mauricio.zambrano at jrc.ec.europa.eu (Mauricio Zambrano-Bigiarini)
+Date: Tue, 28 Jun 2011 11:45:54 +0200
+Subject: [R-sig-hpc] Handling data with thousands of variables
+In-Reply-To: <CAKH9109g2Xm+Lhu_vmvTUcPm6kCayNrWrwR9C=odBUSUS6qSCA@mail.gmail.com>
+References: <BANLkTi=9+f3h5uFRSa41hRXA7RRgrWcQ8g@mail.gmail.com>
+	<4E0986DB.40908@jrc.ec.europa.eu>
+	<CAKH9109g2Xm+Lhu_vmvTUcPm6kCayNrWrwR9C=odBUSUS6qSCA@mail.gmail.com>
+Message-ID: <4E09A2D2.10302@jrc.ec.europa.eu>
+
+H?vard Wahl Kongsg?rd wrote:
+> Yes, as the problem is more or less identical to DNA microarray
+> analysis, using bioconductor is a possibility. Don't have much
+> experience with Bioconductor, microarray data and genome mapping etc.
+> But converting the data first to a dictionary like class and then to
+> an array would be a possibility.
+> 
+> -H?vard
+> 
+
+I don't have any experience with Python dictionaries,  but R factors 
+should be able to replace their functionality.
+
+As Sean mentioned, R is quite happy with large amount of data, so I 
+suggest you to implement your solution, and if you have some specific 
+problem, go to the corresponding mailing list.
+
+All the best,
+
+Mauricio
+-- 
+=======================================================
+Linux user #454569 -- Ubuntu user #17469
+=======================================================
+"Don't wish for less problems, wish for more skills.
+Don't wish it were easier, wish you were better."
+(Jim Rohn)
+
+
+From renaud at mancala.cbio.uct.ac.za  Tue Jun 28 14:26:45 2011
+From: renaud at mancala.cbio.uct.ac.za (Renaud Gaujoux)
+Date: Tue, 28 Jun 2011 14:26:45 +0200
+Subject: [R-sig-hpc] doMC - compiler - concatenate an expression vector into
+ a single expression?
+Message-ID: <4E09C885.4050108@cbio.uct.ac.za>
+
+Hi,
+
+this post is about foreach operators, the compiler package and the last
+update of doMC that includes support for the compiler functionality.
+
+I am using a home-made %dopar%-like operator that adds some custom
+expression to be executed before the foreach loop expression itself (see
+sample code below).
+It used to work perfectly with doMC 1.2.1, but with the introduction of
+the compiler functionality, things do not work properly.
+The change in the doMC package consists in evaluating a compiled
+expression instead of the original R expression:
+
+# from doMC:::doMC ...
+c.expr<- comp(expr, env = envir, options = list(suppressUndefined = TRUE))
+
+and for R>= 2.13.0 comp is defined as compiler::compile:
+function (e, env = .GlobalEnv, options = NULL)
+{
+     cenv<- makeCenv(env)
+     cntxt<- make.toplevelContext(cenv, options)
+     cntxt$env<- addCenvVars(cenv, findLocals(e, cntxt))
+     genCode(e, cntxt)
+}
+<environment: namespace:compiler>
+
+My guess is that the function findLocals or genCode can not handle a
+2-length expression vector.
+
+Maybe somebody who knows the internals of these functions could explain
+better this behaviour?
+How can I concatenate two expressions into a single one?
+
+Thank you,
+Renaud
+
+
+##################################################
+# Sample code
+##################################################
+
+`%dopar2%`<- function(obj, ex){
+
+     # append custom code to the expression
+     ex<- c(expression({ a<- i; message("Custom ", a);}), substitute(ex))
+
+     # call the standard %dopar% operator
+     do.call(`%dopar%`, list(obj, ex), envir=parent.frame() )
+}
+res<- foreach(i=1:3) %dopar2% { print(i); i*2; }
+res
+
+
+#########################
+# Output with doSEQ or doMC 1.2.1
+#########################
+Custom 1
+[1] 1
+Custom 2
+[1] 2
+Custom 3
+[1] 3
+>  res
+[[1]]
+[1] 2
+
+[[2]]
+[1] 4
+
+[[3]]
+[1] 6
+
+
+#########################
+# Output with doMC 1.2.2
+#########################
+
+[[1]]
+expression({
+     a<- i
+     message("Custom ", a)
+}, {
+     print(i)
+     i * 2
+})
+
+[[2]]
+expression({
+     a<- i
+     message("Custom ", a)
+}, {
+     print(i)
+     i * 2
+})
+
+[[3]]
+expression({
+     a<- i
+     message("Custom ", a)
+}, {
+     print(i)
+     i * 2
+})
+
+
+
+ 
+
+###
+UNIVERSITY OF CAPE TOWN 
+
+This e-mail is subject to the UCT ICT policies and e-mai...{{dropped:5}}
+
+
+From stephen.b.weston at gmail.com  Tue Jun 28 15:35:26 2011
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Tue, 28 Jun 2011 09:35:26 -0400
+Subject: [R-sig-hpc] doMC - compiler - concatenate an expression vector
+ into a single expression?
+In-Reply-To: <4E09C885.4050108@cbio.uct.ac.za>
+References: <4E09C885.4050108@cbio.uct.ac.za>
+Message-ID: <BANLkTimeQhSMo=zrAO8whDnAeHKRU2ZsiQ@mail.gmail.com>
+
+I think that the result of the concatenation should be a call object,
+rather than an expression object.  How about something along the
+lines of:
+
+'%dopar2%' <- function(obj, ex) {
+  ex <- as.call(list(as.name('{'),
+                          quote({ a <- i; message("Custom ", a) }),
+                          substitute(ex)))
+  do.call('%dopar%', list(obj, ex), envir=parent.frame())
+}
+
+- Steve
+
+
+On Tue, Jun 28, 2011 at 8:26 AM, Renaud Gaujoux
+<renaud at mancala.cbio.uct.ac.za> wrote:
+> Hi,
+>
+> this post is about foreach operators, the compiler package and the last
+> update of doMC that includes support for the compiler functionality.
+>
+> I am using a home-made %dopar%-like operator that adds some custom
+> expression to be executed before the foreach loop expression itself (see
+> sample code below).
+> It used to work perfectly with doMC 1.2.1, but with the introduction of
+> the compiler functionality, things do not work properly.
+> The change in the doMC package consists in evaluating a compiled
+> expression instead of the original R expression:
+>
+> # from doMC:::doMC ...
+> c.expr<- comp(expr, env = envir, options = list(suppressUndefined = TRUE))
+>
+> and for R>= 2.13.0 comp is defined as compiler::compile:
+> function (e, env = .GlobalEnv, options = NULL)
+> {
+> ? ?cenv<- makeCenv(env)
+> ? ?cntxt<- make.toplevelContext(cenv, options)
+> ? ?cntxt$env<- addCenvVars(cenv, findLocals(e, cntxt))
+> ? ?genCode(e, cntxt)
+> }
+> <environment: namespace:compiler>
+>
+> My guess is that the function findLocals or genCode can not handle a
+> 2-length expression vector.
+>
+> Maybe somebody who knows the internals of these functions could explain
+> better this behaviour?
+> How can I concatenate two expressions into a single one?
+>
+> Thank you,
+> Renaud
+>
+>
+> ##################################################
+> # Sample code
+> ##################################################
+>
+> `%dopar2%`<- function(obj, ex){
+>
+> ? ?# append custom code to the expression
+> ? ?ex<- c(expression({ a<- i; message("Custom ", a);}), substitute(ex))
+>
+> ? ?# call the standard %dopar% operator
+> ? ?do.call(`%dopar%`, list(obj, ex), envir=parent.frame() )
+> }
+> res<- foreach(i=1:3) %dopar2% { print(i); i*2; }
+> res
+>
+>
+> #########################
+> # Output with doSEQ or doMC 1.2.1
+> #########################
+> Custom 1
+> [1] 1
+> Custom 2
+> [1] 2
+> Custom 3
+> [1] 3
+>>
+>> ?res
+>
+> [[1]]
+> [1] 2
+>
+> [[2]]
+> [1] 4
+>
+> [[3]]
+> [1] 6
+>
+>
+> #########################
+> # Output with doMC 1.2.2
+> #########################
+>
+> [[1]]
+> expression({
+> ? ?a<- i
+> ? ?message("Custom ", a)
+> }, {
+> ? ?print(i)
+> ? ?i * 2
+> })
+>
+> [[2]]
+> expression({
+> ? ?a<- i
+> ? ?message("Custom ", a)
+> }, {
+> ? ?print(i)
+> ? ?i * 2
+> })
+>
+> [[3]]
+> expression({
+> ? ?a<- i
+> ? ?message("Custom ", a)
+> }, {
+> ? ?print(i)
+> ? ?i * 2
+> })
+>
+>
+>
+>
+>
+> ###
+> UNIVERSITY OF CAPE TOWN
+> This e-mail is subject to the UCT ICT policies and e-mai...{{dropped:5}}
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From renaud at mancala.cbio.uct.ac.za  Wed Jun 29 09:03:52 2011
+From: renaud at mancala.cbio.uct.ac.za (Renaud Gaujoux)
+Date: Wed, 29 Jun 2011 09:03:52 +0200
+Subject: [R-sig-hpc] doMC - compiler - concatenate an expression vector
+ into a single expression?
+In-Reply-To: <BANLkTimeQhSMo=zrAO8whDnAeHKRU2ZsiQ@mail.gmail.com>
+References: <4E09C885.4050108@cbio.uct.ac.za>
+	<BANLkTimeQhSMo=zrAO8whDnAeHKRU2ZsiQ@mail.gmail.com>
+Message-ID: <4E0ACE58.6020204@cbio.uct.ac.za>
+
+Thank you very much Steve.
+Your suggestion works perfectly -- at least with doSEQ, doMC and doMPI.
+
+Bests,
+Renaud
+
+
+On 28/06/2011 15:35, Stephen Weston wrote:
+> I think that the result of the concatenation should be a call object,
+> rather than an expression object.  How about something along the
+> lines of:
+>
+> '%dopar2%'<- function(obj, ex) {
+>    ex<- as.call(list(as.name('{'),
+>                            quote({ a<- i; message("Custom ", a) }),
+>                            substitute(ex)))
+>    do.call('%dopar%', list(obj, ex), envir=parent.frame())
+> }
+>
+> - Steve
+>
+>
+> On Tue, Jun 28, 2011 at 8:26 AM, Renaud Gaujoux
+> <renaud at mancala.cbio.uct.ac.za>  wrote:
+>> Hi,
+>>
+>> this post is about foreach operators, the compiler package and the last
+>> update of doMC that includes support for the compiler functionality.
+>>
+>> I am using a home-made %dopar%-like operator that adds some custom
+>> expression to be executed before the foreach loop expression itself (see
+>> sample code below).
+>> It used to work perfectly with doMC 1.2.1, but with the introduction of
+>> the compiler functionality, things do not work properly.
+>> The change in the doMC package consists in evaluating a compiled
+>> expression instead of the original R expression:
+>>
+>> # from doMC:::doMC ...
+>> c.expr<- comp(expr, env = envir, options = list(suppressUndefined = TRUE))
+>>
+>> and for R>= 2.13.0 comp is defined as compiler::compile:
+>> function (e, env = .GlobalEnv, options = NULL)
+>> {
+>>     cenv<- makeCenv(env)
+>>     cntxt<- make.toplevelContext(cenv, options)
+>>     cntxt$env<- addCenvVars(cenv, findLocals(e, cntxt))
+>>     genCode(e, cntxt)
+>> }
+>> <environment: namespace:compiler>
+>>
+>> My guess is that the function findLocals or genCode can not handle a
+>> 2-length expression vector.
+>>
+>> Maybe somebody who knows the internals of these functions could explain
+>> better this behaviour?
+>> How can I concatenate two expressions into a single one?
+>>
+>> Thank you,
+>> Renaud
+>>
+>>
+>> ##################################################
+>> # Sample code
+>> ##################################################
+>>
+>> `%dopar2%`<- function(obj, ex){
+>>
+>>     # append custom code to the expression
+>>     ex<- c(expression({ a<- i; message("Custom ", a);}), substitute(ex))
+>>
+>>     # call the standard %dopar% operator
+>>     do.call(`%dopar%`, list(obj, ex), envir=parent.frame() )
+>> }
+>> res<- foreach(i=1:3) %dopar2% { print(i); i*2; }
+>> res
+>>
+>>
+>> #########################
+>> # Output with doSEQ or doMC 1.2.1
+>> #########################
+>> Custom 1
+>> [1] 1
+>> Custom 2
+>> [1] 2
+>> Custom 3
+>> [1] 3
+>>>   res
+>> [[1]]
+>> [1] 2
+>>
+>> [[2]]
+>> [1] 4
+>>
+>> [[3]]
+>> [1] 6
+>>
+>>
+>> #########################
+>> # Output with doMC 1.2.2
+>> #########################
+>>
+>> [[1]]
+>> expression({
+>>     a<- i
+>>     message("Custom ", a)
+>> }, {
+>>     print(i)
+>>     i * 2
+>> })
+>>
+>> [[2]]
+>> expression({
+>>     a<- i
+>>     message("Custom ", a)
+>> }, {
+>>     print(i)
+>>     i * 2
+>> })
+>>
+>> [[3]]
+>> expression({
+>>     a<- i
+>>     message("Custom ", a)
+>> }, {
+>>     print(i)
+>>     i * 2
+>> })
+>>
+>>
+>>
+>>
+>>
+>> ###
+>> UNIVERSITY OF CAPE TOWN
+>> This e-mail is subject to the UCT ICT policies and e-mai...{{dropped:5}}
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+
+ 
+
+###
+UNIVERSITY OF CAPE TOWN 
+
+This e-mail is subject to the UCT ICT policies and e-mai...{{dropped:5}}
+
+

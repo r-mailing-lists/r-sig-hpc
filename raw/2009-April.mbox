@@ -1,0 +1,4635 @@
+From danicyber at gmail.com  Thu Apr  2 22:20:29 2009
+From: danicyber at gmail.com (Dani)
+Date: Thu, 2 Apr 2009 13:20:29 -0700
+Subject: [R-sig-hpc] RGL in SGI Altix
+Message-ID: <dfa1a9120904021320x171e9952w129f6a192b489348@mail.gmail.com>
+
+Dear all,
+
+I'm running experiments with large data on a SGI Altix 350 server
+running the SGI ProPack 4 64-bit Linux operating system, based on
+SUSE.
+- R version is 2.7.1
+
+When running tests on a miserable laptop, RGL is fine, but in the
+Altix I've run in problems with RGL - when I try to save the window to
+file, I get the following error:
+
+>>RGL ERROR: can't bind glx context to window
+
+I've checked the R-lists, several people reporting this problem. One
+of the suggestions was to reinstall RGL. We've reinstalled the version
+0.81 and still not working. Any suggestions?
+
+The problem is only to save RGL windows, everything works fine with png.
+
+thanks a lot,
+Dani
+
+
+From saptarshi.guha at gmail.com  Wed Apr  8 21:47:49 2009
+From: saptarshi.guha at gmail.com (Saptarshi Guha)
+Date: Wed, 8 Apr 2009 15:47:49 -0400
+Subject: [R-sig-hpc] ANN: rhipe 0.1
+Message-ID: <1e7471d50904081247v7b55293m4177eab0b0ba81d5@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090408/95ac09d8/attachment.pl>
+
+From HodgessE at uhd.edu  Mon Apr 13 10:34:57 2009
+From: HodgessE at uhd.edu (Hodgess, Erin)
+Date: Mon, 13 Apr 2009 03:34:57 -0500
+Subject: [R-sig-hpc] using htop from R
+Message-ID: <70A5AC06FDB5E54482D19E1C04CDFCF307C36BA9@BALI.uhd.campus>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090413/442b27f5/attachment.pl>
+
+From matthieu.stigler at gmail.com  Mon Apr 13 10:46:45 2009
+From: matthieu.stigler at gmail.com (Matthieu Stigler)
+Date: Mon, 13 Apr 2009 14:16:45 +0530
+Subject: [R-sig-hpc] snow, socket cluster: problem with path to rscript
+Message-ID: <49E2FBF5.3070704@gmail.com>
+
+Hello
+
+I'm trying to set-up a cluster having three nodes with cluster type=SOCK.
+
+I have a problem to give the path to the rscript (different on the two 
+machines).... I try to give full information (fill the list(host, 
+rscript) as in the makeCluster example)
+
+-Once I try only on local host (hist 212), give complete Rscript path: 
+does not work
+ssh: Could not resolve hostname /usr/bin/Rscript: Name or service not known
+
+workaround: don't give full info, only IP
+
+-When add a second host (host 210):
+   -give full infos: same problem as above: ssh: Could not resolve 
+hostname /usr/bin/Rscript: Name or service not known
+   -give only IP: does not work as it is looking for same path for 
+rscript, and this is different on both machines
+
+
+I'm really thankfull if you can give me advice and tell me wether I do 
+something wrong or not! Thanks a lot!
+See:
+
+library(snow)
+
+#local host only
+host212Full <-list(host = "dsge at 192.100.100.212", rscript = 
+"/usr/lib64/R/bin/Rscript")
+makeCluster(c(rep(host212Full, 2)), type = "SOCK")
+dsge at 192.100.100.212's password:
+ssh: Could not resolve hostname /usr/lib64/R/bin/Rscript: Name or 
+service not known
+
+#but it exists!
+system("ls /usr/lib64/R/bin/Rs*")
+/usr/lib64/R/bin/Rscript
+
+host212<-"dsge at 192.100.100.212"
+cl<-makeCluster(c(rep(host212, 2)), type = "SOCK")
+stopCluster(cl)
+#this work
+
+###adding an external machine
+#just by IP:
+cl2 <- makeCluster(c("dsge at 192.100.100.212","dsge at 192.100.100.212", 
+"mat at 192.100.100.210"), type = "SOCK")
+bash: /usr/lib64/R/bin/Rscript: Aucun fichier ou dossier de ce type 
+(english: no such file)
+
+#with full info
+host212Full <-list(host = "dsge at 192.100.100.212", rscript = 
+"/usr/lib64/R/bin/Rscript")
+host210 <- list(host = "mat at 192.100.100.210", rscript = "/usr/bin/Rscript")
+
+cl2 <-makeCluster(c(host210,rep(host212Full, 2)), type = "SOCK")
+mat at 192.100.100.210's password:
+bash: /usr/lib64/R/bin/Rscript: Aucun fichier ou dossier de ce type
+#it did not take into account the specific path for 210!
+
+#note that inverting it:
+cl2 <-makeCluster(c(rep(host212Full, 2), host210), type = "SOCK")
+ssh: Could not resolve hostname /usr/lib64/R/bin/Rscript: Name or 
+service not known
+#shows the same problem as above
+
+
+
+Version infos:
+local host (212)
+platform       x86_64-pc-linux-gnu
+arch           x86_64
+os             linux-gnu
+system         x86_64, linux-gnu
+status
+major          2
+minor          7.1
+year           2008
+month          06
+day            23
+svn rev        45970
+language       R
+version.string R version 2.7.1 (2008-06-23)
+
+External host (210)
+platform       i486-pc-linux-gnu
+arch           i486
+os             linux-gnu
+system         i486, linux-gnu
+status
+major          2
+minor          8.1
+year           2008
+month          12
+day            22
+svn rev        47281
+language       R
+version.string R version 2.8.1 (2008-12-22)
+
+
+From steve at revolution-computing.com  Mon Apr 13 15:30:51 2009
+From: steve at revolution-computing.com (Steve Weston)
+Date: Mon, 13 Apr 2009 09:30:51 -0400
+Subject: [R-sig-hpc] snow, socket cluster: problem with path to rscript
+In-Reply-To: <49E2FBF5.3070704@gmail.com>
+References: <49E2FBF5.3070704@gmail.com>
+Message-ID: <4f7bf0100904130630u75726a55h9fa1cc5ad8799134@mail.gmail.com>
+
+Hi Matthieu,
+
+On Mon, Apr 13, 2009 at 4:46 AM, Matthieu Stigler
+<matthieu.stigler at gmail.com> wrote:
+> Hello
+>
+> I'm trying to set-up a cluster having three nodes with cluster type=SOCK.
+>
+> I have a problem to give the path to the rscript (different on the two
+> machines).... I try to give full information (fill the list(host, rscript)
+> as in the makeCluster example)
+
+[snip]
+
+> I'm really thankfull if you can give me advice and tell me wether I do
+> something wrong or not! Thanks a lot!
+> See:
+>
+> library(snow)
+>
+> #local host only
+> host212Full <-list(host = "dsge at 192.100.100.212", rscript =
+> "/usr/lib64/R/bin/Rscript")
+> makeCluster(c(rep(host212Full, 2)), type = "SOCK")
+
+I think the immediate problem is the way that you're creating
+the first argument to makeCluster.  Your code is concatenating
+host212Full to itself, creating a list of length 4 with elements
+that are not lists. I think you want to create a list of two lists,
+each of length 2.
+
+One way to create the appropriate list (which worked for me on
+R 2.8.1) is:
+
+makeCluster(rep(list(host212Full), 2), type = "SOCK")
+
+I hope that helps.
+
+-- 
+Steve Weston
+REvolution Computing
+One Century Tower | 265 Church Street, Suite 1006
+New Haven, CT  06510
+P: 203-777-7442 x266 | www.revolution-computing.com
+
+
+From HodgessE at uhd.edu  Mon Apr 13 19:21:31 2009
+From: HodgessE at uhd.edu (Hodgess, Erin)
+Date: Mon, 13 Apr 2009 12:21:31 -0500
+Subject: [R-sig-hpc] use of htop and top
+Message-ID: <70A5AC06FDB5E54482D19E1C04CDFCF307C36BB2@BALI.uhd.campus>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090413/191169ae/attachment.pl>
+
+From luke at stat.uiowa.edu  Mon Apr 13 19:41:25 2009
+From: luke at stat.uiowa.edu (luke at stat.uiowa.edu)
+Date: Mon, 13 Apr 2009 12:41:25 -0500 (CDT)
+Subject: [R-sig-hpc] snow, socket cluster: problem with path to rscript
+In-Reply-To: <4f7bf0100904130630u75726a55h9fa1cc5ad8799134@mail.gmail.com>
+References: <49E2FBF5.3070704@gmail.com>
+	<4f7bf0100904130630u75726a55h9fa1cc5ad8799134@mail.gmail.com>
+Message-ID: <alpine.LFD.2.00.0904131240380.25960@nokomis.stat.uiowa.edu>
+
+On Mon, 13 Apr 2009, Steve Weston wrote:
+
+> Hi Matthieu,
+>
+> On Mon, Apr 13, 2009 at 4:46 AM, Matthieu Stigler
+> <matthieu.stigler at gmail.com> wrote:
+>> Hello
+>>
+>> I'm trying to set-up a cluster having three nodes with cluster type=SOCK.
+>>
+>> I have a problem to give the path to the rscript (different on the two
+>> machines).... I try to give full information (fill the list(host, rscript)
+>> as in the makeCluster example)
+>
+> [snip]
+>
+>> I'm really thankfull if you can give me advice and tell me wether I do
+>> something wrong or not! Thanks a lot!
+>> See:
+>>
+>> library(snow)
+>>
+>> #local host only
+>> host212Full <-list(host = "dsge at 192.100.100.212", rscript =
+>> "/usr/lib64/R/bin/Rscript")
+>> makeCluster(c(rep(host212Full, 2)), type = "SOCK")
+>
+> I think the immediate problem is the way that you're creating
+> the first argument to makeCluster.  Your code is concatenating
+> host212Full to itself, creating a list of length 4 with elements
+> that are not lists. I think you want to create a list of two lists,
+> each of length 2.
+>
+> One way to create the appropriate list (which worked for me on
+> R 2.8.1) is:
+>
+> makeCluster(rep(list(host212Full), 2), type = "SOCK")
+>
+> I hope that helps.
+
+Thanks -- the help page gets this wrong (in an example that is not run
+) -- I'll fix that for the net release.
+
+luke
+
+-- 
+Luke Tierney
+Chair, Statistics and Actuarial Science
+Ralph E. Wareham Professor of Mathematical Sciences
+University of Iowa                  Phone:             319-335-3386
+Department of Statistics and        Fax:               319-335-3017
+    Actuarial Science
+241 Schaeffer Hall                  email:      luke at stat.uiowa.edu
+Iowa City, IA 52242                 WWW:  http://www.stat.uiowa.edu
+
+
+From matthieu.stigler at gmail.com  Tue Apr 14 11:29:18 2009
+From: matthieu.stigler at gmail.com (Matthieu Stigler)
+Date: Tue, 14 Apr 2009 14:59:18 +0530
+Subject: [R-sig-hpc] snow, socket cluster: problem with path to rscript
+In-Reply-To: <alpine.LFD.2.00.0904131240380.25960@nokomis.stat.uiowa.edu>
+References: <49E2FBF5.3070704@gmail.com>
+	<4f7bf0100904130630u75726a55h9fa1cc5ad8799134@mail.gmail.com>
+	<alpine.LFD.2.00.0904131240380.25960@nokomis.stat.uiowa.edu>
+Message-ID: <49E4576E.1090502@gmail.com>
+
+luke at stat.uiowa.edu a ?crit :
+> On Mon, 13 Apr 2009, Steve Weston wrote:
+>
+>> Hi Matthieu,
+>>
+>> On Mon, Apr 13, 2009 at 4:46 AM, Matthieu Stigler
+>> <matthieu.stigler at gmail.com> wrote:
+>>> Hello
+>>>
+>>> I'm trying to set-up a cluster having three nodes with cluster 
+>>> type=SOCK.
+>>>
+>>> I have a problem to give the path to the rscript (different on the two
+>>> machines).... I try to give full information (fill the list(host, 
+>>> rscript)
+>>> as in the makeCluster example)
+>>
+>> [snip]
+>>
+>>> I'm really thankfull if you can give me advice and tell me wether I do
+>>> something wrong or not! Thanks a lot!
+>>> See:
+>>>
+>>> library(snow)
+>>>
+>>> #local host only
+>>> host212Full <-list(host = "dsge at 192.100.100.212", rscript =
+>>> "/usr/lib64/R/bin/Rscript")
+>>> makeCluster(c(rep(host212Full, 2)), type = "SOCK")
+>>
+>> I think the immediate problem is the way that you're creating
+>> the first argument to makeCluster.  Your code is concatenating
+>> host212Full to itself, creating a list of length 4 with elements
+>> that are not lists. I think you want to create a list of two lists,
+>> each of length 2.
+>>
+>> One way to create the appropriate list (which worked for me on
+>> R 2.8.1) is:
+>>
+>> makeCluster(rep(list(host212Full), 2), type = "SOCK")
+>>
+>> I hope that helps.
+>
+> Thanks -- the help page gets this wrong (in an example that is not run
+> ) -- I'll fix that for the net release.
+>
+> luke
+>
+Ok! You pointed out the right error Steve, thanks!
+
+
+So it is now working for the local computer with. However, when trying 
+to use the external computer, it seems to be working but nothing happens 
+after he asked for the last password...
+
+
+ > library(snow)
+ > host210 <- list(host = "mat at 192.100.100.210", rscript = 
+"/usr/bin/Rscript")
+ > host212 <-list(host = "dsge at 192.100.100.212", rscript = 
+"/usr/lib64/R/bin/Rscript")
+ >
+ > cl2 <- makeCluster(list(host212, host212), type = "SOCK")
+dsge at 192.100.100.212's password:
+dsge at 192.100.100.212's password:
+ > stopCluster(cl2)
+ > host210 <- list(host = "mat at 192.100.100.210", rscript = 
+"/usr/bin/Rscript")
+ > host212 <-list(host = "dsge at 192.100.100.212", rscript = 
+"/usr/lib64/R/bin/Rscript")
+ >
+ > cl2 <- makeCluster(list(host212, host212, host210), type = "SOCK")
+dsge at 192.100.100.212's password:
+dsge at 192.100.100.212's password:
+mat at 192.100.100.210's password:
+#and then nothing...
+
+(I did a ssh mat at 192.100.100.210 before).
+
+What should I check to understand this problem? On the local (212), or 
+on the external (210)?
+
+Thanks a lot!!
+
+
+From steve at revolution-computing.com  Tue Apr 14 14:31:20 2009
+From: steve at revolution-computing.com (Steve Weston)
+Date: Tue, 14 Apr 2009 08:31:20 -0400
+Subject: [R-sig-hpc] snow, socket cluster: problem with path to rscript
+In-Reply-To: <49E4576E.1090502@gmail.com>
+References: <49E2FBF5.3070704@gmail.com>
+	<4f7bf0100904130630u75726a55h9fa1cc5ad8799134@mail.gmail.com>
+	<alpine.LFD.2.00.0904131240380.25960@nokomis.stat.uiowa.edu>
+	<49E4576E.1090502@gmail.com>
+Message-ID: <4f7bf0100904140531v65dde08cve268d100e9242d46@mail.gmail.com>
+
+On Tue, Apr 14, 2009 at 5:29 AM, Matthieu Stigler
+<matthieu.stigler at gmail.com> wrote:
+
+> So it is now working for the local computer with. However, when trying to
+> use the external computer, it seems to be working but nothing happens after
+> he asked for the last password...
+
+This tells you is that "something went wrong".  The basic strategy in this case
+is to use the "outfile" option to hopefully capture an error message.  You might
+need to set outfile differently for different slaves, particularly if
+you're starting
+more than one on the same machine, but I suggest just starting one slave
+on 210 to avoid the issue.  So do something like:
+
+> host210 <- list(host = "mat at 192.100.100.210", rscript = "/usr/bin/Rscript",
++                       outfile="/tmp/log.txt")
+> cl2 <- makeCluster(list(host210), type = "SOCK")
+
+If it hangs, go to another terminal, ssh to 192.100.100.210, and look at
+the contents of /tmp/log.txt, and hopefully that will provide a clue to
+the problem.
+
+Another approach is to use the "manual" option.  That will print the
+command that you should use to manually start each of the slaves.
+You just ssh to that machine from another terminal, and cut and paste
+the printed command to start the slave.  If you set "outfile" to an empty
+string, then output messages will go right to that terminal.
+
+--
+Steve Weston
+REvolution Computing
+One Century Tower | 265 Church Street, Suite 1006
+New Haven, CT  06510
+P: 203-777-7442 x266 | www.revolution-computing.com
+
+
+From matthieu.stigler at gmail.com  Wed Apr 15 13:59:25 2009
+From: matthieu.stigler at gmail.com (Matthieu Stigler)
+Date: Wed, 15 Apr 2009 17:29:25 +0530
+Subject: [R-sig-hpc] snow, socket cluster: problem with path to rscript
+In-Reply-To: <4f7bf0100904140531v65dde08cve268d100e9242d46@mail.gmail.com>
+References: <49E2FBF5.3070704@gmail.com>	
+	<4f7bf0100904130630u75726a55h9fa1cc5ad8799134@mail.gmail.com>	
+	<alpine.LFD.2.00.0904131240380.25960@nokomis.stat.uiowa.edu>	
+	<49E4576E.1090502@gmail.com>
+	<4f7bf0100904140531v65dde08cve268d100e9242d46@mail.gmail.com>
+Message-ID: <49E5CC1D.2090200@gmail.com>
+
+Steve Weston a ?crit :
+> On Tue, Apr 14, 2009 at 5:29 AM, Matthieu Stigler
+> <matthieu.stigler at gmail.com> wrote:
+>
+>   
+>> So it is now working for the local computer with. However, when trying to
+>> use the external computer, it seems to be working but nothing happens after
+>> he asked for the last password...
+>>     
+>
+> This tells you is that "something went wrong".  The basic strategy in this case
+> is to use the "outfile" option to hopefully capture an error message.  You might
+> need to set outfile differently for different slaves, particularly if
+> you're starting
+> more than one on the same machine, but I suggest just starting one slave
+> on 210 to avoid the issue.  So do something like:
+>
+>   
+>> host210 <- list(host = "mat at 192.100.100.210", rscript = "/usr/bin/Rscript",
+>>     
+> +                       outfile="/tmp/log.txt")
+>   
+>> cl2 <- makeCluster(list(host210), type = "SOCK")
+>>     
+>
+>   
+Ok, thanks for pointing out this methid.
+
+ I tried it and got following error message. This does not seem not be 
+computer specific (tried to do it to other host 213, and from other host 
+213 to 212, always same error message):
+
+starting worker for ubuntu:10187 
+
+Error in socketConnection(master, port = port, blocking = TRUE, open = "a+b") : 
+
+  unable to open connection
+
+Calls: local ... slaveLoop -> recvData -> makeSOCKmaster -> socketConnection
+
+In addition: Warning message:
+
+In socketConnection(master, port = port, blocking = TRUE, open = "a+b") :
+
+  ubuntu:10187 cannot be opened
+
+Execution halted
+
+
+Is it related to ssh or snow? I did not find any reference to that prob 
+googling for it...
+
+Thanks a lot for your help!!
+> If it hangs, go to another terminal, ssh to 192.100.100.210, and look at
+> the contents of /tmp/log.txt, and hopefully that will provide a clue to
+> the problem.
+>
+> Another approach is to use the "manual" option.  That will print the
+> command that you should use to manually start each of the slaves.
+> You just ssh to that machine from another terminal, and cut and paste
+> the printed command to start the slave.  If you set "outfile" to an empty
+> string, then output messages will go right to that terminal.
+>
+> --
+> Steve Weston
+> REvolution Computing
+> One Century Tower | 265 Church Street, Suite 1006
+> New Haven, CT  06510
+> P: 203-777-7442 x266 | www.revolution-computing.com
+>
+
+
+From edd at debian.org  Wed Apr 15 14:16:22 2009
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Wed, 15 Apr 2009 07:16:22 -0500
+Subject: [R-sig-hpc] snow, socket cluster: problem with path to rscript
+In-Reply-To: <49E5CC1D.2090200@gmail.com>
+References: <49E2FBF5.3070704@gmail.com>
+	<4f7bf0100904130630u75726a55h9fa1cc5ad8799134@mail.gmail.com>
+	<alpine.LFD.2.00.0904131240380.25960@nokomis.stat.uiowa.edu>
+	<49E4576E.1090502@gmail.com>
+	<4f7bf0100904140531v65dde08cve268d100e9242d46@mail.gmail.com>
+	<49E5CC1D.2090200@gmail.com>
+Message-ID: <18917.53270.180047.10981@ron.nulle.part>
+
+
+On 15 April 2009 at 17:29, Matthieu Stigler wrote:
+| >> So it is now working for the local computer with. However, when trying to
+| >> use the external computer, it seems to be working but nothing happens after
+| >> he asked for the last password...
+| >>     
+| >
+| > This tells you is that "something went wrong".  The basic strategy in this case
+| > is to use the "outfile" option to hopefully capture an error message.  You might
+| > need to set outfile differently for different slaves, particularly if
+| > you're starting
+| > more than one on the same machine, but I suggest just starting one slave
+| > on 210 to avoid the issue.  So do something like:
+| >
+| >   
+| >> host210 <- list(host = "mat at 192.100.100.210", rscript = "/usr/bin/Rscript",
+| >>     
+| > +                       outfile="/tmp/log.txt")
+| >   
+| >> cl2 <- makeCluster(list(host210), type = "SOCK")
+| >>     
+| >
+| >   
+| Ok, thanks for pointing out this methid.
+| 
+|  I tried it and got following error message. This does not seem not be 
+| computer specific (tried to do it to other host 213, and from other host 
+| 213 to 212, always same error message):
+| 
+| starting worker for ubuntu:10187 
+| 
+| Error in socketConnection(master, port = port, blocking = TRUE, open = "a+b") : 
+| 
+|   unable to open connection
+| 
+| Calls: local ... slaveLoop -> recvData -> makeSOCKmaster -> socketConnection
+| 
+| In addition: Warning message:
+| 
+| In socketConnection(master, port = port, blocking = TRUE, open = "a+b") :
+| 
+|   ubuntu:10187 cannot be opened
+| 
+| Execution halted
+| 
+| 
+| Is it related to ssh or snow? I did not find any reference to that prob 
+| googling for it...
+
+Test for it --- can you actually issue an ssh command for the _script_ on the
+_machine_ you have specified ?  I.e. run
+
+$ ssh mat at 192.100.100.210 /usr/bin/Rscript --version
+
+where I added --version to make sure Rscript has something to do.  Unless
+this works 'by itself', you cannot expect to use it. 
+
+Dirk
+
+-- 
+Three out of two people have difficulties with fractions.
+
+
+From luke at stat.uiowa.edu  Wed Apr 15 14:26:31 2009
+From: luke at stat.uiowa.edu (luke at stat.uiowa.edu)
+Date: Wed, 15 Apr 2009 07:26:31 -0500 (CDT)
+Subject: [R-sig-hpc] snow, socket cluster: problem with path to rscript
+In-Reply-To: <49E5CC1D.2090200@gmail.com>
+References: <49E2FBF5.3070704@gmail.com>
+	<4f7bf0100904130630u75726a55h9fa1cc5ad8799134@mail.gmail.com>
+	<alpine.LFD.2.00.0904131240380.25960@nokomis.stat.uiowa.edu>
+	<49E4576E.1090502@gmail.com>
+	<4f7bf0100904140531v65dde08cve268d100e9242d46@mail.gmail.com>
+	<49E5CC1D.2090200@gmail.com>
+Message-ID: <alpine.LFD.2.00.0904150718040.12926@itasca2.wildberry.org>
+
+On Wed, 15 Apr 2009, Matthieu Stigler wrote:
+
+> Steve Weston a ?crit :
+>> On Tue, Apr 14, 2009 at 5:29 AM, Matthieu Stigler
+>> <matthieu.stigler at gmail.com> wrote:
+>>
+>> 
+>>> So it is now working for the local computer with. However, when trying to
+>>> use the external computer, it seems to be working but nothing happens 
+>>> after
+>>> he asked for the last password...
+>>> 
+>> 
+>> This tells you is that "something went wrong".  The basic strategy in this 
+>> case
+>> is to use the "outfile" option to hopefully capture an error message.  You 
+>> might
+>> need to set outfile differently for different slaves, particularly if
+>> you're starting
+>> more than one on the same machine, but I suggest just starting one slave
+>> on 210 to avoid the issue.  So do something like:
+>>
+>> 
+>>> host210 <- list(host = "mat at 192.100.100.210", rscript = 
+>>> "/usr/bin/Rscript",
+>>> 
+>> +                       outfile="/tmp/log.txt")
+>> 
+>>> cl2 <- makeCluster(list(host210), type = "SOCK")
+>>> 
+>>
+>> 
+> Ok, thanks for pointing out this methid.
+>
+> I tried it and got following error message. This does not seem not be 
+> computer specific (tried to do it to other host 213, and from other host 213 
+> to 212, always same error message):
+>
+> starting worker for ubuntu:10187 
+> Error in socketConnection(master, port = port, blocking = TRUE, open = "a+b") 
+> : 
+> unable to open connection
+>
+> Calls: local ... slaveLoop -> recvData -> makeSOCKmaster -> socketConnection
+>
+> In addition: Warning message:
+>
+> In socketConnection(master, port = port, blocking = TRUE, open = "a+b") :
+>
+> ubuntu:10187 cannot be opened
+>
+> Execution halted
+>
+>
+> Is it related to ssh or snow? I did not find any reference to that prob 
+> googling for it...
+
+It is an issue with your ability to make a socket connection to the
+master. Most likely the master computer has a firewall that is
+blocking connections to the port snow uses.  Try turning the firewall
+off or at least enabling the port in the error message.
+
+A simple test is to do
+
+     socketConnection(port = 10187, server = TRUE)
+
+in an R session on the master and
+
+     telnet ubuntu 10187
+
+in a shell on your worker machine (assumign your master is called
+ubuntu) (or you can use R and
+
+     socketConnection("ubuntu", port = 10187)
+
+in an R session on the worker).
+
+luke
+
+>
+> Thanks a lot for your help!!
+>> If it hangs, go to another terminal, ssh to 192.100.100.210, and look at
+>> the contents of /tmp/log.txt, and hopefully that will provide a clue to
+>> the problem.
+>> 
+>> Another approach is to use the "manual" option.  That will print the
+>> command that you should use to manually start each of the slaves.
+>> You just ssh to that machine from another terminal, and cut and paste
+>> the printed command to start the slave.  If you set "outfile" to an empty
+>> string, then output messages will go right to that terminal.
+>> 
+>> --
+>> Steve Weston
+>> REvolution Computing
+>> One Century Tower | 265 Church Street, Suite 1006
+>> New Haven, CT  06510
+>> P: 203-777-7442 x266 | www.revolution-computing.com
+>> 
+>
+>
+
+-- 
+Luke Tierney
+Chair, Statistics and Actuarial Science
+Ralph E. Wareham Professor of Mathematical Sciences
+University of Iowa                  Phone:             319-335-3386
+Department of Statistics and        Fax:               319-335-3017
+    Actuarial Science
+241 Schaeffer Hall                  email:      luke at stat.uiowa.edu
+Iowa City, IA 52242                 WWW:  http://www.stat.uiowa.edu
+
+From edd at debian.org  Wed Apr 15 15:09:29 2009
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Wed, 15 Apr 2009 08:09:29 -0500
+Subject: [R-sig-hpc] snow, socket cluster: problem with path to rscript
+In-Reply-To: <18917.53270.180047.10981@ron.nulle.part>
+References: <49E2FBF5.3070704@gmail.com>
+	<4f7bf0100904130630u75726a55h9fa1cc5ad8799134@mail.gmail.com>
+	<alpine.LFD.2.00.0904131240380.25960@nokomis.stat.uiowa.edu>
+	<49E4576E.1090502@gmail.com>
+	<4f7bf0100904140531v65dde08cve268d100e9242d46@mail.gmail.com>
+	<49E5CC1D.2090200@gmail.com>
+	<18917.53270.180047.10981@ron.nulle.part>
+Message-ID: <18917.56457.551341.434161@ron.nulle.part>
+
+
+On 15 April 2009 at 07:16, Dirk Eddelbuettel wrote:
+| On 15 April 2009 at 17:29, Matthieu Stigler wrote:
+| | >> So it is now working for the local computer with. However, when trying to
+| | >> use the external computer, it seems to be working but nothing happens after
+| | >> he asked for the last password...
+| | >>     
+| | >
+| | > This tells you is that "something went wrong".  The basic strategy in this case
+| | > is to use the "outfile" option to hopefully capture an error message.  You might
+| | > need to set outfile differently for different slaves, particularly if
+| | > you're starting
+| | > more than one on the same machine, but I suggest just starting one slave
+| | > on 210 to avoid the issue.  So do something like:
+| | >
+| | >   
+| | >> host210 <- list(host = "mat at 192.100.100.210", rscript = "/usr/bin/Rscript",
+| | >>     
+| | > +                       outfile="/tmp/log.txt")
+| | >   
+| | >> cl2 <- makeCluster(list(host210), type = "SOCK")
+| | >>     
+| | >
+| | >   
+| | Ok, thanks for pointing out this methid.
+| | 
+| |  I tried it and got following error message. This does not seem not be 
+| | computer specific (tried to do it to other host 213, and from other host 
+| | 213 to 212, always same error message):
+| | 
+| | starting worker for ubuntu:10187 
+| | 
+| | Error in socketConnection(master, port = port, blocking = TRUE, open = "a+b") : 
+| | 
+| |   unable to open connection
+| | 
+| | Calls: local ... slaveLoop -> recvData -> makeSOCKmaster -> socketConnection
+| | 
+| | In addition: Warning message:
+| | 
+| | In socketConnection(master, port = port, blocking = TRUE, open = "a+b") :
+| | 
+| |   ubuntu:10187 cannot be opened
+| | 
+| | Execution halted
+| | 
+| | 
+| | Is it related to ssh or snow? I did not find any reference to that prob 
+| | googling for it...
+| 
+| Test for it --- can you actually issue an ssh command for the _script_ on the
+| _machine_ you have specified ?  I.e. run
+| 
+| $ ssh mat at 192.100.100.210 /usr/bin/Rscript --version
+| 
+| where I added --version to make sure Rscript has something to do.  Unless
+| this works 'by itself', you cannot expect to use it. 
+
+That's what I get for posting before the coffee settles in. Thanks to Luke
+for correcting the test for socket rather ssh connections.
+
+Yet when I specify "SOCK" as type, I still get noise [1] from ssh:
+
+> cl <- makeSOCKcluster(c("l1", "l2"))
+Control socket connect(/home/deddelbuettel/.ssh/master-deddelbuettel at l1:22): Connection refused
+ControlSocket /home/deddelbuettel/.ssh/master-deddelbuettel at l1:22 already exists, disabling multiplexing
+Control socket connect(/home/deddelbuettel/.ssh/master-deddelbuettel at l2:22): Connection refused
+ControlSocket /home/deddelbuettel/.ssh/master-deddelbuettel at l2:22 already exists, disabling multiplexing
+> str(cl)
+List of 2
+ $ :List of 3
+  ..$ con :Classes 'sockconn', 'connection'  atomic [1:1] 5
+  .. .. ..- attr(*, "conn_id")=<externalptr>
+  ..$ host: chr "l1"
+  ..$ rank: int 1
+  ..- attr(*, "class")= chr "SOCKnode"
+ $ :List of 3
+  ..$ con :Classes 'sockconn', 'connection'  atomic [1:1] 6
+  .. .. ..- attr(*, "conn_id")=<externalptr>
+  ..$ host: chr "l2"
+  ..$ rank: int 2
+  ..- attr(*, "class")= chr "SOCKnode"
+ - attr(*, "class")= chr [1:2] "SOCKcluster" "cluster"
+>
+
+implying that you'd still want to sort out ssh access to the hosts even when
+you use socket connections.
+
+Dirk 
+ 
+[1] I am using the following in ~/.ssh/config which can speed up multiple
+connections to the same machines which is my use case at work:
+-----------------------------------------------------------------------------
+Host *
+      ControlPath ~/.ssh/master-%r@%h:%p
+      ControlMaster auto
+      ForwardAgent yes
+      ForwardX11 yes
+      ForwardX11Trusted yes
+-----------------------------------------------------------------------------
+
+
+-- 
+Three out of two people have difficulties with fractions.
+
+
+From matthieu.stigler at gmail.com  Thu Apr 16 10:52:29 2009
+From: matthieu.stigler at gmail.com (Matthieu Stigler)
+Date: Thu, 16 Apr 2009 14:22:29 +0530
+Subject: [R-sig-hpc] snow, socket cluster: problem with path to rscript
+In-Reply-To: <alpine.LFD.2.00.0904150718040.12926@itasca2.wildberry.org>
+References: <49E2FBF5.3070704@gmail.com>
+	<4f7bf0100904130630u75726a55h9fa1cc5ad8799134@mail.gmail.com>
+	<alpine.LFD.2.00.0904131240380.25960@nokomis.stat.uiowa.edu>
+	<49E4576E.1090502@gmail.com>
+	<4f7bf0100904140531v65dde08cve268d100e9242d46@mail.gmail.com>
+	<49E5CC1D.2090200@gmail.com>
+	<alpine.LFD.2.00.0904150718040.12926@itasca2.wildberry.org>
+Message-ID: <49E6F1CD.2070608@gmail.com>
+
+luke at stat.uiowa.edu a ?crit :
+> On Wed, 15 Apr 2009, Matthieu Stigler wrote:
+>
+>> Steve Weston a ?crit :
+>>> On Tue, Apr 14, 2009 at 5:29 AM, Matthieu Stigler
+>>> <matthieu.stigler at gmail.com> wrote:
+>>>
+>>>
+>>>> So it is now working for the local computer with. However, when 
+>>>> trying to
+>>>> use the external computer, it seems to be working but nothing 
+>>>> happens after
+>>>> he asked for the last password...
+>>>>
+>>>
+>>> This tells you is that "something went wrong".  The basic strategy 
+>>> in this case
+>>> is to use the "outfile" option to hopefully capture an error 
+>>> message.  You might
+>>> need to set outfile differently for different slaves, particularly if
+>>> you're starting
+>>> more than one on the same machine, but I suggest just starting one 
+>>> slave
+>>> on 210 to avoid the issue.  So do something like:
+>>>
+>>>
+>>>> host210 <- list(host = "mat at 192.100.100.210", rscript = 
+>>>> "/usr/bin/Rscript",
+>>>>
+>>> +                       outfile="/tmp/log.txt")
+>>>
+>>>> cl2 <- makeCluster(list(host210), type = "SOCK")
+>>>>
+>>>
+>>>
+>> Ok, thanks for pointing out this methid.
+>>
+>> I tried it and got following error message. This does not seem not be 
+>> computer specific (tried to do it to other host 213, and from other 
+>> host 213 to 212, always same error message):
+>>
+>> starting worker for ubuntu:10187 Error in socketConnection(master, 
+>> port = port, blocking = TRUE, open = "a+b") : unable to open connection
+>>
+>> Calls: local ... slaveLoop -> recvData -> makeSOCKmaster -> 
+>> socketConnection
+>>
+>> In addition: Warning message:
+>>
+>> In socketConnection(master, port = port, blocking = TRUE, open = 
+>> "a+b") :
+>>
+>> ubuntu:10187 cannot be opened
+>>
+>> Execution halted
+>>
+>>
+>> Is it related to ssh or snow? I did not find any reference to that 
+>> prob googling for it...
+>
+> It is an issue with your ability to make a socket connection to the
+> master. Most likely the master computer has a firewall that is
+> blocking connections to the port snow uses.  Try turning the firewall
+> off or at least enabling the port in the error message.
+> A simple test is to do
+>
+>     socketConnection(port = 10187, server = TRUE)
+>
+> in an R session on the master and
+>
+>     telnet ubuntu 10187
+>
+> in a shell on your worker machine (assumign your master is called
+> ubuntu) (or you can use R and
+>
+>     socketConnection("ubuntu", port = 10187)
+>
+> in an R session on the worker).
+>
+> luke
+>
+
+Thanks Luke and Dirk for your help!
+
+I don't think it is a firewall error, as both machines have all port 
+open (as default with iptables as I understood), and the admin of the 
+network opened even port 10187.
+
+I tried first the three solutions suggested, none of them seem to give 
+good results:
+
+$telnet 192.100.100.212 10187
+
+Trying 192.100.100.212...
+
+telnet: Unable to connect to remote host: Connection refused
+
+R>socketConnection(port = 10187, server=TRUE)
+
+#nothing happens... is it right?
+
+
+R > socketConnection("192.100.100.212", port = 10187) 
+
+Erreur dans socketConnection("192.100.100.212", port = 10187) : 
+
+  impossible d'ouvrir la connexion
+
+De plus : Warning message:
+
+In socketConnection("192.100.100.212", port = 10187) :
+
+  192.100.100.212:10187 cannot be opened
+
+Same error message when using "ubuntu"/ dsge at 192.100.100.212 etc..
+
+Going to a ubuntu forum, someone told that one has to open a server on 
+the port (excuse, explanations are not good as I don't understand that 
+much the subject :-( ).
+So launching in the master (212):
+
+$nc -l -p 10187
+
+
+then one is able to  have in 210:
+
+$telnet 192.100.100.212 10187
+
+Trying 192.100.100.212...
+
+Connected to 192.100.100.212.
+
+Escape character is '^]'.
+
+So it seems that it is working, but there is then no effect on the 
+previous commands socketConnection, makeCluster, still claims that 10187 
+can't be open.
+
+With those elements, do you guys see clearer or is it even darker? 
+Thanks a lot for your help!
+
+Matthieu
+
+>>
+>> Thanks a lot for your help!!
+>>> If it hangs, go to another terminal, ssh to 192.100.100.210, and 
+>>> look at
+>>> the contents of /tmp/log.txt, and hopefully that will provide a clue to
+>>> the problem.
+>>>
+>>> Another approach is to use the "manual" option.  That will print the
+>>> command that you should use to manually start each of the slaves.
+>>> You just ssh to that machine from another terminal, and cut and paste
+>>> the printed command to start the slave.  If you set "outfile" to an 
+>>> empty
+>>> string, then output messages will go right to that terminal.
+>>>
+>>> -- 
+>>> Steve Weston
+>>> REvolution Computing
+>>> One Century Tower | 265 Church Street, Suite 1006
+>>> New Haven, CT  06510
+>>> P: 203-777-7442 x266 | www.revolution-computing.com
+>>>
+>>
+>>
+>
+
+
+From steve at revolution-computing.com  Thu Apr 16 21:06:27 2009
+From: steve at revolution-computing.com (Steve Weston)
+Date: Thu, 16 Apr 2009 15:06:27 -0400
+Subject: [R-sig-hpc] snow, socket cluster: problem with path to rscript
+In-Reply-To: <49E6F1CD.2070608@gmail.com>
+References: <49E2FBF5.3070704@gmail.com>
+	<4f7bf0100904130630u75726a55h9fa1cc5ad8799134@mail.gmail.com>
+	<alpine.LFD.2.00.0904131240380.25960@nokomis.stat.uiowa.edu>
+	<49E4576E.1090502@gmail.com>
+	<4f7bf0100904140531v65dde08cve268d100e9242d46@mail.gmail.com>
+	<49E5CC1D.2090200@gmail.com>
+	<alpine.LFD.2.00.0904150718040.12926@itasca2.wildberry.org>
+	<49E6F1CD.2070608@gmail.com>
+Message-ID: <4f7bf0100904161206o138ec137rf8c9253b08d926ee@mail.gmail.com>
+
+I just noticed that you're running R 2.7.1 on your 192.100.100.212
+machine.  I believe there are known socketConnection issues
+with that version of R that Luke fixed as of R 2.7.2.  So I strongly
+suggest that you upgrade your version of R.
+
+--
+Steve Weston
+REvolution Computing
+One Century Tower | 265 Church Street, Suite 1006
+New Haven, CT  06510
+P: 203-777-7442 x266 | www.revolution-computing.com
+
+
+On Thu, Apr 16, 2009 at 4:52 AM, Matthieu Stigler
+<matthieu.stigler at gmail.com> wrote:
+> luke at stat.uiowa.edu a ?crit :
+>>
+>> On Wed, 15 Apr 2009, Matthieu Stigler wrote:
+>>
+>>> Steve Weston a ?crit :
+>>>>
+>>>> On Tue, Apr 14, 2009 at 5:29 AM, Matthieu Stigler
+>>>> <matthieu.stigler at gmail.com> wrote:
+>>>>
+>>>>
+>>>>> So it is now working for the local computer with. However, when trying
+>>>>> to
+>>>>> use the external computer, it seems to be working but nothing happens
+>>>>> after
+>>>>> he asked for the last password...
+>>>>>
+>>>>
+>>>> This tells you is that "something went wrong". ?The basic strategy in
+>>>> this case
+>>>> is to use the "outfile" option to hopefully capture an error message.
+>>>> ?You might
+>>>> need to set outfile differently for different slaves, particularly if
+>>>> you're starting
+>>>> more than one on the same machine, but I suggest just starting one slave
+>>>> on 210 to avoid the issue. ?So do something like:
+>>>>
+>>>>
+>>>>> host210 <- list(host = "mat at 192.100.100.210", rscript =
+>>>>> "/usr/bin/Rscript",
+>>>>>
+>>>> + ? ? ? ? ? ? ? ? ? ? ? outfile="/tmp/log.txt")
+>>>>
+>>>>> cl2 <- makeCluster(list(host210), type = "SOCK")
+>>>>>
+>>>>
+>>>>
+>>> Ok, thanks for pointing out this methid.
+>>>
+>>> I tried it and got following error message. This does not seem not be
+>>> computer specific (tried to do it to other host 213, and from other host 213
+>>> to 212, always same error message):
+>>>
+>>> starting worker for ubuntu:10187 Error in socketConnection(master, port =
+>>> port, blocking = TRUE, open = "a+b") : unable to open connection
+>>>
+>>> Calls: local ... slaveLoop -> recvData -> makeSOCKmaster ->
+>>> socketConnection
+>>>
+>>> In addition: Warning message:
+>>>
+>>> In socketConnection(master, port = port, blocking = TRUE, open = "a+b") :
+>>>
+>>> ubuntu:10187 cannot be opened
+>>>
+>>> Execution halted
+>>>
+>>>
+>>> Is it related to ssh or snow? I did not find any reference to that prob
+>>> googling for it...
+>>
+>> It is an issue with your ability to make a socket connection to the
+>> master. Most likely the master computer has a firewall that is
+>> blocking connections to the port snow uses. ?Try turning the firewall
+>> off or at least enabling the port in the error message.
+>> A simple test is to do
+>>
+>> ? ?socketConnection(port = 10187, server = TRUE)
+>>
+>> in an R session on the master and
+>>
+>> ? ?telnet ubuntu 10187
+>>
+>> in a shell on your worker machine (assumign your master is called
+>> ubuntu) (or you can use R and
+>>
+>> ? ?socketConnection("ubuntu", port = 10187)
+>>
+>> in an R session on the worker).
+>>
+>> luke
+>>
+>
+> Thanks Luke and Dirk for your help!
+>
+> I don't think it is a firewall error, as both machines have all port open
+> (as default with iptables as I understood), and the admin of the network
+> opened even port 10187.
+>
+> I tried first the three solutions suggested, none of them seem to give good
+> results:
+>
+> $telnet 192.100.100.212 10187
+>
+> Trying 192.100.100.212...
+>
+> telnet: Unable to connect to remote host: Connection refused
+>
+> R>socketConnection(port = 10187, server=TRUE)
+>
+> #nothing happens... is it right?
+>
+>
+> R > socketConnection("192.100.100.212", port = 10187)
+> Erreur dans socketConnection("192.100.100.212", port = 10187) :
+> ?impossible d'ouvrir la connexion
+>
+> De plus : Warning message:
+>
+> In socketConnection("192.100.100.212", port = 10187) :
+>
+> ?192.100.100.212:10187 cannot be opened
+>
+> Same error message when using "ubuntu"/ dsge at 192.100.100.212 etc..
+>
+> Going to a ubuntu forum, someone told that one has to open a server on the
+> port (excuse, explanations are not good as I don't understand that much the
+> subject :-( ).
+> So launching in the master (212):
+>
+> $nc -l -p 10187
+>
+>
+> then one is able to ?have in 210:
+>
+> $telnet 192.100.100.212 10187
+>
+> Trying 192.100.100.212...
+>
+> Connected to 192.100.100.212.
+>
+> Escape character is '^]'.
+>
+> So it seems that it is working, but there is then no effect on the previous
+> commands socketConnection, makeCluster, still claims that 10187 can't be
+> open.
+>
+> With those elements, do you guys see clearer or is it even darker? Thanks a
+> lot for your help!
+>
+> Matthieu
+>
+>>>
+>>> Thanks a lot for your help!!
+>>>>
+>>>> If it hangs, go to another terminal, ssh to 192.100.100.210, and look at
+>>>> the contents of /tmp/log.txt, and hopefully that will provide a clue to
+>>>> the problem.
+>>>>
+>>>> Another approach is to use the "manual" option. ?That will print the
+>>>> command that you should use to manually start each of the slaves.
+>>>> You just ssh to that machine from another terminal, and cut and paste
+>>>> the printed command to start the slave. ?If you set "outfile" to an
+>>>> empty
+>>>> string, then output messages will go right to that terminal.
+>>>>
+>>>> --
+>>>> Steve Weston
+>>>> REvolution Computing
+>>>> One Century Tower | 265 Church Street, Suite 1006
+>>>> New Haven, CT ?06510
+>>>> P: 203-777-7442 x266 | www.revolution-computing.com
+>>>>
+>>>
+>>>
+>>
+>
+>
+
+
+From matthieu.stigler at gmail.com  Fri Apr 17 16:40:43 2009
+From: matthieu.stigler at gmail.com (Matthieu Stigler)
+Date: Fri, 17 Apr 2009 20:10:43 +0530
+Subject: [R-sig-hpc] snow, socket cluster: problem with path to rscript
+In-Reply-To: <4f7bf0100904161206o138ec137rf8c9253b08d926ee@mail.gmail.com>
+References: <49E2FBF5.3070704@gmail.com>	
+	<4f7bf0100904130630u75726a55h9fa1cc5ad8799134@mail.gmail.com>	
+	<alpine.LFD.2.00.0904131240380.25960@nokomis.stat.uiowa.edu>	
+	<49E4576E.1090502@gmail.com>	
+	<4f7bf0100904140531v65dde08cve268d100e9242d46@mail.gmail.com>	
+	<49E5CC1D.2090200@gmail.com>	
+	<alpine.LFD.2.00.0904150718040.12926@itasca2.wildberry.org>	
+	<49E6F1CD.2070608@gmail.com>
+	<4f7bf0100904161206o138ec137rf8c9253b08d926ee@mail.gmail.com>
+Message-ID: <49E894EB.8030006@gmail.com>
+
+Steve Weston a ?crit :
+> I just noticed that you're running R 2.7.1 on your 192.100.100.212
+> machine.  I believe there are known socketConnection issues
+> with that version of R that Luke fixed as of R 2.7.2.  So I strongly
+> suggest that you upgrade your version of R.
+>   
+I upgraded to R 2.8 but unfortunately this doesn't change, the port 
+10187 is still said to be close...
+
+I obviously have a problem in opening the port, maybe should I rather 
+post on the debian list or on other forums? I use nc -l -p 10187, so 
+that telnet xxx.212 10187 is working, did it on both machines, but still 
+when running with makeCluster have that issue, also when running from 
+worker:
+
+socketConnection("ubuntu", port = 10187)
+192.100.100.212:10187 cannot be opened
+
+
+and with:
+
+socketConnection(port = 10187, server = TRUE)
+
+nothing happens, what is actually the expected output?
+
+Thanks a lot for your help and advices!!!
+
+Mat
+> --
+> Steve Weston
+> REvolution Computing
+> One Century Tower | 265 Church Street, Suite 1006
+> New Haven, CT  06510
+> P: 203-777-7442 x266 | www.revolution-computing.com
+>
+>
+> On Thu, Apr 16, 2009 at 4:52 AM, Matthieu Stigler
+> <matthieu.stigler at gmail.com> wrote:
+>   
+>> luke at stat.uiowa.edu a ?crit :
+>>     
+>>> On Wed, 15 Apr 2009, Matthieu Stigler wrote:
+>>>
+>>>       
+>>>> Steve Weston a ?crit :
+>>>>         
+>>>>> On Tue, Apr 14, 2009 at 5:29 AM, Matthieu Stigler
+>>>>> <matthieu.stigler at gmail.com> wrote:
+>>>>>
+>>>>>
+>>>>>           
+>>>>>> So it is now working for the local computer with. However, when trying
+>>>>>> to
+>>>>>> use the external computer, it seems to be working but nothing happens
+>>>>>> after
+>>>>>> he asked for the last password...
+>>>>>>
+>>>>>>             
+>>>>> This tells you is that "something went wrong".  The basic strategy in
+>>>>> this case
+>>>>> is to use the "outfile" option to hopefully capture an error message.
+>>>>>  You might
+>>>>> need to set outfile differently for different slaves, particularly if
+>>>>> you're starting
+>>>>> more than one on the same machine, but I suggest just starting one slave
+>>>>> on 210 to avoid the issue.  So do something like:
+>>>>>
+>>>>>
+>>>>>           
+>>>>>> host210 <- list(host = "mat at 192.100.100.210", rscript =
+>>>>>> "/usr/bin/Rscript",
+>>>>>>
+>>>>>>             
+>>>>> +                       outfile="/tmp/log.txt")
+>>>>>
+>>>>>           
+>>>>>> cl2 <- makeCluster(list(host210), type = "SOCK")
+>>>>>>
+>>>>>>             
+>>>>>           
+>>>> Ok, thanks for pointing out this methid.
+>>>>
+>>>> I tried it and got following error message. This does not seem not be
+>>>> computer specific (tried to do it to other host 213, and from other host 213
+>>>> to 212, always same error message):
+>>>>
+>>>> starting worker for ubuntu:10187 Error in socketConnection(master, port =
+>>>> port, blocking = TRUE, open = "a+b") : unable to open connection
+>>>>
+>>>> Calls: local ... slaveLoop -> recvData -> makeSOCKmaster ->
+>>>> socketConnection
+>>>>
+>>>> In addition: Warning message:
+>>>>
+>>>> In socketConnection(master, port = port, blocking = TRUE, open = "a+b") :
+>>>>
+>>>> ubuntu:10187 cannot be opened
+>>>>
+>>>> Execution halted
+>>>>
+>>>>
+>>>> Is it related to ssh or snow? I did not find any reference to that prob
+>>>> googling for it...
+>>>>         
+>>> It is an issue with your ability to make a socket connection to the
+>>> master. Most likely the master computer has a firewall that is
+>>> blocking connections to the port snow uses.  Try turning the firewall
+>>> off or at least enabling the port in the error message.
+>>> A simple test is to do
+>>>
+>>>    socketConnection(port = 10187, server = TRUE)
+>>>
+>>> in an R session on the master and
+>>>
+>>>    telnet ubuntu 10187
+>>>
+>>> in a shell on your worker machine (assumign your master is called
+>>> ubuntu) (or you can use R and
+>>>
+>>>    socketConnection("ubuntu", port = 10187)
+>>>
+>>> in an R session on the worker).
+>>>
+>>> luke
+>>>
+>>>       
+>> Thanks Luke and Dirk for your help!
+>>
+>> I don't think it is a firewall error, as both machines have all port open
+>> (as default with iptables as I understood), and the admin of the network
+>> opened even port 10187.
+>>
+>> I tried first the three solutions suggested, none of them seem to give good
+>> results:
+>>
+>> $telnet 192.100.100.212 10187
+>>
+>> Trying 192.100.100.212...
+>>
+>> telnet: Unable to connect to remote host: Connection refused
+>>
+>> R>socketConnection(port = 10187, server=TRUE)
+>>
+>> #nothing happens... is it right?
+>>
+>>
+>> R > socketConnection("192.100.100.212", port = 10187)
+>> Erreur dans socketConnection("192.100.100.212", port = 10187) :
+>>  impossible d'ouvrir la connexion
+>>
+>> De plus : Warning message:
+>>
+>> In socketConnection("192.100.100.212", port = 10187) :
+>>
+>>  192.100.100.212:10187 cannot be opened
+>>
+>> Same error message when using "ubuntu"/ dsge at 192.100.100.212 etc..
+>>
+>> Going to a ubuntu forum, someone told that one has to open a server on the
+>> port (excuse, explanations are not good as I don't understand that much the
+>> subject :-( ).
+>> So launching in the master (212):
+>>
+>> $nc -l -p 10187
+>>
+>>
+>> then one is able to  have in 210:
+>>
+>> $telnet 192.100.100.212 10187
+>>
+>> Trying 192.100.100.212...
+>>
+>> Connected to 192.100.100.212.
+>>
+>> Escape character is '^]'.
+>>
+>> So it seems that it is working, but there is then no effect on the previous
+>> commands socketConnection, makeCluster, still claims that 10187 can't be
+>> open.
+>>
+>> With those elements, do you guys see clearer or is it even darker? Thanks a
+>> lot for your help!
+>>
+>> Matthieu
+>>
+>>     
+>>>> Thanks a lot for your help!!
+>>>>         
+>>>>> If it hangs, go to another terminal, ssh to 192.100.100.210, and look at
+>>>>> the contents of /tmp/log.txt, and hopefully that will provide a clue to
+>>>>> the problem.
+>>>>>
+>>>>> Another approach is to use the "manual" option.  That will print the
+>>>>> command that you should use to manually start each of the slaves.
+>>>>> You just ssh to that machine from another terminal, and cut and paste
+>>>>> the printed command to start the slave.  If you set "outfile" to an
+>>>>> empty
+>>>>> string, then output messages will go right to that terminal.
+>>>>>
+>>>>> --
+>>>>> Steve Weston
+>>>>> REvolution Computing
+>>>>> One Century Tower | 265 Church Street, Suite 1006
+>>>>> New Haven, CT  06510
+>>>>> P: 203-777-7442 x266 | www.revolution-computing.com
+>>>>>
+>>>>>           
+>>>>         
+>>
+
+
+From luke at stat.uiowa.edu  Fri Apr 17 16:58:58 2009
+From: luke at stat.uiowa.edu (luke at stat.uiowa.edu)
+Date: Fri, 17 Apr 2009 09:58:58 -0500 (CDT)
+Subject: [R-sig-hpc] snow, socket cluster: problem with path to rscript
+In-Reply-To: <49E894EB.8030006@gmail.com>
+References: <49E2FBF5.3070704@gmail.com>
+	<4f7bf0100904130630u75726a55h9fa1cc5ad8799134@mail.gmail.com>
+	<alpine.LFD.2.00.0904131240380.25960@nokomis.stat.uiowa.edu>
+	<49E4576E.1090502@gmail.com>
+	<4f7bf0100904140531v65dde08cve268d100e9242d46@mail.gmail.com>
+	<49E5CC1D.2090200@gmail.com>
+	<alpine.LFD.2.00.0904150718040.12926@itasca2.wildberry.org>
+	<49E6F1CD.2070608@gmail.com>
+	<4f7bf0100904161206o138ec137rf8c9253b08d926ee@mail.gmail.com>
+	<49E894EB.8030006@gmail.com>
+Message-ID: <alpine.LFD.2.00.0904170942540.18357@nokomis.stat.uiowa.edu>
+
+On Fri, 17 Apr 2009, Matthieu Stigler wrote:
+
+> Steve Weston a ?crit :
+>> I just noticed that you're running R 2.7.1 on your 192.100.100.212
+>> machine.  I believe there are known socketConnection issues
+>> with that version of R that Luke fixed as of R 2.7.2.  So I strongly
+>> suggest that you upgrade your version of R.
+>> 
+> I upgraded to R 2.8 but unfortunately this doesn't change, the port 10187 is 
+> still said to be close...
+>
+> I obviously have a problem in opening the port, maybe should I rather post on 
+> the debian list or on other forums? I use nc -l -p 10187, so that telnet
+
+According to my man page that argument combination is not legal so I
+don't know what you actually did.
+
+> xxx.212 10187 is working, did it on both machines, but still when running 
+> with makeCluster have that issue, also when running from worker:
+>
+> socketConnection("ubuntu", port = 10187)
+> 192.100.100.212:10187 cannot be opened
+>
+>
+> and with:
+>
+> socketConnection(port = 10187, server = TRUE)
+>
+> nothing happens, what is actually the expected output?
+
+the server call waits until a connection occurs and then returns an R
+connection object.  The clinet socketConnection call returns a socket
+connection if curresful and gives an error message if not.
+
+So on the master do
+
+s <- socketConnection(port = 10187, server = TRUE)
+
+and this will wait for a connection and return to the prompt when a
+connectin occurs.  On the wroker machine
+
+telnet master 10187
+
+will either succeed and wait until the server socket is closed or fail
+with an error message about not being able to open the port.  If I use
+
+nc master 10187
+
+then no an successful connection nc waits (for input) until the server
+closes the socket with close(s) and then returns to the shell prompt.
+Failure for me is an immediate resurn to the shell prompt, no error
+message (and the server side continues to wait).
+
+luke
+
+>
+> Thanks a lot for your help and advices!!!
+>
+> Mat
+>> --
+>> Steve Weston
+>> REvolution Computing
+>> One Century Tower | 265 Church Street, Suite 1006
+>> New Haven, CT  06510
+>> P: 203-777-7442 x266 | www.revolution-computing.com
+>> 
+>> 
+>> On Thu, Apr 16, 2009 at 4:52 AM, Matthieu Stigler
+>> <matthieu.stigler at gmail.com> wrote:
+>> 
+>>> luke at stat.uiowa.edu a ?crit :
+>>> 
+>>>> On Wed, 15 Apr 2009, Matthieu Stigler wrote:
+>>>>
+>>>> 
+>>>>> Steve Weston a ?crit :
+>>>>> 
+>>>>>> On Tue, Apr 14, 2009 at 5:29 AM, Matthieu Stigler
+>>>>>> <matthieu.stigler at gmail.com> wrote:
+>>>>>> 
+>>>>>>
+>>>>>> 
+>>>>>>> So it is now working for the local computer with. However, when trying
+>>>>>>> to
+>>>>>>> use the external computer, it seems to be working but nothing happens
+>>>>>>> after
+>>>>>>> he asked for the last password...
+>>>>>>>
+>>>>>>> 
+>>>>>> This tells you is that "something went wrong".  The basic strategy in
+>>>>>> this case
+>>>>>> is to use the "outfile" option to hopefully capture an error message.
+>>>>>>  You might
+>>>>>> need to set outfile differently for different slaves, particularly if
+>>>>>> you're starting
+>>>>>> more than one on the same machine, but I suggest just starting one 
+>>>>>> slave
+>>>>>> on 210 to avoid the issue.  So do something like:
+>>>>>> 
+>>>>>>
+>>>>>> 
+>>>>>>> host210 <- list(host = "mat at 192.100.100.210", rscript =
+>>>>>>> "/usr/bin/Rscript",
+>>>>>>>
+>>>>>>> 
+>>>>>> +                       outfile="/tmp/log.txt")
+>>>>>>
+>>>>>> 
+>>>>>>> cl2 <- makeCluster(list(host210), type = "SOCK")
+>>>>>>>
+>>>>>>>
+>>>>>> 
+>>>>> Ok, thanks for pointing out this methid.
+>>>>> 
+>>>>> I tried it and got following error message. This does not seem not be
+>>>>> computer specific (tried to do it to other host 213, and from other host 
+>>>>> 213
+>>>>> to 212, always same error message):
+>>>>> 
+>>>>> starting worker for ubuntu:10187 Error in socketConnection(master, port 
+>>>>> =
+>>>>> port, blocking = TRUE, open = "a+b") : unable to open connection
+>>>>> 
+>>>>> Calls: local ... slaveLoop -> recvData -> makeSOCKmaster ->
+>>>>> socketConnection
+>>>>> 
+>>>>> In addition: Warning message:
+>>>>> 
+>>>>> In socketConnection(master, port = port, blocking = TRUE, open = "a+b") 
+>>>>> :
+>>>>> 
+>>>>> ubuntu:10187 cannot be opened
+>>>>> 
+>>>>> Execution halted
+>>>>> 
+>>>>> 
+>>>>> Is it related to ssh or snow? I did not find any reference to that prob
+>>>>> googling for it...
+>>>>> 
+>>>> It is an issue with your ability to make a socket connection to the
+>>>> master. Most likely the master computer has a firewall that is
+>>>> blocking connections to the port snow uses.  Try turning the firewall
+>>>> off or at least enabling the port in the error message.
+>>>> A simple test is to do
+>>>>
+>>>>    socketConnection(port = 10187, server = TRUE)
+>>>> 
+>>>> in an R session on the master and
+>>>>
+>>>>    telnet ubuntu 10187
+>>>> 
+>>>> in a shell on your worker machine (assumign your master is called
+>>>> ubuntu) (or you can use R and
+>>>>
+>>>>    socketConnection("ubuntu", port = 10187)
+>>>> 
+>>>> in an R session on the worker).
+>>>> 
+>>>> luke
+>>>>
+>>>> 
+>>> Thanks Luke and Dirk for your help!
+>>> 
+>>> I don't think it is a firewall error, as both machines have all port open
+>>> (as default with iptables as I understood), and the admin of the network
+>>> opened even port 10187.
+>>> 
+>>> I tried first the three solutions suggested, none of them seem to give 
+>>> good
+>>> results:
+>>> 
+>>> $telnet 192.100.100.212 10187
+>>> 
+>>> Trying 192.100.100.212...
+>>> 
+>>> telnet: Unable to connect to remote host: Connection refused
+>>> 
+>>> R>socketConnection(port = 10187, server=TRUE)
+>>> 
+>>> #nothing happens... is it right?
+>>> 
+>>> 
+>>> R > socketConnection("192.100.100.212", port = 10187)
+>>> Erreur dans socketConnection("192.100.100.212", port = 10187) :
+>>>  impossible d'ouvrir la connexion
+>>> 
+>>> De plus : Warning message:
+>>> 
+>>> In socketConnection("192.100.100.212", port = 10187) :
+>>>
+>>>  192.100.100.212:10187 cannot be opened
+>>> 
+>>> Same error message when using "ubuntu"/ dsge at 192.100.100.212 etc..
+>>> 
+>>> Going to a ubuntu forum, someone told that one has to open a server on the
+>>> port (excuse, explanations are not good as I don't understand that much 
+>>> the
+>>> subject :-( ).
+>>> So launching in the master (212):
+>>> 
+>>> $nc -l -p 10187
+>>> 
+>>> 
+>>> then one is able to  have in 210:
+>>> 
+>>> $telnet 192.100.100.212 10187
+>>> 
+>>> Trying 192.100.100.212...
+>>> 
+>>> Connected to 192.100.100.212.
+>>> 
+>>> Escape character is '^]'.
+>>> 
+>>> So it seems that it is working, but there is then no effect on the 
+>>> previous
+>>> commands socketConnection, makeCluster, still claims that 10187 can't be
+>>> open.
+>>> 
+>>> With those elements, do you guys see clearer or is it even darker? Thanks 
+>>> a
+>>> lot for your help!
+>>> 
+>>> Matthieu
+>>>
+>>> 
+>>>>> Thanks a lot for your help!!
+>>>>> 
+>>>>>> If it hangs, go to another terminal, ssh to 192.100.100.210, and look 
+>>>>>> at
+>>>>>> the contents of /tmp/log.txt, and hopefully that will provide a clue to
+>>>>>> the problem.
+>>>>>> 
+>>>>>> Another approach is to use the "manual" option.  That will print the
+>>>>>> command that you should use to manually start each of the slaves.
+>>>>>> You just ssh to that machine from another terminal, and cut and paste
+>>>>>> the printed command to start the slave.  If you set "outfile" to an
+>>>>>> empty
+>>>>>> string, then output messages will go right to that terminal.
+>>>>>> 
+>>>>>> --
+>>>>>> Steve Weston
+>>>>>> REvolution Computing
+>>>>>> One Century Tower | 265 Church Street, Suite 1006
+>>>>>> New Haven, CT  06510
+>>>>>> P: 203-777-7442 x266 | www.revolution-computing.com
+>>>>>>
+>>>>>>
+>>>>>
+>>> 
+>
+>
+
+-- 
+Luke Tierney
+Chair, Statistics and Actuarial Science
+Ralph E. Wareham Professor of Mathematical Sciences
+University of Iowa                  Phone:             319-335-3386
+Department of Statistics and        Fax:               319-335-3017
+    Actuarial Science
+241 Schaeffer Hall                  email:      luke at stat.uiowa.edu
+Iowa City, IA 52242                 WWW:  http://www.stat.uiowa.edu
+
+From edd at debian.org  Fri Apr 17 17:28:33 2009
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Fri, 17 Apr 2009 10:28:33 -0500
+Subject: [R-sig-hpc] snow, socket cluster: problem with path to rscript
+In-Reply-To: <49E894EB.8030006@gmail.com>
+References: <49E2FBF5.3070704@gmail.com>
+	<4f7bf0100904130630u75726a55h9fa1cc5ad8799134@mail.gmail.com>
+	<alpine.LFD.2.00.0904131240380.25960@nokomis.stat.uiowa.edu>
+	<49E4576E.1090502@gmail.com>
+	<4f7bf0100904140531v65dde08cve268d100e9242d46@mail.gmail.com>
+	<49E5CC1D.2090200@gmail.com>
+	<alpine.LFD.2.00.0904150718040.12926@itasca2.wildberry.org>
+	<49E6F1CD.2070608@gmail.com>
+	<4f7bf0100904161206o138ec137rf8c9253b08d926ee@mail.gmail.com>
+	<49E894EB.8030006@gmail.com>
+Message-ID: <18920.40993.474059.31946@ron.nulle.part>
+
+
+On 17 April 2009 at 20:10, Matthieu Stigler wrote:
+| Steve Weston a  crit :
+| > I just noticed that you're running R 2.7.1 on your 192.100.100.212
+| > machine.  I believe there are known socketConnection issues
+| > with that version of R that Luke fixed as of R 2.7.2.  So I strongly
+| > suggest that you upgrade your version of R.
+| >   
+| I upgraded to R 2.8 but unfortunately this doesn't change, the port 
+| 10187 is still said to be close...
+
+For what it is worth, I cannot do that either on Ubuntu at work, yet snow
+works just fine:
+
+edd at l1:~$ telnet l2 10187                   
+Trying xxx.xx.50.99...                                                      
+telnet: Unable to connect to remote host: Connection refused                
+edd at l1:~$ telnet l1 10187                  
+Trying xxx.xx.50.97...                                                     
+telnet: Unable to connect to remote host: Connection refused               
+edd at l1:~$ r -lsnow -e'cl <- makeCluster(c("l1","l2"), "SOCK"); print(str(cl)); stopCluster(cl)'
+List of 2                                                                                                                                 
+ $ :List of 3                                                                                                                             
+  ..$ con :Classes 'sockconn', 'connection'  atomic [1:1] 3                                                                               
+  .. .. ..- attr(*, "conn_id")=<externalptr>                                                                                              
+  ..$ host: chr "l1"                                                                                                           
+  ..$ rank: int 1                                                                                                                         
+  ..- attr(*, "class")= chr "SOCKnode"                                                                                                    
+ $ :List of 3                                                                                                                             
+  ..$ con :Classes 'sockconn', 'connection'  atomic [1:1] 4
+  .. .. ..- attr(*, "conn_id")=<externalptr>
+  ..$ host: chr "l2"
+  ..$ rank: int 2
+  ..- attr(*, "class")= chr "SOCKnode"
+ - attr(*, "class")= chr [1:2] "SOCKcluster" "cluster"
+NULL
+edd at l1:~$
+
+Maybe that socket-to-port-10187 thing is not really relevant...
+
+Dirk
+
+| I obviously have a problem in opening the port, maybe should I rather 
+| post on the debian list or on other forums? I use nc -l -p 10187, so 
+| that telnet xxx.212 10187 is working, did it on both machines, but still 
+| when running with makeCluster have that issue, also when running from 
+| worker:
+| 
+| socketConnection("ubuntu", port = 10187)
+| 192.100.100.212:10187 cannot be opened
+| 
+| 
+| and with:
+| 
+| socketConnection(port = 10187, server = TRUE)
+| 
+| nothing happens, what is actually the expected output?
+| 
+| Thanks a lot for your help and advices!!!
+| 
+| Mat
+| > --
+| > Steve Weston
+| > REvolution Computing
+| > One Century Tower | 265 Church Street, Suite 1006
+| > New Haven, CT  06510
+| > P: 203-777-7442 x266 | www.revolution-computing.com
+| >
+| >
+| > On Thu, Apr 16, 2009 at 4:52 AM, Matthieu Stigler
+| > <matthieu.stigler at gmail.com> wrote:
+| >   
+| >> luke at stat.uiowa.edu a  crit :
+| >>     
+| >>> On Wed, 15 Apr 2009, Matthieu Stigler wrote:
+| >>>
+| >>>       
+| >>>> Steve Weston a  crit :
+| >>>>         
+| >>>>> On Tue, Apr 14, 2009 at 5:29 AM, Matthieu Stigler
+| >>>>> <matthieu.stigler at gmail.com> wrote:
+| >>>>>
+| >>>>>
+| >>>>>           
+| >>>>>> So it is now working for the local computer with. However, when trying
+| >>>>>> to
+| >>>>>> use the external computer, it seems to be working but nothing happens
+| >>>>>> after
+| >>>>>> he asked for the last password...
+| >>>>>>
+| >>>>>>             
+| >>>>> This tells you is that "something went wrong".  The basic strategy in
+| >>>>> this case
+| >>>>> is to use the "outfile" option to hopefully capture an error message.
+| >>>>>  You might
+| >>>>> need to set outfile differently for different slaves, particularly if
+| >>>>> you're starting
+| >>>>> more than one on the same machine, but I suggest just starting one slave
+| >>>>> on 210 to avoid the issue.  So do something like:
+| >>>>>
+| >>>>>
+| >>>>>           
+| >>>>>> host210 <- list(host = "mat at 192.100.100.210", rscript =
+| >>>>>> "/usr/bin/Rscript",
+| >>>>>>
+| >>>>>>             
+| >>>>> +                       outfile="/tmp/log.txt")
+| >>>>>
+| >>>>>           
+| >>>>>> cl2 <- makeCluster(list(host210), type = "SOCK")
+| >>>>>>
+| >>>>>>             
+| >>>>>           
+| >>>> Ok, thanks for pointing out this methid.
+| >>>>
+| >>>> I tried it and got following error message. This does not seem not be
+| >>>> computer specific (tried to do it to other host 213, and from other host 213
+| >>>> to 212, always same error message):
+| >>>>
+| >>>> starting worker for ubuntu:10187 Error in socketConnection(master, port =
+| >>>> port, blocking = TRUE, open = "a+b") : unable to open connection
+| >>>>
+| >>>> Calls: local ... slaveLoop -> recvData -> makeSOCKmaster ->
+| >>>> socketConnection
+| >>>>
+| >>>> In addition: Warning message:
+| >>>>
+| >>>> In socketConnection(master, port = port, blocking = TRUE, open = "a+b") :
+| >>>>
+| >>>> ubuntu:10187 cannot be opened
+| >>>>
+| >>>> Execution halted
+| >>>>
+| >>>>
+| >>>> Is it related to ssh or snow? I did not find any reference to that prob
+| >>>> googling for it...
+| >>>>         
+| >>> It is an issue with your ability to make a socket connection to the
+| >>> master. Most likely the master computer has a firewall that is
+| >>> blocking connections to the port snow uses.  Try turning the firewall
+| >>> off or at least enabling the port in the error message.
+| >>> A simple test is to do
+| >>>
+| >>>    socketConnection(port = 10187, server = TRUE)
+| >>>
+| >>> in an R session on the master and
+| >>>
+| >>>    telnet ubuntu 10187
+| >>>
+| >>> in a shell on your worker machine (assumign your master is called
+| >>> ubuntu) (or you can use R and
+| >>>
+| >>>    socketConnection("ubuntu", port = 10187)
+| >>>
+| >>> in an R session on the worker).
+| >>>
+| >>> luke
+| >>>
+| >>>       
+| >> Thanks Luke and Dirk for your help!
+| >>
+| >> I don't think it is a firewall error, as both machines have all port open
+| >> (as default with iptables as I understood), and the admin of the network
+| >> opened even port 10187.
+| >>
+| >> I tried first the three solutions suggested, none of them seem to give good
+| >> results:
+| >>
+| >> $telnet 192.100.100.212 10187
+| >>
+| >> Trying 192.100.100.212...
+| >>
+| >> telnet: Unable to connect to remote host: Connection refused
+| >>
+| >> R>socketConnection(port = 10187, server=TRUE)
+| >>
+| >> #nothing happens... is it right?
+| >>
+| >>
+| >> R > socketConnection("192.100.100.212", port = 10187)
+| >> Erreur dans socketConnection("192.100.100.212", port = 10187) :
+| >>  impossible d'ouvrir la connexion
+| >>
+| >> De plus : Warning message:
+| >>
+| >> In socketConnection("192.100.100.212", port = 10187) :
+| >>
+| >>  192.100.100.212:10187 cannot be opened
+| >>
+| >> Same error message when using "ubuntu"/ dsge at 192.100.100.212 etc..
+| >>
+| >> Going to a ubuntu forum, someone told that one has to open a server on the
+| >> port (excuse, explanations are not good as I don't understand that much the
+| >> subject :-( ).
+| >> So launching in the master (212):
+| >>
+| >> $nc -l -p 10187
+| >>
+| >>
+| >> then one is able to  have in 210:
+| >>
+| >> $telnet 192.100.100.212 10187
+| >>
+| >> Trying 192.100.100.212...
+| >>
+| >> Connected to 192.100.100.212.
+| >>
+| >> Escape character is '^]'.
+| >>
+| >> So it seems that it is working, but there is then no effect on the previous
+| >> commands socketConnection, makeCluster, still claims that 10187 can't be
+| >> open.
+| >>
+| >> With those elements, do you guys see clearer or is it even darker? Thanks a
+| >> lot for your help!
+| >>
+| >> Matthieu
+| >>
+| >>     
+| >>>> Thanks a lot for your help!!
+| >>>>         
+| >>>>> If it hangs, go to another terminal, ssh to 192.100.100.210, and look at
+| >>>>> the contents of /tmp/log.txt, and hopefully that will provide a clue to
+| >>>>> the problem.
+| >>>>>
+| >>>>> Another approach is to use the "manual" option.  That will print the
+| >>>>> command that you should use to manually start each of the slaves.
+| >>>>> You just ssh to that machine from another terminal, and cut and paste
+| >>>>> the printed command to start the slave.  If you set "outfile" to an
+| >>>>> empty
+| >>>>> string, then output messages will go right to that terminal.
+| >>>>>
+| >>>>> --
+| >>>>> Steve Weston
+| >>>>> REvolution Computing
+| >>>>> One Century Tower | 265 Church Street, Suite 1006
+| >>>>> New Haven, CT  06510
+| >>>>> P: 203-777-7442 x266 | www.revolution-computing.com
+| >>>>>
+| >>>>>           
+| >>>>         
+| >>
+| 
+| _______________________________________________
+| R-sig-hpc mailing list
+| R-sig-hpc at r-project.org
+| https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+-- 
+Three out of two people have difficulties with fractions.
+
+
+From steve at revolution-computing.com  Fri Apr 17 18:53:04 2009
+From: steve at revolution-computing.com (Steve Weston)
+Date: Fri, 17 Apr 2009 12:53:04 -0400
+Subject: [R-sig-hpc] snow, socket cluster: problem with path to rscript
+In-Reply-To: <18920.40993.474059.31946@ron.nulle.part>
+References: <49E2FBF5.3070704@gmail.com>
+	<alpine.LFD.2.00.0904131240380.25960@nokomis.stat.uiowa.edu>
+	<49E4576E.1090502@gmail.com>
+	<4f7bf0100904140531v65dde08cve268d100e9242d46@mail.gmail.com>
+	<49E5CC1D.2090200@gmail.com>
+	<alpine.LFD.2.00.0904150718040.12926@itasca2.wildberry.org>
+	<49E6F1CD.2070608@gmail.com>
+	<4f7bf0100904161206o138ec137rf8c9253b08d926ee@mail.gmail.com>
+	<49E894EB.8030006@gmail.com> <18920.40993.474059.31946@ron.nulle.part>
+Message-ID: <4f7bf0100904170953m62df0faai3c2b9e68d1b5f6f4@mail.gmail.com>
+
+On Fri, Apr 17, 2009 at 11:28 AM, Dirk Eddelbuettel <edd at debian.org> wrote:
+
+> For what it is worth, I cannot do that either on Ubuntu at work, yet snow
+> works just fine:
+>
+> edd at l1:~$ telnet l2 10187
+> Trying xxx.xx.50.99...
+> telnet: Unable to connect to remote host: Connection refused
+> edd at l1:~$ telnet l1 10187
+> Trying xxx.xx.50.97...
+> telnet: Unable to connect to remote host: Connection refused
+
+Perhaps I'm confused, but it looks like your telnets are going the
+wrong way.  The telnets are supposed to be acting like the slave
+processes connecting back to the master.  So they would be
+running on l1 and l2, but connecting back to the master, where
+"socketConnection(port=10871, server=TRUE)" is executing.
+
+The master process in snow is running socketConnection with
+almost the same arguments in order to create the cluster,
+so it seems like an important experiment to me.  The only
+reason that it should fail that I can think of is due to a firewall,
+as Luke pointed out.
+
+At this point, I would be running R under gdb, and maybe doing
+some packet sniffing.  I'm not sure what else to suggest.
+
+--
+Steve Weston
+REvolution Computing
+One Century Tower | 265 Church Street, Suite 1006
+New Haven, CT  06510
+P: 203-777-7442 x266 | www.revolution-computing.com
+
+
+From edd at debian.org  Fri Apr 17 20:05:09 2009
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Fri, 17 Apr 2009 13:05:09 -0500
+Subject: [R-sig-hpc] snow, socket cluster: problem with path to rscript
+In-Reply-To: <4f7bf0100904170953m62df0faai3c2b9e68d1b5f6f4@mail.gmail.com>
+References: <49E2FBF5.3070704@gmail.com>
+	<alpine.LFD.2.00.0904131240380.25960@nokomis.stat.uiowa.edu>
+	<49E4576E.1090502@gmail.com>
+	<4f7bf0100904140531v65dde08cve268d100e9242d46@mail.gmail.com>
+	<49E5CC1D.2090200@gmail.com>
+	<alpine.LFD.2.00.0904150718040.12926@itasca2.wildberry.org>
+	<49E6F1CD.2070608@gmail.com>
+	<4f7bf0100904161206o138ec137rf8c9253b08d926ee@mail.gmail.com>
+	<49E894EB.8030006@gmail.com>
+	<18920.40993.474059.31946@ron.nulle.part>
+	<4f7bf0100904170953m62df0faai3c2b9e68d1b5f6f4@mail.gmail.com>
+Message-ID: <18920.50389.968593.539909@ron.nulle.part>
+
+
+On 17 April 2009 at 12:53, Steve Weston wrote:
+| On Fri, Apr 17, 2009 at 11:28 AM, Dirk Eddelbuettel <edd at debian.org> wrote:
+| 
+| > For what it is worth, I cannot do that either on Ubuntu at work, yet snow
+| > works just fine:
+| >
+| > edd at l1:~$ telnet l2 10187
+| > Trying xxx.xx.50.99...
+| > telnet: Unable to connect to remote host: Connection refused
+| > edd at l1:~$ telnet l1 10187
+| > Trying xxx.xx.50.97...
+| > telnet: Unable to connect to remote host: Connection refused
+| 
+| Perhaps I'm confused, but it looks like your telnets are going the
+| wrong way.  The telnets are supposed to be acting like the slave
+| processes connecting back to the master.  So they would be
+| running on l1 and l2, but connecting back to the master, where
+| "socketConnection(port=10871, server=TRUE)" is executing.
+
+Correct, Luke pointed that out is his post that arrived at about the same
+time.  When there is server to connect to, it should be little wonder that
+the telnet process fails....   Sloppy thinking on my part.
+
+| At this point, I would be running R under gdb, and maybe doing
+| some packet sniffing.  I'm not sure what else to suggest.
+
+Yes, Matthieu should probably try some 'manual' R socket connection example
+to prove that these work in his setup before trying to employ them with snow.
+
+Dirk
+
+-- 
+Three out of two people have difficulties with fractions.
+
+
+From HodgessE at uhd.edu  Mon Apr 20 02:12:40 2009
+From: HodgessE at uhd.edu (Hodgess, Erin)
+Date: Sun, 19 Apr 2009 19:12:40 -0500
+Subject: [R-sig-hpc] "top" question
+Message-ID: <70A5AC06FDB5E54482D19E1C04CDFCF307C36C08@BALI.uhd.campus>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090419/83bdd157/attachment.pl>
+
+From nathan.watson-haigh at csiro.au  Mon Apr 20 07:36:31 2009
+From: nathan.watson-haigh at csiro.au (Nathan S. Watson-Haigh)
+Date: Mon, 20 Apr 2009 15:36:31 +1000
+Subject: [R-sig-hpc] Shared Memory
+Message-ID: <49EC09DF.2000901@csiro.au>
+
+I'm new to HPC and parallel programming but I've created my own R
+package which has a parallel (using Rmpi) and non-parallel
+implementation of the same algorithm. It works nicely, but I'm trying to
+better understand how/if Rmpi uses shared memory. Does/can Rmpi use
+shared memory? For instance, if each slave needs access to the same data
+matrix, does Rmpi create a copy of that data for each slave when I do:
+mpi.bcast.Robj2slave(myMatrix)
+
+I think it does create a copy and I therefore currently pass a subset of
+the data matrix to each slave using:
+objList <- list(m=m[xMin:nrow(m), xMin:nrow(m)])
+mpi.send.Robj(objList, slave_id, 1)
+
+myMatrix can be up to 24k x 24k in size. That's > 4Gb of RAM just to
+hold it in memory! I suppose I'm wondering if memory requirements are
+proportional to the number of slaves requested - if each slave has to
+have it's own copy of the data and if I can reduce this requirement by
+utilising the shared memory!?
+
+Cheers,
+Nath
+
+
+From schmidb at ibe.med.uni-muenchen.de  Mon Apr 20 08:34:43 2009
+From: schmidb at ibe.med.uni-muenchen.de (Markus Schmidberger)
+Date: Mon, 20 Apr 2009 08:34:43 +0200
+Subject: [R-sig-hpc] "top" question
+In-Reply-To: <70A5AC06FDB5E54482D19E1C04CDFCF307C36C08@BALI.uhd.campus>
+References: <70A5AC06FDB5E54482D19E1C04CDFCF307C36C08@BALI.uhd.campus>
+Message-ID: <49EC1783.6000404@ibe.med.uni-muenchen.de>
+
+Hi Erin,
+
+use google. There you can find some solutions:
+http://malektips.com/xp_dos_0005.html
+
+Best
+Markus
+
+
+Hodgess, Erin schrieb:
+> Dear HPCers:
+>
+> Is there a moral equivalent on Windows of the Linux "top" command, please?
+>
+> (even an immoral equivalent would be acceptable)
+>
+> thanks,
+> Erin
+>
+>
+> Erin M. Hodgess, PhD
+> Associate Professor
+> Department of Computer and Mathematical Sciences
+> University of Houston - Downtown
+> mailto: hodgesse at uhd.edu
+>
+>
+> 	[[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>   
+
+
+-- 
+Dipl.-Tech. Math. Markus Schmidberger
+
+Ludwig-Maximilians-Universit?t M?nchen
+IBE - Institut f?r medizinische Informationsverarbeitung,
+Biometrie und Epidemiologie
+Marchioninistr. 15, D-81377 Muenchen
+URL: http://www.ibe.med.uni-muenchen.de 
+Mail: Markus.Schmidberger [at] ibe.med.uni-muenchen.de
+Tel: +49 (089) 7095 - 4497
+
+
+From schmidb at ibe.med.uni-muenchen.de  Mon Apr 20 08:39:17 2009
+From: schmidb at ibe.med.uni-muenchen.de (Markus Schmidberger)
+Date: Mon, 20 Apr 2009 08:39:17 +0200
+Subject: [R-sig-hpc] Shared Memory
+In-Reply-To: <49EC09DF.2000901@csiro.au>
+References: <49EC09DF.2000901@csiro.au>
+Message-ID: <49EC1895.10301@ibe.med.uni-muenchen.de>
+
+Nathan S. Watson-Haigh schrieb:
+> I'm new to HPC and parallel programming but I've created my own R
+> package which has a parallel (using Rmpi) and non-parallel
+> implementation of the same algorithm. It works nicely, but I'm trying to
+> better understand how/if Rmpi uses shared memory. Does/can Rmpi use
+> shared memory? For instance, if each slave needs access to the same data
+> matrix, does Rmpi create a copy of that data for each slave when I do:
+> mpi.bcast.Robj2slave(myMatrix)
+>   
+Yes
+> I think it does create a copy and I therefore currently pass a subset of
+> the data matrix to each slave using:
+> objList <- list(m=m[xMin:nrow(m), xMin:nrow(m)])
+> mpi.send.Robj(objList, slave_id, 1)
+>   
+Yes, this works
+> myMatrix can be up to 24k x 24k in size. That's > 4Gb of RAM just to
+> hold it in memory! I suppose I'm wondering if memory requirements are
+> proportional to the number of slaves requested - if each slave has to
+> have it's own copy of the data and if I can reduce this requirement by
+> utilising the shared memory!?
+>   
+Yes, you will get some memory problems. Using Rmpi I think there is no 
+way to use shared memory.
+There is a great new package for shared memory sytems: multicore
+http://cran.r-project.org/web/packages/multicore/index.html
+I already tested it with 500 cores and there is a great performance 
+(nearly linear!)
+
+Best
+Markus
+> Cheers,
+> Nath
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>   
+
+
+-- 
+Dipl.-Tech. Math. Markus Schmidberger
+
+Ludwig-Maximilians-Universit?t M?nchen
+IBE - Institut f?r medizinische Informationsverarbeitung,
+Biometrie und Epidemiologie
+Marchioninistr. 15, D-81377 Muenchen
+URL: http://www.ibe.med.uni-muenchen.de 
+Mail: Markus.Schmidberger [at] ibe.med.uni-muenchen.de
+Tel: +49 (089) 7095 - 4497
+
+
+From nathan.watson-haigh at csiro.au  Mon Apr 20 09:03:16 2009
+From: nathan.watson-haigh at csiro.au (Nathan S. Watson-Haigh)
+Date: Mon, 20 Apr 2009 17:03:16 +1000
+Subject: [R-sig-hpc] Shared Memory
+In-Reply-To: <49EC1895.10301@ibe.med.uni-muenchen.de>
+References: <49EC09DF.2000901@csiro.au>
+	<49EC1895.10301@ibe.med.uni-muenchen.de>
+Message-ID: <49EC1E34.6080309@csiro.au>
+
+Hi Markus,
+
+Thanks for the link to multicore...definitely worth a look! As you've
+already used it, could you provide any examples of expr passed to
+parallel()? I'm using the following as the basis of my code and would
+like to try multicore:
+http://math.acadiau.ca/ACMMaC/Rmpi/task_pull.R
+
+Cheers,
+Nath
+
+Markus Schmidberger wrote:
+> Nathan S. Watson-Haigh schrieb:
+>   
+>> I'm new to HPC and parallel programming but I've created my own R
+>> package which has a parallel (using Rmpi) and non-parallel
+>> implementation of the same algorithm. It works nicely, but I'm trying to
+>> better understand how/if Rmpi uses shared memory. Does/can Rmpi use
+>> shared memory? For instance, if each slave needs access to the same data
+>> matrix, does Rmpi create a copy of that data for each slave when I do:
+>> mpi.bcast.Robj2slave(myMatrix)
+>>   
+>>     
+> Yes
+>   
+>> I think it does create a copy and I therefore currently pass a subset of
+>> the data matrix to each slave using:
+>> objList <- list(m=m[xMin:nrow(m), xMin:nrow(m)])
+>> mpi.send.Robj(objList, slave_id, 1)
+>>   
+>>     
+> Yes, this works
+>   
+>> myMatrix can be up to 24k x 24k in size. That's > 4Gb of RAM just to
+>> hold it in memory! I suppose I'm wondering if memory requirements are
+>> proportional to the number of slaves requested - if each slave has to
+>> have it's own copy of the data and if I can reduce this requirement by
+>> utilising the shared memory!?
+>>   
+>>     
+> Yes, you will get some memory problems. Using Rmpi I think there is no 
+> way to use shared memory.
+> There is a great new package for shared memory sytems: multicore
+> http://cran.r-project.org/web/packages/multicore/index.html
+> I already tested it with 500 cores and there is a great performance 
+> (nearly linear!)
+>
+> Best
+> Markus
+>   
+>> Cheers,
+>> Nath
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>   
+>>     
+>
+>
+>
+
+
+From schmidb at ibe.med.uni-muenchen.de  Mon Apr 20 10:30:04 2009
+From: schmidb at ibe.med.uni-muenchen.de (Markus Schmidberger)
+Date: Mon, 20 Apr 2009 10:30:04 +0200
+Subject: [R-sig-hpc] Shared Memory
+In-Reply-To: <49EC1E34.6080309@csiro.au>
+References: <49EC09DF.2000901@csiro.au>
+	<49EC1895.10301@ibe.med.uni-muenchen.de>
+	<49EC1E34.6080309@csiro.au>
+Message-ID: <49EC328C.8070800@ibe.med.uni-muenchen.de>
+
+Hi Nath,
+
+have a look to the help files!
+
+ > ?parallel
+ >  p <- parallel(1:10)
+ >  q <- parallel(1:20)
+ >  collect(list(p, q))
+
+$`8206`
+ [1]  1  2  3  4  5  6  7  8  9 10
+
+$`8207`
+ [1]  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20
+
+ >
+
+
+Best
+Markus
+
+
+Nathan S. Watson-Haigh schrieb:
+> Hi Markus,
+>
+> Thanks for the link to multicore...definitely worth a look! As you've
+> already used it, could you provide any examples of expr passed to
+> parallel()? I'm using the following as the basis of my code and would
+> like to try multicore:
+> http://math.acadiau.ca/ACMMaC/Rmpi/task_pull.R
+>
+> Cheers,
+> Nath
+>
+> Markus Schmidberger wrote:
+>   
+>> Nathan S. Watson-Haigh schrieb:
+>>   
+>>     
+>>> I'm new to HPC and parallel programming but I've created my own R
+>>> package which has a parallel (using Rmpi) and non-parallel
+>>> implementation of the same algorithm. It works nicely, but I'm trying to
+>>> better understand how/if Rmpi uses shared memory. Does/can Rmpi use
+>>> shared memory? For instance, if each slave needs access to the same data
+>>> matrix, does Rmpi create a copy of that data for each slave when I do:
+>>> mpi.bcast.Robj2slave(myMatrix)
+>>>   
+>>>     
+>>>       
+>> Yes
+>>   
+>>     
+>>> I think it does create a copy and I therefore currently pass a subset of
+>>> the data matrix to each slave using:
+>>> objList <- list(m=m[xMin:nrow(m), xMin:nrow(m)])
+>>> mpi.send.Robj(objList, slave_id, 1)
+>>>   
+>>>     
+>>>       
+>> Yes, this works
+>>   
+>>     
+>>> myMatrix can be up to 24k x 24k in size. That's > 4Gb of RAM just to
+>>> hold it in memory! I suppose I'm wondering if memory requirements are
+>>> proportional to the number of slaves requested - if each slave has to
+>>> have it's own copy of the data and if I can reduce this requirement by
+>>> utilising the shared memory!?
+>>>   
+>>>     
+>>>       
+>> Yes, you will get some memory problems. Using Rmpi I think there is no 
+>> way to use shared memory.
+>> There is a great new package for shared memory sytems: multicore
+>> http://cran.r-project.org/web/packages/multicore/index.html
+>> I already tested it with 500 cores and there is a great performance 
+>> (nearly linear!)
+>>
+>> Best
+>> Markus
+>>   
+>>     
+>>> Cheers,
+>>> Nath
+>>>
+>>> _______________________________________________
+>>> R-sig-hpc mailing list
+>>> R-sig-hpc at r-project.org
+>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>   
+>>>     
+>>>       
+>>   
+>>     
+>
+>   
+
+
+-- 
+Dipl.-Tech. Math. Markus Schmidberger
+
+Ludwig-Maximilians-Universit?t M?nchen
+IBE - Institut f?r medizinische Informationsverarbeitung,
+Biometrie und Epidemiologie
+Marchioninistr. 15, D-81377 Muenchen
+URL: http://www.ibe.med.uni-muenchen.de 
+Mail: Markus.Schmidberger [at] ibe.med.uni-muenchen.de
+Tel: +49 (089) 7095 - 4497
+
+
+From matthieu.stigler at gmail.com  Mon Apr 20 14:34:39 2009
+From: matthieu.stigler at gmail.com (Matthieu Stigler)
+Date: Mon, 20 Apr 2009 18:04:39 +0530
+Subject: [R-sig-hpc] snow, socket cluster: problem with path to rscript
+In-Reply-To: <alpine.LFD.2.00.0904170942540.18357@nokomis.stat.uiowa.edu>
+References: <49E2FBF5.3070704@gmail.com>
+	<4f7bf0100904130630u75726a55h9fa1cc5ad8799134@mail.gmail.com>
+	<alpine.LFD.2.00.0904131240380.25960@nokomis.stat.uiowa.edu>
+	<49E4576E.1090502@gmail.com>
+	<4f7bf0100904140531v65dde08cve268d100e9242d46@mail.gmail.com>
+	<49E5CC1D.2090200@gmail.com>
+	<alpine.LFD.2.00.0904150718040.12926@itasca2.wildberry.org>
+	<49E6F1CD.2070608@gmail.com>
+	<4f7bf0100904161206o138ec137rf8c9253b08d926ee@mail.gmail.com>
+	<49E894EB.8030006@gmail.com>
+	<alpine.LFD.2.00.0904170942540.18357@nokomis.stat.uiowa.edu>
+Message-ID: <49EC6BDF.7010103@gmail.com>
+
+I solved the problem ;-)
+
+I think that the issue come from that snow is expecting that the name of 
+the master has been exported in /etc/hosts (typically by IP master_name) 
+on the workers. In my case, it wasn't working before and since I've 
+exported it it is working!
+
+The error I did was to check with
+
+#open from the master (212):
+socketConnection(port = 10187, server = TRUE)
+
+#and from the slave
+socketConnection("192.100.100.212", port = 10187) #from 210
+
+#Even if this works it is not a sufficient condition, for snow to work, 
+indeed:
+socketConnection("master_name", port = 10187) #from 210
+has to be working also
+
+
+
+Thanks a lot for the help of Dirk, Luke and Steve, who helped me a lot 
+in finding this!!
+
+Matthieu
+
+luke at stat.uiowa.edu a ?crit :
+> On Fri, 17 Apr 2009, Matthieu Stigler wrote:
+>
+>> Steve Weston a ?crit :
+>>> I just noticed that you're running R 2.7.1 on your 192.100.100.212
+>>> machine.  I believe there are known socketConnection issues
+>>> with that version of R that Luke fixed as of R 2.7.2.  So I strongly
+>>> suggest that you upgrade your version of R.
+>>>
+>> I upgraded to R 2.8 but unfortunately this doesn't change, the port 
+>> 10187 is still said to be close...
+>>
+>> I obviously have a problem in opening the port, maybe should I rather 
+>> post on the debian list or on other forums? I use nc -l -p 10187, so 
+>> that telnet
+>
+> According to my man page that argument combination is not legal so I
+> don't know what you actually did.
+>
+>> xxx.212 10187 is working, did it on both machines, but still when 
+>> running with makeCluster have that issue, also when running from worker:
+>>
+>> socketConnection("ubuntu", port = 10187)
+>> 192.100.100.212:10187 cannot be opened
+>>
+>>
+>> and with:
+>>
+>> socketConnection(port = 10187, server = TRUE)
+>>
+>> nothing happens, what is actually the expected output?
+>
+> the server call waits until a connection occurs and then returns an R
+> connection object.  The clinet socketConnection call returns a socket
+> connection if curresful and gives an error message if not.
+>
+> So on the master do
+>
+> s <- socketConnection(port = 10187, server = TRUE)
+>
+> and this will wait for a connection and return to the prompt when a
+> connectin occurs.  On the wroker machine
+>
+> telnet master 10187
+>
+> will either succeed and wait until the server socket is closed or fail
+> with an error message about not being able to open the port.  If I use
+>
+> nc master 10187
+>
+> then no an successful connection nc waits (for input) until the server
+> closes the socket with close(s) and then returns to the shell prompt.
+> Failure for me is an immediate resurn to the shell prompt, no error
+> message (and the server side continues to wait).
+>
+> luke
+>
+>>
+>> Thanks a lot for your help and advices!!!
+>>
+>> Mat
+>>> -- 
+>>> Steve Weston
+>>> REvolution Computing
+>>> One Century Tower | 265 Church Street, Suite 1006
+>>> New Haven, CT  06510
+>>> P: 203-777-7442 x266 | www.revolution-computing.com
+>>>
+>>>
+>>> On Thu, Apr 16, 2009 at 4:52 AM, Matthieu Stigler
+>>> <matthieu.stigler at gmail.com> wrote:
+>>>
+>>>> luke at stat.uiowa.edu a ?crit :
+>>>>
+>>>>> On Wed, 15 Apr 2009, Matthieu Stigler wrote:
+>>>>>
+>>>>>
+>>>>>> Steve Weston a ?crit :
+>>>>>>
+>>>>>>> On Tue, Apr 14, 2009 at 5:29 AM, Matthieu Stigler
+>>>>>>> <matthieu.stigler at gmail.com> wrote:
+>>>>>>>
+>>>>>>>
+>>>>>>>
+>>>>>>>> So it is now working for the local computer with. However, when 
+>>>>>>>> trying
+>>>>>>>> to
+>>>>>>>> use the external computer, it seems to be working but nothing 
+>>>>>>>> happens
+>>>>>>>> after
+>>>>>>>> he asked for the last password...
+>>>>>>>>
+>>>>>>>>
+>>>>>>> This tells you is that "something went wrong".  The basic 
+>>>>>>> strategy in
+>>>>>>> this case
+>>>>>>> is to use the "outfile" option to hopefully capture an error 
+>>>>>>> message.
+>>>>>>>  You might
+>>>>>>> need to set outfile differently for different slaves, 
+>>>>>>> particularly if
+>>>>>>> you're starting
+>>>>>>> more than one on the same machine, but I suggest just starting 
+>>>>>>> one slave
+>>>>>>> on 210 to avoid the issue.  So do something like:
+>>>>>>>
+>>>>>>>
+>>>>>>>
+>>>>>>>> host210 <- list(host = "mat at 192.100.100.210", rscript =
+>>>>>>>> "/usr/bin/Rscript",
+>>>>>>>>
+>>>>>>>>
+>>>>>>> +                       outfile="/tmp/log.txt")
+>>>>>>>
+>>>>>>>
+>>>>>>>> cl2 <- makeCluster(list(host210), type = "SOCK")
+>>>>>>>>
+>>>>>>>>
+>>>>>>>
+>>>>>> Ok, thanks for pointing out this methid.
+>>>>>>
+>>>>>> I tried it and got following error message. This does not seem 
+>>>>>> not be
+>>>>>> computer specific (tried to do it to other host 213, and from 
+>>>>>> other host 213
+>>>>>> to 212, always same error message):
+>>>>>>
+>>>>>> starting worker for ubuntu:10187 Error in 
+>>>>>> socketConnection(master, port =
+>>>>>> port, blocking = TRUE, open = "a+b") : unable to open connection
+>>>>>>
+>>>>>> Calls: local ... slaveLoop -> recvData -> makeSOCKmaster ->
+>>>>>> socketConnection
+>>>>>>
+>>>>>> In addition: Warning message:
+>>>>>>
+>>>>>> In socketConnection(master, port = port, blocking = TRUE, open = 
+>>>>>> "a+b") :
+>>>>>>
+>>>>>> ubuntu:10187 cannot be opened
+>>>>>>
+>>>>>> Execution halted
+>>>>>>
+>>>>>>
+>>>>>> Is it related to ssh or snow? I did not find any reference to 
+>>>>>> that prob
+>>>>>> googling for it...
+>>>>>>
+>>>>> It is an issue with your ability to make a socket connection to the
+>>>>> master. Most likely the master computer has a firewall that is
+>>>>> blocking connections to the port snow uses.  Try turning the firewall
+>>>>> off or at least enabling the port in the error message.
+>>>>> A simple test is to do
+>>>>>
+>>>>>    socketConnection(port = 10187, server = TRUE)
+>>>>>
+>>>>> in an R session on the master and
+>>>>>
+>>>>>    telnet ubuntu 10187
+>>>>>
+>>>>> in a shell on your worker machine (assumign your master is called
+>>>>> ubuntu) (or you can use R and
+>>>>>
+>>>>>    socketConnection("ubuntu", port = 10187)
+>>>>>
+>>>>> in an R session on the worker).
+>>>>>
+>>>>> luke
+>>>>>
+>>>>>
+>>>> Thanks Luke and Dirk for your help!
+>>>>
+>>>> I don't think it is a firewall error, as both machines have all 
+>>>> port open
+>>>> (as default with iptables as I understood), and the admin of the 
+>>>> network
+>>>> opened even port 10187.
+>>>>
+>>>> I tried first the three solutions suggested, none of them seem to 
+>>>> give good
+>>>> results:
+>>>>
+>>>> $telnet 192.100.100.212 10187
+>>>>
+>>>> Trying 192.100.100.212...
+>>>>
+>>>> telnet: Unable to connect to remote host: Connection refused
+>>>>
+>>>> R>socketConnection(port = 10187, server=TRUE)
+>>>>
+>>>> #nothing happens... is it right?
+>>>>
+>>>>
+>>>> R > socketConnection("192.100.100.212", port = 10187)
+>>>> Erreur dans socketConnection("192.100.100.212", port = 10187) :
+>>>>  impossible d'ouvrir la connexion
+>>>>
+>>>> De plus : Warning message:
+>>>>
+>>>> In socketConnection("192.100.100.212", port = 10187) :
+>>>>
+>>>>  192.100.100.212:10187 cannot be opened
+>>>>
+>>>> Same error message when using "ubuntu"/ dsge at 192.100.100.212 etc..
+>>>>
+>>>> Going to a ubuntu forum, someone told that one has to open a server 
+>>>> on the
+>>>> port (excuse, explanations are not good as I don't understand that 
+>>>> much the
+>>>> subject :-( ).
+>>>> So launching in the master (212):
+>>>>
+>>>> $nc -l -p 10187
+>>>>
+>>>>
+>>>> then one is able to  have in 210:
+>>>>
+>>>> $telnet 192.100.100.212 10187
+>>>>
+>>>> Trying 192.100.100.212...
+>>>>
+>>>> Connected to 192.100.100.212.
+>>>>
+>>>> Escape character is '^]'.
+>>>>
+>>>> So it seems that it is working, but there is then no effect on the 
+>>>> previous
+>>>> commands socketConnection, makeCluster, still claims that 10187 
+>>>> can't be
+>>>> open.
+>>>>
+>>>> With those elements, do you guys see clearer or is it even darker? 
+>>>> Thanks a
+>>>> lot for your help!
+>>>>
+>>>> Matthieu
+>>>>
+>>>>
+>>>>>> Thanks a lot for your help!!
+>>>>>>
+>>>>>>> If it hangs, go to another terminal, ssh to 192.100.100.210, and 
+>>>>>>> look at
+>>>>>>> the contents of /tmp/log.txt, and hopefully that will provide a 
+>>>>>>> clue to
+>>>>>>> the problem.
+>>>>>>>
+>>>>>>> Another approach is to use the "manual" option.  That will print 
+>>>>>>> the
+>>>>>>> command that you should use to manually start each of the slaves.
+>>>>>>> You just ssh to that machine from another terminal, and cut and 
+>>>>>>> paste
+>>>>>>> the printed command to start the slave.  If you set "outfile" to an
+>>>>>>> empty
+>>>>>>> string, then output messages will go right to that terminal.
+>>>>>>>
+>>>>>>> -- 
+>>>>>>> Steve Weston
+>>>>>>> REvolution Computing
+>>>>>>> One Century Tower | 265 Church Street, Suite 1006
+>>>>>>> New Haven, CT  06510
+>>>>>>> P: 203-777-7442 x266 | www.revolution-computing.com
+>>>>>>>
+>>>>>>>
+>>>>>>
+>>>>
+>>
+>>
+>
+
+
+From luke at stat.uiowa.edu  Mon Apr 20 16:19:40 2009
+From: luke at stat.uiowa.edu (luke at stat.uiowa.edu)
+Date: Mon, 20 Apr 2009 09:19:40 -0500 (CDT)
+Subject: [R-sig-hpc] snow, socket cluster: problem with path to rscript
+In-Reply-To: <49EC6BDF.7010103@gmail.com>
+References: <49E2FBF5.3070704@gmail.com>
+	<4f7bf0100904130630u75726a55h9fa1cc5ad8799134@mail.gmail.com>
+	<alpine.LFD.2.00.0904131240380.25960@nokomis.stat.uiowa.edu>
+	<49E4576E.1090502@gmail.com>
+	<4f7bf0100904140531v65dde08cve268d100e9242d46@mail.gmail.com>
+	<49E5CC1D.2090200@gmail.com>
+	<alpine.LFD.2.00.0904150718040.12926@itasca2.wildberry.org>
+	<49E6F1CD.2070608@gmail.com>
+	<4f7bf0100904161206o138ec137rf8c9253b08d926ee@mail.gmail.com>
+	<49E894EB.8030006@gmail.com>
+	<alpine.LFD.2.00.0904170942540.18357@nokomis.stat.uiowa.edu>
+	<49EC6BDF.7010103@gmail.com>
+Message-ID: <alpine.LFD.2.00.0904200916500.18357@nokomis.stat.uiowa.edu>
+
+Glad it is working now.
+
+By default snow uses Sys.info()["nodename"] on the master to determine
+the name of the master that is used for the back connection. If you
+supply an alternative as master="123...." withthe IP address then that
+should work around not having the master name known on the worker.
+
+luke
+
+On Mon, 20 Apr 2009, Matthieu Stigler wrote:
+
+> I solved the problem ;-)
+>
+> I think that the issue come from that snow is expecting that the name of the 
+> master has been exported in /etc/hosts (typically by IP master_name) on the 
+> workers. In my case, it wasn't working before and since I've exported it it 
+> is working!
+>
+> The error I did was to check with
+>
+> #open from the master (212):
+> socketConnection(port = 10187, server = TRUE)
+>
+> #and from the slave
+> socketConnection("192.100.100.212", port = 10187) #from 210
+>
+> #Even if this works it is not a sufficient condition, for snow to work, 
+> indeed:
+> socketConnection("master_name", port = 10187) #from 210
+> has to be working also
+>
+>
+>
+> Thanks a lot for the help of Dirk, Luke and Steve, who helped me a lot in 
+> finding this!!
+>
+> Matthieu
+>
+> luke at stat.uiowa.edu a ?crit :
+>> On Fri, 17 Apr 2009, Matthieu Stigler wrote:
+>> 
+>>> Steve Weston a ?crit :
+>>>> I just noticed that you're running R 2.7.1 on your 192.100.100.212
+>>>> machine.  I believe there are known socketConnection issues
+>>>> with that version of R that Luke fixed as of R 2.7.2.  So I strongly
+>>>> suggest that you upgrade your version of R.
+>>>> 
+>>> I upgraded to R 2.8 but unfortunately this doesn't change, the port 10187 
+>>> is still said to be close...
+>>> 
+>>> I obviously have a problem in opening the port, maybe should I rather post 
+>>> on the debian list or on other forums? I use nc -l -p 10187, so that 
+>>> telnet
+>> 
+>> According to my man page that argument combination is not legal so I
+>> don't know what you actually did.
+>> 
+>>> xxx.212 10187 is working, did it on both machines, but still when running 
+>>> with makeCluster have that issue, also when running from worker:
+>>> 
+>>> socketConnection("ubuntu", port = 10187)
+>>> 192.100.100.212:10187 cannot be opened
+>>> 
+>>> 
+>>> and with:
+>>> 
+>>> socketConnection(port = 10187, server = TRUE)
+>>> 
+>>> nothing happens, what is actually the expected output?
+>> 
+>> the server call waits until a connection occurs and then returns an R
+>> connection object.  The clinet socketConnection call returns a socket
+>> connection if curresful and gives an error message if not.
+>> 
+>> So on the master do
+>> 
+>> s <- socketConnection(port = 10187, server = TRUE)
+>> 
+>> and this will wait for a connection and return to the prompt when a
+>> connectin occurs.  On the wroker machine
+>> 
+>> telnet master 10187
+>> 
+>> will either succeed and wait until the server socket is closed or fail
+>> with an error message about not being able to open the port.  If I use
+>> 
+>> nc master 10187
+>> 
+>> then no an successful connection nc waits (for input) until the server
+>> closes the socket with close(s) and then returns to the shell prompt.
+>> Failure for me is an immediate resurn to the shell prompt, no error
+>> message (and the server side continues to wait).
+>> 
+>> luke
+>> 
+>>> 
+>>> Thanks a lot for your help and advices!!!
+>>> 
+>>> Mat
+>>>> -- 
+>>>> Steve Weston
+>>>> REvolution Computing
+>>>> One Century Tower | 265 Church Street, Suite 1006
+>>>> New Haven, CT  06510
+>>>> P: 203-777-7442 x266 | www.revolution-computing.com
+>>>> 
+>>>> 
+>>>> On Thu, Apr 16, 2009 at 4:52 AM, Matthieu Stigler
+>>>> <matthieu.stigler at gmail.com> wrote:
+>>>> 
+>>>>> luke at stat.uiowa.edu a ?crit :
+>>>>> 
+>>>>>> On Wed, 15 Apr 2009, Matthieu Stigler wrote:
+>>>>>> 
+>>>>>> 
+>>>>>>> Steve Weston a ?crit :
+>>>>>>> 
+>>>>>>>> On Tue, Apr 14, 2009 at 5:29 AM, Matthieu Stigler
+>>>>>>>> <matthieu.stigler at gmail.com> wrote:
+>>>>>>>> 
+>>>>>>>> 
+>>>>>>>> 
+>>>>>>>>> So it is now working for the local computer with. However, when 
+>>>>>>>>> trying
+>>>>>>>>> to
+>>>>>>>>> use the external computer, it seems to be working but nothing 
+>>>>>>>>> happens
+>>>>>>>>> after
+>>>>>>>>> he asked for the last password...
+>>>>>>>>> 
+>>>>>>>>> 
+>>>>>>>> This tells you is that "something went wrong".  The basic strategy in
+>>>>>>>> this case
+>>>>>>>> is to use the "outfile" option to hopefully capture an error message.
+>>>>>>>>  You might
+>>>>>>>> need to set outfile differently for different slaves, particularly if
+>>>>>>>> you're starting
+>>>>>>>> more than one on the same machine, but I suggest just starting one 
+>>>>>>>> slave
+>>>>>>>> on 210 to avoid the issue.  So do something like:
+>>>>>>>> 
+>>>>>>>> 
+>>>>>>>> 
+>>>>>>>>> host210 <- list(host = "mat at 192.100.100.210", rscript =
+>>>>>>>>> "/usr/bin/Rscript",
+>>>>>>>>> 
+>>>>>>>>> 
+>>>>>>>> +                       outfile="/tmp/log.txt")
+>>>>>>>> 
+>>>>>>>> 
+>>>>>>>>> cl2 <- makeCluster(list(host210), type = "SOCK")
+>>>>>>>>> 
+>>>>>>>>> 
+>>>>>>>> 
+>>>>>>> Ok, thanks for pointing out this methid.
+>>>>>>> 
+>>>>>>> I tried it and got following error message. This does not seem not be
+>>>>>>> computer specific (tried to do it to other host 213, and from other 
+>>>>>>> host 213
+>>>>>>> to 212, always same error message):
+>>>>>>> 
+>>>>>>> starting worker for ubuntu:10187 Error in socketConnection(master, 
+>>>>>>> port =
+>>>>>>> port, blocking = TRUE, open = "a+b") : unable to open connection
+>>>>>>> 
+>>>>>>> Calls: local ... slaveLoop -> recvData -> makeSOCKmaster ->
+>>>>>>> socketConnection
+>>>>>>> 
+>>>>>>> In addition: Warning message:
+>>>>>>> 
+>>>>>>> In socketConnection(master, port = port, blocking = TRUE, open = 
+>>>>>>> "a+b") :
+>>>>>>> 
+>>>>>>> ubuntu:10187 cannot be opened
+>>>>>>> 
+>>>>>>> Execution halted
+>>>>>>> 
+>>>>>>> 
+>>>>>>> Is it related to ssh or snow? I did not find any reference to that 
+>>>>>>> prob
+>>>>>>> googling for it...
+>>>>>>> 
+>>>>>> It is an issue with your ability to make a socket connection to the
+>>>>>> master. Most likely the master computer has a firewall that is
+>>>>>> blocking connections to the port snow uses.  Try turning the firewall
+>>>>>> off or at least enabling the port in the error message.
+>>>>>> A simple test is to do
+>>>>>>
+>>>>>>    socketConnection(port = 10187, server = TRUE)
+>>>>>> 
+>>>>>> in an R session on the master and
+>>>>>>
+>>>>>>    telnet ubuntu 10187
+>>>>>> 
+>>>>>> in a shell on your worker machine (assumign your master is called
+>>>>>> ubuntu) (or you can use R and
+>>>>>>
+>>>>>>    socketConnection("ubuntu", port = 10187)
+>>>>>> 
+>>>>>> in an R session on the worker).
+>>>>>> 
+>>>>>> luke
+>>>>>> 
+>>>>>> 
+>>>>> Thanks Luke and Dirk for your help!
+>>>>> 
+>>>>> I don't think it is a firewall error, as both machines have all port 
+>>>>> open
+>>>>> (as default with iptables as I understood), and the admin of the network
+>>>>> opened even port 10187.
+>>>>> 
+>>>>> I tried first the three solutions suggested, none of them seem to give 
+>>>>> good
+>>>>> results:
+>>>>> 
+>>>>> $telnet 192.100.100.212 10187
+>>>>> 
+>>>>> Trying 192.100.100.212...
+>>>>> 
+>>>>> telnet: Unable to connect to remote host: Connection refused
+>>>>> 
+>>>>> R>socketConnection(port = 10187, server=TRUE)
+>>>>> 
+>>>>> #nothing happens... is it right?
+>>>>> 
+>>>>> 
+>>>>> R > socketConnection("192.100.100.212", port = 10187)
+>>>>> Erreur dans socketConnection("192.100.100.212", port = 10187) :
+>>>>>  impossible d'ouvrir la connexion
+>>>>> 
+>>>>> De plus : Warning message:
+>>>>> 
+>>>>> In socketConnection("192.100.100.212", port = 10187) :
+>>>>>
+>>>>>  192.100.100.212:10187 cannot be opened
+>>>>> 
+>>>>> Same error message when using "ubuntu"/ dsge at 192.100.100.212 etc..
+>>>>> 
+>>>>> Going to a ubuntu forum, someone told that one has to open a server on 
+>>>>> the
+>>>>> port (excuse, explanations are not good as I don't understand that much 
+>>>>> the
+>>>>> subject :-( ).
+>>>>> So launching in the master (212):
+>>>>> 
+>>>>> $nc -l -p 10187
+>>>>> 
+>>>>> 
+>>>>> then one is able to  have in 210:
+>>>>> 
+>>>>> $telnet 192.100.100.212 10187
+>>>>> 
+>>>>> Trying 192.100.100.212...
+>>>>> 
+>>>>> Connected to 192.100.100.212.
+>>>>> 
+>>>>> Escape character is '^]'.
+>>>>> 
+>>>>> So it seems that it is working, but there is then no effect on the 
+>>>>> previous
+>>>>> commands socketConnection, makeCluster, still claims that 10187 can't be
+>>>>> open.
+>>>>> 
+>>>>> With those elements, do you guys see clearer or is it even darker? 
+>>>>> Thanks a
+>>>>> lot for your help!
+>>>>> 
+>>>>> Matthieu
+>>>>> 
+>>>>> 
+>>>>>>> Thanks a lot for your help!!
+>>>>>>> 
+>>>>>>>> If it hangs, go to another terminal, ssh to 192.100.100.210, and look 
+>>>>>>>> at
+>>>>>>>> the contents of /tmp/log.txt, and hopefully that will provide a clue 
+>>>>>>>> to
+>>>>>>>> the problem.
+>>>>>>>> 
+>>>>>>>> Another approach is to use the "manual" option.  That will print the
+>>>>>>>> command that you should use to manually start each of the slaves.
+>>>>>>>> You just ssh to that machine from another terminal, and cut and paste
+>>>>>>>> the printed command to start the slave.  If you set "outfile" to an
+>>>>>>>> empty
+>>>>>>>> string, then output messages will go right to that terminal.
+>>>>>>>> 
+>>>>>>>> -- 
+>>>>>>>> Steve Weston
+>>>>>>>> REvolution Computing
+>>>>>>>> One Century Tower | 265 Church Street, Suite 1006
+>>>>>>>> New Haven, CT  06510
+>>>>>>>> P: 203-777-7442 x266 | www.revolution-computing.com
+>>>>>>>> 
+>>>>>>>> 
+>>>>>>> 
+>>>>> 
+>>> 
+>>> 
+>> 
+>
+>
+
+-- 
+Luke Tierney
+Chair, Statistics and Actuarial Science
+Ralph E. Wareham Professor of Mathematical Sciences
+University of Iowa                  Phone:             319-335-3386
+Department of Statistics and        Fax:               319-335-3017
+    Actuarial Science
+241 Schaeffer Hall                  email:      luke at stat.uiowa.edu
+Iowa City, IA 52242                 WWW:  http://www.stat.uiowa.edu
+
+From richyanicky at gmail.com  Tue Apr 21 16:38:20 2009
+From: richyanicky at gmail.com (Richard Yanicky)
+Date: Tue, 21 Apr 2009 10:38:20 -0400
+Subject: [R-sig-hpc] How to install R on a linux cluster.
+Message-ID: <67af12830904210738w36e66058k631dbd9b6c5003aa@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090421/0abcb7ab/attachment.pl>
+
+From edd at debian.org  Tue Apr 21 17:25:02 2009
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Tue, 21 Apr 2009 10:25:02 -0500
+Subject: [R-sig-hpc] How to install R on a linux cluster.
+In-Reply-To: <67af12830904210738w36e66058k631dbd9b6c5003aa@mail.gmail.com>
+References: <67af12830904210738w36e66058k631dbd9b6c5003aa@mail.gmail.com>
+Message-ID: <18925.58702.545454.747581@ron.nulle.part>
+
+
+On 21 April 2009 at 10:38, Richard Yanicky wrote:
+| This might be common knowledge. I am looking to have a system admin install
+| R on our linux cluster is there general documentation or a documentation
+| resource that would help me direct him on how to do this? If additional
+| information is needed please let me know.
+
+On Debian / Ubunti all you need to get going is 
+
+   $ sudo apt-get install r-base r-cran-mpi r-cran-snow
+
+and you have R with MPI and the snow wrapper package. Not a bad place to
+start as per the Schmidberger er al paper surveying parallel computing with
+Linux.
+
+There is no magic bullet -- Linux elements in a cluster are still 'just'
+Linux machines.  So use the tools of the distro you (or your sysadmin) are
+familiar with.  I like Debian/Ubuntu; you may want to look at Scientific
+Linux which is Fedora-based but I am not sure how much R content you find
+there. 
+
+Dirk
+
+-- 
+Three out of two people have difficulties with fractions.
+
+
+From sdavis2 at mail.nih.gov  Tue Apr 21 17:28:03 2009
+From: sdavis2 at mail.nih.gov (Sean Davis)
+Date: Tue, 21 Apr 2009 11:28:03 -0400
+Subject: [R-sig-hpc] How to install R on a linux cluster.
+In-Reply-To: <67af12830904210738w36e66058k631dbd9b6c5003aa@mail.gmail.com>
+References: <67af12830904210738w36e66058k631dbd9b6c5003aa@mail.gmail.com>
+Message-ID: <264855a00904210828u6140881bn628d4184154b69e4@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090421/b91b60ef/attachment.pl>
+
+From HodgessE at uhd.edu  Tue Apr 21 17:33:52 2009
+From: HodgessE at uhd.edu (Hodgess, Erin)
+Date: Tue, 21 Apr 2009 10:33:52 -0500
+Subject: [R-sig-hpc] How to install R on a linux cluster.
+References: <67af12830904210738w36e66058k631dbd9b6c5003aa@mail.gmail.com>
+	<18925.58702.545454.747581@ron.nulle.part>
+Message-ID: <70A5AC06FDB5E54482D19E1C04CDFCF307C36C33@BALI.uhd.campus>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090421/ad93fde1/attachment.pl>
+
+From edd at debian.org  Tue Apr 21 17:34:42 2009
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Tue, 21 Apr 2009 10:34:42 -0500
+Subject: [R-sig-hpc] How to install R on a linux cluster.
+In-Reply-To: <18925.58702.545454.747581@ron.nulle.part>
+References: <67af12830904210738w36e66058k631dbd9b6c5003aa@mail.gmail.com>
+	<18925.58702.545454.747581@ron.nulle.part>
+Message-ID: <18925.59282.105095.151642@ron.nulle.part>
+
+
+On 21 April 2009 at 10:25, Dirk Eddelbuettel wrote:
+| and you have R with MPI and the snow wrapper package. Not a bad place to
+| start as per the Schmidberger er al paper surveying parallel computing with
+| Linux.
+
+That was meant to say:  "... surveying parallel computing with R." -- sorry.
+
+-- 
+Three out of two people have difficulties with fractions.
+
+
+From Benjamin.Hofner at imbe.med.uni-erlangen.de  Tue Apr 21 18:27:42 2009
+From: Benjamin.Hofner at imbe.med.uni-erlangen.de (Benjamin Hofner)
+Date: Tue, 21 Apr 2009 18:27:42 +0200
+Subject: [R-sig-hpc] How to install R on a linux cluster.
+In-Reply-To: <70A5AC06FDB5E54482D19E1C04CDFCF307C36C33@BALI.uhd.campus>
+References: <67af12830904210738w36e66058k631dbd9b6c5003aa@mail.gmail.com>	<18925.58702.545454.747581@ron.nulle.part>
+	<70A5AC06FDB5E54482D19E1C04CDFCF307C36C33@BALI.uhd.campus>
+Message-ID: <49EDF3FE.6010804@imbe.med.uni-erlangen.de>
+
+There you go: http://epub.ub.uni-muenchen.de/8991/
+(I think Dirk means this one)
+
+Benjamin
+
+Hodgess, Erin schrieb:
+> Does anyone have the reference for the aforementioned paper, please?
+> 
+> thanks,
+> Erin
+> 
+> 
+> Erin M. Hodgess, PhD
+> Associate Professor
+> Department of Computer and Mathematical Sciences
+> University of Houston - Downtown
+> mailto: hodgesse at uhd.edu
+> 
+> 
+> 
+> -----Original Message-----
+> From: r-sig-hpc-bounces at r-project.org on behalf of Dirk Eddelbuettel
+> Sent: Tue 4/21/2009 10:25 AM
+> To: Richard Yanicky
+> Cc: r-sig-hpc at r-project.org
+> Subject: Re: [R-sig-hpc] How to install R on a linux cluster.
+>  
+> 
+> On 21 April 2009 at 10:38, Richard Yanicky wrote:
+> | This might be common knowledge. I am looking to have a system admin install
+> | R on our linux cluster is there general documentation or a documentation
+> | resource that would help me direct him on how to do this? If additional
+> | information is needed please let me know.
+> 
+> On Debian / Ubunti all you need to get going is 
+> 
+>    $ sudo apt-get install r-base r-cran-mpi r-cran-snow
+> 
+> and you have R with MPI and the snow wrapper package. Not a bad place to
+> start as per the Schmidberger er al paper surveying parallel computing with
+> Linux.
+> 
+> There is no magic bullet -- Linux elements in a cluster are still 'just'
+> Linux machines.  So use the tools of the distro you (or your sysadmin) are
+> familiar with.  I like Debian/Ubuntu; you may want to look at Scientific
+> Linux which is Fedora-based but I am not sure how much R content you find
+> there. 
+> 
+> Dirk
+>
+
+
+From richyanicky at gmail.com  Tue Apr 21 18:28:44 2009
+From: richyanicky at gmail.com (Richard Yanicky)
+Date: Tue, 21 Apr 2009 12:28:44 -0400
+Subject: [R-sig-hpc] How to install R on a linux cluster.
+In-Reply-To: <264855a00904210828u6140881bn628d4184154b69e4@mail.gmail.com>
+References: <67af12830904210738w36e66058k631dbd9b6c5003aa@mail.gmail.com>
+	<264855a00904210828u6140881bn628d4184154b69e4@mail.gmail.com>
+Message-ID: <67af12830904210928g28b15e3s3900d6310b8ca154@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090421/45feca10/attachment.pl>
+
+From prea at uninsubria.it  Tue Apr 21 18:52:40 2009
+From: prea at uninsubria.it (Damiano G. Preatoni)
+Date: Tue, 21 Apr 2009 18:52:40 +0200
+Subject: [R-sig-hpc] How to install R on a linux cluster.
+In-Reply-To: <18925.59282.105095.151642@ron.nulle.part>
+References: <67af12830904210738w36e66058k631dbd9b6c5003aa@mail.gmail.com>
+	<18925.58702.545454.747581@ron.nulle.part>
+	<18925.59282.105095.151642@ron.nulle.part>
+Message-ID: <200904211852.46644.prea@uninsubria.it>
+
+In un messaggio del Tuesday 21 April 2009, Dirk Eddelbuettel ha scritto:
+> On 21 April 2009 at 10:25, Dirk Eddelbuettel wrote:
+> | and you have R with MPI and the snow wrapper package. Not a bad place to
+> | start as per the Schmidberger er al paper surveying parallel computing
+> | with Linux.
+>
+> That was meant to say:  "... surveying parallel computing with R." --
+> sorry.
+
+Great review. No mention of multicore, though.
+I'm starting setting up an 8-core from Oracle (ops, I meant Sun), and I was 
+wondering if there was really any advantage in multicore vs. snow/snowfall.
+
+Any hints are welcome, will digest back to list.
+
+-- 
+The church saves sinners, but science seeks to stop their manufacture.
+		-- Elbert Hubbard
+-----------------------------------------------------------
+Damiano G. Preatoni, PhD
+
+Unit? di Analisi e Gestione delle Risorse Ambientali
+Dipartimento Ambiente-Salute-Sicurezza
+Universit? degli Studi dell'Insubria
+Via J.H. Dunant, 3 - 21100 Varese (ITALY)
+
+tel +39 0332421538 fax +39 0332421446
+http://biocenosi.dipbsf.uninsubria.it/
+ICQ: 78690321 jabber: prea at jabber.org skype: prea.net
+-----------------------------------------------------------
+Please consider the environment before printing this email
+Please do not send attachments in proprietary formats
+http://www.gnu.org/philosophy/no-word-attachments.html
+Use the UNI CEI Standard ISO/IEC 26300:2006
+-----------------------------------------------------------
+O< stop html mail - http://www.asciiribbon.org
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: not available
+Type: application/pgp-signature
+Size: 197 bytes
+Desc: This is a digitally signed message part.
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090421/8b608f6c/attachment-0001.bin>
+
+From sdavis2 at mail.nih.gov  Tue Apr 21 22:40:34 2009
+From: sdavis2 at mail.nih.gov (Sean Davis)
+Date: Tue, 21 Apr 2009 16:40:34 -0400
+Subject: [R-sig-hpc] Rmpi and cpu usage on slaves
+Message-ID: <264855a00904211340j2571edc1pe2257007e51838df@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090421/94036288/attachment.pl>
+
+From schmidb at ibe.med.uni-muenchen.de  Wed Apr 22 08:39:51 2009
+From: schmidb at ibe.med.uni-muenchen.de (Markus Schmidberger)
+Date: Wed, 22 Apr 2009 08:39:51 +0200
+Subject: [R-sig-hpc] How to install R on a linux cluster.
+In-Reply-To: <200904211852.46644.prea@uninsubria.it>
+References: <67af12830904210738w36e66058k631dbd9b6c5003aa@mail.gmail.com>	<18925.58702.545454.747581@ron.nulle.part>	<18925.59282.105095.151642@ron.nulle.part>
+	<200904211852.46644.prea@uninsubria.it>
+Message-ID: <49EEBBB7.2030308@ibe.med.uni-muenchen.de>
+
+The multicore package  was released in January 2009, we did the review 
+in end of 2008 )-:
+Multicore has a great performance. I hope to present some results at the 
+UseR2009 conference. At the moment I use the super-computer HLRBII at 
+the LRZ in Munich, Germany (>9000 processors). There I have a 510 core 
+multi-processor machine. Unfortunately we have some strange 
+OS-load-balancing problems with the combination of R, PBS and Intel 
+Compiler and more than 50 processors. Attached some first results with 
+60 nodes. Up to 50 nodes snow and multicore have the identical 
+performance. If you have problems which require a lot of memory and they 
+can share the memory, than multicore has the better performance (snow 
+than requires a lot of communication).
+
+Best
+Markus
+
+Damiano G. Preatoni schrieb:
+> In un messaggio del Tuesday 21 April 2009, Dirk Eddelbuettel ha scritto:
+>   
+>> On 21 April 2009 at 10:25, Dirk Eddelbuettel wrote:
+>> | and you have R with MPI and the snow wrapper package. Not a bad place to
+>> | start as per the Schmidberger er al paper surveying parallel computing
+>> | with Linux.
+>>
+>> That was meant to say:  "... surveying parallel computing with R." --
+>> sorry.
+>>     
+>
+> Great review. No mention of multicore, though.
+> I'm starting setting up an 8-core from Oracle (ops, I meant Sun), and I was 
+> wondering if there was really any advantage in multicore vs. snow/snowfall.
+>
+> Any hints are welcome, will digest back to list.
+>
+>   
+> ------------------------------------------------------------------------
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>   
+
+
+-- 
+Dipl.-Tech. Math. Markus Schmidberger
+
+Ludwig-Maximilians-Universit?t M?nchen
+IBE - Institut f?r medizinische Informationsverarbeitung,
+Biometrie und Epidemiologie
+Marchioninistr. 15, D-81377 Muenchen
+URL: http://www.ibe.med.uni-muenchen.de 
+Mail: Markus.Schmidberger [at] ibe.med.uni-muenchen.de
+Tel: +49 (089) 7095 - 4497
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: hlrb.pdf
+Type: application/pdf
+Size: 9779 bytes
+Desc: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090422/4f19783f/attachment.pdf>
+
+From blindglobe at gmail.com  Wed Apr 22 12:02:36 2009
+From: blindglobe at gmail.com (A.J. Rossini)
+Date: Wed, 22 Apr 2009 12:02:36 +0200
+Subject: [R-sig-hpc] How to install R on a linux cluster.
+In-Reply-To: <49EEBBB7.2030308@ibe.med.uni-muenchen.de>
+References: <67af12830904210738w36e66058k631dbd9b6c5003aa@mail.gmail.com>
+	<18925.58702.545454.747581@ron.nulle.part>
+	<18925.59282.105095.151642@ron.nulle.part>
+	<200904211852.46644.prea@uninsubria.it>
+	<49EEBBB7.2030308@ibe.med.uni-muenchen.de>
+Message-ID: <1abe3fa90904220302n5a7c4012l279b8a66b89d6bba@mail.gmail.com>
+
+On Wed, Apr 22, 2009 at 8:39 AM, Markus Schmidberger
+<schmidb at ibe.med.uni-muenchen.de> wrote:
+> The multicore package ?was released in January 2009, we did the review in
+> end of 2008 )-:
+
+>  Up to 50 nodes snow and multicore have the identical performance. If you have
+> problems which require a lot of memory and they can share the memory, than
+> multicore has the better performance (snow than requires a lot of
+> communication).
+
+Only a small comment -- it would  be nice to have a multicore backend
+(should be somewhat trivial) for SNOW....  (i.e. allowing the same
+API, in the same way that you can use an NWS backend for SNOW  -- of
+course, it would be nice to cleanup and modernize the SNOW api, as
+well.
+
+<ducking type=quickly, since I'm not going to do it right now/>
+
+best,
+-tony
+
+blindglobe at gmail.com
+Muttenz, Switzerland.
+"Commit early,commit often, and commit in a repository from which we
+can easily roll-back your mistakes" (AJR, 4Jan05).
+
+Drink Coffee:  Do stupid things faster with more energy!
+
+
+From edd at debian.org  Wed Apr 22 13:11:11 2009
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Wed, 22 Apr 2009 06:11:11 -0500
+Subject: [R-sig-hpc] Rmpi and cpu usage on slaves
+In-Reply-To: <264855a00904211340j2571edc1pe2257007e51838df@mail.gmail.com>
+References: <264855a00904211340j2571edc1pe2257007e51838df@mail.gmail.com>
+Message-ID: <18926.64335.806332.649657@ron.nulle.part>
+
+
+On 21 April 2009 at 16:40, Sean Davis wrote:
+| I am running sge6.2, openmpi 1.3.1, and Rmpi 0.5.7 on openSUSE linux.  I can
+| start up an arbitrarily-sized cluster using sge, see the appropriate
+| universe.size using Rmpi, and start a cluster using mpi.spawn.Rslaves().
+| However, it appears that all the slaves then run at 100% cpu on all nodes.
+| Even using Rmpi under openmpi with a simple hostfile produces the same
+| result.  Any suggestions to figure out what is going on on the slaves?
+
+There is a known issue with Open MPI and blocking which you may be hitting
+here.  Upstream Open MPI considers it a feature. But as this has come up a
+few times on their mailing list as well, I believe the last word was that it
+will go away in a future release.
+
+Hth, Dirk
+
+| Thanks,
+| Sean
+| 
+| 
+| > library(Rmpi)
+| library(Rmpi)
+| > mpi.universe.size()
+| mpi.universe.size()
+| [1] 24
+| > mpi.spawn.Rslaves()
+| mpi.spawn.Rslaves()
+|         24 slaves are spawned successfully. 0 failed.
+| master  (rank 0 , comm 1) of size 25 is running on: Mahfouz
+| slave1  (rank 1 , comm 1) of size 25 is running on: Mahfouz
+| slave2  (rank 2 , comm 1) of size 25 is running on: Mahfouz
+| slave3  (rank 3 , comm 1) of size 25 is running on: Mahfouz
+| slave4  (rank 4 , comm 1) of size 25 is running on: Mahfouz
+| slave5  (rank 5 , comm 1) of size 25 is running on: Mahfouz
+| slave6  (rank 6 , comm 1) of size 25 is running on: Mahfouz
+| slave7  (rank 7 , comm 1) of size 25 is running on: Mahfouz
+| slave8  (rank 8 , comm 1) of size 25 is running on: Grass
+| slave9  (rank 9 , comm 1) of size 25 is running on: Grass
+| slave10 (rank 10, comm 1) of size 25 is running on: Grass
+| slave11 (rank 11, comm 1) of size 25 is running on: Grass
+| slave12 (rank 12, comm 1) of size 25 is running on: Grass
+| slave13 (rank 13, comm 1) of size 25 is running on: Grass
+| slave14 (rank 14, comm 1) of size 25 is running on: Grass
+| slave15 (rank 15, comm 1) of size 25 is running on: Grass
+| slave16 (rank 16, comm 1) of size 25 is running on: shakespeare
+| slave17 (rank 17, comm 1) of size 25 is running on: shakespeare
+| slave18 (rank 18, comm 1) of size 25 is running on: shakespeare
+| slave19 (rank 19, comm 1) of size 25 is running on: shakespeare
+| slave20 (rank 20, comm 1) of size 25 is running on: shakespeare
+| slave21 (rank 21, comm 1) of size 25 is running on: shakespeare
+| slave22 (rank 22, comm 1) of size 25 is running on: shakespeare
+| slave23 (rank 23, comm 1) of size 25 is running on: shakespeare
+| slave24 (rank 24, comm 1) of size 25 is running on: Mahfouz
+| > mpi.close.Rslaves()
+| mpi.close.Rslaves()
+| [1] 1
+| 
+| > sessionInfo()    # on the master
+| R version 2.9.0 Under development (unstable) (2009-02-21 r47969)
+| x86_64-unknown-linux-gnu
+| 
+| locale:
+| LC_CTYPE=en_US.UTF-8;LC_NUMERIC=C;LC_TIME=en_US.UTF-8;LC_COLLATE=en_US.UTF-8;LC_MONETARY=C;LC_MESSAGES=en_US.UTF-8;LC_PAPER=en_US.UTF-8;LC_NAME=C;LC_ADDRESS=C;LC_TELEPHONE=C;LC_MEASUREMENT=en_US.UTF-8;LC_IDENTIFICATION=C
+| 
+| attached base packages:
+| [1] stats     graphics  grDevices utils     datasets  methods   base
+| 
+| other attached packages:
+| [1] Rmpi_0.5-7
+| 
+| 	[[alternative HTML version deleted]]
+| 
+| _______________________________________________
+| R-sig-hpc mailing list
+| R-sig-hpc at r-project.org
+| https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+-- 
+Three out of two people have difficulties with fractions.
+
+
+From Mark.Lyman at atk.com  Wed Apr 22 18:30:50 2009
+From: Mark.Lyman at atk.com (Lyman, Mark)
+Date: Wed, 22 Apr 2009 10:30:50 -0600
+Subject: [R-sig-hpc] Rmpi and Rprofile
+In-Reply-To: <mailman.27.1240394420.16228.r-sig-hpc@r-project.org>
+References: <mailman.27.1240394420.16228.r-sig-hpc@r-project.org>
+Message-ID: <A6BB278845329C41A08CB3C52A0E2C1001771356@ut40se02.atk.com>
+
+At the top of the Rprofile file included with the Rmpi package, it
+states
+
+# Cannot be used as Rprofile.site because it will not work
+
+Why is that? In the README file, there are instructions on how to create
+an Rmpi script with R_PROFILE set to this Rprofile file. Isn't this the
+same thing as using the Rprofile file as Rprofile.site?
+
+Mark Lyman
+
+
+From sdavis2 at mail.nih.gov  Wed Apr 22 18:42:59 2009
+From: sdavis2 at mail.nih.gov (Sean Davis)
+Date: Wed, 22 Apr 2009 12:42:59 -0400
+Subject: [R-sig-hpc] Rmpi and cpu usage on slaves
+In-Reply-To: <18926.64335.806332.649657@ron.nulle.part>
+References: <264855a00904211340j2571edc1pe2257007e51838df@mail.gmail.com>
+	<18926.64335.806332.649657@ron.nulle.part>
+Message-ID: <264855a00904220942h18d723e0ncb4323f63b96c0f6@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090422/dd3f6f88/attachment.pl>
+
+From sdavis2 at mail.nih.gov  Wed Apr 22 18:55:44 2009
+From: sdavis2 at mail.nih.gov (Sean Davis)
+Date: Wed, 22 Apr 2009 12:55:44 -0400
+Subject: [R-sig-hpc] Rmpi and cpu usage on slaves
+In-Reply-To: <264855a00904220942h18d723e0ncb4323f63b96c0f6@mail.gmail.com>
+References: <264855a00904211340j2571edc1pe2257007e51838df@mail.gmail.com>
+	<18926.64335.806332.649657@ron.nulle.part>
+	<264855a00904220942h18d723e0ncb4323f63b96c0f6@mail.gmail.com>
+Message-ID: <264855a00904220955m76d88d00g16f0d81882e0bbb4@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090422/d82242b5/attachment.pl>
+
+From hyu at stats.uwo.ca  Wed Apr 22 18:56:05 2009
+From: hyu at stats.uwo.ca (Hao Yu)
+Date: Wed, 22 Apr 2009 12:56:05 -0400 (EDT)
+Subject: [R-sig-hpc] Rmpi and Rprofile
+In-Reply-To: <A6BB278845329C41A08CB3C52A0E2C1001771356@ut40se02.atk.com>
+References: <mailman.27.1240394420.16228.r-sig-hpc@r-project.org>
+	<A6BB278845329C41A08CB3C52A0E2C1001771356@ut40se02.atk.com>
+Message-ID: <ce64f6cfb254b560a8bd65891a6229c0.squirrel@www.stats.uwo.ca>
+
+If you leave R script the way it is and add loading Rmpi instructions in
+Rprofile.site, it will not work (tested on old versions of R and I don't
+know the reason why). However, by modifying R script, you already hack it
+so it works.
+
+Hao Yu
+
+Lyman, Mark wrote:
+> At the top of the Rprofile file included with the Rmpi package, it
+> states
+>
+> # Cannot be used as Rprofile.site because it will not work
+>
+> Why is that? In the README file, there are instructions on how to create
+> an Rmpi script with R_PROFILE set to this Rprofile file. Isn't this the
+> same thing as using the Rprofile file as Rprofile.site?
+>
+> Mark Lyman
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+-- 
+Department of Statistics & Actuarial Sciences
+Fax Phone#:(519)-661-3813
+The University of Western Ontario
+Office Phone#:(519)-661-3622
+London, Ontario N6A 5B7
+http://www.stats.uwo.ca/faculty/yu
+
+
+From hyu at stats.uwo.ca  Wed Apr 22 19:10:50 2009
+From: hyu at stats.uwo.ca (Hao Yu)
+Date: Wed, 22 Apr 2009 13:10:50 -0400 (EDT)
+Subject: [R-sig-hpc] Rmpi and cpu usage on slaves
+In-Reply-To: <18926.64335.806332.649657@ron.nulle.part>
+References: <264855a00904211340j2571edc1pe2257007e51838df@mail.gmail.com>
+	<18926.64335.806332.649657@ron.nulle.part>
+Message-ID: <df83579aa260bdd67bda48941b931a5e.squirrel@www.stats.uwo.ca>
+
+As Dirk said, it is a feature of OpenMPI. LAM-MPI doesn't have this issue.
+I don't think there is a solution on slave sides since mpi.bcast is a
+blocking call. It might be possible to use nonblocking point-to-point
+calls such as mpi.ireiv with Sys.sleep command but the whole-slave
+communications must be rewritten. If Dirk is correct, future release of
+openmpi will remove such a feature. This is why I did not try to work out
+a solution, at least on slave sides. In real computation, all slaves are
+supposed to use up all assigned cpu cycles.
+
+The same issue will be applied to master as well if any of parallel apply
+functions are used. In Rmpi 0.4-7 several nonblock parallel apply
+functions are added so master will not consume 100%cpu while waiting.
+
+So far LAM-MPI is still the best environment for programing, debugging and
+testing.
+
+Hao
+
+
+Dirk Eddelbuettel wrote:
+>
+> On 21 April 2009 at 16:40, Sean Davis wrote:
+> | I am running sge6.2, openmpi 1.3.1, and Rmpi 0.5.7 on openSUSE linux.  I
+> can
+> | start up an arbitrarily-sized cluster using sge, see the appropriate
+> | universe.size using Rmpi, and start a cluster using mpi.spawn.Rslaves().
+> | However, it appears that all the slaves then run at 100% cpu on all
+> nodes.
+> | Even using Rmpi under openmpi with a simple hostfile produces the same
+> | result.  Any suggestions to figure out what is going on on the slaves?
+>
+> There is a known issue with Open MPI and blocking which you may be hitting
+> here.  Upstream Open MPI considers it a feature. But as this has come up a
+> few times on their mailing list as well, I believe the last word was that
+> it
+> will go away in a future release.
+>
+> Hth, Dirk
+>
+> | Thanks,
+> | Sean
+> |
+> |
+> | > library(Rmpi)
+> | library(Rmpi)
+> | > mpi.universe.size()
+> | mpi.universe.size()
+> | [1] 24
+> | > mpi.spawn.Rslaves()
+> | mpi.spawn.Rslaves()
+> |         24 slaves are spawned successfully. 0 failed.
+> | master  (rank 0 , comm 1) of size 25 is running on: Mahfouz
+> | slave1  (rank 1 , comm 1) of size 25 is running on: Mahfouz
+> | slave2  (rank 2 , comm 1) of size 25 is running on: Mahfouz
+> | slave3  (rank 3 , comm 1) of size 25 is running on: Mahfouz
+> | slave4  (rank 4 , comm 1) of size 25 is running on: Mahfouz
+> | slave5  (rank 5 , comm 1) of size 25 is running on: Mahfouz
+> | slave6  (rank 6 , comm 1) of size 25 is running on: Mahfouz
+> | slave7  (rank 7 , comm 1) of size 25 is running on: Mahfouz
+> | slave8  (rank 8 , comm 1) of size 25 is running on: Grass
+> | slave9  (rank 9 , comm 1) of size 25 is running on: Grass
+> | slave10 (rank 10, comm 1) of size 25 is running on: Grass
+> | slave11 (rank 11, comm 1) of size 25 is running on: Grass
+> | slave12 (rank 12, comm 1) of size 25 is running on: Grass
+> | slave13 (rank 13, comm 1) of size 25 is running on: Grass
+> | slave14 (rank 14, comm 1) of size 25 is running on: Grass
+> | slave15 (rank 15, comm 1) of size 25 is running on: Grass
+> | slave16 (rank 16, comm 1) of size 25 is running on: shakespeare
+> | slave17 (rank 17, comm 1) of size 25 is running on: shakespeare
+> | slave18 (rank 18, comm 1) of size 25 is running on: shakespeare
+> | slave19 (rank 19, comm 1) of size 25 is running on: shakespeare
+> | slave20 (rank 20, comm 1) of size 25 is running on: shakespeare
+> | slave21 (rank 21, comm 1) of size 25 is running on: shakespeare
+> | slave22 (rank 22, comm 1) of size 25 is running on: shakespeare
+> | slave23 (rank 23, comm 1) of size 25 is running on: shakespeare
+> | slave24 (rank 24, comm 1) of size 25 is running on: Mahfouz
+> | > mpi.close.Rslaves()
+> | mpi.close.Rslaves()
+> | [1] 1
+> |
+> | > sessionInfo()    # on the master
+> | R version 2.9.0 Under development (unstable) (2009-02-21 r47969)
+> | x86_64-unknown-linux-gnu
+> |
+> | locale:
+> |
+> LC_CTYPE=en_US.UTF-8;LC_NUMERIC=C;LC_TIME=en_US.UTF-8;LC_COLLATE=en_US.UTF-8;LC_MONETARY=C;LC_MESSAGES=en_US.UTF-8;LC_PAPER=en_US.UTF-8;LC_NAME=C;LC_ADDRESS=C;LC_TELEPHONE=C;LC_MEASUREMENT=en_US.UTF-8;LC_IDENTIFICATION=C
+> |
+> | attached base packages:
+> | [1] stats     graphics  grDevices utils     datasets  methods   base
+> |
+> | other attached packages:
+> | [1] Rmpi_0.5-7
+> |
+> | 	[[alternative HTML version deleted]]
+> |
+> | _______________________________________________
+> | R-sig-hpc mailing list
+> | R-sig-hpc at r-project.org
+> | https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+> --
+> Three out of two people have difficulties with fractions.
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+-- 
+Department of Statistics & Actuarial Sciences
+Fax Phone#:(519)-661-3813
+The University of Western Ontario
+Office Phone#:(519)-661-3622
+London, Ontario N6A 5B7
+http://www.stats.uwo.ca/faculty/yu
+
+
+From ross at biostat.ucsf.edu  Thu Apr 23 22:55:35 2009
+From: ross at biostat.ucsf.edu (Ross Boylan)
+Date: Thu, 23 Apr 2009 13:55:35 -0700
+Subject: [R-sig-hpc] Rmpi and cpu usage on slaves
+In-Reply-To: <264855a00904220955m76d88d00g16f0d81882e0bbb4@mail.gmail.com>
+References: <264855a00904211340j2571edc1pe2257007e51838df@mail.gmail.com>
+	<18926.64335.806332.649657@ron.nulle.part>
+	<264855a00904220942h18d723e0ncb4323f63b96c0f6@mail.gmail.com>
+	<264855a00904220955m76d88d00g16f0d81882e0bbb4@mail.gmail.com>
+Message-ID: <1240520135.29719.6.camel@iron.psg.net>
+
+On Wed, 2009-04-22 at 12:55 -0400, Sean Davis wrote:
+> So, as Dirk suggested, the 100% CPU usage is thought to be a feature
+> and not
+> a bug.
+As someone who just ran into this (the link to the thread was in the
+earlier links), I looked into why OpenMPI worked that way.  I think a
+fairer characterization is that responsiveness while running Open MPI is
+a feature; the 100% CPU useage is just a side effect.  Fixing it is on
+their todo list, but it's not a high priority because the fix is a bit
+tricky and the useage scenario that strikes the developers as standard
+reserves the CPUs for the job anyway.
+
+I don't happen to fit that scenario, but I suspect the developers are
+right in their judgement of typical use.
+
+If you're concerned, a number of work-arounds or brittle fixes are in
+the openmpi archives; the responses to my query
+(http://www.open-mpi.org/community/lists/users/2009/04/9016.php) have
+pointers to a couple of them.
+
+Ross
+-- 
+Ross Boylan                                      wk:  (415) 514-8146
+185 Berry St #5700                               ross at biostat.ucsf.edu
+Dept of Epidemiology and Biostatistics           fax: (415) 514-8150
+University of California, San Francisco
+San Francisco, CA 94107-1739                     hm:  (415) 550-1062
+
+
+From ross at biostat.ucsf.edu  Thu Apr 23 23:14:22 2009
+From: ross at biostat.ucsf.edu (Ross Boylan)
+Date: Thu, 23 Apr 2009 14:14:22 -0700
+Subject: [R-sig-hpc] error response under interactive rmpi
+Message-ID: <1240521262.29719.19.camel@iron.psg.net>
+
+I like to launch OpenMPI (1.2 under Debian) so that I have an
+interactive R on rank 0, with the rest being slaves.
+
+Whenever I make any kind of error, I get the error message and then
+Execution halted
+
+The session appears to be dead after that; it won't respond to anything
+I type.  I do ^c to get out.
+
+I think the problem is that interactive() is FALSE in this environment
+(I'm running in a shell under emacs, if that matters).  rmpi does not
+change the default error handling as far as I can tell:
+getOption("error") is NULL.
+
+I've worked around this by saying
+options(error=recover)
+which seems servicable.  I don't know how to recover the standard
+interactive error behavior.
+
+If anyone has any better ideas, I'd love to hear them.  Also, if anyone
+has setup ESS in an MPI environment, I'm curious about that too.  I
+guess I could just launch emacs from my outer level shell script that
+mpirun invokes.
+
+We don't currently have any scheduling or resource management.
+-- 
+Ross Boylan                                      wk:  (415) 514-8146
+185 Berry St #5700                               ross at biostat.ucsf.edu
+Dept of Epidemiology and Biostatistics           fax: (415) 514-8150
+University of California, San Francisco
+San Francisco, CA 94107-1739                     hm:  (415) 550-1062
+
+
+From matthieu.stigler at gmail.com  Mon Apr 27 08:53:37 2009
+From: matthieu.stigler at gmail.com (Matthieu Stigler)
+Date: Sun, 26 Apr 2009 23:53:37 -0700
+Subject: [R-sig-hpc] snow: export data inside function and check worspaces
+Message-ID: <111060c20904262353l5e5aad27v9ea80418047c5faf@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090426/834496a5/attachment.pl>
+
+From saptarshi.guha at gmail.com  Mon Apr 27 16:14:57 2009
+From: saptarshi.guha at gmail.com (Saptarshi Guha)
+Date: Mon, 27 Apr 2009 10:14:57 -0400
+Subject: [R-sig-hpc] ANN: RHIPE 0.1
+Message-ID: <1e7471d50904270714n5c08ffa8x6b110999cf441a83@mail.gmail.com>
+
+Hello,
+I'd like to announce the release of the 0.1 version of RHIPE -R and
+Hadoop Integrated Processing Environment. Using RHIPE, it is possible
+to write map-reduce algorithms using the R language and start them
+from within R.
+RHIPE is built on Hadoop and so benefits from Hadoop's fault
+tolerance, distributed file system and job scheduling features.
+For the R user, there is rhlapply which runs an lapply across the cluster.
+For the Hadoop user, there is rhmr which runs a general map-reduce program.
+
+The tired example of counting words:
+
+m <- function(key,val){
+  words <- substr(val," +")[[1]]
+  wc <- table(words)
+  cln <- names(wc)
+  return(sapply(1:length(wc),function(r)
+list(key=cln[r],value=wc[[r]]),simplify=F))
+}
+r <- function(key,value){
+  value <- do.call("rbind",value)
+  return(list(list(key=key,value=sum(value))))
+}
+rhmr(mapper=m,reduce=r,input.folder="X",output.folder="Y")
+
+URL: http://ml.stat.purdue.edu/rhipe
+
+There are some downsides to RHIPE which are described at
+http://ml.stat.purdue.edu/rhipe/install.html#sec-5
+
+Regards
+Saptarshi Guha
+
+
+From josh at i2pi.com  Mon Apr 27 17:07:16 2009
+From: josh at i2pi.com (Joshua Reich)
+Date: Mon, 27 Apr 2009 11:07:16 -0400
+Subject: [R-sig-hpc] New Your R Meetup - High Performance Computing with R
+Message-ID: <ff45355b0904270807n59005bcdi6386561b5b73c518@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090427/94d09e52/attachment.pl>
+
+From steve at revolution-computing.com  Mon Apr 27 17:41:20 2009
+From: steve at revolution-computing.com (Steve Weston)
+Date: Mon, 27 Apr 2009 11:41:20 -0400
+Subject: [R-sig-hpc] snow: export data inside function and check
+	worspaces
+In-Reply-To: <111060c20904262353l5e5aad27v9ea80418047c5faf@mail.gmail.com>
+References: <111060c20904262353l5e5aad27v9ea80418047c5faf@mail.gmail.com>
+Message-ID: <4f7bf0100904270841w29d588d5ufa5a3ebd7b8f7cc1@mail.gmail.com>
+
+On Mon, Apr 27, 2009 at 2:53 AM, Matthieu Stigler
+<matthieu.stigler at gmail.com> wrote:
+> Hi
+>
+> I have two questions for package snow:
+>
+> 1 How do I export object defined within a function with clusterExport()?
+> snow use get("object", env=.GlobalEnv) but the object within a function
+> belong to the function env and not globalenv if I understood well.
+
+If you want to use clusterExport, I believe you would have to
+first assign the value of the local variable to a global variable,
+since that is the only thing that clusterExport will operate on.
+You might want to consider other methods of handling that
+data, though.
+
+> 2 How do I check the objects sent? I tried clusterCall(cl, ls()) but gives
+> me character(0)
+
+Try something like:
+
+   clusterCall(cl, function() ls(globalenv()))
+
+-- 
+Steve Weston
+REvolution Computing
+One Century Tower | 265 Church Street, Suite 1006
+New Haven, CT  06510
+P: 203-777-7442 x266 | www.revolution-computing.com
+
+
+From Mark.Lyman at atk.com  Wed Apr 29 18:34:22 2009
+From: Mark.Lyman at atk.com (Lyman, Mark)
+Date: Wed, 29 Apr 2009 10:34:22 -0600
+Subject: [R-sig-hpc] Rmpi Segmentation Fault
+In-Reply-To: <mailman.35.1240912812.23199.r-sig-hpc@r-project.org>
+References: <mailman.35.1240912812.23199.r-sig-hpc@r-project.org>
+Message-ID: <A6BB278845329C41A08CB3C52A0E2C10017AB7FB@ut40se02.atk.com>
+
+I am running R 2.9.0 on a SLES 9 cluster with Rmpi 0.5-7. The cluster
+has 115 nodes with 4 cpus each. Lately, I occasionally get a
+segmentation fault error. For example, I run a small test job with the
+simPI demo included in Rmpi, and I get the following:
+
+Invoking R - mpirun -np 4 -machinefile /var/spool/PBS/aux/118794.head
+/apps/R/R
+290/bin/R --save --restore  --quiet --file=Rmpi_test.R
+master (rank 0, comm 1) of size 4 is running on: n040
+slave1 (rank 1, comm 1) of size 4 is running on: n040
+slave2 (rank 2, comm 1) of size 4 is running on: n040
+slave3 (rank 3, comm 1) of size 4 is running on: n040
+> # Load the R MPI package if it is not already loaded.
+> library(rlecuyer)
+
+> # Tell all slaves to return a message identifying themselves
+> mpi.remote.exec(paste("I am",mpi.comm.rank(),"of",mpi.comm.size()))
+$slave1
+[1] "I am 1 of 4"
+
+$slave2
+[1] "I am 2 of 4"
+
+$slave3
+[1] "I am 3 of 4"
+
+>
+> demo("simPI")
+
+
+        demo(simPI)
+        ---- ~~~~~
+
+> #require rsprng package and use mpi.init.sprng to initialize SPRNG.
+>  simslave <- function (){
++     request <-1
++     result <-2
++     chunksize <- 1000 #job size for slaves
++     anytag <- mpi.any.tag()
++     while (1) { #slaves do their jobs first and waiting instructions
+from mast
+er
++       x <- runif(chunksize)
++       y <- runif(chunksize)
++       incirvec <- (x-.5)^2 + (y-.5)^2 < .25
++       xy <- c(x[incirvec],y[incirvec])
++       #send the result to master
++       mpi.send(xy, 2, dest=0, tag=result,comm=.comm)
++       #receive instructions from master
++       mpi.recv(integer(1),type=1,source=0,tag=anytag,comm=.comm)
++       tag <- mpi.get.sourcetag()[2]
++       if (tag!=request)
++           break
++     }
++ }
+
+> simPI <- function (n,epsilon=1e-4,comm=1)
++ {
++     tsize <- mpi.comm.size(comm)
++     if (tsize < 2)
++       stop("It seems no slaves running")
++
++     #send the function simslave to all slaves
++     mpi.bcast.Robj2slave(simslave, comm=comm)
++
++     #let slaves run the function simslave
++     mpi.bcast.cmd(simslave(), comm=comm)
++
++     chunksize <- 1000
++     request <-1
++     result <- 2
++     count <- 0
++     totalincir <- 0
++     anysrc <- mpi.any.source()
++
++    #prepare an empty plot
++     plot(c(0,0),xlim=c(0,1),ylim=c(0,1), ylab="",type="n")
++
++     while (1) {
++       #receive done job from slaves
++       xy<-mpi.recv(double(2*chunksize),type=2,source=anysrc,
++                       tag=result,comm=comm)
++       #receive buffer is biger than actual data. So need to get real
+length
++       incir <-mpi.get.count(2)/2
++       src <- mpi.get.sourcetag()[1]
++       totalincir <- incir + totalincir
++       count <- count+chunksize
++       mypi <- 4*totalincir/count
++       x <- xy[1:incir]
++       y<- xy[(incir+1):(2*incir)]
++       #add incircle points to the plot
++       points(x,y,pch=".",cex=.2,col=src)
++       err <- abs(mypi-pi)
++       if (err > epsilon && cLoading required package: rlecuyer
+Loading required package: rlecuyer
+Loading required package: rlecuyer
+ount < n)
++           mpi.send(integer(1),type=1,dest=src,tag=request,comm=comm)
++       else {
++           #tell slaves to stop with tag=0
++           mpi.send(integer(1),type=1,dest=src,tag=0,comm=comm)
++           break
++         }
++     }
++     #only one slave is stopped. So have to others to stop as well
++     if (tsize > 2){
++     for (i in 1:(tsize-2)){
++       #continue receiving other slaves jobs
++       xy<-mpi.recv(double(2*chunksize),type=2,source=anysrc,
++                       tag=result,comm=comm)
++       incir <-mpi.get.count(2)/2
++       src <- mpi.get.sourcetag()[1]
++       totalincir <- incir + totalincir
++       count <- count+chunksize
++       mypi <- 4*totalincir/count
++       x <- xy[1:incir]
++       y<- xy[(incir+1):(2*incir)]
++       points(x,y,pch=".",cex=.2,col=src)
++       #tell other slaves to stop
++       mpi.send(integer(1),type=1,dest=src,tag=0,comm=comm)
++     }
++     }
++     mypi
++ }
+>
+> mpi.setup.rngstream()
+> simPI(1000000000)
+[1] 3.141579
+> mpi.close.Rslaves()
+[1] 1
+> mpi.exit()
+[1] "Detaching Rmpi. Rmpi cannot be used unless relaunching R."
+>
+[n040:06512] *** Process received signal ***
+[n040:06512] Signal: Segmentation fault (11)
+[n040:06512] Signal code: Address not mapped (1)
+[n040:06512] Failing at address: 0x90028
+[n040:06512] [ 0] /lib64/tls/libc.so.6 [0x2a95c84500]
+[n040:06512] [ 1] /lib64/ld-linux-x86-64.so.2 [0x2a9555d334]
+[n040:06512] [ 2] /lib64/ld-linux-x86-64.so.2 [0x2a9555d724]
+[n040:06512] [ 3] /lib64/ld-linux-x86-64.so.2 [0x2a9556119f]
+[n040:06512] [ 4] /lib64/ld-linux-x86-64.so.2 [0x2a95560ef2]
+[n040:06512] [ 5] /usr/lib64/libvapi.so(vipul_cleanup+0x50)
+[0x2a996c34c0]
+[n040:06512] *** End of error message ***
+mpirun noticed that job rank 0 with PID 6512 on node n040c exited on
+signal 11 (
+Segmentation fault).
+Cleaning up after job
+
+Has anyone seen this behavior before? Or have any idea what could cause
+this. Everything seems to work alright, but this doesn't seem very
+stable.
+
+Mark Lyman
+
+
+From stephenjbarr at gmail.com  Wed Apr 29 21:06:09 2009
+From: stephenjbarr at gmail.com (Stephen J. Barr)
+Date: Wed, 29 Apr 2009 12:06:09 -0700
+Subject: [R-sig-hpc] distributed R on EC2, designing the software stack
+Message-ID: <9b4cc5750904291206k20d8ff36ge58e20ef242e6151@mail.gmail.com>
+
+Greetings,
+
+I am trying to get into distributed computing with R, but do not have
+access to a cluster. Therefore, I am trying to get distributed R
+running on Amazon's EC2. ( http://aws.amazon.com/ec2/ )
+
+For those of you who don't know, EC2 allows you to instantiate large
+numbers of computers, bundled with whatever OS and software
+configuration you want. From my survey of things, there are a lot of
+different options available for distributed computing. For my needs, I
+would just like to run simple Monte Carlo simulations, and other
+things that don't require a ton of inter-node communication.
+
+What I would like to do is put together a public AMI and a howto
+guide, such that it would be very easy for anyone to instantiate an
+N-node cluster and start with parallel computing. I would like to have
+a discussion/brainstorm over what the exact software stack should be.
+
+My initial thoughts were:
+
+1) R 2.9.0 + OpenMPI + RMpi + Snowfall/sfCluster
+   - will Amazon's network work with OpenMPI. Perhaps it would be
+better to use PVM or something that is more tolerant to non-optimal
+network
+
+2)  R 2.9.0 + "socket based communication" + Snowfall/sfCluster
+  - is this scalable
+
+3)  R 2.9.0 + twisted + NetWorkSpaces
+   - not sure of Amazon's network supports broadcast mode, which is
+required by twisted
+
+4) Biocep-R
+   - this looks like it has the functionality to do what I want, but a
+lot of other stuff as well.
+
+5) RHIPE
+   - Hadoop is well supported by EC2. Perhaps this is the way to go.
+Seems like a very new package :)
+
+What are people's thoughts on what would be a good software stack with
+the constraint that it should be simple and run on EC2?
+
+Thanks,
+-stephen
+==========================================
+Stephen J. Barr
+University of Washington
+WEB: www.econsteve.com
+
+
+From armstrong.whit at gmail.com  Wed Apr 29 21:24:49 2009
+From: armstrong.whit at gmail.com (Whit Armstrong)
+Date: Wed, 29 Apr 2009 15:24:49 -0400
+Subject: [R-sig-hpc] distributed R on EC2, designing the software stack
+In-Reply-To: <9b4cc5750904291206k20d8ff36ge58e20ef242e6151@mail.gmail.com>
+References: <9b4cc5750904291206k20d8ff36ge58e20ef242e6151@mail.gmail.com>
+Message-ID: <8ec76080904291224x63db082bnd9f2aa585fa37eeb@mail.gmail.com>
+
+you should contact Robert Grossman who just gave a presentation on
+this topic at R/Finance in Chicago.
+
+link: http://rinfinance.quantmod.com/speakers/
+
+-Whit
+
+
+On Wed, Apr 29, 2009 at 3:06 PM, Stephen J. Barr <stephenjbarr at gmail.com> wrote:
+> Greetings,
+>
+> I am trying to get into distributed computing with R, but do not have
+> access to a cluster. Therefore, I am trying to get distributed R
+> running on Amazon's EC2. ( http://aws.amazon.com/ec2/ )
+>
+> For those of you who don't know, EC2 allows you to instantiate large
+> numbers of computers, bundled with whatever OS and software
+> configuration you want. From my survey of things, there are a lot of
+> different options available for distributed computing. For my needs, I
+> would just like to run simple Monte Carlo simulations, and other
+> things that don't require a ton of inter-node communication.
+>
+> What I would like to do is put together a public AMI and a howto
+> guide, such that it would be very easy for anyone to instantiate an
+> N-node cluster and start with parallel computing. I would like to have
+> a discussion/brainstorm over what the exact software stack should be.
+>
+> My initial thoughts were:
+>
+> 1) R 2.9.0 + OpenMPI + RMpi + Snowfall/sfCluster
+> ? - will Amazon's network work with OpenMPI. Perhaps it would be
+> better to use PVM or something that is more tolerant to non-optimal
+> network
+>
+> 2) ?R 2.9.0 + "socket based communication" + Snowfall/sfCluster
+> ?- is this scalable
+>
+> 3) ?R 2.9.0 + twisted + NetWorkSpaces
+> ? - not sure of Amazon's network supports broadcast mode, which is
+> required by twisted
+>
+> 4) Biocep-R
+> ? - this looks like it has the functionality to do what I want, but a
+> lot of other stuff as well.
+>
+> 5) RHIPE
+> ? - Hadoop is well supported by EC2. Perhaps this is the way to go.
+> Seems like a very new package :)
+>
+> What are people's thoughts on what would be a good software stack with
+> the constraint that it should be simple and run on EC2?
+>
+> Thanks,
+> -stephen
+> ==========================================
+> Stephen J. Barr
+> University of Washington
+> WEB: www.econsteve.com
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From saptarshi.guha at gmail.com  Wed Apr 29 21:36:05 2009
+From: saptarshi.guha at gmail.com (Saptarshi Guha)
+Date: Wed, 29 Apr 2009 15:36:05 -0400
+Subject: [R-sig-hpc] distributed R on EC2, designing the software stack
+In-Reply-To: <8ec76080904291224x63db082bnd9f2aa585fa37eeb@mail.gmail.com>
+References: <9b4cc5750904291206k20d8ff36ge58e20ef242e6151@mail.gmail.com>
+	<8ec76080904291224x63db082bnd9f2aa585fa37eeb@mail.gmail.com>
+Message-ID: <1e7471d50904291236s69ca16a4k22e72e7696cc8268@mail.gmail.com>
+
+Hello,
+Yes, I was playing with EC2 and Rhipe last night. Just got permission
+to increase my instances to 100!
+The details (what I know)
+RHIPE is based on Hadoop and R. Cloudera has a very easy to use AMI
+for small and large (32/64bit) instances. It is easy enough to install
+the cloudera AMI.
+However It does not come with R.
+
+Last night, I modified their scripts to yum install R (using yum we
+get R-2.6) on each machine - as such this results in ~21MB downloads
+on the machines[1], which is not expensive but is not the best way do
+things.
+
+Once booted, each machine installs R, Rserve and one machine (the
+master) installs RHIPE.
+I did it with 1 master and 1 tasktracker and RHIPE worked. I intend to
+check with 30+ instances to see how things scale.
+
+I have emailed cloudera asking them to bundle R with their Hadoop AMI
+- so that users incur a minimal expense.
+
+I will be placing EC2 instructions to use RHIPE shortly this week.
+Given the reasonable cost of EC2, it would be a great way for users to
+test out distributed computing with R. Maybe as part of the R
+community we could host a linux AMI? Again, cost is the issue
+here(rather not pay for users downloading things)
+
+Regards
+Saptarshi Guha
+[1] Not quite sure how the AMI's work - if 10 AMIs belong to one
+group, does EC2 boot up one and replicate the booted instance? If so,
+then there is only one download, if not each machine downloads.
+
+
+On Wed, Apr 29, 2009 at 3:24 PM, Whit Armstrong
+<armstrong.whit at gmail.com> wrote:
+> you should contact Robert Grossman who just gave a presentation on
+> this topic at R/Finance in Chicago.
+>
+> link: http://rinfinance.quantmod.com/speakers/
+>
+> -Whit
+>
+>
+> On Wed, Apr 29, 2009 at 3:06 PM, Stephen J. Barr <stephenjbarr at gmail.com> wrote:
+>> Greetings,
+>>
+>> I am trying to get into distributed computing with R, but do not have
+>> access to a cluster. Therefore, I am trying to get distributed R
+>> running on Amazon's EC2. ( http://aws.amazon.com/ec2/ )
+>>
+>> For those of you who don't know, EC2 allows you to instantiate large
+>> numbers of computers, bundled with whatever OS and software
+>> configuration you want. From my survey of things, there are a lot of
+>> different options available for distributed computing. For my needs, I
+>> would just like to run simple Monte Carlo simulations, and other
+>> things that don't require a ton of inter-node communication.
+>>
+>> What I would like to do is put together a public AMI and a howto
+>> guide, such that it would be very easy for anyone to instantiate an
+>> N-node cluster and start with parallel computing. I would like to have
+>> a discussion/brainstorm over what the exact software stack should be.
+>>
+>> My initial thoughts were:
+>>
+>> 1) R 2.9.0 + OpenMPI + RMpi + Snowfall/sfCluster
+>>   - will Amazon's network work with OpenMPI. Perhaps it would be
+>> better to use PVM or something that is more tolerant to non-optimal
+>> network
+>>
+>> 2)  R 2.9.0 + "socket based communication" + Snowfall/sfCluster
+>>  - is this scalable
+>>
+>> 3)  R 2.9.0 + twisted + NetWorkSpaces
+>>   - not sure of Amazon's network supports broadcast mode, which is
+>> required by twisted
+>>
+>> 4) Biocep-R
+>>   - this looks like it has the functionality to do what I want, but a
+>> lot of other stuff as well.
+>>
+>> 5) RHIPE
+>>   - Hadoop is well supported by EC2. Perhaps this is the way to go.
+>> Seems like a very new package :)
+>>
+>> What are people's thoughts on what would be a good software stack with
+>> the constraint that it should be simple and run on EC2?
+>>
+>> Thanks,
+>> -stephen
+>> ==========================================
+>> Stephen J. Barr
+>> University of Washington
+>> WEB: www.econsteve.com
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From edd at debian.org  Wed Apr 29 21:39:25 2009
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Wed, 29 Apr 2009 14:39:25 -0500
+Subject: [R-sig-hpc] distributed R on EC2, designing the software stack
+In-Reply-To: <9b4cc5750904291206k20d8ff36ge58e20ef242e6151@mail.gmail.com>
+References: <9b4cc5750904291206k20d8ff36ge58e20ef242e6151@mail.gmail.com>
+Message-ID: <18936.44269.475589.840909@ron.nulle.part>
+
+
+On 29 April 2009 at 12:06, Stephen J. Barr wrote:
+| 1) R 2.9.0 + OpenMPI + RMpi + Snowfall/sfCluster
+|    - will Amazon's network work with OpenMPI. Perhaps it would be
+| better to use PVM or something that is more tolerant to non-optimal
+| network
+
+If you can use standard snow rather snowfall/sfcluster, then (I believe) you
+are done.  As per some emails on the Open MPI list from last fall or summer,
+you get Debian / Ubuntu instances where all this is just an 'apt-get install'
+or two away given the set of packages I maintain for Debian.  Plus you get
+slurm to control it.
+
+| 2)  R 2.9.0 + "socket based communication" + Snowfall/sfCluster
+|   - is this scalable
+
+Likewise, snow and sockets works as is on Debian / Ubuntu.
+
+| 3)  R 2.9.0 + twisted + NetWorkSpaces
+|    - not sure of Amazon's network supports broadcast mode, which is
+| required by twisted
+
+Should also works out-of-the box via the r-cran-nws and python-nwsserver
+package I maintain.
+
+| 4) Biocep-R
+|    - this looks like it has the functionality to do what I want, but a
+| lot of other stuff as well.
+
+Yep, but I haven't had a chance to look more closely.
+
+| 5) RHIPE
+|    - Hadoop is well supported by EC2. Perhaps this is the way to go.
+| Seems like a very new package :)
+
+Yes, and there is more Hadoop stuff cooking on R-Forge.
+
+| What are people's thoughts on what would be a good software stack with
+| the constraint that it should be simple and run on EC2?
+
+I use the computer hanging around the house.  If you have a desktop and a
+laptop, you are ready to go.  Or if you have enough ram, you can try virtual
+approaches as well.  Last time I tried (for my HPC tutorials) the networking
+was fully 'see-through' yet though I hear that VirtualBox improved there.
+
+Let us know what you come up with.
+
+Dirk
+
+-- 
+Three out of two people have difficulties with fractions.
+
+
+From steve at revolution-computing.com  Wed Apr 29 22:31:04 2009
+From: steve at revolution-computing.com (Steve Weston)
+Date: Wed, 29 Apr 2009 16:31:04 -0400
+Subject: [R-sig-hpc] distributed R on EC2, designing the software stack
+In-Reply-To: <18936.44269.475589.840909@ron.nulle.part>
+References: <9b4cc5750904291206k20d8ff36ge58e20ef242e6151@mail.gmail.com>
+	<18936.44269.475589.840909@ron.nulle.part>
+Message-ID: <4f7bf0100904291331v50cf5a18r391438bc7c4a64a3@mail.gmail.com>
+
+On Wed, Apr 29, 2009 at 3:39 PM, Dirk Eddelbuettel <edd at debian.org> wrote:
+>
+> On 29 April 2009 at 12:06, Stephen J. Barr wrote:
+
+> | 3) ?R 2.9.0 + twisted + NetWorkSpaces
+> | ? ?- not sure of Amazon's network supports broadcast mode, which is
+> | required by twisted
+>
+> Should also works out-of-the box via the r-cran-nws and python-nwsserver
+> package I maintain.
+
+Note that the way NetWorkSpaces uses twisted does not require
+any special broadcast mode.
+
+-- 
+Steve Weston
+REvolution Computing
+One Century Tower | 265 Church Street, Suite 1006
+New Haven, CT  06510
+P: 203-777-7442 x266 | www.revolution-computing.com
+
+
+From HodgessE at uhd.edu  Thu Apr 30 03:26:27 2009
+From: HodgessE at uhd.edu (Hodgess, Erin)
+Date: Wed, 29 Apr 2009 20:26:27 -0500
+Subject: [R-sig-hpc] looking for an Rmpi example for a quad core desktop
+Message-ID: <70A5AC06FDB5E54482D19E1C04CDFCF307C36CC0@BALI.uhd.campus>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090429/2bfad6cc/attachment.pl>
+
+From brokaa at bu.edu  Thu Apr 30 04:08:46 2009
+From: brokaa at bu.edu (Broka, Andi)
+Date: Wed, 29 Apr 2009 22:08:46 -0400
+Subject: [R-sig-hpc] looking for an Rmpi example for a quad core desktop
+References: <70A5AC06FDB5E54482D19E1C04CDFCF307C36CC0@BALI.uhd.campus>
+Message-ID: <6BE3EC472981FB43ADD7DEB00A67ED57067B90AA@bumc-xbe.ad.bu.edu>
+
+Hi,
+
+The following link shows a very basic example running exactly 4 slave processes, one for each MCMC chain. There's an unnecessary large number of iterations just so that you can catch it with top (or qstat on batch systems).
+
+http://collaborate.bu.edu/linga/ParallelMCMC
+
+Andi
+
+-----Original Message-----
+From: r-sig-hpc-bounces at r-project.org on behalf of Hodgess, Erin
+Sent: Wed 4/29/2009 9:26 PM
+To: r-sig-hpc at r-project.org
+Subject: [R-sig-hpc] looking for an Rmpi example for a quad core desktop
+ 
+Hi everyone!
+
+Could anyone recommend a good example in Rmpi (or maybe snow) to use on a quad core desktop, please?
+
+I would like to be able to run it and use the "top" function in another window to demonstrate how all of the cores are running.
+
+Thanks,
+Erin
+
+
+Erin M. Hodgess, PhD
+Associate Professor
+Department of Computer and Mathematical Sciences
+University of Houston - Downtown
+mailto: hodgesse at uhd.edu
+
+
+	[[alternative HTML version deleted]]
+
+_______________________________________________
+R-sig-hpc mailing list
+R-sig-hpc at r-project.org
+https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From HodgessE at uhd.edu  Thu Apr 30 04:15:00 2009
+From: HodgessE at uhd.edu (Hodgess, Erin)
+Date: Wed, 29 Apr 2009 21:15:00 -0500
+Subject: [R-sig-hpc] looking for an Rmpi example for a quad core desktop
+References: <70A5AC06FDB5E54482D19E1C04CDFCF307C36CC0@BALI.uhd.campus>
+	<6BE3EC472981FB43ADD7DEB00A67ED57067B90AA@bumc-xbe.ad.bu.edu>
+Message-ID: <70A5AC06FDB5E54482D19E1C04CDFCF307C36CC1@BALI.uhd.campus>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090429/84d7ae9b/attachment.pl>
+
+From HodgessE at uhd.edu  Thu Apr 30 09:34:48 2009
+From: HodgessE at uhd.edu (Hodgess, Erin)
+Date: Thu, 30 Apr 2009 02:34:48 -0500
+Subject: [R-sig-hpc] Problems with Deino and Rmpi
+Message-ID: <70A5AC06FDB5E54482D19E1C04CDFCF307C36CC7@BALI.uhd.campus>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090430/fe693904/attachment.pl>
+
+From fmvsoma at gmail.com  Thu Apr 30 13:59:45 2009
+From: fmvsoma at gmail.com (=?ISO-8859-1?Q?Ferran_Mart=EDnez?=)
+Date: Thu, 30 Apr 2009 13:59:45 +0200
+Subject: [R-sig-hpc] How to configure Rsge
+Message-ID: <e5e01d300904300459q2c26edc6vf66616057d65d5bd@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090430/04801e5a/attachment.pl>
+
+From vfulco1 at gmail.com  Thu Apr 30 17:31:52 2009
+From: vfulco1 at gmail.com (Vince Fulco)
+Date: Thu, 30 Apr 2009 11:31:52 -0400
+Subject: [R-sig-hpc] Rmpi install fails...
+Message-ID: <34f2770f0904300831o4f620de4pe8de6d42f1d139ae@mail.gmail.com>
+
+Per Dirk's suggestion, following up with a *revised* question from
+R-help of a few days ago...
+
+On FC10 with openmpi and mpich2 installed including all -develop and
+-libs files,
+the command "R CMD INSTALL Rmpi_0.5-7.tar.gz" fails with the error
+''cannot find mpi.h".  Doing a (s)locate indicates the header files
+exist in ''/usr/include/mpich2/" and ''/usr/include/openmpi/1.2.4-gcc/".
+
+I've tried using --configure-args to both locations and
+also named the environment variable path MPI_ROOT
+to no avail. Would appreciate any trailheads.
+
+As a temp solution exploring SNOW with sockets
+to speed up bootstraps.  Should I expect see a speed improvement
+with MPI or PVM on a SMP machine?
+
+TIA,
+
+V.
+
+-- 
+Vince Fulco, CFA, CAIA
+612.424.5477 (universal)
+vfulco1 at gmail.com
+
+
+From sdavis2 at mail.nih.gov  Thu Apr 30 18:04:57 2009
+From: sdavis2 at mail.nih.gov (Sean Davis)
+Date: Thu, 30 Apr 2009 12:04:57 -0400
+Subject: [R-sig-hpc] Rmpi install fails...
+In-Reply-To: <34f2770f0904300831o4f620de4pe8de6d42f1d139ae@mail.gmail.com>
+References: <34f2770f0904300831o4f620de4pe8de6d42f1d139ae@mail.gmail.com>
+Message-ID: <264855a00904300904m51d325bfv845c101ac395f273@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090430/b85e6f7b/attachment.pl>
+
+From HodgessE at uhd.edu  Thu Apr 30 18:14:37 2009
+From: HodgessE at uhd.edu (Hodgess, Erin)
+Date: Thu, 30 Apr 2009 11:14:37 -0500
+Subject: [R-sig-hpc] using orterun with Rmpi
+Message-ID: <70A5AC06FDB5E54482D19E1C04CDFCF307C36CCC@BALI.uhd.campus>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090430/dd7bef8d/attachment.pl>
+
+From vfulco1 at gmail.com  Thu Apr 30 21:24:24 2009
+From: vfulco1 at gmail.com (Vince Fulco)
+Date: Thu, 30 Apr 2009 15:24:24 -0400
+Subject: [R-sig-hpc] Rmpi install fails...
+In-Reply-To: <264855a00904300904m51d325bfv845c101ac395f273@mail.gmail.com>
+References: <34f2770f0904300831o4f620de4pe8de6d42f1d139ae@mail.gmail.com> 
+	<264855a00904300904m51d325bfv845c101ac395f273@mail.gmail.com>
+Message-ID: <34f2770f0904301224i58259c4fo1c7f7b147acece50@mail.gmail.com>
+
+Attempted this "CC=mpicc R CMD INSTALL ...." but no luck.
+
+Martin Morgan was kind enough to send another solution to modify the
+configure.ac file and hard code the mpi library paths which I'll try
+next...
+
+On Thu, Apr 30, 2009 at 12:04 PM, Sean Davis <sdavis2 at mail.nih.gov> wrote:
+>
+>
+> On Thu, Apr 30, 2009 at 11:31 AM, Vince Fulco <vfulco1 at gmail.com> wrote:
+>>
+>> Per Dirk's suggestion, following up with a *revised* question from
+>> R-help of a few days ago...
+>>
+>> On FC10 with openmpi and mpich2 installed including all -develop and
+>> -libs files,
+>> the command "R CMD INSTALL Rmpi_0.5-7.tar.gz" fails with the error
+>> ''cannot find mpi.h". ?Doing a (s)locate indicates the header files
+>> exist in ''/usr/include/mpich2/" and ''/usr/include/openmpi/1.2.4-gcc/".
+>
+> Did you try:
+>
+> CC=mpicc R CMD INSTALL ....
+>
+> Choose the mpicc for the mpi flavor you want to use.
+>
+> Sean
+>
+>>
+>> I've tried using --configure-args to both locations and
+>> also named the environment variable path MPI_ROOT
+>> to no avail. Would appreciate any trailheads.
+>>
+>> As a temp solution exploring SNOW with sockets
+>> to speed up bootstraps. ?Should I expect see a speed improvement
+>> with MPI or PVM on a SMP machine?
+>>
+>> TIA,
+>>
+>> V.
+>>
+>> --
+>> Vince Fulco, CFA, CAIA
+>> 612.424.5477 (universal)
+>> vfulco1 at gmail.com
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+>
+
+
+
+-- 
+Vince Fulco, CFA, CAIA
+612.424.5477 (universal)
+vfulco1 at gmail.com
+
+

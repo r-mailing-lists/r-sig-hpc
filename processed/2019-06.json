@@ -1,0 +1,109 @@
+{
+  "list": "r-sig-hpc",
+  "description": "",
+  "month": "2019-06",
+  "messages": [
+    {
+      "id": "msg-93c3fdc72d65",
+      "message_id": "<CAB2ovovmQwwKr5CS1txdc9uuCZLeOXRR-ZhhU=GoFKT3THgObQ@mail.gmail.com>",
+      "from_name": "Bennet Fauber",
+      "from_email_hash": "1e61e3c7cc93c2fd13edf4b54672f0d1493032b52e829cc0527a4480b71c380f",
+      "date": "2019-06-10T15:53:45-04:00",
+      "subject": "[R-sig-hpc] Recommended method for mutlithreaded, multinode in R?",
+      "subject_clean": "Recommended method for mutlithreaded, multinode in R?",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Are there standard combinations of packages that people use when they\nwant to use R on multiple nodes and have the R processes on those\nnodes call threaded C++ libraries?\n\nFor example, if this were straight MPI, one might use a scheduler to\nget 8 cores per node assigned to a job, but then only start two MPI\nprocesses per node so that OpenMP for each of those process would have\naccess to 4 cores.\n\nMost of the ways I've seen to get R going seem to assume that Rmpi\nwill be used, and that the master R process will be started and it\nwill in turn spawn one R process for each core in the job.\n\nHas someone written a way to do this where one might do something like\nthis with OpenMPI ( or the equivalent with a different MPI)\n\n    $ mpirun -pernode R hybrid.R\n\nwhere the hybrid.R would be able to come up and know how to find its\ntasks and do them?\n\nThanks in advance for any pointers anyone might have.",
+      "body_snippet": "Are there standard combinations of packages that people use when they\nwant to use R on multiple nodes and have the R processes on those\nnodes call threaded C++ libraries?\n\nFor example, if this were st",
+      "thread_id": "thread-93c3fdc72d65",
+      "thread_depth": 0,
+      "month": "2019-06"
+    },
+    {
+      "id": "msg-c12c5ad75064",
+      "message_id": "<BN8PR05MB61960C0DF78270A0E45154FEF9130@BN8PR05MB6196.namprd05.prod.outlook.com>",
+      "from_name": "Martin Morgan",
+      "from_email_hash": "d080adfe7101b99b22e855cb1d7ac6c0d6f5df67ab6766563004f45a9ceeed59",
+      "date": "2019-06-10T20:16:14Z",
+      "subject": "[R-sig-hpc]  Recommended method for mutlithreaded, multinode in R?",
+      "subject_clean": "Recommended method for mutlithreaded, multinode in R?",
+      "in_reply_to": "<CAB2ovovmQwwKr5CS1txdc9uuCZLeOXRR-ZhhU=GoFKT3THgObQ@mail.gmail.com>",
+      "references": [
+        "<CAB2ovovmQwwKr5CS1txdc9uuCZLeOXRR-ZhhU=GoFKT3THgObQ@mail.gmail.com>"
+      ],
+      "body_plain": "The pbdR project https://pbdr.org adopts a more traditional HPC approach, including in the pbdMPI package on CRAN.\n\n~$ mpiexec -np 2  R --slave -e \"cat('hi\\n')\"\nhi\nhi\n\n\nMartin Morgan\n\n?On 6/10/19, 3:54 PM, \"R-sig-hpc on behalf of Bennet Fauber\" <r-sig-hpc-bounces at r-project.org on behalf of bennet at umich.edu> wrote:\n\n    Are there standard combinations of packages that people use when they\n    want to use R on multiple nodes and have the R processes on those\n    nodes call threaded C++ libraries?\n    \n    For example, if this were straight MPI, one might use a scheduler to\n    get 8 cores per node assigned to a job, but then only start two MPI\n    processes per node so that OpenMP for each of those process would have\n    access to 4 cores.\n    \n    Most of the ways I've seen to get R going seem to assume that Rmpi\n    will be used, and that the master R process will be started and it\n    will in turn spawn one R process for each core in the job.\n    \n    Has someone written a way to do this where one might do something like\n    this with OpenMPI ( or the equivalent with a different MPI)\n    \n        $ mpirun -pernode R hybrid.R\n    \n    where the hybrid.R would be able to come up and know how to find its\n    tasks and do them?\n    \n    Thanks in advance for any pointers anyone might have.\n    \n    _______________________________________________\n    R-sig-hpc mailing list\n    R-sig-hpc at r-project.org\n    https://stat.ethz.ch/mailman/listinfo/r-sig-hpc",
+      "body_snippet": "The pbdR project https://pbdr.org adopts a more traditional HPC approach, including in the pbdMPI package on CRAN.\n\n~$ mpiexec -np 2  R --slave -e \"cat('hi\\n')\"\nhi\nhi\n\n\nMartin Morgan\n\n?On 6/10/19, 3:5",
+      "thread_id": "thread-93c3fdc72d65",
+      "thread_depth": 1,
+      "month": "2019-06"
+    },
+    {
+      "id": "msg-2b888cb53a85",
+      "message_id": "<E56CF957-361F-4540-8A69-56DEDEF77FDB@gmail.com>",
+      "from_name": "Ostrouchov, George",
+      "from_email_hash": "983faa67dac6e6ae444a4b425497c30ccf18827aa7ba409ad9adbefbdc9d8b75",
+      "date": "2019-06-11T01:08:11-04:00",
+      "subject": "[R-sig-hpc]  Recommended method for mutlithreaded, multinode in R?",
+      "subject_clean": "Recommended method for mutlithreaded, multinode in R?",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Take a look at a couple of scripts on GitHub, which I use to illustrate how to balance pbdMPI ranks and mclapply() forked threads: https://github.com/RBigData/mpi_balance. Similar balancing and potential thread conflict management is needed for threaded OpenBLAS and other threaded functions.\n\nWith MPI, typically there is no master and each R instance just finds its own tasks based on comm.rank() and higher level helper functions. For example, the RBigData/pbdIO package has a comm.chunk() function that provides various chunking options to return different tasks to different ranks.\n\nGeorge Ostrouchov\n\n?-----Original Message-----\nFrom: R-sig-hpc <r-sig-hpc-bounces at r-project.org> on behalf of Martin Morgan <mtmorgan.bioc at gmail.com>\nDate: Monday, June 10, 2019 at 4:16 PM\nTo: Bennet Fauber <bennet at umich.edu>, \"R-sig-hpc at r-project.org\" <R-sig-hpc at r-project.org>\nSubject: Re: [R-sig-hpc]  Recommended method for mutlithreaded, multinode in R?\n\n    The pbdR project https://pbdr.org adopts a more traditional HPC approach, including in the pbdMPI package on CRAN.\n    \n    ~$ mpiexec -np 2  R --slave -e \"cat('hi\\n')\"\n    hi\n    hi\n    \n    \n    Martin Morgan\n    \n    ?On 6/10/19, 3:54 PM, \"R-sig-hpc on behalf of Bennet Fauber\" <r-sig-hpc-bounces at r-project.org on behalf of bennet at umich.edu> wrote:\n    \n        Are there standard combinations of packages that people use when they\n        want to use R on multiple nodes and have the R processes on those\n        nodes call threaded C++ libraries?\n        \n        For example, if this were straight MPI, one might use a scheduler to\n        get 8 cores per node assigned to a job, but then only start two MPI\n        processes per node so that OpenMP for each of those process would have\n        access to 4 cores.\n        \n        Most of the ways I've seen to get R going seem to assume that Rmpi\n        will be used, and that the master R process will be started and it\n        will in turn spawn one R process for each core in the job.\n        \n        Has someone written a way to do this where one might do something like\n        this with OpenMPI ( or the equivalent with a different MPI)\n        \n            $ mpirun -pernode R hybrid.R\n        \n        where the hybrid.R would be able to come up and know how to find its\n        tasks and do them?\n        \n        Thanks in advance for any pointers anyone might have.\n        \n        _______________________________________________\n        R-sig-hpc mailing list\n        R-sig-hpc at r-project.org\n        https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n        \n    _______________________________________________\n    R-sig-hpc mailing list\n    R-sig-hpc at r-project.org\n    https://stat.ethz.ch/mailman/listinfo/r-sig-hpc",
+      "body_snippet": "Take a look at a couple of scripts on GitHub, which I use to illustrate how to balance pbdMPI ranks and mclapply() forked threads: https://github.com/RBigData/mpi_balance. Similar balancing and potent",
+      "thread_id": "thread-2b888cb53a85",
+      "thread_depth": 0,
+      "month": "2019-06"
+    },
+    {
+      "id": "msg-7483c4bf1e98",
+      "message_id": "<CAGpvMzdJ0AN2sHHgQCbrVLw7rJkRtqYjKfPGwGAXTG3pZvcacQ@mail.gmail.com>",
+      "from_name": "Surraj Jadhav",
+      "from_email_hash": "77fd94f721fa34307c7c0eccdde76c84e9f1f7ad461b9ab4aacbf9fe627107fe",
+      "date": "2019-06-25T07:39:33+01:00",
+      "subject": "[R-sig-hpc] R + R Studio on Rocks 7.0",
+      "subject_clean": "R + R Studio on Rocks 7.0",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Dear All,\n\nI am trying to build a simple Rocks Cluster on which we could run R and\nsubmit runs over SGE to use all of the compute power available on the\ncluster. I am struggling with getting R on the cluster as it has too many\ndependencies, solving those is crashing the cluster.\n\nHave you come across any one who has successfully built R on Rocks 7? It\nwould be a great help to know the steps followed as I am not a expert on\ncompiling / programming. I could follow the instructions though.\n\nThis is what I am trying to achieve -\nhttp://borisv.lk.net/howtos/grid-mpi-r-howto.html\n\n-- \nThanks & Regards\nSurraj Jadhav\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "Dear All,\n\nI am trying to build a simple Rocks Cluster on which we could run R and\nsubmit runs over SGE to use all of the compute power available on the\ncluster. I am struggling with getting R on the ",
+      "thread_id": "thread-7483c4bf1e98",
+      "thread_depth": 0,
+      "month": "2019-06"
+    }
+  ],
+  "threads": [
+    {
+      "id": "thread-93c3fdc72d65",
+      "subject": "Recommended method for mutlithreaded, multinode in R?",
+      "message_count": 2,
+      "participants": [
+        "Bennet Fauber",
+        "Martin Morgan"
+      ],
+      "started": "2019-06-10T15:53:45-04:00",
+      "last_reply": "2019-06-10T20:16:14+00:00",
+      "root_message_id": "msg-93c3fdc72d65"
+    },
+    {
+      "id": "thread-2b888cb53a85",
+      "subject": "Recommended method for mutlithreaded, multinode in R?",
+      "message_count": 1,
+      "participants": [
+        "Ostrouchov, George"
+      ],
+      "started": "2019-06-11T01:08:11-04:00",
+      "last_reply": "2019-06-11T01:08:11-04:00",
+      "root_message_id": "msg-2b888cb53a85"
+    },
+    {
+      "id": "thread-7483c4bf1e98",
+      "subject": "R + R Studio on Rocks 7.0",
+      "message_count": 1,
+      "participants": [
+        "Surraj Jadhav"
+      ],
+      "started": "2019-06-25T07:39:33+01:00",
+      "last_reply": "2019-06-25T07:39:33+01:00",
+      "root_message_id": "msg-7483c4bf1e98"
+    }
+  ]
+}

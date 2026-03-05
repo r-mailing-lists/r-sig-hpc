@@ -1,0 +1,3499 @@
+From jgrn at illinois.edu  Tue Apr  3 22:21:15 2012
+From: jgrn at illinois.edu (Jonathan Greenberg)
+Date: Tue, 3 Apr 2012 15:21:15 -0500
+Subject: [R-sig-hpc] parallel and snow
+Message-ID: <CABG0rfvyZQ18UXWd9O8OppDfaCtTQmYiOhv=-K0GptSxNK6h7g@mail.gmail.com>
+
+r-sig-hpc'ers:
+
+Now that parallel is coming along with R, has anyone written a summary
+of how it compares?  Should I be using snow or parallel for (e.g.)
+clusterMap() calls?
+
+--j
+
+-- 
+Jonathan A. Greenberg, PhD
+Assistant Professor
+Department of Geography
+University of Illinois at Urbana-Champaign
+607 South Mathews Avenue, MC 150
+Urbana, IL 61801
+Phone: 415-763-5476
+AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+http://www.geog.illinois.edu/people/JonathanGreenberg.html
+
+
+From jgrn at illinois.edu  Thu Apr  5 18:32:15 2012
+From: jgrn at illinois.edu (Jonathan Greenberg)
+Date: Thu, 5 Apr 2012 11:32:15 -0500
+Subject: [R-sig-hpc] libRblas.so => not found problem
+Message-ID: <CABG0rfu=GLF9=m2m164-Hi4dvA4UaPnWW+2hE+GcxA46XNg1ag@mail.gmail.com>
+
+r-sig-hpc'ers:
+
+I'm banging my head against a wall with this.  I recently updated R to 2.15 via:
+
+./configure --prefix=/pathtoinstall/ --enable-R-shlib --enable-BLAS-shlib
+make
+make install
+
+I noticed that I wasn't getting a multithreaded response on, e.g.:
+a = matrix(rnorm(5000*5000), 5000, 5000)
+b = matrix(rnorm(5000*5000), 5000, 5000)
+c = a%*%b
+
+[This used to light up all 12 cores on our system, now it only lights
+up one and takes MUCH longer].
+
+I have an update-alternatives set up for /pathto/R/lib/libRblas.so (I
+backed up the installed one to libRblas.so_bak) where I have a few
+flavors of BLAS I've been playing with (including one that USED to
+work, an alpha of OpenBLAS).  I also have the most recent OpenBLAS and
+Intel MKL.  The update-alternatives IS working.
+
+When I ldd R I see I no longer have a link to libRblas.so:
+ ldd /pathto/R/bin/exec/R
+        linux-vdso.so.1 =>  (0x00007fffd4a9e000)
+        libR.so => not found
+        libRblas.so => not found
+        libgomp.so.1 => /usr/lib64/libgomp.so.1 (0x00007f6b80bf4000)
+        libpthread.so.0 => /lib64/libpthread.so.0 (0x00007f6b809d8000)
+        libc.so.6 => /lib64/libc.so.6 (0x00007f6b80649000)
+        librt.so.1 => /lib64/librt.so.1 (0x00007f6b80441000)
+        /lib64/ld-linux-x86-64.so.2 (0x00007f6b80e01000)
+
+Nothing I do seems to re-link this, and even downgrading back to R
+2.14.2 hasn't fixed this.  I even removed the /pathto/R directory to
+attempt a "clean" install.   FYI: I am on a system that MUST have R
+compiled from scratch, so I can't use any pre-existing binaries.
+Thoughts?
+
+--j
+
+-- 
+Jonathan A. Greenberg, PhD
+Assistant Professor
+Department of Geography and Geographic Information Science
+University of Illinois at Urbana-Champaign
+607 South Mathews Avenue, MC 150
+Urbana, IL 61801
+Phone: 415-763-5476
+AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+http://www.geog.illinois.edu/people/JonathanGreenberg.html
+
+
+From edd at debian.org  Thu Apr  5 18:58:34 2012
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Thu, 5 Apr 2012 11:58:34 -0500
+Subject: [R-sig-hpc] libRblas.so => not found problem
+In-Reply-To: <CABG0rfu=GLF9=m2m164-Hi4dvA4UaPnWW+2hE+GcxA46XNg1ag@mail.gmail.com>
+References: <CABG0rfu=GLF9=m2m164-Hi4dvA4UaPnWW+2hE+GcxA46XNg1ag@mail.gmail.com>
+Message-ID: <20349.53050.412327.881817@max.nulle.part>
+
+
+On 5 April 2012 at 11:32, Jonathan Greenberg wrote:
+| r-sig-hpc'ers:
+| 
+| I'm banging my head against a wall with this.  I recently updated R to 2.15 via:
+| 
+| ./configure --prefix=/pathtoinstall/ --enable-R-shlib --enable-BLAS-shlib
+| make
+| make install
+| 
+| I noticed that I wasn't getting a multithreaded response on, e.g.:
+| a = matrix(rnorm(5000*5000), 5000, 5000)
+| b = matrix(rnorm(5000*5000), 5000, 5000)
+| c = a%*%b
+| 
+| [This used to light up all 12 cores on our system, now it only lights
+| up one and takes MUCH longer].
+| 
+| I have an update-alternatives set up for /pathto/R/lib/libRblas.so (I
+| backed up the installed one to libRblas.so_bak) where I have a few
+| flavors of BLAS I've been playing with (including one that USED to
+| work, an alpha of OpenBLAS).  I also have the most recent OpenBLAS and
+| Intel MKL.  The update-alternatives IS working.
+| 
+| When I ldd R I see I no longer have a link to libRblas.so:
+|  ldd /pathto/R/bin/exec/R
+|         linux-vdso.so.1 =>  (0x00007fffd4a9e000)
+|         libR.so => not found
+|         libRblas.so => not found
+
+I think that means that R chose to build its own BLAS as your configure call
+did not lead to all required headers.
+
+Do 'locate libRblas.so' -- it exists, and /usr/bin/R sets variables to find
+it.
+
+I suspect your problem really is with your local compilation.
+
+|         libgomp.so.1 => /usr/lib64/libgomp.so.1 (0x00007f6b80bf4000)
+|         libpthread.so.0 => /lib64/libpthread.so.0 (0x00007f6b809d8000)
+|         libc.so.6 => /lib64/libc.so.6 (0x00007f6b80649000)
+|         librt.so.1 => /lib64/librt.so.1 (0x00007f6b80441000)
+|         /lib64/ld-linux-x86-64.so.2 (0x00007f6b80e01000)
+| 
+| Nothing I do seems to re-link this, and even downgrading back to R
+| 2.14.2 hasn't fixed this.  I even removed the /pathto/R directory to
+| attempt a "clean" install.   FYI: I am on a system that MUST have R
+| compiled from scratch, so I can't use any pre-existing binaries.
+
+Why?
+
+| Thoughts?
+
+It just works for all of us. I push new packages into Debian when R Core
+releases them; I use the same packages also on a bunch of Ubuntu machines
+where they are ready thanks to Michael's builds a day later.  
+
+It all works.  If you can't use them, maybe you want to at least study their
+build recipes. The debian/ directory is in the sources after all.  But it
+seems silly that you want to reinvent the use of update-alternatives etc.
+
+Dirk
+
+ 
+| --j
+| 
+| -- 
+| Jonathan A. Greenberg, PhD
+| Assistant Professor
+| Department of Geography and Geographic Information Science
+| University of Illinois at Urbana-Champaign
+| 607 South Mathews Avenue, MC 150
+| Urbana, IL 61801
+| Phone: 415-763-5476
+| AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+| http://www.geog.illinois.edu/people/JonathanGreenberg.html
+| 
+| _______________________________________________
+| R-sig-hpc mailing list
+| R-sig-hpc at r-project.org
+| https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+-- 
+R/Finance 2012 Conference on May 11 and 12, 2012 at UIC in Chicago, IL
+See agenda, registration details and more at http://www.RinFinance.com
+
+
+From jgrn at illinois.edu  Thu Apr  5 19:34:43 2012
+From: jgrn at illinois.edu (Jonathan Greenberg)
+Date: Thu, 5 Apr 2012 12:34:43 -0500
+Subject: [R-sig-hpc] libRblas.so => not found problem
+In-Reply-To: <20349.53050.412327.881817@max.nulle.part>
+References: <CABG0rfu=GLF9=m2m164-Hi4dvA4UaPnWW+2hE+GcxA46XNg1ag@mail.gmail.com>
+	<20349.53050.412327.881817@max.nulle.part>
+Message-ID: <CABG0rfu3yGMW4J+mh9j99tO2mFkUbwfkKF-rgqPQhXj1U-SuxA@mail.gmail.com>
+
+Follow-up below:
+
+On Thu, Apr 5, 2012 at 11:58 AM, Dirk Eddelbuettel <edd at debian.org> wrote:
+>
+> On 5 April 2012 at 11:32, Jonathan Greenberg wrote:
+> | r-sig-hpc'ers:
+> |
+> | I'm banging my head against a wall with this. ?I recently updated R to 2.15 via:
+> |
+> | ./configure --prefix=/pathtoinstall/ --enable-R-shlib --enable-BLAS-shlib
+> | make
+> | make install
+> |
+> | I noticed that I wasn't getting a multithreaded response on, e.g.:
+> | a = matrix(rnorm(5000*5000), 5000, 5000)
+> | b = matrix(rnorm(5000*5000), 5000, 5000)
+> | c = a%*%b
+> |
+> | [This used to light up all 12 cores on our system, now it only lights
+> | up one and takes MUCH longer].
+> |
+> | I have an update-alternatives set up for /pathto/R/lib/libRblas.so (I
+> | backed up the installed one to libRblas.so_bak) where I have a few
+> | flavors of BLAS I've been playing with (including one that USED to
+> | work, an alpha of OpenBLAS). ?I also have the most recent OpenBLAS and
+> | Intel MKL. ?The update-alternatives IS working.
+> |
+> | When I ldd R I see I no longer have a link to libRblas.so:
+> | ?ldd /pathto/R/bin/exec/R
+> | ? ? ? ? linux-vdso.so.1 => ?(0x00007fffd4a9e000)
+> | ? ? ? ? libR.so => not found
+> | ? ? ? ? libRblas.so => not found
+>
+> I think that means that R chose to build its own BLAS as your configure call
+> did not lead to all required headers.
+>
+> Do 'locate libRblas.so' -- it exists, and /usr/bin/R sets variables to find
+> it.
+>
+> I suspect your problem really is with your local compilation.
+
+Ah hah -- ok, where in the configure script can I point it towards my
+local BLAS libraries?  I presume the --prefix isn't cutting it...
+> | Nothing I do seems to re-link this, and even downgrading back to R
+> | 2.14.2 hasn't fixed this. ?I even removed the /pathto/R directory to
+> | attempt a "clean" install. ? FYI: I am on a system that MUST have R
+> | compiled from scratch, so I can't use any pre-existing binaries.
+>
+> Why?
+> It all works. ?If you can't use them, maybe you want to at least study their
+> build recipes. The debian/ directory is in the sources after all. ?But it
+> seems silly that you want to reinvent the use of update-alternatives etc.
+
+I'm on a supercomputer which loads its entire base system and a small
+subset of modules into main memory.  An optimized R is not one of
+these modules that the admins have deigned to install.  All remaining
+programs MUST be compiled by the end users, hence I can't use apt-get
+(I've heard tales of non-root users getting this to work, but I was
+not able to ever figure this out -- compiling from scratch was a lot
+easier).  I will look at your build recipes to see if I can parse it.
+It seems like I might just need to point the configure script towards
+my "local" libraries, although I'm not quite sure how to do that...
+
+--j
+
+
+-- 
+Jonathan A. Greenberg, PhD
+Assistant Professor
+Department of Geography and Geographic Information Science
+University of Illinois at Urbana-Champaign
+607 South Mathews Avenue, MC 150
+Urbana, IL 61801
+Phone: 415-763-5476
+AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+http://www.geog.illinois.edu/people/JonathanGreenberg.html
+
+
+From simon.urbanek at r-project.org  Thu Apr  5 20:02:41 2012
+From: simon.urbanek at r-project.org (Simon Urbanek)
+Date: Thu, 5 Apr 2012 14:02:41 -0400
+Subject: [R-sig-hpc] libRblas.so => not found problem
+In-Reply-To: <CABG0rfu=GLF9=m2m164-Hi4dvA4UaPnWW+2hE+GcxA46XNg1ag@mail.gmail.com>
+References: <CABG0rfu=GLF9=m2m164-Hi4dvA4UaPnWW+2hE+GcxA46XNg1ag@mail.gmail.com>
+Message-ID: <EEDA0EDB-8DA7-41AA-9F17-2BD57AC179C0@r-project.org>
+
+
+On Apr 5, 2012, at 12:32 PM, Jonathan Greenberg wrote:
+
+> r-sig-hpc'ers:
+> 
+> I'm banging my head against a wall with this.  I recently updated R to 2.15 via:
+> 
+> ./configure --prefix=/pathtoinstall/ --enable-R-shlib --enable-BLAS-shlib
+> make
+> make install
+> 
+> I noticed that I wasn't getting a multithreaded response on, e.g.:
+> a = matrix(rnorm(5000*5000), 5000, 5000)
+> b = matrix(rnorm(5000*5000), 5000, 5000)
+> c = a%*%b
+> 
+> [This used to light up all 12 cores on our system, now it only lights
+> up one and takes MUCH longer].
+> 
+> I have an update-alternatives set up for /pathto/R/lib/libRblas.so (I
+> backed up the installed one to libRblas.so_bak) where I have a few
+> flavors of BLAS I've been playing with (including one that USED to
+> work, an alpha of OpenBLAS).  I also have the most recent OpenBLAS and
+> Intel MKL.  The update-alternatives IS working.
+> 
+> When I ldd R I see I no longer have a link to libRblas.so:
+> ldd /pathto/R/bin/exec/R
+>        linux-vdso.so.1 =>  (0x00007fffd4a9e000)
+>        libR.so => not found
+>        libRblas.so => not found
+>        libgomp.so.1 => /usr/lib64/libgomp.so.1 (0x00007f6b80bf4000)
+>        libpthread.so.0 => /lib64/libpthread.so.0 (0x00007f6b809d8000)
+>        libc.so.6 => /lib64/libc.so.6 (0x00007f6b80649000)
+>        librt.so.1 => /lib64/librt.so.1 (0x00007f6b80441000)
+>        /lib64/ld-linux-x86-64.so.2 (0x00007f6b80e01000)
+> 
+
+The above is meaningless - use "R CMD ldd" to get the actual paths.
+
+You can override the locations using LD_LIBRARY_PATH but I'd stay away form that as it tends to mess other things up (if you don't know what you're doing).
+
+
+> Nothing I do seems to re-link this,
+
+You don't want to re-link anything - it's already linked with shared BLAS support as you can see above.
+
+Cheers,
+Simon
+
+
+> and even downgrading back to R
+> 2.14.2 hasn't fixed this.  I even removed the /pathto/R directory to
+> attempt a "clean" install.   FYI: I am on a system that MUST have R
+> compiled from scratch, so I can't use any pre-existing binaries.
+> Thoughts?
+> 
+> --j
+> 
+> -- 
+> Jonathan A. Greenberg, PhD
+> Assistant Professor
+> Department of Geography and Geographic Information Science
+> University of Illinois at Urbana-Champaign
+> 607 South Mathews Avenue, MC 150
+> Urbana, IL 61801
+> Phone: 415-763-5476
+> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+> http://www.geog.illinois.edu/people/JonathanGreenberg.html
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+> 
+
+
+From jgrn at illinois.edu  Thu Apr  5 23:27:24 2012
+From: jgrn at illinois.edu (Jonathan Greenberg)
+Date: Thu, 5 Apr 2012 16:27:24 -0500
+Subject: [R-sig-hpc] libRblas.so => not found problem
+In-Reply-To: <EEDA0EDB-8DA7-41AA-9F17-2BD57AC179C0@r-project.org>
+References: <CABG0rfu=GLF9=m2m164-Hi4dvA4UaPnWW+2hE+GcxA46XNg1ag@mail.gmail.com>
+	<EEDA0EDB-8DA7-41AA-9F17-2BD57AC179C0@r-project.org>
+Message-ID: <CABG0rfs430sBnbjwea_6tKt53H+De1ejTw_qgheGPdR-gQZV1A@mail.gmail.com>
+
+Simon:
+
+I think you located my problem.  I had set the LD_LIBRARY_PATH for
+some other reason, and had compiled the new version of openblas when I
+had gotten R 2.15.  openblas was what had apparently not compiled
+properly (not R), so R was only using one core.  I removed the
+LD_LIBRARY_PATH reference, recompiled/reinstalled openblas, and voila,
+I'm back in business.
+
+Just in case someone was wondering about your ldd suggestion, the full
+command you want to use to check it is:
+
+R CMD ldd /pathto/R/bin/exec/R
+
+(I was trying to figure out the second part of that statement)
+
+Now, back to coding.  Thanks!
+
+--j
+
+On Thu, Apr 5, 2012 at 1:02 PM, Simon Urbanek
+<simon.urbanek at r-project.org> wrote:
+>
+> On Apr 5, 2012, at 12:32 PM, Jonathan Greenberg wrote:
+>
+>> r-sig-hpc'ers:
+>>
+>> I'm banging my head against a wall with this. ?I recently updated R to 2.15 via:
+>>
+>> ./configure --prefix=/pathtoinstall/ --enable-R-shlib --enable-BLAS-shlib
+>> make
+>> make install
+>>
+>> I noticed that I wasn't getting a multithreaded response on, e.g.:
+>> a = matrix(rnorm(5000*5000), 5000, 5000)
+>> b = matrix(rnorm(5000*5000), 5000, 5000)
+>> c = a%*%b
+>>
+>> [This used to light up all 12 cores on our system, now it only lights
+>> up one and takes MUCH longer].
+>>
+>> I have an update-alternatives set up for /pathto/R/lib/libRblas.so (I
+>> backed up the installed one to libRblas.so_bak) where I have a few
+>> flavors of BLAS I've been playing with (including one that USED to
+>> work, an alpha of OpenBLAS). ?I also have the most recent OpenBLAS and
+>> Intel MKL. ?The update-alternatives IS working.
+>>
+>> When I ldd R I see I no longer have a link to libRblas.so:
+>> ldd /pathto/R/bin/exec/R
+>> ? ? ? ?linux-vdso.so.1 => ?(0x00007fffd4a9e000)
+>> ? ? ? ?libR.so => not found
+>> ? ? ? ?libRblas.so => not found
+>> ? ? ? ?libgomp.so.1 => /usr/lib64/libgomp.so.1 (0x00007f6b80bf4000)
+>> ? ? ? ?libpthread.so.0 => /lib64/libpthread.so.0 (0x00007f6b809d8000)
+>> ? ? ? ?libc.so.6 => /lib64/libc.so.6 (0x00007f6b80649000)
+>> ? ? ? ?librt.so.1 => /lib64/librt.so.1 (0x00007f6b80441000)
+>> ? ? ? ?/lib64/ld-linux-x86-64.so.2 (0x00007f6b80e01000)
+>>
+>
+> The above is meaningless - use "R CMD ldd" to get the actual paths.
+>
+> You can override the locations using LD_LIBRARY_PATH but I'd stay away form that as it tends to mess other things up (if you don't know what you're doing).
+>
+>
+>> Nothing I do seems to re-link this,
+>
+> You don't want to re-link anything - it's already linked with shared BLAS support as you can see above.
+>
+> Cheers,
+> Simon
+>
+>
+>> and even downgrading back to R
+>> 2.14.2 hasn't fixed this. ?I even removed the /pathto/R directory to
+>> attempt a "clean" install. ? FYI: I am on a system that MUST have R
+>> compiled from scratch, so I can't use any pre-existing binaries.
+>> Thoughts?
+>>
+>> --j
+>>
+>> --
+>> Jonathan A. Greenberg, PhD
+>> Assistant Professor
+>> Department of Geography and Geographic Information Science
+>> University of Illinois at Urbana-Champaign
+>> 607 South Mathews Avenue, MC 150
+>> Urbana, IL 61801
+>> Phone: 415-763-5476
+>> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+>> http://www.geog.illinois.edu/people/JonathanGreenberg.html
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>>
+>
+
+
+
+-- 
+Jonathan A. Greenberg, PhD
+Assistant Professor
+Department of Geography and Geographic Information Science
+University of Illinois at Urbana-Champaign
+607 South Mathews Avenue, MC 150
+Urbana, IL 61801
+Phone: 415-763-5476
+AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+http://www.geog.illinois.edu/people/JonathanGreenberg.html
+
+
+From stephen.b.weston at gmail.com  Mon Apr  9 22:55:55 2012
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Mon, 9 Apr 2012 16:55:55 -0400
+Subject: [R-sig-hpc] Rmpi spawning across nodes.
+In-Reply-To: <CAC28k7Tw+8f5cPQ35_FryV+rgHGF9N9WizdJGdO1U_1u=Hw_xA@mail.gmail.com>
+References: <CAC28k7TFLwkMiZLxGuFfG9fdW+0a4vKVdCjQ9RMi_zn7h-=RPg@mail.gmail.com>
+	<CALh21iJ4w-sNcmWy-+gsR2nX4XWGMuGKcSR-MFhU2WwwU1c+Ww@mail.gmail.com>
+	<CAC28k7Tw+8f5cPQ35_FryV+rgHGF9N9WizdJGdO1U_1u=Hw_xA@mail.gmail.com>
+Message-ID: <CALh21iJsUG-QiFxZU1QbP-_dmqOeFrCJS5L=2U9LvfQ7T_Q9Aw@mail.gmail.com>
+
+Hi Ben,
+
+What machines are listed when you execute:
+
+  cat $PBS_NODEFILE
+
+in your batch script?  Is it definitely four different nodes?
+
+- Steve
+
+
+On Mon, Apr 9, 2012 at 3:28 PM, Ben Weinstein
+<bweinste at life.bio.sunysb.edu> wrote:
+> Hi Stephen,
+>
+> I've tried to follow your answer, but i'm still getting the same results.
+> the heart of my qsub looks like:
+>
+> mpirun -hostfile $PBS_NODEFILE -np 1 R --slave -f
+> /nfs/user08/bw4sz/Files/Seawulf.R
+>
+>
+> Before i run the foreach statement, i ask what node am i on?
+> [1] "Original Node wulfie121"
+>
+> I make sure the open MPI library is there.
+> [1] "/usr/local/pkg/openmpi-1.4.4/lib/"
+>
+> I make the cluster and ask how many slaves were spawn
+> 4 slaves are spawned successfully. 0 failed.
+>
+> Then i ask what are the nodenames of each of my slaves. I believe that if
+> this is working correctly, each of the nodenames should be different, since
+> i specified?#PBS -l nodes=4:ppn=1
+>
+> However, all the slaves still spawn on that one node.
+> [[1]]
+> ? ?nodename ? ? machine
+> "wulfie121" ? ?"x86_64"
+>
+> [[2]]
+> ? ?nodename ? ? machine
+> "wulfie121" ? ?"x86_64"
+>
+> [[3]]
+> ? ?nodename ? ? machine
+> "wulfie121" ? ?"x86_64"
+>
+> [[4]]
+> ? ?nodename ? ? machine
+> "wulfie121" ? ?"x86_64"
+>
+> Finally, i'm testing how long the process takes to see if i'm actually
+> getting parrelization.
+> [1] 4
+> ? ?user ?system elapsed
+> ?17.650 ?39.990 159.632
+>
+> Again, the heart of the code looks like
+>
+> cl <- makeCluster(4, type = "MPI")
+> print(clusterCall(cl,function() Sys.info()[c("nodename","machine")]))
+> registerDoSNOW(cl)
+> print(getDoParWorkers())
+> system.time(five.ten <- rbind.fill(foreach(j=1:times ) %dopar%
+> drop.shuffle(j,iterations)))
+> stopCluster(cl)
+>
+> I am about to change over to a different parralel backend as suggested, but
+> i doubt that is the root of the problem in this case.
+>
+>
+> I appreciate the continued help,
+>
+> Ben Weinstein
+>
+> On Thu, Mar 29, 2012 at 2:56 PM, Stephen Weston <stephen.b.weston at gmail.com>
+> wrote:
+>>
+>> Hi Ben,
+>>
+>> You have to run R via mpirun, otherwise all of the workers start
+>> on the one node.
+>>
+>> > I have tried using mpirun -np 4 in front of the R - call, but this just
+>> > fails without message.
+>>
+>> You have to use '-np 1', otherwise your script will be executed
+>> by mpirun four times, each trying to spawn four workers.
+>> I'm not sure if that explains failing without a message, however.
+>>
+>> Try something like this:
+>>
+>> #!/bin/bash
+>> #PBS -o 'qsub.out'
+>> #PBS -e 'qsub.err'
+>> #PBS -l nodes=4:ppn=1
+>> #PBS -m bea
+>> cat $PBS_NODEFILE
+>> hostname
+>>
+>> cd $PBS_O_WORKDIR
+>>
+>> # Run an R script
+>> mpirun -hostfile $PBS_NODEFILE -np 1 R --slave -f
+>> /nfs/user08/bw4sz/Files/Seawulf.R
+>>
+>> You may not need to use '-hostfile $PBS_NODEFILE', depending on
+>> how your Open MPI was built, but I don't think if ever hurts, and
+>> it may be required for your installation.
+>>
+>> - Steve
+>
+>
+>
+>
+> --
+> Ben Weinstein
+> Graduate Student
+> Ecology and Evolution
+> Stony Brook University
+>
+> http://life.bio.sunysb.edu/~bweinste/index.html
+>
+
+
+From renaud at mancala.cbio.uct.ac.za  Tue Apr 10 15:56:38 2012
+From: renaud at mancala.cbio.uct.ac.za (Renaud Gaujoux)
+Date: Tue, 10 Apr 2012 15:56:38 +0200
+Subject: [R-sig-hpc] Rmpi spawning across nodes
+In-Reply-To: <mailman.31.1334052009.19777.r-sig-hpc@r-project.org>
+References: <mailman.31.1334052009.19777.r-sig-hpc@r-project.org>
+Message-ID: <4F843C16.6090409@cbio.uct.ac.za>
+
+Hi Ben,
+
+I am not familiar with PBS but when you specify
+
+-l nodes=4:ppn=1
+
+I think you are asking for 4 CPUs spread over _up to_ 4 nodes with _at 
+least_ 1 process per node. Depending on the state of the cluster at 
+submission time, the queuing system might well give you 4 CPUs on a 
+single nodes (which you are sure have have at 4 cores).
+Not sure how you enforce having 4 separate physical machines with PBS. 
+On SGE you can define a queue with a specific allocation rule ( 
+'fill_up' if I remember well) that ensure that you get full machines.
+
+Not sure if this is actually what you want to get though (since you 
+require a single CPU on a single machine).
+Do you need separate machines? If you need it due to memory usage or if 
+each initial single process on the nodes will actually use all available 
+CPUs on the node, then you might also want to add a memory specification 
+so that other users' jobs don't take up your resources.
+
+The strange thing here is that you say that your cluster only has 
+dual-core nodes, so you should get at least 2 different machines instead 
+of the 4 you expect.
+Also printing/returning the process ID together with the machine name 
+could possibly give you better information about how the computation is 
+carried out.
+
+Renaud
+
+
+-- 
+Renaud Gaujoux
+Computational Biology - University of Cape Town
+South Africa
+
+
+On 10/04/2012 12:00, r-sig-hpc-request at r-project.org wrote:
+> Send R-sig-hpc mailing list submissions to
+> 	r-sig-hpc at r-project.org
+>
+> To subscribe or unsubscribe via the World Wide Web, visit
+> 	https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> or, via email, send a message with subject or body 'help' to
+> 	r-sig-hpc-request at r-project.org
+>
+> You can reach the person managing the list at
+> 	r-sig-hpc-owner at r-project.org
+>
+> When replying, please edit your Subject line so it is more specific
+> than "Re: Contents of R-sig-hpc digest..."
+>
+>
+> Today's Topics:
+>
+>     1. Re: Rmpi spawning across nodes. (Stephen Weston)
+>
+>
+> ----------------------------------------------------------------------
+>
+> Message: 1
+> Date: Mon, 9 Apr 2012 16:55:55 -0400
+> From: Stephen Weston<stephen.b.weston at gmail.com>
+> To: Ben Weinstein<bweinste at life.bio.sunysb.edu>
+> Cc: r-sig-hpc at r-project.org, Jan Kasiak<j.kasiak at gmail.com>
+> Subject: Re: [R-sig-hpc] Rmpi spawning across nodes.
+> Message-ID:
+> 	<CALh21iJsUG-QiFxZU1QbP-_dmqOeFrCJS5L=2U9LvfQ7T_Q9Aw at mail.gmail.com>
+> Content-Type: text/plain; charset=ISO-8859-1
+>
+> Hi Ben,
+>
+> What machines are listed when you execute:
+>
+>    cat $PBS_NODEFILE
+>
+> in your batch script?  Is it definitely four different nodes?
+>
+> - Steve
+>
+>
+> On Mon, Apr 9, 2012 at 3:28 PM, Ben Weinstein
+> <bweinste at life.bio.sunysb.edu>  wrote:
+>> Hi Stephen,
+>>
+>> I've tried to follow your answer, but i'm still getting the same results.
+>> the heart of my qsub looks like:
+>>
+>> mpirun -hostfile $PBS_NODEFILE -np 1 R --slave -f
+>> /nfs/user08/bw4sz/Files/Seawulf.R
+>>
+>>
+>> Before i run the foreach statement, i ask what node am i on?
+>> [1] "Original Node wulfie121"
+>>
+>> I make sure the open MPI library is there.
+>> [1] "/usr/local/pkg/openmpi-1.4.4/lib/"
+>>
+>> I make the cluster and ask how many slaves were spawn
+>> 4 slaves are spawned successfully. 0 failed.
+>>
+>> Then i ask what are the nodenames of each of my slaves. I believe that if
+>> this is working correctly, each of the nodenames should be different, since
+>> i specified?#PBS -l nodes=4:ppn=1
+>>
+>> However, all the slaves still spawn on that one node.
+>> [[1]]
+>> ? ?nodename ? ? machine
+>> "wulfie121" ? ?"x86_64"
+>>
+>> [[2]]
+>> ? ?nodename ? ? machine
+>> "wulfie121" ? ?"x86_64"
+>>
+>> [[3]]
+>> ? ?nodename ? ? machine
+>> "wulfie121" ? ?"x86_64"
+>>
+>> [[4]]
+>> ? ?nodename ? ? machine
+>> "wulfie121" ? ?"x86_64"
+>>
+>> Finally, i'm testing how long the process takes to see if i'm actually
+>> getting parrelization.
+>> [1] 4
+>> ? ?user ?system elapsed
+>> ?17.650 ?39.990 159.632
+>>
+>> Again, the heart of the code looks like
+>>
+>> cl<- makeCluster(4, type = "MPI")
+>> print(clusterCall(cl,function() Sys.info()[c("nodename","machine")]))
+>> registerDoSNOW(cl)
+>> print(getDoParWorkers())
+>> system.time(five.ten<- rbind.fill(foreach(j=1:times ) %dopar%
+>> drop.shuffle(j,iterations)))
+>> stopCluster(cl)
+>>
+>> I am about to change over to a different parralel backend as suggested, but
+>> i doubt that is the root of the problem in this case.
+>>
+>>
+>> I appreciate the continued help,
+>>
+>> Ben Weinstein
+>>
+>> On Thu, Mar 29, 2012 at 2:56 PM, Stephen Weston<stephen.b.weston at gmail.com>
+>> wrote:
+>>> Hi Ben,
+>>>
+>>> You have to run R via mpirun, otherwise all of the workers start
+>>> on the one node.
+>>>
+>>>> I have tried using mpirun -np 4 in front of the R - call, but this just
+>>>> fails without message.
+>>> You have to use '-np 1', otherwise your script will be executed
+>>> by mpirun four times, each trying to spawn four workers.
+>>> I'm not sure if that explains failing without a message, however.
+>>>
+>>> Try something like this:
+>>>
+>>> #!/bin/bash
+>>> #PBS -o 'qsub.out'
+>>> #PBS -e 'qsub.err'
+>>> #PBS -l nodes=4:ppn=1
+>>> #PBS -m bea
+>>> cat $PBS_NODEFILE
+>>> hostname
+>>>
+>>> cd $PBS_O_WORKDIR
+>>>
+>>> # Run an R script
+>>> mpirun -hostfile $PBS_NODEFILE -np 1 R --slave -f
+>>> /nfs/user08/bw4sz/Files/Seawulf.R
+>>>
+>>> You may not need to use '-hostfile $PBS_NODEFILE', depending on
+>>> how your Open MPI was built, but I don't think if ever hurts, and
+>>> it may be required for your installation.
+>>>
+>>> - Steve
+>>
+>>
+>>
+>> --
+>> Ben Weinstein
+>> Graduate Student
+>> Ecology and Evolution
+>> Stony Brook University
+>>
+>> http://life.bio.sunysb.edu/~bweinste/index.html
+>>
+>
+>
+> ------------------------------
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+>
+> End of R-sig-hpc Digest, Vol 43, Issue 3
+> ****************************************
+
+
+From j.maas at uea.ac.uk  Wed Apr 11 13:28:54 2012
+From: j.maas at uea.ac.uk (Jim Maas)
+Date: Wed, 11 Apr 2012 12:28:54 +0100
+Subject: [R-sig-hpc] compiling R 2.15.0 to link to open MPI
+Message-ID: <4F856AF6.2000005@uea.ac.uk>
+
+I use R in parallel on a cluster.  Our Sys Op has compiled the versions 
+for me, up to R 2.13.1 against openMPI libraries so that I can run 
+programmes across 404 cores.  I've just asked him to compile 2.15 for me 
+but he can't find how to connect it to openMPI.  Has that capability 
+disappeared or has the method of connecting changed?
+
+Thanks
+
+J
+
+-- 
+Dr. Jim Maas
+University of East Anglia
+
+
+From rsparapa at mcw.edu  Wed Apr 11 14:58:40 2012
+From: rsparapa at mcw.edu (Rodney Sparapani)
+Date: Wed, 11 Apr 2012 07:58:40 -0500
+Subject: [R-sig-hpc] compiling R 2.15.0 to link to open MPI
+In-Reply-To: <4F856AF6.2000005@uea.ac.uk>
+References: <4F856AF6.2000005@uea.ac.uk>
+Message-ID: <jm3v60$270$1@dough.gmane.org>
+
+Jim Maas wrote:
+> I use R in parallel on a cluster.  Our Sys Op has compiled the versions 
+> for me, up to R 2.13.1 against openMPI libraries so that I can run 
+> programmes across 404 cores.  I've just asked him to compile 2.15 for me 
+> but he can't find how to connect it to openMPI.  Has that capability 
+> disappeared or has the method of connecting changed?
+> 
+> Thanks
+> 
+> J
+> 
+
+Hi Jim:
+
+Well, from my experience, you don't link OpenMPI/MPICH2/etc. with the
+R binary per se.  You build R the usual way.  And, then you do an
+R CMD INSTALL Rmpi.tgz
+
+At that stage, you will need to be concerned with whether the 
+appropriate headers and libraries exist.  This step will give somewhat 
+informative feedback about that.
+
+Rodney
+
+
+From rsparapa at mcw.edu  Wed Apr 11 16:49:19 2012
+From: rsparapa at mcw.edu (Rodney Sparapani)
+Date: Wed, 11 Apr 2012 09:49:19 -0500
+Subject: [R-sig-hpc] compiling R 2.15.0 to link to open MPI
+In-Reply-To: <jm3v60$270$1@dough.gmane.org>
+References: <4F856AF6.2000005@uea.ac.uk> <jm3v60$270$1@dough.gmane.org>
+Message-ID: <jm45lf$r36$1@dough.gmane.org>
+
+Rodney Sparapani wrote:
+> Hi Jim:
+> 
+> Well, from my experience, you don't link OpenMPI/MPICH2/etc. with the
+> R binary per se.  You build R the usual way.  And, then you do an
+> R CMD INSTALL Rmpi.tgz
+> 
+> At that stage, you will need to be concerned with whether the 
+> appropriate headers and libraries exist.  This step will give somewhat 
+> informative feedback about that.
+> 
+> Rodney
+
+I should also add that there is a clever trick that appeared here; and 
+maybe this is what you were missing.  At the beginning of your R shell
+script you may need something like...
+
+LD_LIBRARY_PATH=/usr/lib64/openmpi/lib
+
+Rodney
+
+
+From marius.hofert at math.ethz.ch  Sun Apr 15 02:03:42 2012
+From: marius.hofert at math.ethz.ch (Marius Hofert)
+Date: Sun, 15 Apr 2012 02:03:42 +0200
+Subject: [R-sig-hpc] What happened to the vignette of 'parallel'?
+Message-ID: <m2y5px274x.fsf@80-218-244-59.dclient.hispeed.ch>
+
+Hi,
+
+I am looking for the latest version of the vignette of 'parallel'. I can't find
+it (not on CRAN, not via vignette()). How can I obtain it?
+
+Cheers,
+
+Marius
+
+
+From edd at debian.org  Sun Apr 15 02:14:32 2012
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Sat, 14 Apr 2012 19:14:32 -0500
+Subject: [R-sig-hpc] What happened to the vignette of 'parallel'?
+In-Reply-To: <m2y5px274x.fsf@80-218-244-59.dclient.hispeed.ch>
+References: <m2y5px274x.fsf@80-218-244-59.dclient.hispeed.ch>
+Message-ID: <20362.4840.971288.615105@max.nulle.part>
+
+
+On 15 April 2012 at 02:03, Marius Hofert wrote:
+| I am looking for the latest version of the vignette of 'parallel'. I can't find
+| it (not on CRAN, not via vignette()). How can I obtain it?
+
+What operating system?  
+
+The Debian / Ubuntu binary packages have it in both the source package and
+the binary:
+
+edd at max:~$ dpkg -L r-base-core | grep parallel.pdf
+/usr/lib/R/library/parallel/doc/parallel.pdf
+edd at max:~$ 
+
+I'll shoot a copy off-list.
+
+Dirk
+
+-- 
+R/Finance 2012 Conference on May 11 and 12, 2012 at UIC in Chicago, IL
+See agenda, registration details and more at http://www.RinFinance.com
+
+
+From marius.hofert at math.ethz.ch  Sun Apr 15 02:23:28 2012
+From: marius.hofert at math.ethz.ch (Marius Hofert)
+Date: Sun, 15 Apr 2012 02:23:28 +0200
+Subject: [R-sig-hpc] What happened to the vignette of 'parallel'?
+In-Reply-To: <20362.4840.971288.615105@max.nulle.part> (Dirk Eddelbuettel's
+	message of "Sat, 14 Apr 2012 19:14:32 -0500")
+References: <m2y5px274x.fsf@80-218-244-59.dclient.hispeed.ch>
+	<20362.4840.971288.615105@max.nulle.part>
+Message-ID: <m2ty0l267z.fsf@80-218-244-59.dclient.hispeed.ch>
+
+
+
+Dirk Eddelbuettel <edd at debian.org> writes:
+
+> On 15 April 2012 at 02:03, Marius Hofert wrote:
+> | I am looking for the latest version of the vignette of 'parallel'. I can't find
+> | it (not on CRAN, not via vignette()). How can I obtain it?
+>
+> What operating system?  
+
+Mac OS X 10.7.3
+
+>
+>
+> The Debian / Ubuntu binary packages have it in both the source package and
+> the binary:
+>
+> edd at max:~$ dpkg -L r-base-core | grep parallel.pdf
+> /usr/lib/R/library/parallel/doc/parallel.pdf
+
+Ah... I checked my library and saw that 'parallel' did not exist there. Although
+it comes natively with R (afaik), I tried to install it to see if I have the
+same subfolder with the vignette:
+
+,----
+| install.packages("parallel", type="source")
+| Installing package(s) into ?/Library/Frameworks/R.framework/library?
+| (as ?lib? is unspecified)
+| Warning: unable to access index for repository http://cran.ch.r-project.org/src/contrib
+| Warning: unable to access index for repository http://www.bioconductor.org/src/contrib
+| Warning message:
+| package ?parallel? is not available (for R version 2.15.0) 
+| > 
+`----
+
+When will 'parallel' be available for 2.15? 
+
+
+> 
+> edd at max:~$
+>
+> I'll shoot a copy off-list.
+>
+> Dirk
+
+
+From marius.hofert at math.ethz.ch  Sun Apr 15 02:37:10 2012
+From: marius.hofert at math.ethz.ch (Marius Hofert)
+Date: Sun, 15 Apr 2012 02:37:10 +0200
+Subject: [R-sig-hpc] What happened to the vignette of 'parallel'?
+In-Reply-To: <20362.4886.308134.675235@max.nulle.part> (Dirk Eddelbuettel's
+	message of "Sat, 14 Apr 2012 19:15:18 -0500")
+References: <m2y5px274x.fsf@80-218-244-59.dclient.hispeed.ch>
+	<20362.4886.308134.675235@max.nulle.part>
+Message-ID: <m2mx6d25l5.fsf@80-218-244-59.dclient.hispeed.ch>
+
+Lieber Dirk,
+
+das ging ja schnell :-) 
+
+Vielen Dank und herzliche Gruesse,
+
+Marius
+
+PS: Habe gerade etwas auf Deiner eindruecklichen Homepage verweilt, sehr spannend!
+
+
+Dirk Eddelbuettel <edd at debian.org> writes:
+
+> Marius,
+>
+> Wie versprochen, parallel.pdf anbei.
+>
+>
+>
+> Gruesse,  Dirk
+
+-- 
+ETH Zurich
+Dr. Marius Hofert
+RiskLab, Department of Mathematics
+HG E 65.2
+R?mistrasse 101
+8092 Zurich
+Switzerland
+
+Phone +41 44 632 2423
+http://www.math.ethz.ch/~hofertj
+
+
+From edd at debian.org  Sun Apr 15 02:43:58 2012
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Sat, 14 Apr 2012 19:43:58 -0500
+Subject: [R-sig-hpc] What happened to the vignette of 'parallel'?
+In-Reply-To: <m2ty0l267z.fsf@80-218-244-59.dclient.hispeed.ch>
+References: <m2y5px274x.fsf@80-218-244-59.dclient.hispeed.ch>
+	<20362.4840.971288.615105@max.nulle.part>
+	<m2ty0l267z.fsf@80-218-244-59.dclient.hispeed.ch>
+Message-ID: <20362.6606.348821.871566@max.nulle.part>
+
+
+On 15 April 2012 at 02:23, Marius Hofert wrote:
+| 
+| 
+| Dirk Eddelbuettel <edd at debian.org> writes:
+| 
+| > On 15 April 2012 at 02:03, Marius Hofert wrote:
+| > | I am looking for the latest version of the vignette of 'parallel'. I can't find
+| > | it (not on CRAN, not via vignette()). How can I obtain it?
+| >
+| > What operating system?  
+| 
+| Mac OS X 10.7.3
+| 
+| >
+| >
+| > The Debian / Ubuntu binary packages have it in both the source package and
+| > the binary:
+| >
+| > edd at max:~$ dpkg -L r-base-core | grep parallel.pdf
+| > /usr/lib/R/library/parallel/doc/parallel.pdf
+| 
+| Ah... I checked my library and saw that 'parallel' did not exist there. Although
+| it comes natively with R (afaik), I tried to install it to see if I have the
+| same subfolder with the vignette:
+| 
+| ,----
+| | install.packages("parallel", type="source")
+| | Installing package(s) into ?/Library/Frameworks/R.framework/library?
+| | (as ?lib? is unspecified)
+| | Warning: unable to access index for repository http://cran.ch.r-project.org/src/contrib
+| | Warning: unable to access index for repository http://www.bioconductor.org/src/contrib
+| | Warning message:
+| | package ?parallel? is not available (for R version 2.15.0) 
+| | > 
+| `----
+| 
+| When will 'parallel' be available for 2.15? 
+
+It /is/ available in source, and as I showed, also in binary on suitable platforms.
+
+If you have an issue with OS X you need to ask on r-sig-mac -- this is no
+longer an HPC issue.
+
+Dirk
+
+-- 
+R/Finance 2012 Conference on May 11 and 12, 2012 at UIC in Chicago, IL
+See agenda, registration details and more at http://www.RinFinance.com
+
+
+From Jens.Oehlschlaegel at truecluster.com  Sun Apr 15 12:54:50 2012
+From: Jens.Oehlschlaegel at truecluster.com (=?UTF-8?B?SmVucyBPZWhsc2NobMOkZ2Vs?=)
+Date: Sun, 15 Apr 2012 12:54:50 +0200
+Subject: [R-sig-hpc] How to  shorten an atomic vector without copying?
+In-Reply-To: <4F8AA860.4010403@web.de>
+References: <4F8AA860.4010403@web.de>
+Message-ID: <4F8AA8FA.1000901@truecluster.com>
+
+Hi Performance gurus,
+
+Does any of you know how to shorten an atomic vector without copying the 
+contents to a new vector? The official SET_LENGTH and lengthgets seem to 
+create a new atomic vector rather than realloc the old one.
+
+Jens Oehlschl?gel
+
+
+From simon.urbanek at r-project.org  Sun Apr 15 15:16:12 2012
+From: simon.urbanek at r-project.org (Simon Urbanek)
+Date: Sun, 15 Apr 2012 09:16:12 -0400
+Subject: [R-sig-hpc] How to  shorten an atomic vector without copying?
+In-Reply-To: <4F8AA8FA.1000901@truecluster.com>
+References: <4F8AA860.4010403@web.de> <4F8AA8FA.1000901@truecluster.com>
+Message-ID: <06C45EBF-A198-4C40-923E-D601DFD3B313@r-project.org>
+
+
+On Apr 15, 2012, at 6:54 AM, Jens Oehlschl?gel wrote:
+
+> Hi Performance gurus,
+> 
+> Does any of you know how to shorten an atomic vector without copying the contents to a new vector? The official SET_LENGTH and lengthgets seem to create a new atomic vector rather than realloc the old one.
+> 
+
+You can use SETLENGTH(x) to shorten vectors, but be aware that it doesn't change the allocated memory.
+
+There is no way to realloc (besides, in practice realloc is typically just a shortcut for allocating more and copying the contents ).
+
+Cheers,
+Simon
+
+
+From ivowel at gmail.com  Sat Apr 21 00:16:47 2012
+From: ivowel at gmail.com (ivo welch)
+Date: Fri, 20 Apr 2012 15:16:47 -0700
+Subject: [R-sig-hpc] What to Experiment With?
+Message-ID: <CAPr7RtUBOSsZgrXScznxNk7m6QnsXo8vgqMjwKXzFRk2Kj1pYA@mail.gmail.com>
+
+Dear R HPC experts:
+
+I have about $5,000 to spend on building fast computer hardware to run
+our problems.  if it works well, I may be able to scrounge up another
+$10k/year to scale it up.  I do not have the resources to program very
+complex algorithms, administer a full cluster, etc.  (the effective
+programmer's rate here is about $50/hour and up, and I have severe
+restrictions against hiring outsiders.)  the programs basically have
+to work with minimum special tweaking.
+
+There are no real-time needs.  Typically, I operate on historical CRSP
+and Compustat data, which are about 1-5GB (depending on subset).  most
+of what I am doing involves linear regressions.  I often need to
+calculate Newey-West/Hansen-Hodrick/White adjusted standard errors,
+and I often do need to sort and rank, calculate means and covariances.
+ these are not highly sophisticated stats, but it entails lots of it.
+most of what I do is embarrassingly parallel.
+
+Now, I think in the $5k price range, I have a couple of options.
+Roughly, the landscape seems to be:
+
+* 1 dual-socket xeon i7 computers.
+* 5 (desktop) i7 computers, networked (socket snow?).
+* 1 i7 computer, with 1 nvidia Tesla card
+* 1 i7 computers with 2-3 commodity graphics cards
+     --- apparently, nvidia cripples the DP performance of its gamer
+cards, so AMD should be a *lot* faster
+     at the same price, but I only see the lm() routine in
+nvidia-specific gputools.  then again, for Newey-West,
+     I may have to resort to my own calculations, anyway.  is there
+newey-west OLS code for AMD GPUs?
+
+I would presume that an internal PCI bus is a lot faster than an
+ethernet network, and a GPU could be faster than a CPU, but a GPU is
+also less flexible.  Sigh...not sure.
+what should I try?
+
+/iaw
+
+
+----
+Ivo Welch (ivo.welch at gmail.com)
+
+
+From armstrong.whit at gmail.com  Sat Apr 21 02:10:47 2012
+From: armstrong.whit at gmail.com (Whit Armstrong)
+Date: Fri, 20 Apr 2012 20:10:47 -0400
+Subject: [R-sig-hpc] What to Experiment With?
+In-Reply-To: <CAPr7RtUBOSsZgrXScznxNk7m6QnsXo8vgqMjwKXzFRk2Kj1pYA@mail.gmail.com>
+References: <CAPr7RtUBOSsZgrXScznxNk7m6QnsXo8vgqMjwKXzFRk2Kj1pYA@mail.gmail.com>
+Message-ID: <CAMi=pg6Z=10tPppk-KamWOH+-bWgFaeiFBx1qr2kbFLRSP1Ocg@mail.gmail.com>
+
+Save your money.
+
+EC2...
+rzmq...
+deathstar...
+
+It's as simple as this:
+cl <- startCluster(ami="ami-9d5f93f4",key="maher-ave",instance.count=2,instance.type="c1.xlarge")
+print("starting sim.")
+run.time <- system.time(ans <-
+zmq.cluster.lapply(cluster=cl$instances[,"dnsName"],as.list(1:1e3),estimatePi))
+print("sim completed.")
+res <- terminateCluster(cl)
+
+Your functions and your data go across the wire, and the results come
+back to your machine.  You don't have to log into any cloud instances
+to execute this, it runs from your desktop...
+
+There is no need to buy big machines anymore unless you have highly
+sensitive data (that you don't want going over the wire) or you need
+co-location.
+
+<shameless plug>
+I'll be talking about these tools at R/Finance (come to the conference!)
+http://www.rinfinance.com/agenda/
+</shameless plug>
+
+
+-Whit
+
+
+
+On Fri, Apr 20, 2012 at 6:16 PM, ivo welch <ivowel at gmail.com> wrote:
+> Dear R HPC experts:
+>
+> I have about $5,000 to spend on building fast computer hardware to run
+> our problems. ?if it works well, I may be able to scrounge up another
+> $10k/year to scale it up. ?I do not have the resources to program very
+> complex algorithms, administer a full cluster, etc. ?(the effective
+> programmer's rate here is about $50/hour and up, and I have severe
+> restrictions against hiring outsiders.) ?the programs basically have
+> to work with minimum special tweaking.
+>
+> There are no real-time needs. ?Typically, I operate on historical CRSP
+> and Compustat data, which are about 1-5GB (depending on subset). ?most
+> of what I am doing involves linear regressions. ?I often need to
+> calculate Newey-West/Hansen-Hodrick/White adjusted standard errors,
+> and I often do need to sort and rank, calculate means and covariances.
+> ?these are not highly sophisticated stats, but it entails lots of it.
+> most of what I do is embarrassingly parallel.
+>
+> Now, I think in the $5k price range, I have a couple of options.
+> Roughly, the landscape seems to be:
+>
+> * 1 dual-socket xeon i7 computers.
+> * 5 (desktop) i7 computers, networked (socket snow?).
+> * 1 i7 computer, with 1 nvidia Tesla card
+> * 1 i7 computers with 2-3 commodity graphics cards
+> ? ? --- apparently, nvidia cripples the DP performance of its gamer
+> cards, so AMD should be a *lot* faster
+> ? ? at the same price, but I only see the lm() routine in
+> nvidia-specific gputools. ?then again, for Newey-West,
+> ? ? I may have to resort to my own calculations, anyway. ?is there
+> newey-west OLS code for AMD GPUs?
+>
+> I would presume that an internal PCI bus is a lot faster than an
+> ethernet network, and a GPU could be faster than a CPU, but a GPU is
+> also less flexible. ?Sigh...not sure.
+> what should I try?
+>
+> /iaw
+>
+>
+> ----
+> Ivo Welch (ivo.welch at gmail.com)
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From simon.urbanek at r-project.org  Sat Apr 21 06:28:34 2012
+From: simon.urbanek at r-project.org (Simon Urbanek)
+Date: Sat, 21 Apr 2012 00:28:34 -0400
+Subject: [R-sig-hpc] What to Experiment With?
+In-Reply-To: <CAPr7RtUBOSsZgrXScznxNk7m6QnsXo8vgqMjwKXzFRk2Kj1pYA@mail.gmail.com>
+References: <CAPr7RtUBOSsZgrXScznxNk7m6QnsXo8vgqMjwKXzFRk2Kj1pYA@mail.gmail.com>
+Message-ID: <59F4EAEA-B71F-4E2F-BD14-645312396C2D@r-project.org>
+
+I have just one general comment (I don't find linear models useful for large data in my line of work so I can't comment on that specific use): one often overlooked fact is that probably the most important part in parallel computing (in particular with R) is the amount of RAM. If you start any kind of explicit parallelization, you need several times more memory just for the computation than what you needed for one R process (even if you save memory using shared data with COW in multicore). For example my desktop is a 16 HT Xenon, but it has only 16GB of memory, so parallelizing even very simple tasks often leads to swapping since you have less than 1GB of private working memory per process. If you load a machine with many cores, you must also account for the additional memory that you have to put in and that can raise the cost significantly because cheaper machines can't hold much memory. I think the result is that you can either get few machines with enough memory and speed but not necessarily many cores or one big machine with many cores and lots of memory (but $5k may be just a little thin for the latter).
+
+With the small data sizes you mentioned I would not worry about networking too much - it is easy to pre-load the data on all machines, disk is cheap and a few GB is really tiny even if you need to send it across network the for some reason.
+
+As a side note re. GPUs - I'm still not convinced that they are in the ballpark yet - in my tests so far only Teslas give significant boost to DP computation and they are still way too expensive for the performance compared to CPUs. The future may lie therein, but IMHO the prices need to go down a bit more.
+
+
+On Apr 20, 2012, at 6:16 PM, ivo welch wrote:
+
+> Dear R HPC experts:
+> 
+> I have about $5,000 to spend on building fast computer hardware to run
+> our problems.  if it works well, I may be able to scrounge up another
+> $10k/year to scale it up.  I do not have the resources to program very
+> complex algorithms, administer a full cluster, etc.  (the effective
+> programmer's rate here is about $50/hour and up, and I have severe
+> restrictions against hiring outsiders.)  the programs basically have
+> to work with minimum special tweaking.
+> 
+> There are no real-time needs.  Typically, I operate on historical CRSP
+> and Compustat data, which are about 1-5GB (depending on subset).  most
+> of what I am doing involves linear regressions.  I often need to
+> calculate Newey-West/Hansen-Hodrick/White adjusted standard errors,
+> and I often do need to sort and rank, calculate means and covariances.
+> these are not highly sophisticated stats, but it entails lots of it.
+> most of what I do is embarrassingly parallel.
+> 
+> Now, I think in the $5k price range, I have a couple of options.
+> Roughly, the landscape seems to be:
+> 
+> * 1 dual-socket xeon i7 computers.
+> * 5 (desktop) i7 computers, networked (socket snow?).
+> * 1 i7 computer, with 1 nvidia Tesla card
+> * 1 i7 computers with 2-3 commodity graphics cards
+>     --- apparently, nvidia cripples the DP performance of its gamer
+> cards, so AMD should be a *lot* faster
+>     at the same price, but I only see the lm() routine in
+> nvidia-specific gputools.  then again, for Newey-West,
+>     I may have to resort to my own calculations, anyway.  is there
+> newey-west OLS code for AMD GPUs?
+> 
+> I would presume that an internal PCI bus is a lot faster than an
+> ethernet network, and a GPU could be faster than a CPU, but a GPU is
+> also less flexible.  Sigh...not sure.
+> what should I try?
+> 
+> /iaw
+> 
+> 
+> ----
+> Ivo Welch (ivo.welch at gmail.com)
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+> 
+
+
+From matloff at cs.ucdavis.edu  Sat Apr 21 06:56:13 2012
+From: matloff at cs.ucdavis.edu (Norm Matloff)
+Date: Fri, 20 Apr 2012 21:56:13 -0700
+Subject: [R-sig-hpc] What to Experiment With?]
+Message-ID: <20120421045613.GA7262@laura>
+
+I really agree with Simon's points.
+
+The issue of doing parallel processing to circumvent RAM limitations is,
+as Simon points out, not generally known.  Of course, it's still a
+difficult problem even on multiple machines.
+
+Regarding GPUs, I not only agree that they are not quite ready for prime
+time, but would also raise the possibility that they may never be, at
+least not in their current form.  In that form, the applications that
+are amenable to dramatic speedup are pretty narrow, already a problem,
+but also there is the issue of whether the current NVIDIA architecture
+will stay dominant.  
+
+There's a lot of speculation as to whether Intel's Knight's Ferry chip
+will become big once it emerges (if it does).  The center of gravity on
+GPGPU could shift to Intel, and with it the scope of applications that
+can be done well on a GPU.  
+
+Plus, there are issues as to how the standard way to program these
+things will evolve.  I'll go out on a limb here and speculate that if
+CUDA ceases to become dominant (because NVIDIA does, or vice versa),
+OpenCL will not be the one to take its place; instead, OpenACC, a new
+API set that is supposedly going to be folded in to OpenMP, will become
+the new standard, I'm guessing.
+
+So GPU is really up in the air right now, I think.  I'd be curious to
+see what others think about this.
+
+Norm Matloff
+
+
+----- Forwarded message from Simon Urbanek <simon.urbanek at r-project.org> -----
+
+Date: Sat, 21 Apr 2012 00:28:34 -0400
+From: Simon Urbanek <simon.urbanek at r-project.org>
+To: ivo welch <ivowel at gmail.com>
+Cc: r-sig-hpc at r-project.org
+Subject: Re: [R-sig-hpc] What to Experiment With?
+X-Mailer: Apple Mail (2.1084)
+
+I have just one general comment (I don't find linear models useful for large data in my line of work so I can't comment on that specific use): one often overlooked fact is that probably the most important part in parallel computing (in particular with R) is the amount of RAM. If you start any kind of explicit parallelization, you need several times more memory just for the computation than what you needed for one R process (even if you save memory using shared data with COW in multicore). For example my desktop is a 16 HT Xenon, but it has only 16GB of memory, so parallelizing even very simple tasks often leads to swapping since you have less than 1GB of private working memory per process. If you load a machine with many cores, you must also account for the additional memory that you have to put in and that can raise the cost significantly because cheaper machines can't hold much memory. I think the result is that you can either get few machines with enough memory and speed !
+ 
+ but not necessarily many cores or one big machine with many cores and lots of memory (but $5k may be just a little thin for the latter).
+
+With the small data sizes you mentioned I would not worry about networking too much - it is easy to pre-load the data on all machines, disk is cheap and a few GB is really tiny even if you need to send it across network the for some reason.
+
+As a side note re. GPUs - I'm still not convinced that they are in the ballpark yet - in my tests so far only Teslas give significant boost to DP computation and they are still way too expensive for the performance compared to CPUs. The future may lie therein, but IMHO the prices need to go down a bit more.
+
+
+From ivo.welch at gmail.com  Sat Apr 21 07:03:16 2012
+From: ivo.welch at gmail.com (ivo welch)
+Date: Fri, 20 Apr 2012 22:03:16 -0700
+Subject: [R-sig-hpc] What to Experiment With?
+In-Reply-To: <59F4EAEA-B71F-4E2F-BD14-645312396C2D@r-project.org>
+References: <CAPr7RtUBOSsZgrXScznxNk7m6QnsXo8vgqMjwKXzFRk2Kj1pYA@mail.gmail.com>
+	<59F4EAEA-B71F-4E2F-BD14-645312396C2D@r-project.org>
+Message-ID: <CAPr7RtWiozgTzZv=v7-2_GuDz9TH-CLyFvChSgCzydT5+w0m=Q@mail.gmail.com>
+
+thx, simon.  this is very helpful.  ok, let me scratch the GPU.  this
+eliminates half the decision tree.  you are right that networking is
+not critical.
+
+for swap, an SSD should do very nicely these days.  swapping used to
+be very costly, but I suspect that in the age of 500MB/s SSDs, this is
+no longer true.  in any case, an X79 motherboard with 8 ram slots
+costs about $250.  8GB costs about $50, so getting 64GB is about $400.
+   the i7 Sandy Bridge is another $400.  drives (SSD + HD) another
+$250.  so, around $1,500 per computer.   3 of those seem like a good
+idea.
+
+to do this, though, I also still need to find a simple example of
+socket snow-type use of library(parallel).  I posted a question on
+plain r-help.  see it as a suggestion of something to add to the
+vignette or to ?parallel .  and thanks for parallel.  it's great.
+
+is standard ubuntu linux R and its main libraries now compiled with
+Intel AVX?  I hear this can double or triple the vector performance
+vs. SSE.
+
+
+A long-run suggestion: with parallel in the core R, and Whit's cloud
+interface, we may soon be able to build a shared R community cluster.
+see, I wish I could rent my own computers out to an R community
+cluster when I do not need them, not in exchange for money but in
+exchange for computation credits when I need to use this R community
+cluster to do calculations myself.
+
+
+best,
+
+/iaw
+
+
+On Fri, Apr 20, 2012 at 9:28 PM, Simon Urbanek
+<simon.urbanek at r-project.org> wrote:
+> I have just one general comment (I don't find linear models useful for large data in my line of work so I can't comment on that specific use): one often overlooked fact is that probably the most important part in parallel computing (in particular with R) is the amount of RAM. If you start any kind of explicit parallelization, you need several times more memory just for the computation than what you needed for one R process (even if you save memory using shared data with COW in multicore). For example my desktop is a 16 HT Xenon, but it has only 16GB of memory, so parallelizing even very simple tasks often leads to swapping since you have less than 1GB of private working memory per process. If you load a machine with many cores, you must also account for the additional memory that you have to put in and that can raise the cost significantly because cheaper machines can't hold much memory. I think the result is that you can either get few machines with enough memory and speed but not necessarily many cores or one big machine with many cores and lots of memory (but $5k may be just a little thin for the latter).
+>
+> With the small data sizes you mentioned I would not worry about networking too much - it is easy to pre-load the data on all machines, disk is cheap and a few GB is really tiny even if you need to send it across network the for some reason.
+>
+> As a side note re. GPUs - I'm still not convinced that they are in the ballpark yet - in my tests so far only Teslas give significant boost to DP computation and they are still way too expensive for the performance compared to CPUs. The future may lie therein, but IMHO the prices need to go down a bit more.
+>
+>
+> On Apr 20, 2012, at 6:16 PM, ivo welch wrote:
+>
+>> Dear R HPC experts:
+>>
+>> I have about $5,000 to spend on building fast computer hardware to run
+>> our problems. ?if it works well, I may be able to scrounge up another
+>> $10k/year to scale it up. ?I do not have the resources to program very
+>> complex algorithms, administer a full cluster, etc. ?(the effective
+>> programmer's rate here is about $50/hour and up, and I have severe
+>> restrictions against hiring outsiders.) ?the programs basically have
+>> to work with minimum special tweaking.
+>>
+>> There are no real-time needs. ?Typically, I operate on historical CRSP
+>> and Compustat data, which are about 1-5GB (depending on subset). ?most
+>> of what I am doing involves linear regressions. ?I often need to
+>> calculate Newey-West/Hansen-Hodrick/White adjusted standard errors,
+>> and I often do need to sort and rank, calculate means and covariances.
+>> these are not highly sophisticated stats, but it entails lots of it.
+>> most of what I do is embarrassingly parallel.
+>>
+>> Now, I think in the $5k price range, I have a couple of options.
+>> Roughly, the landscape seems to be:
+>>
+>> * 1 dual-socket xeon i7 computers.
+>> * 5 (desktop) i7 computers, networked (socket snow?).
+>> * 1 i7 computer, with 1 nvidia Tesla card
+>> * 1 i7 computers with 2-3 commodity graphics cards
+>> ? ? --- apparently, nvidia cripples the DP performance of its gamer
+>> cards, so AMD should be a *lot* faster
+>> ? ? at the same price, but I only see the lm() routine in
+>> nvidia-specific gputools. ?then again, for Newey-West,
+>> ? ? I may have to resort to my own calculations, anyway. ?is there
+>> newey-west OLS code for AMD GPUs?
+>>
+>> I would presume that an internal PCI bus is a lot faster than an
+>> ethernet network, and a GPU could be faster than a CPU, but a GPU is
+>> also less flexible. ?Sigh...not sure.
+>> what should I try?
+>>
+>> /iaw
+>>
+>>
+>> ----
+>> Ivo Welch (ivo.welch at gmail.com)
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>>
+>
+
+
+From znmeb at znmeb.net  Sat Apr 21 07:23:18 2012
+From: znmeb at znmeb.net (M. Edward (Ed) Borasky)
+Date: Fri, 20 Apr 2012 22:23:18 -0700
+Subject: [R-sig-hpc] What to Experiment With?
+In-Reply-To: <CAPr7RtWiozgTzZv=v7-2_GuDz9TH-CLyFvChSgCzydT5+w0m=Q@mail.gmail.com>
+References: <CAPr7RtUBOSsZgrXScznxNk7m6QnsXo8vgqMjwKXzFRk2Kj1pYA@mail.gmail.com>
+	<59F4EAEA-B71F-4E2F-BD14-645312396C2D@r-project.org>
+	<CAPr7RtWiozgTzZv=v7-2_GuDz9TH-CLyFvChSgCzydT5+w0m=Q@mail.gmail.com>
+Message-ID: <CAHkRx6Gu7JuyDuAeFF2cg2aSLmvYf8b4zTRDEPcYmb7UJTcorg@mail.gmail.com>
+
+On Fri, Apr 20, 2012 at 10:03 PM, ivo welch <ivo.welch at gmail.com> wrote:
+> for swap, an SSD should do very nicely these days. ?swapping used to
+> be very costly, but I suspect that in the age of 500MB/s SSDs, this is
+> no longer true. ?in any case, an X79 motherboard with 8 ram slots
+> costs about $250. ?8GB costs about $50, so getting 64GB is about $400.
+> ? the i7 Sandy Bridge is another $400. ?drives (SSD + HD) another
+> $250. ?so, around $1,500 per computer. ? 3 of those seem like a good
+> idea.
+
+For the hard drives, go with four rather than three if you can - RAID
+10 will give you both mirroring for redundancy and striping for speed.
+
+> to do this, though, I also still need to find a simple example of
+> socket snow-type use of library(parallel). ?I posted a question on
+> plain r-help. ?see it as a suggestion of something to add to the
+> vignette or to ?parallel . ?and thanks for parallel. ?it's great.
+
+Yeah, if you find a demo for 'parallel', let me know too.
+
+> is standard ubuntu linux R and its main libraries now compiled with
+> Intel AVX? ?I hear this can double or triple the vector performance
+> vs. SSE.
+
+I'm pretty sure the Ubuntu (and Fedora and openSUSE) R packages are
+compiled so they'll run on any amd64 / x86_64. But you can fairly
+easily recompile them on your box from the distro's source packages
+using "march=native" and link with Atlas linear algebra libraries.
+It's not unreasonable to build ATLAS and R from source rather than
+using the distro's binary packages. I've almost got that nailed down
+for openSUSE myself.
+
+> A long-run suggestion: with parallel in the core R, and Whit's cloud
+> interface, we may soon be able to build a shared R community cluster.
+> see, I wish I could rent my own computers out to an R community
+> cluster when I do not need them, not in exchange for money but in
+> exchange for computation credits when I need to use this R community
+> cluster to do calculations myself.
+
+Opani sort of does this, but I don't remember their business /
+licensing model. I've got a project on Github to build a "Platform as
+a Service" built on openSUSE Linux and R. See
+
+http://susestudio.com/a/RQrRBY/computational-journalism-server
+
+and
+
+https://github.com/znmeb/Computational-Journalism-Server
+
+for the details. I think the final 1.0 release next week will have the
+R / Atlas recompilation scripts - all I need to do is verify that
+Atlas isn't wrecking the numeric properties of the test cases.
+
+
+-- 
+Twitter: http://twitter.com/znmeb Computational Journalism Server
+http://j.mp/compjournoserver
+
+Data is the new coal - abundant, dirty and difficult to mine.
+
+
+From atp at piskorski.com  Sat Apr 21 13:38:26 2012
+From: atp at piskorski.com (Andrew Piskorski)
+Date: Sat, 21 Apr 2012 07:38:26 -0400
+Subject: [R-sig-hpc] What to Experiment With?
+In-Reply-To: <CAPr7RtUBOSsZgrXScznxNk7m6QnsXo8vgqMjwKXzFRk2Kj1pYA@mail.gmail.com>
+References: <CAPr7RtUBOSsZgrXScznxNk7m6QnsXo8vgqMjwKXzFRk2Kj1pYA@mail.gmail.com>
+Message-ID: <20120421113826.GA81442@piskorski.com>
+
+On Fri, Apr 20, 2012 at 03:16:47PM -0700, ivo welch wrote:
+
+> I have about $5,000 to spend on building fast computer hardware to run
+> our problems.  if it works well, I may be able to scrounge up another
+> $10k/year to scale it up.
+
+If you had a larger hardware budget, I'd suggest contacting one of the
+(small, specialized) HPC cluster vendors to see what they recommend.
+Like say these guys; from their founder Joe Landman's posts on the
+Beowulf list, I strongly suspect they know what they're doing:
+
+  http://scalableinformatics.com/
+
+I haven't researched current hardware in a while, but as of spring
+2010, AMD and Supermicro had stopped charging a premium for their
+4-socket cpus and motherboards; they switched to basically linear
+price scaling per socket.  Alex Chekholko commented on that here:
+
+  http://article.gmane.org/gmane.comp.clustering.beowulf.general/27628/
+
+If that's still true, then a 4-socket 24 to 64 core Opteron box may
+currently (depending on your workload) be close to optimum on the
+price/performance curve, particularly if you need large memory.  For
+the same overall amount of CPU cores and RAM, partitioning a cluster
+into fewer fatter (e.g. 4-socket) nodes will generally be more
+convenient and flexible than smaller nodes, and due to the small
+dollar savings of fewer cases, power supplies, etc., you might
+actually end up slightly cheaper overall with the fatter nodes.
+
+Googling just now, you can order a maxed-out 4-socket 64-core 512-GB
+RAM box for about $14k.  Under $8k for 48-core 256-GB.  (Add more $ if
+you want lots of disk IO or a much faster Infiniband network.):
+
+  http://www.thinkmate.com/System/A+_Server_2042G-TRF
+  http://www.supermicro.com/products/nfo/AMD_G34.cfm?pg=SS
+  http://www.newegg.com/Product/Product.aspx?Item=N82E16816101322
+  http://www.newegg.com/Product/Product.aspx?Item=N82E16816101317
+
+However, I'm told the performance, and likely also price/performance,
+of Intel CPUs has been improving relative to AMD for several years
+now, and as far as I recall it was only AMD that dropped their
+4-socket CPU prices to compete with 1 and 2 socket CPUs, not Intel.
+So you'd want to compare that, ideally by running your own algorithms
+on representative AMD and Intel nodes.
+
+If you REALLY want to go as dollar-cheap as possible, you may be
+interested in my old (2005) cookie-tray cluster ideas:
+
+  http://article.gmane.org/gmane.comp.clustering.beowulf.general/15114/
+  http://article.gmane.org/gmane.comp.clustering.beowulf.general/13922/
+  http://article.gmane.org/gmane.comp.clustering.beowulf.general/15116/
+  http://article.gmane.org/gmane.comp.clustering.beowulf.general/15097/
+
+Since the rack (tray cage) is an open mesh, attach a 20 inch household
+box fan to the side of the rack for better cooling.  Rather than the
+1/4 inch thick urethane foam tape, it'd probably work better to use
+1/8 inch foam strips plus some heavy duty velcro, so that the
+motherboards are still removable from the cookie trays.
+
+For mid to high end hardware, the cost of nice rack-mount cases (with
+fans etc.) and a rack to put them isn't a significant fraction of the
+total budget.  But if you manage to scrounge up really cheap compute
+hardware, a cheap homebrew case and rack mount solution like those
+cookie trays starts looking attractive.  (Note that old slow computers
+are unlikely to be cost effective for production compute cluster
+purposes; they might not be worth it even if you get them for free.
+But they may be just fine for home experimentation or the like.)
+
+-- 
+Andrew Piskorski <atp at piskorski.com>
+http://www.piskorski.com/
+
+
+From greatauklet at gmail.com  Mon Apr 23 21:53:11 2012
+From: greatauklet at gmail.com (Martin Renner)
+Date: Mon, 23 Apr 2012 11:53:11 -0800
+Subject: [R-sig-hpc] parallel and openblas
+Message-ID: <ECACA1DF-88EF-453F-9B5D-D69FC9937CCB@gmail.com>
+
+Parallel and openblas don't seem to mix well on my machine. If I link openblas, a job executed through parallel (using either the multicore or snow (local socket cluster) setup), each of my 8 cores only operates at 1/8 of 100% (taking a little longer than serial execution). Linking to the reference blas or to single-threaded atlas does not cause this handicap when running snow or multicore. 
+
+Is this a known problem (My google attempts were fruitless)? If yes, is there a fix for it? Do MKL or multi-threaded atlas have the same issues? 
+
+Thank you for your time. 
+
+Martin
+
+
+
+Martin Renner
+Post-doctoral Fellow				phone: 907-226 4672
+University of Washington			   or: 907-235 0728
+School of Aquatic and Fishery Sciences		Seattle, USA
+
+
+
+
+
+debian squeeze on 8-core Xeon
+> sessionInfo()
+R version 2.15.0 (2012-03-30)
+Platform: x86_64-unknown-linux-gnu (64-bit)
+
+locale:
+[1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
+[3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
+[5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
+[7] LC_PAPER=C                 LC_NAME=C                 
+[9] LC_ADDRESS=C               LC_TELEPHONE=C            
+[11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+From armstrong.whit at gmail.com  Mon Apr 23 22:07:41 2012
+From: armstrong.whit at gmail.com (Whit Armstrong)
+Date: Mon, 23 Apr 2012 16:07:41 -0400
+Subject: [R-sig-hpc] parallel and openblas
+In-Reply-To: <ECACA1DF-88EF-453F-9B5D-D69FC9937CCB@gmail.com>
+References: <ECACA1DF-88EF-453F-9B5D-D69FC9937CCB@gmail.com>
+Message-ID: <CAMi=pg4Zs_H-B6jnQcskB=_174OcoO2iWFwZt8sCNTVHew1s9Q@mail.gmail.com>
+
+I believe you can set an env variable to determine the number of
+threads to use.  Perhaps search the openblas doc.
+
+Alternatively, execute on 8 different machines...
+
+But for that you might need... rzmq.
+
+-Whit
+
+
+On Mon, Apr 23, 2012 at 3:53 PM, Martin Renner <greatauklet at gmail.com> wrote:
+> Parallel and openblas don't seem to mix well on my machine. If I link openblas, a job executed through parallel (using either the multicore or snow (local socket cluster) setup), each of my 8 cores only operates at 1/8 of 100% (taking a little longer than serial execution). Linking to the reference blas or to single-threaded atlas does not cause this handicap when running snow or multicore.
+>
+> Is this a known problem (My google attempts were fruitless)? If yes, is there a fix for it? Do MKL or multi-threaded atlas have the same issues?
+>
+> Thank you for your time.
+>
+> Martin
+>
+>
+>
+> Martin Renner
+> Post-doctoral Fellow ? ? ? ? ? ? ? ? ? ? ? ? ? ?phone: 907-226 4672
+> University of Washington ? ? ? ? ? ? ? ? ? ? ? ? ? or: 907-235 0728
+> School of Aquatic and Fishery Sciences ? ? ? ? ?Seattle, USA
+>
+>
+>
+>
+>
+> debian squeeze on 8-core Xeon
+>> sessionInfo()
+> R version 2.15.0 (2012-03-30)
+> Platform: x86_64-unknown-linux-gnu (64-bit)
+>
+> locale:
+> [1] LC_CTYPE=en_US.UTF-8 ? ? ? LC_NUMERIC=C
+> [3] LC_TIME=en_US.UTF-8 ? ? ? ?LC_COLLATE=en_US.UTF-8
+> [5] LC_MONETARY=en_US.UTF-8 ? ?LC_MESSAGES=en_US.UTF-8
+> [7] LC_PAPER=C ? ? ? ? ? ? ? ? LC_NAME=C
+> [9] LC_ADDRESS=C ? ? ? ? ? ? ? LC_TELEPHONE=C
+> [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C
+>
+> attached base packages:
+> [1] stats ? ? graphics ?grDevices utils ? ? datasets ?methods ? base
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From claudia.beleites at ipht-jena.de  Mon Apr 23 22:07:39 2012
+From: claudia.beleites at ipht-jena.de (Claudia Beleites)
+Date: Mon, 23 Apr 2012 22:07:39 +0200
+Subject: [R-sig-hpc] parallel and openblas
+In-Reply-To: <ECACA1DF-88EF-453F-9B5D-D69FC9937CCB@gmail.com>
+References: <ECACA1DF-88EF-453F-9B5D-D69FC9937CCB@gmail.com>
+Message-ID: <4F95B68B.4010704@ipht-jena.de>
+
+Martin, do you actually know each core works with 1/8th (as opposed to
+all 8 threads are run on the same core)?
+
+Is implicitly parallel stuff (e.g. %*%) without package parallel working OK?
+
+Claudia
+
+Am 23.04.2012 21:53, schrieb Martin Renner:
+> Parallel and openblas don't seem to mix well on my machine. If I link openblas, a job executed through parallel (using either the multicore or snow (local socket cluster) setup), each of my 8 cores only operates at 1/8 of 100% (taking a little longer than serial execution). Linking to the reference blas or to single-threaded atlas does not cause this handicap when running snow or multicore. 
+> 
+> Is this a known problem (My google attempts were fruitless)? If yes, is there a fix for it? Do MKL or multi-threaded atlas have the same issues? 
+> 
+> Thank you for your time. 
+> 
+> Martin
+> 
+> 
+> 
+> Martin Renner
+> Post-doctoral Fellow				phone: 907-226 4672
+> University of Washington			   or: 907-235 0728
+> School of Aquatic and Fishery Sciences		Seattle, USA
+> 
+> 
+> 
+> 
+> 
+> debian squeeze on 8-core Xeon
+>> sessionInfo()
+> R version 2.15.0 (2012-03-30)
+> Platform: x86_64-unknown-linux-gnu (64-bit)
+> 
+> locale:
+> [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
+> [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
+> [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
+> [7] LC_PAPER=C                 LC_NAME=C                 
+> [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+> [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+> 
+> attached base packages:
+> [1] stats     graphics  grDevices utils     datasets  methods   base     
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+-- 
+Claudia Beleites
+Spectroscopy/Imaging
+Institute of Photonic Technology
+Albert-Einstein-Str. 9
+07745 Jena
+Germany
+
+email: claudia.beleites at ipht-jena.de
+phone: +49 3641 206-133
+fax:   +49 2641 206-399
+
+
+From greatauklet at gmail.com  Tue Apr 24 10:51:10 2012
+From: greatauklet at gmail.com (Martin Renner)
+Date: Tue, 24 Apr 2012 00:51:10 -0800
+Subject: [R-sig-hpc] parallel and openblas
+In-Reply-To: <4F95B68B.4010704@ipht-jena.de>
+References: <ECACA1DF-88EF-453F-9B5D-D69FC9937CCB@gmail.com>
+	<4F95B68B.4010704@ipht-jena.de>
+Message-ID: <84544322-C2C4-44EA-AF79-7A4673D34211@gmail.com>
+
+Yes, Claudia, you're probaply right that all these threads are on one core. Yes, %*% is working as expected, utilizing all available cores, when R is linked to openblas.
+
+Martin 
+
+
+
+On 23 Apr 2012, at 12:07 , Claudia Beleites wrote:
+
+> Martin, do you actually know each core works with 1/8th (as opposed to
+> all 8 threads are run on the same core)?
+> 
+> Is implicitly parallel stuff (e.g. %*%) without package parallel working OK?
+> 
+> Claudia
+> 
+> Am 23.04.2012 21:53, schrieb Martin Renner:
+>> Parallel and openblas don't seem to mix well on my machine. If I link openblas, a job executed through parallel (using either the multicore or snow (local socket cluster) setup), each of my 8 cores only operates at 1/8 of 100% (taking a little longer than serial execution). Linking to the reference blas or to single-threaded atlas does not cause this handicap when running snow or multicore. 
+>> 
+>> Is this a known problem (My google attempts were fruitless)? If yes, is there a fix for it? Do MKL or multi-threaded atlas have the same issues? 
+>> 
+>> Thank you for your time. 
+>> 
+>> Martin
+>> 
+>> 
+>> 
+>> Martin Renner
+>> Post-doctoral Fellow				phone: 907-226 4672
+>> University of Washington			   or: 907-235 0728
+>> School of Aquatic and Fishery Sciences		Seattle, USA
+>> 
+>> 
+>> 
+>> 
+>> 
+>> debian squeeze on 8-core Xeon
+>>> sessionInfo()
+>> R version 2.15.0 (2012-03-30)
+>> Platform: x86_64-unknown-linux-gnu (64-bit)
+>> 
+>> locale:
+>> [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
+>> [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
+>> [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
+>> [7] LC_PAPER=C                 LC_NAME=C                 
+>> [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+>> [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+>> 
+>> attached base packages:
+>> [1] stats     graphics  grDevices utils     datasets  methods   base     
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+> 
+> -- 
+> Claudia Beleites
+> Spectroscopy/Imaging
+> Institute of Photonic Technology
+> Albert-Einstein-Str. 9
+> 07745 Jena
+> Germany
+> 
+> email: claudia.beleites at ipht-jena.de
+> phone: +49 3641 206-133
+> fax:   +49 2641 206-399
+> 
+> 
+> 
+> 
+
+
+From claudia.beleites at ipht-jena.de  Tue Apr 24 12:29:24 2012
+From: claudia.beleites at ipht-jena.de (beleites,claudia)
+Date: Tue, 24 Apr 2012 12:29:24 +0200
+Subject: [R-sig-hpc] parallel and openblas
+In-Reply-To: <84544322-C2C4-44EA-AF79-7A4673D34211@gmail.com>
+References: <ECACA1DF-88EF-453F-9B5D-D69FC9937CCB@gmail.com>
+	<4F95B68B.4010704@ipht-jena.de>,
+	<84544322-C2C4-44EA-AF79-7A4673D34211@gmail.com>
+Message-ID: <A26E51EB75D20B4DAC8AEA2A883BF3997B5383C33F@uranus.ipht-jena.de>
+
+Martin, 
+
+I possibly have/had the same problem (on a CentOS 5 system). 
+The R was assigned to one core only, and the solution is:
+ system(sprintf('taskset -p 0xffffffff %d', Sys.getpid()))
+
+The whole thread is this: https://stat.ethz.ch/pipermail/r-sig-hpc/2011-November/001171.html
+
+Claudia
+
+
+________________________________________
+Von: Martin Renner [greatauklet at gmail.com]
+Gesendet: Dienstag, 24. April 2012 10:51
+An: beleites,claudia
+Cc: r-sig-hpc at r-project.org
+Betreff: Re: [R-sig-hpc] parallel and openblas
+
+Yes, Claudia, you're probaply right that all these threads are on one core. Yes, %*% is working as expected, utilizing all available cores, when R is linked to openblas.
+
+Martin
+
+
+
+On 23 Apr 2012, at 12:07 , Claudia Beleites wrote:
+
+> Martin, do you actually know each core works with 1/8th (as opposed to
+> all 8 threads are run on the same core)?
+>
+> Is implicitly parallel stuff (e.g. %*%) without package parallel working OK?
+>
+> Claudia
+>
+> Am 23.04.2012 21:53, schrieb Martin Renner:
+>> Parallel and openblas don't seem to mix well on my machine. If I link openblas, a job executed through parallel (using either the multicore or snow (local socket cluster) setup), each of my 8 cores only operates at 1/8 of 100% (taking a little longer than serial execution). Linking to the reference blas or to single-threaded atlas does not cause this handicap when running snow or multicore.
+>>
+>> Is this a known problem (My google attempts were fruitless)? If yes, is there a fix for it? Do MKL or multi-threaded atlas have the same issues?
+>>
+>> Thank you for your time.
+>>
+>> Martin
+>>
+>>
+>>
+>> Martin Renner
+>> Post-doctoral Fellow                         phone: 907-226 4672
+>> University of Washington                        or: 907-235 0728
+>> School of Aquatic and Fishery Sciences               Seattle, USA
+>>
+>>
+>>
+>>
+>>
+>> debian squeeze on 8-core Xeon
+>>> sessionInfo()
+>> R version 2.15.0 (2012-03-30)
+>> Platform: x86_64-unknown-linux-gnu (64-bit)
+>>
+>> locale:
+>> [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C
+>> [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8
+>> [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8
+>> [7] LC_PAPER=C                 LC_NAME=C
+>> [9] LC_ADDRESS=C               LC_TELEPHONE=C
+>> [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C
+>>
+>> attached base packages:
+>> [1] stats     graphics  grDevices utils     datasets  methods   base
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+>
+> --
+> Claudia Beleites
+> Spectroscopy/Imaging
+> Institute of Photonic Technology
+> Albert-Einstein-Str. 9
+> 07745 Jena
+> Germany
+>
+> email: claudia.beleites at ipht-jena.de
+> phone: +49 3641 206-133
+> fax:   +49 2641 206-399
+>
+>
+>
+>
+
+
+From greatauklet at gmail.com  Tue Apr 24 17:40:44 2012
+From: greatauklet at gmail.com (Martin Renner)
+Date: Tue, 24 Apr 2012 07:40:44 -0800
+Subject: [R-sig-hpc] parallel and openblas
+In-Reply-To: <A26E51EB75D20B4DAC8AEA2A883BF3997B5383C33F@uranus.ipht-jena.de>
+References: <ECACA1DF-88EF-453F-9B5D-D69FC9937CCB@gmail.com>
+	<4F95B68B.4010704@ipht-jena.de>,
+	<84544322-C2C4-44EA-AF79-7A4673D34211@gmail.com>
+	<A26E51EB75D20B4DAC8AEA2A883BF3997B5383C33F@uranus.ipht-jena.de>
+Message-ID: <1A81ED45-12EF-4BD2-A227-566971E38522@gmail.com>
+
+Hallo Claudia,
+
+Thank you for that hint -- this works! A bit more permanent solution would be nice though; will need to look into that. 
+
+Best,
+Martin
+
+
+
+Martin Renner
+Post-doctoral Fellow				phone: 907-226 4672
+University of Washington			   or: 907-235 0728
+School of Aquatic and Fishery Sciences		Seattle, USA
+
+
+On 24 Apr 2012, at 02:29 , beleites,claudia wrote:
+
+> Martin, 
+> 
+> I possibly have/had the same problem (on a CentOS 5 system). 
+> The R was assigned to one core only, and the solution is:
+> system(sprintf('taskset -p 0xffffffff %d', Sys.getpid()))
+> 
+> The whole thread is this: https://stat.ethz.ch/pipermail/r-sig-hpc/2011-November/001171.html
+> 
+> Claudia
+> 
+> 
+> ________________________________________
+> Von: Martin Renner [greatauklet at gmail.com]
+> Gesendet: Dienstag, 24. April 2012 10:51
+> An: beleites,claudia
+> Cc: r-sig-hpc at r-project.org
+> Betreff: Re: [R-sig-hpc] parallel and openblas
+> 
+> Yes, Claudia, you're probaply right that all these threads are on one core. Yes, %*% is working as expected, utilizing all available cores, when R is linked to openblas.
+> 
+> Martin
+> 
+> 
+> 
+> On 23 Apr 2012, at 12:07 , Claudia Beleites wrote:
+> 
+>> Martin, do you actually know each core works with 1/8th (as opposed to
+>> all 8 threads are run on the same core)?
+>> 
+>> Is implicitly parallel stuff (e.g. %*%) without package parallel working OK?
+>> 
+>> Claudia
+>> 
+>> Am 23.04.2012 21:53, schrieb Martin Renner:
+>>> Parallel and openblas don't seem to mix well on my machine. If I link openblas, a job executed through parallel (using either the multicore or snow (local socket cluster) setup), each of my 8 cores only operates at 1/8 of 100% (taking a little longer than serial execution). Linking to the reference blas or to single-threaded atlas does not cause this handicap when running snow or multicore.
+>>> 
+>>> Is this a known problem (My google attempts were fruitless)? If yes, is there a fix for it? Do MKL or multi-threaded atlas have the same issues?
+>>> 
+>>> Thank you for your time.
+>>> 
+>>> Martin
+>>> 
+>>> 
+>>> 
+>>> Martin Renner
+>>> Post-doctoral Fellow                         phone: 907-226 4672
+>>> University of Washington                        or: 907-235 0728
+>>> School of Aquatic and Fishery Sciences               Seattle, USA
+>>> 
+>>> 
+>>> 
+>>> 
+>>> 
+>>> debian squeeze on 8-core Xeon
+>>>> sessionInfo()
+>>> R version 2.15.0 (2012-03-30)
+>>> Platform: x86_64-unknown-linux-gnu (64-bit)
+>>> 
+>>> locale:
+>>> [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C
+>>> [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8
+>>> [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8
+>>> [7] LC_PAPER=C                 LC_NAME=C
+>>> [9] LC_ADDRESS=C               LC_TELEPHONE=C
+>>> [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C
+>>> 
+>>> attached base packages:
+>>> [1] stats     graphics  grDevices utils     datasets  methods   base
+>>> _______________________________________________
+>>> R-sig-hpc mailing list
+>>> R-sig-hpc at r-project.org
+>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>> 
+>> 
+>> --
+>> Claudia Beleites
+>> Spectroscopy/Imaging
+>> Institute of Photonic Technology
+>> Albert-Einstein-Str. 9
+>> 07745 Jena
+>> Germany
+>> 
+>> email: claudia.beleites at ipht-jena.de
+>> phone: +49 3641 206-133
+>> fax:   +49 2641 206-399
+>> 
+>> 
+>> 
+>> 
+> 
+
+
+From claudia.beleites at ipht-jena.de  Tue Apr 24 18:00:19 2012
+From: claudia.beleites at ipht-jena.de (beleites,claudia)
+Date: Tue, 24 Apr 2012 18:00:19 +0200
+Subject: [R-sig-hpc] parallel and openblas
+In-Reply-To: <1A81ED45-12EF-4BD2-A227-566971E38522@gmail.com>
+References: <ECACA1DF-88EF-453F-9B5D-D69FC9937CCB@gmail.com>
+	<4F95B68B.4010704@ipht-jena.de>,
+	<84544322-C2C4-44EA-AF79-7A4673D34211@gmail.com>
+	<A26E51EB75D20B4DAC8AEA2A883BF3997B5383C33F@uranus.ipht-jena.de>,
+	<1A81ED45-12EF-4BD2-A227-566971E38522@gmail.com>
+Message-ID: <A26E51EB75D20B4DAC8AEA2A883BF3997B5383C345@uranus.ipht-jena.de>
+
+Martin,
+
+please let me know the permanent solution - I'm still using taskset all the time (I don't have admin rights, but our admin would do it if I could tell him what exactly I need.).
+
+Claudia
+________________________________________
+Von: Martin Renner [greatauklet at gmail.com]
+Gesendet: Dienstag, 24. April 2012 17:40
+An: beleites,claudia
+Cc: r-sig-hpc at r-project.org
+Betreff: Re: [R-sig-hpc] parallel and openblas
+
+Hallo Claudia,
+
+Thank you for that hint -- this works! A bit more permanent solution would be nice though; will need to look into that.
+
+Best,
+Martin
+
+
+
+Martin Renner
+Post-doctoral Fellow                            phone: 907-226 4672
+University of Washington                           or: 907-235 0728
+School of Aquatic and Fishery Sciences          Seattle, USA
+
+
+On 24 Apr 2012, at 02:29 , beleites,claudia wrote:
+
+> Martin,
+>
+> I possibly have/had the same problem (on a CentOS 5 system).
+> The R was assigned to one core only, and the solution is:
+> system(sprintf('taskset -p 0xffffffff %d', Sys.getpid()))
+>
+> The whole thread is this: https://stat.ethz.ch/pipermail/r-sig-hpc/2011-November/001171.html
+>
+> Claudia
+>
+>
+> ________________________________________
+> Von: Martin Renner [greatauklet at gmail.com]
+> Gesendet: Dienstag, 24. April 2012 10:51
+> An: beleites,claudia
+> Cc: r-sig-hpc at r-project.org
+> Betreff: Re: [R-sig-hpc] parallel and openblas
+>
+> Yes, Claudia, you're probaply right that all these threads are on one core. Yes, %*% is working as expected, utilizing all available cores, when R is linked to openblas.
+>
+> Martin
+>
+>
+>
+> On 23 Apr 2012, at 12:07 , Claudia Beleites wrote:
+>
+>> Martin, do you actually know each core works with 1/8th (as opposed to
+>> all 8 threads are run on the same core)?
+>>
+>> Is implicitly parallel stuff (e.g. %*%) without package parallel working OK?
+>>
+>> Claudia
+>>
+>> Am 23.04.2012 21:53, schrieb Martin Renner:
+>>> Parallel and openblas don't seem to mix well on my machine. If I link openblas, a job executed through parallel (using either the multicore or snow (local socket cluster) setup), each of my 8 cores only operates at 1/8 of 100% (taking a little longer than serial execution). Linking to the reference blas or to single-threaded atlas does not cause this handicap when running snow or multicore.
+>>>
+>>> Is this a known problem (My google attempts were fruitless)? If yes, is there a fix for it? Do MKL or multi-threaded atlas have the same issues?
+>>>
+>>> Thank you for your time.
+>>>
+>>> Martin
+>>>
+>>>
+>>>
+>>> Martin Renner
+>>> Post-doctoral Fellow                         phone: 907-226 4672
+>>> University of Washington                        or: 907-235 0728
+>>> School of Aquatic and Fishery Sciences               Seattle, USA
+>>>
+>>>
+>>>
+>>>
+>>>
+>>> debian squeeze on 8-core Xeon
+>>>> sessionInfo()
+>>> R version 2.15.0 (2012-03-30)
+>>> Platform: x86_64-unknown-linux-gnu (64-bit)
+>>>
+>>> locale:
+>>> [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C
+>>> [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8
+>>> [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8
+>>> [7] LC_PAPER=C                 LC_NAME=C
+>>> [9] LC_ADDRESS=C               LC_TELEPHONE=C
+>>> [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C
+>>>
+>>> attached base packages:
+>>> [1] stats     graphics  grDevices utils     datasets  methods   base
+>>> _______________________________________________
+>>> R-sig-hpc mailing list
+>>> R-sig-hpc at r-project.org
+>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>>
+>> --
+>> Claudia Beleites
+>> Spectroscopy/Imaging
+>> Institute of Photonic Technology
+>> Albert-Einstein-Str. 9
+>> 07745 Jena
+>> Germany
+>>
+>> email: claudia.beleites at ipht-jena.de
+>> phone: +49 3641 206-133
+>> fax:   +49 2641 206-399
+>>
+>>
+>>
+>>
+>
+
+
+From stephen.b.weston at gmail.com  Tue Apr 24 21:45:48 2012
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Tue, 24 Apr 2012 15:45:48 -0400
+Subject: [R-sig-hpc] parallel and openblas
+In-Reply-To: <A26E51EB75D20B4DAC8AEA2A883BF3997B5383C345@uranus.ipht-jena.de>
+References: <ECACA1DF-88EF-453F-9B5D-D69FC9937CCB@gmail.com>
+	<4F95B68B.4010704@ipht-jena.de>
+	<84544322-C2C4-44EA-AF79-7A4673D34211@gmail.com>
+	<A26E51EB75D20B4DAC8AEA2A883BF3997B5383C33F@uranus.ipht-jena.de>
+	<1A81ED45-12EF-4BD2-A227-566971E38522@gmail.com>
+	<A26E51EB75D20B4DAC8AEA2A883BF3997B5383C345@uranus.ipht-jena.de>
+Message-ID: <CALh21iKnWwrfsd_MH1CwXhRSip6nAjHY0y0grZ95nK8XVR5bLQ@mail.gmail.com>
+
+There's an interesting discussion entitled "all processes run on
+one CPU core" at:
+
+    https://github.com/ipython/ipython/issues/840
+
+Someone was experiencing a very similar problem to the one that
+Claudia described using GotoBLAS2 with IPython and NumPy.
+Apparently it was fixed by recompiling GotoBLAS2 with the
+"NO_AFFINITY" parameter set to "1" in Makefile.rule, and then
+rebuilding "NumPy".
+
+It seems pretty strange, but GotoBLAS2/OpenBLAS may be modifying
+the affinity of the R process by calling sched_setaffinity() when
+it is initialized, and that is causing the problems that Claudia
+and Martin have seen.
+
+So perhaps the solution is to recompile GotoBLAS2/OpenBLAS with
+NO_AFFINITY=1, and then rebuild R with it.
+
+- Steve
+
+
+On Tue, Apr 24, 2012 at 12:00 PM, beleites,claudia
+<claudia.beleites at ipht-jena.de> wrote:
+> Martin,
+>
+> please let me know the permanent solution - I'm still using taskset all the time (I don't have admin rights, but our admin would do it if I could tell him what exactly I need.).
+>
+> Claudia
+> ________________________________________
+> Von: Martin Renner [greatauklet at gmail.com]
+> Gesendet: Dienstag, 24. April 2012 17:40
+> An: beleites,claudia
+> Cc: r-sig-hpc at r-project.org
+> Betreff: Re: [R-sig-hpc] parallel and openblas
+>
+> Hallo Claudia,
+>
+> Thank you for that hint -- this works! A bit more permanent solution would be nice though; will need to look into that.
+>
+> Best,
+> Martin
+>
+>
+>
+> Martin Renner
+> Post-doctoral Fellow ? ? ? ? ? ? ? ? ? ? ? ? ? ?phone: 907-226 4672
+> University of Washington ? ? ? ? ? ? ? ? ? ? ? ? ? or: 907-235 0728
+> School of Aquatic and Fishery Sciences ? ? ? ? ?Seattle, USA
+>
+>
+> On 24 Apr 2012, at 02:29 , beleites,claudia wrote:
+>
+>> Martin,
+>>
+>> I possibly have/had the same problem (on a CentOS 5 system).
+>> The R was assigned to one core only, and the solution is:
+>> system(sprintf('taskset -p 0xffffffff %d', Sys.getpid()))
+>>
+>> The whole thread is this: https://stat.ethz.ch/pipermail/r-sig-hpc/2011-November/001171.html
+>>
+>> Claudia
+>>
+>>
+>> ________________________________________
+>> Von: Martin Renner [greatauklet at gmail.com]
+>> Gesendet: Dienstag, 24. April 2012 10:51
+>> An: beleites,claudia
+>> Cc: r-sig-hpc at r-project.org
+>> Betreff: Re: [R-sig-hpc] parallel and openblas
+>>
+>> Yes, Claudia, you're probaply right that all these threads are on one core. Yes, %*% is working as expected, utilizing all available cores, when R is linked to openblas.
+>>
+>> Martin
+>>
+>>
+>>
+>> On 23 Apr 2012, at 12:07 , Claudia Beleites wrote:
+>>
+>>> Martin, do you actually know each core works with 1/8th (as opposed to
+>>> all 8 threads are run on the same core)?
+>>>
+>>> Is implicitly parallel stuff (e.g. %*%) without package parallel working OK?
+>>>
+>>> Claudia
+>>>
+>>> Am 23.04.2012 21:53, schrieb Martin Renner:
+>>>> Parallel and openblas don't seem to mix well on my machine. If I link openblas, a job executed through parallel (using either the multicore or snow (local socket cluster) setup), each of my 8 cores only operates at 1/8 of 100% (taking a little longer than serial execution). Linking to the reference blas or to single-threaded atlas does not cause this handicap when running snow or multicore.
+>>>>
+>>>> Is this a known problem (My google attempts were fruitless)? If yes, is there a fix for it? Do MKL or multi-threaded atlas have the same issues?
+>>>>
+>>>> Thank you for your time.
+>>>>
+>>>> Martin
+>>>>
+>>>>
+>>>>
+>>>> Martin Renner
+>>>> Post-doctoral Fellow ? ? ? ? ? ? ? ? ? ? ? ? phone: 907-226 4672
+>>>> University of Washington ? ? ? ? ? ? ? ? ? ? ? ?or: 907-235 0728
+>>>> School of Aquatic and Fishery Sciences ? ? ? ? ? ? ? Seattle, USA
+>>>>
+>>>>
+>>>>
+>>>>
+>>>>
+>>>> debian squeeze on 8-core Xeon
+>>>>> sessionInfo()
+>>>> R version 2.15.0 (2012-03-30)
+>>>> Platform: x86_64-unknown-linux-gnu (64-bit)
+>>>>
+>>>> locale:
+>>>> [1] LC_CTYPE=en_US.UTF-8 ? ? ? LC_NUMERIC=C
+>>>> [3] LC_TIME=en_US.UTF-8 ? ? ? ?LC_COLLATE=en_US.UTF-8
+>>>> [5] LC_MONETARY=en_US.UTF-8 ? ?LC_MESSAGES=en_US.UTF-8
+>>>> [7] LC_PAPER=C ? ? ? ? ? ? ? ? LC_NAME=C
+>>>> [9] LC_ADDRESS=C ? ? ? ? ? ? ? LC_TELEPHONE=C
+>>>> [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C
+>>>>
+>>>> attached base packages:
+>>>> [1] stats ? ? graphics ?grDevices utils ? ? datasets ?methods ? base
+>>>> _______________________________________________
+>>>> R-sig-hpc mailing list
+>>>> R-sig-hpc at r-project.org
+>>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>
+>>>
+>>> --
+>>> Claudia Beleites
+>>> Spectroscopy/Imaging
+>>> Institute of Photonic Technology
+>>> Albert-Einstein-Str. 9
+>>> 07745 Jena
+>>> Germany
+>>>
+>>> email: claudia.beleites at ipht-jena.de
+>>> phone: +49 3641 206-133
+>>> fax: ? +49 2641 206-399
+>>>
+>>>
+>>>
+>>>
+>>
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From znmeb at znmeb.net  Wed Apr 25 01:53:39 2012
+From: znmeb at znmeb.net (M. Edward (Ed) Borasky)
+Date: Tue, 24 Apr 2012 16:53:39 -0700
+Subject: [R-sig-hpc] parallel and openblas
+In-Reply-To: <CALh21iKnWwrfsd_MH1CwXhRSip6nAjHY0y0grZ95nK8XVR5bLQ@mail.gmail.com>
+References: <ECACA1DF-88EF-453F-9B5D-D69FC9937CCB@gmail.com>
+	<4F95B68B.4010704@ipht-jena.de>
+	<84544322-C2C4-44EA-AF79-7A4673D34211@gmail.com>
+	<A26E51EB75D20B4DAC8AEA2A883BF3997B5383C33F@uranus.ipht-jena.de>
+	<1A81ED45-12EF-4BD2-A227-566971E38522@gmail.com>
+	<A26E51EB75D20B4DAC8AEA2A883BF3997B5383C345@uranus.ipht-jena.de>
+	<CALh21iKnWwrfsd_MH1CwXhRSip6nAjHY0y0grZ95nK8XVR5bLQ@mail.gmail.com>
+Message-ID: <CAHkRx6FkkM1SV_zfW6F0HFH0gdU_V9w5-wLcomC0nV+N-iSJPA@mail.gmail.com>
+
+On Tue, Apr 24, 2012 at 12:45 PM, Stephen Weston
+<stephen.b.weston at gmail.com> wrote:
+> There's an interesting discussion entitled "all processes run on
+> one CPU core" at:
+>
+> ? ?https://github.com/ipython/ipython/issues/840
+>
+> Someone was experiencing a very similar problem to the one that
+> Claudia described using GotoBLAS2 with IPython and NumPy.
+> Apparently it was fixed by recompiling GotoBLAS2 with the
+> "NO_AFFINITY" parameter set to "1" in Makefile.rule, and then
+> rebuilding "NumPy".
+>
+> It seems pretty strange, but GotoBLAS2/OpenBLAS may be modifying
+> the affinity of the R process by calling sched_setaffinity() when
+> it is initialized, and that is causing the problems that Claudia
+> and Martin have seen.
+>
+> So perhaps the solution is to recompile GotoBLAS2/OpenBLAS with
+> NO_AFFINITY=1, and then rebuild R with it.
+>
+> - Steve
+
+I haven't had a chance to do any testing with multi-core (and
+multi-thread on my Intel i5) but I have found a few glitches in R with
+Atlas on openSUSE. Once I actually have details on how to patch the
+source RPMs I'll be filing some bugs in openSUSE, which should be
+similar to what other RPM-based systems (Fedora,
+RHEL/CentOS/Scientific Linux) need to do to make all the magic work.
+
+The "permanent solution" on Linux *should* be for some community
+packager(s) to package all of the tools within the distros. Dirk
+Eddelbuettel has been doing it for Debian / Ubuntu as long as I can
+remember, but the other distros haven't been so fortunate. I'm
+nibbling around the edges on openSUSE, though. We'll have some of this
+in openSUSE 12.2 if I have anything to say about it. ;-)
+
+-- 
+Twitter: http://twitter.com/znmeb Computational Journalism Server
+http://j.mp/compjournoserver
+
+Data is the new coal - abundant, dirty and difficult to mine.
+
+
+From edd at debian.org  Wed Apr 25 02:37:48 2012
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Tue, 24 Apr 2012 19:37:48 -0500
+Subject: [R-sig-hpc] parallel and openblas
+In-Reply-To: <CALh21iKnWwrfsd_MH1CwXhRSip6nAjHY0y0grZ95nK8XVR5bLQ@mail.gmail.com>
+References: <ECACA1DF-88EF-453F-9B5D-D69FC9937CCB@gmail.com>
+	<4F95B68B.4010704@ipht-jena.de>
+	<84544322-C2C4-44EA-AF79-7A4673D34211@gmail.com>
+	<A26E51EB75D20B4DAC8AEA2A883BF3997B5383C33F@uranus.ipht-jena.de>
+	<1A81ED45-12EF-4BD2-A227-566971E38522@gmail.com>
+	<A26E51EB75D20B4DAC8AEA2A883BF3997B5383C345@uranus.ipht-jena.de>
+	<CALh21iKnWwrfsd_MH1CwXhRSip6nAjHY0y0grZ95nK8XVR5bLQ@mail.gmail.com>
+Message-ID: <20375.18268.45868.581101@max.nulle.part>
+
+
+On 24 April 2012 at 15:45, Stephen Weston wrote:
+| There's an interesting discussion entitled "all processes run on
+| one CPU core" at:
+| 
+|     https://github.com/ipython/ipython/issues/840
+| 
+| Someone was experiencing a very similar problem to the one that
+| Claudia described using GotoBLAS2 with IPython and NumPy.
+| Apparently it was fixed by recompiling GotoBLAS2 with the
+| "NO_AFFINITY" parameter set to "1" in Makefile.rule, and then
+| rebuilding "NumPy".
+| 
+| It seems pretty strange, but GotoBLAS2/OpenBLAS may be modifying
+| the affinity of the R process by calling sched_setaffinity() when
+| it is initialized, and that is causing the problems that Claudia
+| and Martin have seen.
+| 
+| So perhaps the solution is to recompile GotoBLAS2/OpenBLAS with
+| NO_AFFINITY=1, and then rebuild R with it.
+
+Good discussion, but one important nit: never a need to rebuild a R (provided
+you have external / dynamically linked BLAS). 
+
+Just restart R.
+
+Dirk
+
+-- 
+R/Finance 2012 Conference on May 11 and 12, 2012 at UIC in Chicago, IL
+See agenda, registration details and more at http://www.RinFinance.com
+
+
+From edd at debian.org  Wed Apr 25 02:39:49 2012
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Tue, 24 Apr 2012 19:39:49 -0500
+Subject: [R-sig-hpc] parallel and openblas
+In-Reply-To: <CAHkRx6FkkM1SV_zfW6F0HFH0gdU_V9w5-wLcomC0nV+N-iSJPA@mail.gmail.com>
+References: <ECACA1DF-88EF-453F-9B5D-D69FC9937CCB@gmail.com>
+	<4F95B68B.4010704@ipht-jena.de>
+	<84544322-C2C4-44EA-AF79-7A4673D34211@gmail.com>
+	<A26E51EB75D20B4DAC8AEA2A883BF3997B5383C33F@uranus.ipht-jena.de>
+	<1A81ED45-12EF-4BD2-A227-566971E38522@gmail.com>
+	<A26E51EB75D20B4DAC8AEA2A883BF3997B5383C345@uranus.ipht-jena.de>
+	<CALh21iKnWwrfsd_MH1CwXhRSip6nAjHY0y0grZ95nK8XVR5bLQ@mail.gmail.com>
+	<CAHkRx6FkkM1SV_zfW6F0HFH0gdU_V9w5-wLcomC0nV+N-iSJPA@mail.gmail.com>
+Message-ID: <20375.18389.390671.569300@max.nulle.part>
+
+
+On 24 April 2012 at 16:53, M. Edward (Ed) Borasky wrote:
+| On Tue, Apr 24, 2012 at 12:45 PM, Stephen Weston
+| <stephen.b.weston at gmail.com> wrote:
+| > There's an interesting discussion entitled "all processes run on
+| > one CPU core" at:
+| >
+| > ? ?https://github.com/ipython/ipython/issues/840
+| >
+| > Someone was experiencing a very similar problem to the one that
+| > Claudia described using GotoBLAS2 with IPython and NumPy.
+| > Apparently it was fixed by recompiling GotoBLAS2 with the
+| > "NO_AFFINITY" parameter set to "1" in Makefile.rule, and then
+| > rebuilding "NumPy".
+| >
+| > It seems pretty strange, but GotoBLAS2/OpenBLAS may be modifying
+| > the affinity of the R process by calling sched_setaffinity() when
+| > it is initialized, and that is causing the problems that Claudia
+| > and Martin have seen.
+| >
+| > So perhaps the solution is to recompile GotoBLAS2/OpenBLAS with
+| > NO_AFFINITY=1, and then rebuild R with it.
+| >
+| > - Steve
+| 
+| I haven't had a chance to do any testing with multi-core (and
+| multi-thread on my Intel i5) but I have found a few glitches in R with
+| Atlas on openSUSE. Once I actually have details on how to patch the
+| source RPMs I'll be filing some bugs in openSUSE, which should be
+| similar to what other RPM-based systems (Fedora,
+| RHEL/CentOS/Scientific Linux) need to do to make all the magic work.
+| 
+| The "permanent solution" on Linux *should* be for some community
+| packager(s) to package all of the tools within the distros. Dirk
+| Eddelbuettel has been doing it for Debian / Ubuntu as long as I can
+
+Too much credit. I "merely" take care of R (and Octave earlier on). This is
+distributed work, and the Atlas (and other BLAS) maintainers, starting with
+Camm and now Sylvestre, are doing an amazing job. I simply know how to reuse
+that to R's benefit.
+
+Dirk
+
+-- 
+R/Finance 2012 Conference on May 11 and 12, 2012 at UIC in Chicago, IL
+See agenda, registration details and more at http://www.RinFinance.com
+
+
+From znmeb at znmeb.net  Wed Apr 25 04:10:01 2012
+From: znmeb at znmeb.net (M. Edward (Ed) Borasky)
+Date: Tue, 24 Apr 2012 19:10:01 -0700
+Subject: [R-sig-hpc] parallel and openblas
+In-Reply-To: <20375.18389.390671.569300@max.nulle.part>
+References: <ECACA1DF-88EF-453F-9B5D-D69FC9937CCB@gmail.com>
+	<4F95B68B.4010704@ipht-jena.de>
+	<84544322-C2C4-44EA-AF79-7A4673D34211@gmail.com>
+	<A26E51EB75D20B4DAC8AEA2A883BF3997B5383C33F@uranus.ipht-jena.de>
+	<1A81ED45-12EF-4BD2-A227-566971E38522@gmail.com>
+	<A26E51EB75D20B4DAC8AEA2A883BF3997B5383C345@uranus.ipht-jena.de>
+	<CALh21iKnWwrfsd_MH1CwXhRSip6nAjHY0y0grZ95nK8XVR5bLQ@mail.gmail.com>
+	<CAHkRx6FkkM1SV_zfW6F0HFH0gdU_V9w5-wLcomC0nV+N-iSJPA@mail.gmail.com>
+	<20375.18389.390671.569300@max.nulle.part>
+Message-ID: <CAHkRx6F5F9ZotsaaMBhmo=_3vkBS_r70KDHhAvsYaA3CTPXi7A@mail.gmail.com>
+
+On Tue, Apr 24, 2012 at 5:39 PM, Dirk Eddelbuettel <edd at debian.org> wrote:
+
+> Too much credit. I "merely" take care of R (and Octave earlier on). This is
+> distributed work, and the Atlas (and other BLAS) maintainers, starting with
+> Camm and now Sylvestre, are doing an amazing job. I simply know how to reuse
+> that to R's benefit.
+
+Speaking of packaging for distros, it looks like the OpenSUSE Build
+Service has some semi-automated setup for grabbing Perl packages from
+CPAN and wrapping them up as RPMs. I haven't dug into it, but I've
+been seeing all sorts of useful things show up in the repositories. If
+it can be done for CPAN using the OpenSUSE Build Service testing /
+building infrastructure, it ought to be possible for CRAN as well. And
+the infrastructure is capable of packaging for all the major distros,
+not just openSUSE.
+
+-- 
+Twitter: http://twitter.com/znmeb Computational Journalism Server
+http://j.mp/compjournoserver
+
+Data is the new coal - abundant, dirty and difficult to mine.
+
+
+From edd at debian.org  Wed Apr 25 14:28:48 2012
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Wed, 25 Apr 2012 07:28:48 -0500
+Subject: [R-sig-hpc] parallel and openblas
+In-Reply-To: <CAHkRx6F5F9ZotsaaMBhmo=_3vkBS_r70KDHhAvsYaA3CTPXi7A@mail.gmail.com>
+References: <ECACA1DF-88EF-453F-9B5D-D69FC9937CCB@gmail.com>
+	<4F95B68B.4010704@ipht-jena.de>
+	<84544322-C2C4-44EA-AF79-7A4673D34211@gmail.com>
+	<A26E51EB75D20B4DAC8AEA2A883BF3997B5383C33F@uranus.ipht-jena.de>
+	<1A81ED45-12EF-4BD2-A227-566971E38522@gmail.com>
+	<A26E51EB75D20B4DAC8AEA2A883BF3997B5383C345@uranus.ipht-jena.de>
+	<CALh21iKnWwrfsd_MH1CwXhRSip6nAjHY0y0grZ95nK8XVR5bLQ@mail.gmail.com>
+	<CAHkRx6FkkM1SV_zfW6F0HFH0gdU_V9w5-wLcomC0nV+N-iSJPA@mail.gmail.com>
+	<20375.18389.390671.569300@max.nulle.part>
+	<CAHkRx6F5F9ZotsaaMBhmo=_3vkBS_r70KDHhAvsYaA3CTPXi7A@mail.gmail.com>
+Message-ID: <20375.60928.782954.453393@max.nulle.part>
+
+
+This is getting off-topic for r-sig-hpc ...
+
+On 24 April 2012 at 19:10, M. Edward (Ed) Borasky wrote:
+| On Tue, Apr 24, 2012 at 5:39 PM, Dirk Eddelbuettel <edd at debian.org> wrote:
+| 
+| > Too much credit. I "merely" take care of R (and Octave earlier on). This is
+| > distributed work, and the Atlas (and other BLAS) maintainers, starting with
+| > Camm and now Sylvestre, are doing an amazing job. I simply know how to reuse
+| > that to R's benefit.
+| 
+| Speaking of packaging for distros, it looks like the OpenSUSE Build
+| Service has some semi-automated setup for grabbing Perl packages from
+| CPAN and wrapping them up as RPMs. I haven't dug into it, but I've
+| been seeing all sorts of useful things show up in the repositories. If
+| it can be done for CPAN using the OpenSUSE Build Service testing /
+| building infrastructure, it ought to be possible for CRAN as well. And
+| the infrastructure is capable of packaging for all the major distros,
+| not just openSUSE.
+
+Go for it. 
+
+After roughly a decade's work, and around four or five different attempts, we
+now have an archive for 'apt-get r-cran-$ANYTHING' for Ubuntu (that is,
+Michael Rutter's PPA on launchpad covering different Ubuntu builds) as well
+as one for Debian (that is, Don Armstrong's debian-r.debian.net covering
+Debian testing and now stable as well).
+
+So it can be done, but there is a lot of detailed work underneath it. And
+it's nice to have, especially for clusters as it minimizes per-node work and
+keeps them in sync.
+
+And it all started with the cran2deb work we did based on Albrecht's script
+written initially for ... OpenSUSE and then ported to Debian. What goes
+around comes around.
+
+Dirk
+
+-- 
+R/Finance 2012 Conference on May 11 and 12, 2012 at UIC in Chicago, IL
+See agenda, registration details and more at http://www.RinFinance.com
+
+
+From stephen.b.weston at gmail.com  Wed Apr 25 16:24:14 2012
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Wed, 25 Apr 2012 10:24:14 -0400
+Subject: [R-sig-hpc] parallel and openblas
+In-Reply-To: <20375.18268.45868.581101@max.nulle.part>
+References: <ECACA1DF-88EF-453F-9B5D-D69FC9937CCB@gmail.com>
+	<4F95B68B.4010704@ipht-jena.de>
+	<84544322-C2C4-44EA-AF79-7A4673D34211@gmail.com>
+	<A26E51EB75D20B4DAC8AEA2A883BF3997B5383C33F@uranus.ipht-jena.de>
+	<1A81ED45-12EF-4BD2-A227-566971E38522@gmail.com>
+	<A26E51EB75D20B4DAC8AEA2A883BF3997B5383C345@uranus.ipht-jena.de>
+	<CALh21iKnWwrfsd_MH1CwXhRSip6nAjHY0y0grZ95nK8XVR5bLQ@mail.gmail.com>
+	<20375.18268.45868.581101@max.nulle.part>
+Message-ID: <CALh21i+ZBWEjGX619Ru2XApk-PAWJ_W9UjuBw-FSLMzoVPRxqg@mail.gmail.com>
+
+I was able to confirm that when I built R using OpenBLAS on my
+Linux machine, my CPU affinity was modified right at the
+beginning of the R session:
+
+  $ grep Cpus_allowed /proc/self/status
+  Cpus_allowed: ffffffff,ffffffff
+  Cpus_allowed_list:    0-63
+  $ bin/R
+  > readLines('/proc/self/status')[32]
+  [1] "Cpus_allowed:\t00000000,00000001"
+
+I then confirmed that this causes problems for parallel packages
+such as "parallel" by trying to use all six cores of my machine
+using the "mclapply" function:
+
+  > library(parallel)
+  > cores <- detectCores()
+  > mclapply(1:cores, function(i) repeat sqrt(3.14159), mc.cores=cores)
+
+When I executed "top" from another window and pressed "1", it
+showed that only one core was being used, and there were six R
+sessions, each getting 17% of the CPU.
+
+I also confirmed that "Cpus_allowed" was being set to the same
+value for each of the workers:
+
+  > mclapply(1:cores, function(i) readLines('/proc/self/status')[32],
+mc.cores=cores)
+  [[1]]
+  [1] "Cpus_allowed:\t00000000,00000001"
+
+  [[2]]
+  [1] "Cpus_allowed:\t00000000,00000001"
+
+  [[3]]
+  [1] "Cpus_allowed:\t00000000,00000001"
+
+  [[4]]
+  [1] "Cpus_allowed:\t00000000,00000001"
+
+  [[5]]
+  [1] "Cpus_allowed:\t00000000,00000001"
+
+  [[6]]
+  [1] "Cpus_allowed:\t00000000,00000001"
+
+That is definitely not what you want to see, and explains why
+"mclapply" is only able to use one core.
+
+When I rebuilt and reinstalled OpenBLAS after editing
+Makefile.rule so that it contained the line:
+
+  NO_AFFINITY = 1
+
+and then restarted R, the problem went away:
+
+  $ bin/R
+  > readLines('/proc/self/status')[32]
+  [1] "Cpus_allowed:\tffffffff,ffffffff"
+
+This time when I ran "mclapply", "top" confirmed that I was
+using all six cores at about 100%.
+
+I didn't try this experiment with the older GotoBLAS2, but I
+believe the results would be the same.
+
+- Steve
+
+
+On Tue, Apr 24, 2012 at 8:37 PM, Dirk Eddelbuettel <edd at debian.org> wrote:
+>
+> On 24 April 2012 at 15:45, Stephen Weston wrote:
+> | There's an interesting discussion entitled "all processes run on
+> | one CPU core" at:
+> |
+> | ? ? https://github.com/ipython/ipython/issues/840
+> |
+> | Someone was experiencing a very similar problem to the one that
+> | Claudia described using GotoBLAS2 with IPython and NumPy.
+> | Apparently it was fixed by recompiling GotoBLAS2 with the
+> | "NO_AFFINITY" parameter set to "1" in Makefile.rule, and then
+> | rebuilding "NumPy".
+> |
+> | It seems pretty strange, but GotoBLAS2/OpenBLAS may be modifying
+> | the affinity of the R process by calling sched_setaffinity() when
+> | it is initialized, and that is causing the problems that Claudia
+> | and Martin have seen.
+> |
+> | So perhaps the solution is to recompile GotoBLAS2/OpenBLAS with
+> | NO_AFFINITY=1, and then rebuild R with it.
+>
+> Good discussion, but one important nit: never a need to rebuild a R (provided
+> you have external / dynamically linked BLAS).
+>
+> Just restart R.
+>
+> Dirk
+>
+> --
+> R/Finance 2012 Conference on May 11 and 12, 2012 at UIC in Chicago, IL
+> See agenda, registration details and more at http://www.RinFinance.com
+
+
+From edd at debian.org  Wed Apr 25 16:50:01 2012
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Wed, 25 Apr 2012 09:50:01 -0500
+Subject: [R-sig-hpc] parallel and openblas
+In-Reply-To: <CALh21i+ZBWEjGX619Ru2XApk-PAWJ_W9UjuBw-FSLMzoVPRxqg@mail.gmail.com>
+References: <ECACA1DF-88EF-453F-9B5D-D69FC9937CCB@gmail.com>
+	<4F95B68B.4010704@ipht-jena.de>
+	<84544322-C2C4-44EA-AF79-7A4673D34211@gmail.com>
+	<A26E51EB75D20B4DAC8AEA2A883BF3997B5383C33F@uranus.ipht-jena.de>
+	<1A81ED45-12EF-4BD2-A227-566971E38522@gmail.com>
+	<A26E51EB75D20B4DAC8AEA2A883BF3997B5383C345@uranus.ipht-jena.de>
+	<CALh21iKnWwrfsd_MH1CwXhRSip6nAjHY0y0grZ95nK8XVR5bLQ@mail.gmail.com>
+	<20375.18268.45868.581101@max.nulle.part>
+	<CALh21i+ZBWEjGX619Ru2XApk-PAWJ_W9UjuBw-FSLMzoVPRxqg@mail.gmail.com>
+Message-ID: <20376.3865.212916.119454@max.nulle.part>
+
+
+[ Sylvestre: I am tossing you in the middle of a thread here. We may have a
+buglet in OpenBLAS where NO_AFFINITY=1 might be a good config value to add. ]
+
+Steve,
+
+Nice work, and mostly confirming against OpenBLAS, Atlas and a local (old)
+GotoBLAS2. 
+
+On 25 April 2012 at 10:24, Stephen Weston wrote:
+| I was able to confirm that when I built R using OpenBLAS on my
+| Linux machine, my CPU affinity was modified right at the
+| beginning of the R session:
+| 
+|   $ grep Cpus_allowed /proc/self/status
+|   Cpus_allowed: ffffffff,ffffffff
+|   Cpus_allowed_list:    0-63
+|   $ bin/R
+|   > readLines('/proc/self/status')[32]
+|   [1] "Cpus_allowed:\t00000000,00000001"
+
+What kernel is that?  On 3.0.0-17 (Ubuntu 11.10, infrequently rebooted) I get 
+
+  edd at max:~$ grep Cpus_allowed /proc/self/status
+  Cpus_allowed:   ff
+  Cpus_allowed_list:      0-7
+  edd at max:~$
+
+| I then confirmed that this causes problems for parallel packages
+| such as "parallel" by trying to use all six cores of my machine
+| using the "mclapply" function:
+| 
+|   > library(parallel)
+|   > cores <- detectCores()
+|   > mclapply(1:cores, function(i) repeat sqrt(3.14159), mc.cores=cores)
+| 
+| When I executed "top" from another window and pressed "1", it
+| showed that only one core was being used, and there were six R
+| sessions, each getting 17% of the CPU.
+
+When I run these three commands as a single line for r (from the littler package)
+
+  edd at max:~$ r -e 'library(parallel);  cores <- detectCores(); print(cores); mclapply(1:cores, function(i) repeat sqrt(3.14159), mc.cores=cores)'
+  [1] 8
+  ^C
+  edd at max:~$ 
+
+I also get just one core covered. That is with 
+
+  edd at max:~$ COLUMNS=94 dpkg -l|grep "blas\|atlas" | cut -c-78
+  ii  gotoblas2-helper  0.1-12.local.1    GotoBLAS2 helper
+  ii  libblas-dev       1.2.20110419-2ubu Basic Linear Algebra Subroutines 3, st
+  ii  libblas-test      1.2.20110419-2ubu Basic Linear Algebra Subroutines 3, te
+  ii  libblas3gf        1.2.20110419-2ubu Basic Linear Algebra Reference impleme
+  ii  libopenblas-base  0.1alpha2.2-3     Optimized BLAS (linear algebra) librar
+  ii  libopenblas-dev   0.1alpha2.2-3     Optimized BLAS (linear algebra) librar
+  edd at max:~$ 
+
+where OpenBLAS provides BLAS as default.
+
+That was after I had removed Atlas which is still my default. So if I
+reiinstall Atlas (which "ranks higher" in the defaults and hence replaces
+OpenBLAS) everything is fine -- eight cores used.
+
+  edd at max:~$ COLUMNS=94 dpkg -l|grep "blas\|atlas" | cut -c-78
+  ii  gotoblas2-helper  0.1-12.local.1    GotoBLAS2 helper
+  ii  libatlas-base-dev 3.8.4-3build1     Automatically Tuned Linear Algebra Sof
+  ii  libatlas-dev      3.8.4-3build1     Automatically Tuned Linear Algebra Sof
+  ii  libatlas3gf-base  3.8.4-3build1     Automatically Tuned Linear Algebra Sof
+  ii  libblas-dev       1.2.20110419-2ubu Basic Linear Algebra Subroutines 3, st
+  ii  libblas-test      1.2.20110419-2ubu Basic Linear Algebra Subroutines 3, te
+  ii  libblas3gf        1.2.20110419-2ubu Basic Linear Algebra Reference impleme
+  ii  libopenblas-base  0.1alpha2.2-3     Optimized BLAS (linear algebra) librar
+  ii  libopenblas-dev   0.1alpha2.2-3     Optimized BLAS (linear algebra) librar
+  edd at max:~$ 
+ 
+ 
+| I also confirmed that "Cpus_allowed" was being set to the same
+| value for each of the workers:
+| 
+|   > mclapply(1:cores, function(i) readLines('/proc/self/status')[32],
+| mc.cores=cores)
+|   [[1]]
+|   [1] "Cpus_allowed:\t00000000,00000001"
+| 
+|   [[2]]
+|   [1] "Cpus_allowed:\t00000000,00000001"
+| 
+|   [[3]]
+|   [1] "Cpus_allowed:\t00000000,00000001"
+| 
+|   [[4]]
+|   [1] "Cpus_allowed:\t00000000,00000001"
+| 
+|   [[5]]
+|   [1] "Cpus_allowed:\t00000000,00000001"
+| 
+|   [[6]]
+|   [1] "Cpus_allowed:\t00000000,00000001"
+| 
+| That is definitely not what you want to see, and explains why
+| "mclapply" is only able to use one core.
+| 
+| When I rebuilt and reinstalled OpenBLAS after editing
+| Makefile.rule so that it contained the line:
+| 
+|   NO_AFFINITY = 1
+| 
+| and then restarted R, the problem went away:
+| 
+|   $ bin/R
+|   > readLines('/proc/self/status')[32]
+|   [1] "Cpus_allowed:\tffffffff,ffffffff"
+| 
+| This time when I ran "mclapply", "top" confirmed that I was
+| using all six cores at about 100%.
+| 
+| I didn't try this experiment with the older GotoBLAS2, but I
+| believe the results would be the same.
+
+I can confirm this. Using the packages 
+
+edd at max:~$ COLUMNS=94 dpkg -l|grep "blas\|atlas" | cut -c-78
+ii  gotoblas2         1.13-1            GotoBLAS2
+ii  gotoblas2-helper  0.1-12.local.1    GotoBLAS2 helper
+ii  libblas-dev       1.2.20110419-2ubu Basic Linear Algebra Subroutines 3, st
+ii  libblas-test      1.2.20110419-2ubu Basic Linear Algebra Subroutines 3, te
+ii  libblas3gf        1.2.20110419-2ubu Basic Linear Algebra Reference impleme
+edd at max:~$
+
+where the GotoBLAS2 (locally built, using the gotoblas2-helper package) now
+provide BLAS, everything sticks to one core when running the mclapply.  
+
+I guess I'd need to fix gotoblas2-helper and rebuild the gotoblas2.  Or stick
+with / hope for a corrected OpenBLAS build.
+
+Dirk
+ 
+| - Steve
+| 
+| 
+| On Tue, Apr 24, 2012 at 8:37 PM, Dirk Eddelbuettel <edd at debian.org> wrote:
+| >
+| > On 24 April 2012 at 15:45, Stephen Weston wrote:
+| > | There's an interesting discussion entitled "all processes run on
+| > | one CPU core" at:
+| > |
+| > | ? ? https://github.com/ipython/ipython/issues/840
+| > |
+| > | Someone was experiencing a very similar problem to the one that
+| > | Claudia described using GotoBLAS2 with IPython and NumPy.
+| > | Apparently it was fixed by recompiling GotoBLAS2 with the
+| > | "NO_AFFINITY" parameter set to "1" in Makefile.rule, and then
+| > | rebuilding "NumPy".
+| > |
+| > | It seems pretty strange, but GotoBLAS2/OpenBLAS may be modifying
+| > | the affinity of the R process by calling sched_setaffinity() when
+| > | it is initialized, and that is causing the problems that Claudia
+| > | and Martin have seen.
+| > |
+| > | So perhaps the solution is to recompile GotoBLAS2/OpenBLAS with
+| > | NO_AFFINITY=1, and then rebuild R with it.
+| >
+| > Good discussion, but one important nit: never a need to rebuild a R (provided
+| > you have external / dynamically linked BLAS).
+| >
+| > Just restart R.
+| >
+| > Dirk
+| >
+| > --
+| > R/Finance 2012 Conference on May 11 and 12, 2012 at UIC in Chicago, IL
+| > See agenda, registration details and more at http://www.RinFinance.com
+
+-- 
+R/Finance 2012 Conference on May 11 and 12, 2012 at UIC in Chicago, IL
+See agenda, registration details and more at http://www.RinFinance.com
+
+
+From edd at debian.org  Wed Apr 25 17:10:26 2012
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Wed, 25 Apr 2012 10:10:26 -0500
+Subject: [R-sig-hpc] parallel and openblas
+In-Reply-To: <20376.3865.212916.119454@max.nulle.part>
+References: <ECACA1DF-88EF-453F-9B5D-D69FC9937CCB@gmail.com>
+	<4F95B68B.4010704@ipht-jena.de>
+	<84544322-C2C4-44EA-AF79-7A4673D34211@gmail.com>
+	<A26E51EB75D20B4DAC8AEA2A883BF3997B5383C33F@uranus.ipht-jena.de>
+	<1A81ED45-12EF-4BD2-A227-566971E38522@gmail.com>
+	<A26E51EB75D20B4DAC8AEA2A883BF3997B5383C345@uranus.ipht-jena.de>
+	<CALh21iKnWwrfsd_MH1CwXhRSip6nAjHY0y0grZ95nK8XVR5bLQ@mail.gmail.com>
+	<20375.18268.45868.581101@max.nulle.part>
+	<CALh21i+ZBWEjGX619Ru2XApk-PAWJ_W9UjuBw-FSLMzoVPRxqg@mail.gmail.com>
+	<20376.3865.212916.119454@max.nulle.part>
+Message-ID: <20376.5090.969835.445349@max.nulle.part>
+
+
+Sorry to follow-up on my own post from minutes ago, but maybe it is better
+the way it is as it allows to explicitly spread tasks each of which would
+limit itself to one core.  Isn't this the best way to avoid "clogging" when
+we use, say, snow to get to eight cores, and each of the eight cores wants to
+do BLAS work on eight cores...  That was after all the initial issue in
+Martin's email.
+
+And when I use the affinity trick (now breaking the single line for display)
+
+  edd at max:~$ r -e 'library(parallel); \
+                   system(sprintf("taskset -p 0xffffffff %d", Sys.getpid())); \
+                   cores <- detectCores(); \
+                   print(cores); \
+                   mclapply(1:cores, function(i) repeat sqrt(3.14159), mc.cores=cores)'
+  pid 24436's current affinity mask: 1
+  pid 24436's new affinity mask: ff
+  [1] 8
+
+all is well -- eight cores humming along just fine per htop under OpenBLAS.  
+
+Maybe this is actually better as it effectively gives us a run-time toggle?
+
+Dirk
+
+-- 
+R/Finance 2012 Conference on May 11 and 12, 2012 at UIC in Chicago, IL
+See agenda, registration details and more at http://www.RinFinance.com
+
+
+From simon.urbanek at r-project.org  Wed Apr 25 17:21:27 2012
+From: simon.urbanek at r-project.org (Simon Urbanek)
+Date: Wed, 25 Apr 2012 11:21:27 -0400
+Subject: [R-sig-hpc] parallel and openblas
+In-Reply-To: <20376.5090.969835.445349@max.nulle.part>
+References: <ECACA1DF-88EF-453F-9B5D-D69FC9937CCB@gmail.com>
+	<4F95B68B.4010704@ipht-jena.de>
+	<84544322-C2C4-44EA-AF79-7A4673D34211@gmail.com>
+	<A26E51EB75D20B4DAC8AEA2A883BF3997B5383C33F@uranus.ipht-jena.de>
+	<1A81ED45-12EF-4BD2-A227-566971E38522@gmail.com>
+	<A26E51EB75D20B4DAC8AEA2A883BF3997B5383C345@uranus.ipht-jena.de>
+	<CALh21iKnWwrfsd_MH1CwXhRSip6nAjHY0y0grZ95nK8XVR5bLQ@mail.gmail.com>
+	<20375.18268.45868.581101@max.nulle.part>
+	<CALh21i+ZBWEjGX619Ru2XApk-PAWJ_W9UjuBw-FSLMzoVPRxqg@mail.gmail.com>
+	<20376.3865.212916.119454@max.nulle.part>
+	<20376.5090.969835.445349@max.nulle.part>
+Message-ID: <420CF5CB-608E-4DD7-85A7-C8AF23FEB203@r-project.org>
+
+
+On Apr 25, 2012, at 11:10 AM, Dirk Eddelbuettel wrote:
+
+> 
+> Sorry to follow-up on my own post from minutes ago, but maybe it is better
+> the way it is as it allows to explicitly spread tasks each of which would
+> limit itself to one core.  Isn't this the best way to avoid "clogging" when
+> we use, say, snow to get to eight cores, and each of the eight cores wants to
+> do BLAS work on eight cores...  That was after all the initial issue in
+> Martin's email.
+> 
+> And when I use the affinity trick (now breaking the single line for display)
+> 
+>  edd at max:~$ r -e 'library(parallel); \
+>                   system(sprintf("taskset -p 0xffffffff %d", Sys.getpid())); \
+>                   cores <- detectCores(); \
+>                   print(cores); \
+>                   mclapply(1:cores, function(i) repeat sqrt(3.14159), mc.cores=cores)'
+>  pid 24436's current affinity mask: 1
+>  pid 24436's new affinity mask: ff
+>  [1] 8
+> 
+> all is well -- eight cores humming along just fine per htop under OpenBLAS.  
+> 
+> Maybe this is actually better as it effectively gives us a run-time toggle?
+> 
+
+I'd argue that the problem is affinity of 1 by default - that is certainly not what you want or expect and bad in most cases. It would make much more sense to restrict the *children* to one CPU each rather than the parent process so that forked processes stay on their cores - that is IMHO the only place where setting affinity makes any sense at all. Also the system(..) trick is ugly and highly system-specific (you don't even know if you can access taskset). I would consider OpenBLAS' affinity setting as a pretty bad bug (certainly form user's point of view).
+
+Cheers,
+Simon
+
+
+From claudia.beleites at ipht-jena.de  Wed Apr 25 18:54:03 2012
+From: claudia.beleites at ipht-jena.de (Claudia Beleites)
+Date: Wed, 25 Apr 2012 18:54:03 +0200
+Subject: [R-sig-hpc] parallel and openblas
+In-Reply-To: <420CF5CB-608E-4DD7-85A7-C8AF23FEB203@r-project.org>
+References: <ECACA1DF-88EF-453F-9B5D-D69FC9937CCB@gmail.com>
+	<4F95B68B.4010704@ipht-jena.de>
+	<84544322-C2C4-44EA-AF79-7A4673D34211@gmail.com>
+	<A26E51EB75D20B4DAC8AEA2A883BF3997B5383C33F@uranus.ipht-jena.de>
+	<1A81ED45-12EF-4BD2-A227-566971E38522@gmail.com>
+	<A26E51EB75D20B4DAC8AEA2A883BF3997B5383C345@uranus.ipht-jena.de>
+	<CALh21iKnWwrfsd_MH1CwXhRSip6nAjHY0y0grZ95nK8XVR5bLQ@mail.gmail.com>
+	<20375.18268.45868.581101@max.nulle.part>
+	<CALh21i+ZBWEjGX619Ru2XApk-PAWJ_W9UjuBw-FSLMzoVPRxqg@mail.gmail.com>
+	<20376.3865.212916.119454@max.nulle.part>
+	<20376.5090.969835.445349@max.nulle.part>
+	<420CF5CB-608E-4DD7-85A7-C8AF23FEB203@r-project.org>
+Message-ID: <4F982C2B.6090708@ipht-jena.de>
+
+I agree with Simon.
+
+- Not restricting the children doesn't lead to problems with both
+implicit and explicit parallelization for me:
+E.g. if I decide to run explicitly 3 parallel threads and have 12 cores,
+I use GOTO_NUM_THREADS 4, and that works nicely.
+
+- if users do not have access to taskset, then restriction to 1 core is
+certainly more problematic than no restriction.
+
+Claudia
+
+
+
+Am 25.04.2012 17:21, schrieb Simon Urbanek:
+> 
+> On Apr 25, 2012, at 11:10 AM, Dirk Eddelbuettel wrote:
+> 
+>>
+>> Sorry to follow-up on my own post from minutes ago, but maybe it is better
+>> the way it is as it allows to explicitly spread tasks each of which would
+>> limit itself to one core.  Isn't this the best way to avoid "clogging" when
+>> we use, say, snow to get to eight cores, and each of the eight cores wants to
+>> do BLAS work on eight cores...  That was after all the initial issue in
+>> Martin's email.
+>>
+>> And when I use the affinity trick (now breaking the single line for display)
+>>
+>>  edd at max:~$ r -e 'library(parallel); \
+>>                   system(sprintf("taskset -p 0xffffffff %d", Sys.getpid())); \
+>>                   cores <- detectCores(); \
+>>                   print(cores); \
+>>                   mclapply(1:cores, function(i) repeat sqrt(3.14159), mc.cores=cores)'
+>>  pid 24436's current affinity mask: 1
+>>  pid 24436's new affinity mask: ff
+>>  [1] 8
+>>
+>> all is well -- eight cores humming along just fine per htop under OpenBLAS.  
+>>
+>> Maybe this is actually better as it effectively gives us a run-time toggle?
+>>
+> 
+> I'd argue that the problem is affinity of 1 by default - that is certainly not what you want or expect and bad in most cases. It would make much more sense to restrict the *children* to one CPU each rather than the parent process so that forked processes stay on their cores - that is IMHO the only place where setting affinity makes any sense at all. Also the system(..) trick is ugly and highly system-specific (you don't even know if you can access taskset). I would consider OpenBLAS' affinity setting as a pretty bad bug (certainly form user's point of view).
+> 
+> Cheers,
+> Simon
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+-- 
+Claudia Beleites
+Spectroscopy/Imaging
+Institute of Photonic Technology
+Albert-Einstein-Str. 9
+07745 Jena
+Germany
+
+email: claudia.beleites at ipht-jena.de
+phone: +49 3641 206-133
+fax:   +49 2641 206-399
+
+
+From simon.urbanek at r-project.org  Wed Apr 25 20:38:53 2012
+From: simon.urbanek at r-project.org (Simon Urbanek)
+Date: Wed, 25 Apr 2012 14:38:53 -0400
+Subject: [R-sig-hpc] parallel and openblas
+In-Reply-To: <4F982C2B.6090708@ipht-jena.de>
+References: <ECACA1DF-88EF-453F-9B5D-D69FC9937CCB@gmail.com>
+	<4F95B68B.4010704@ipht-jena.de>
+	<84544322-C2C4-44EA-AF79-7A4673D34211@gmail.com>
+	<A26E51EB75D20B4DAC8AEA2A883BF3997B5383C33F@uranus.ipht-jena.de>
+	<1A81ED45-12EF-4BD2-A227-566971E38522@gmail.com>
+	<A26E51EB75D20B4DAC8AEA2A883BF3997B5383C345@uranus.ipht-jena.de>
+	<CALh21iKnWwrfsd_MH1CwXhRSip6nAjHY0y0grZ95nK8XVR5bLQ@mail.gmail.com>
+	<20375.18268.45868.581101@max.nulle.part>
+	<CALh21i+ZBWEjGX619Ru2XApk-PAWJ_W9UjuBw-FSLMzoVPRxqg@mail.gmail.com>
+	<20376.3865.212916.119454@max.nulle.part>
+	<20376.5090.969835.445349@max.nulle.part>
+	<420CF5CB-608E-4DD7-85A7-C8AF23FEB203@r-project.org>
+	<4F982C2B.6090708@ipht-jena.de>
+Message-ID: <2B7FF2AE-50C1-44DA-828E-57057DC98BCC@r-project.org>
+
+FWIW: Based on this discussion, I have added the capability to manage CPU affinity mask in R-devel. In the short term you can use mcaffinity() to control the affinity yourself, so for example mcaffinity(1:ncores) will allow R to run on any core or you can restrict your parallel jobs to certain CPU ranges. Eventually, R/parallel should handle that for you by partitioning cores to child processes (we are missing mandatory core detection and tracking to do that), for now the closest you get is mc.affiinity in mcparallel() to spread children yourself.
+
+Cheers,
+Simon
+
+
+On Apr 25, 2012, at 12:54 PM, Claudia Beleites wrote:
+
+> I agree with Simon.
+> 
+> - Not restricting the children doesn't lead to problems with both
+> implicit and explicit parallelization for me:
+> E.g. if I decide to run explicitly 3 parallel threads and have 12 cores,
+> I use GOTO_NUM_THREADS 4, and that works nicely.
+> 
+> - if users do not have access to taskset, then restriction to 1 core is
+> certainly more problematic than no restriction.
+> 
+> Claudia
+> 
+> 
+> 
+> Am 25.04.2012 17:21, schrieb Simon Urbanek:
+>> 
+>> On Apr 25, 2012, at 11:10 AM, Dirk Eddelbuettel wrote:
+>> 
+>>> 
+>>> Sorry to follow-up on my own post from minutes ago, but maybe it is better
+>>> the way it is as it allows to explicitly spread tasks each of which would
+>>> limit itself to one core.  Isn't this the best way to avoid "clogging" when
+>>> we use, say, snow to get to eight cores, and each of the eight cores wants to
+>>> do BLAS work on eight cores...  That was after all the initial issue in
+>>> Martin's email.
+>>> 
+>>> And when I use the affinity trick (now breaking the single line for display)
+>>> 
+>>> edd at max:~$ r -e 'library(parallel); \
+>>>                  system(sprintf("taskset -p 0xffffffff %d", Sys.getpid())); \
+>>>                  cores <- detectCores(); \
+>>>                  print(cores); \
+>>>                  mclapply(1:cores, function(i) repeat sqrt(3.14159), mc.cores=cores)'
+>>> pid 24436's current affinity mask: 1
+>>> pid 24436's new affinity mask: ff
+>>> [1] 8
+>>> 
+>>> all is well -- eight cores humming along just fine per htop under OpenBLAS.  
+>>> 
+>>> Maybe this is actually better as it effectively gives us a run-time toggle?
+>>> 
+>> 
+>> I'd argue that the problem is affinity of 1 by default - that is certainly not what you want or expect and bad in most cases. It would make much more sense to restrict the *children* to one CPU each rather than the parent process so that forked processes stay on their cores - that is IMHO the only place where setting affinity makes any sense at all. Also the system(..) trick is ugly and highly system-specific (you don't even know if you can access taskset). I would consider OpenBLAS' affinity setting as a pretty bad bug (certainly form user's point of view).
+>> 
+>> Cheers,
+>> Simon
+>> 
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+> 
+> -- 
+> Claudia Beleites
+> Spectroscopy/Imaging
+> Institute of Photonic Technology
+> Albert-Einstein-Str. 9
+> 07745 Jena
+> Germany
+> 
+> email: claudia.beleites at ipht-jena.de
+> phone: +49 3641 206-133
+> fax:   +49 2641 206-399
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+> 
+
+
+From edd at debian.org  Wed Apr 25 21:19:42 2012
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Wed, 25 Apr 2012 14:19:42 -0500
+Subject: [R-sig-hpc] parallel and openblas
+In-Reply-To: <2B7FF2AE-50C1-44DA-828E-57057DC98BCC@r-project.org>
+References: <ECACA1DF-88EF-453F-9B5D-D69FC9937CCB@gmail.com>
+	<4F95B68B.4010704@ipht-jena.de>
+	<84544322-C2C4-44EA-AF79-7A4673D34211@gmail.com>
+	<A26E51EB75D20B4DAC8AEA2A883BF3997B5383C33F@uranus.ipht-jena.de>
+	<1A81ED45-12EF-4BD2-A227-566971E38522@gmail.com>
+	<A26E51EB75D20B4DAC8AEA2A883BF3997B5383C345@uranus.ipht-jena.de>
+	<CALh21iKnWwrfsd_MH1CwXhRSip6nAjHY0y0grZ95nK8XVR5bLQ@mail.gmail.com>
+	<20375.18268.45868.581101@max.nulle.part>
+	<CALh21i+ZBWEjGX619Ru2XApk-PAWJ_W9UjuBw-FSLMzoVPRxqg@mail.gmail.com>
+	<20376.3865.212916.119454@max.nulle.part>
+	<20376.5090.969835.445349@max.nulle.part>
+	<420CF5CB-608E-4DD7-85A7-C8AF23FEB203@r-project.org>
+	<4F982C2B.6090708@ipht-jena.de>
+	<2B7FF2AE-50C1-44DA-828E-57057DC98BCC@r-project.org>
+Message-ID: <20376.20046.817297.501233@max.nulle.part>
+
+
+On 25 April 2012 at 14:38, Simon Urbanek wrote:
+| FWIW: Based on this discussion, I have added the capability to manage CPU affinity mask in R-devel. In the short term you can use mcaffinity() to control the affinity yourself, so for example mcaffinity(1:ncores) will allow R to run on any core or you can restrict your parallel jobs to certain CPU ranges. Eventually, R/parallel should handle that for you by partitioning cores to child processes (we are missing mandatory core detection and tracking to do that), for now the closest you get is mc.affiinity in mcparallel() to spread children yourself.
+
+That sounds like the great addition!  It is hard to find 'one size fits all'
+settings, particularly for a distribution, and having control / a toggle to
+adjust seems like a nice improvement.
+
+Thanks, Dirk
+
+-- 
+R/Finance 2012 Conference on May 11 and 12, 2012 at UIC in Chicago, IL
+See agenda, registration details and more at http://www.RinFinance.com
+
+
+From libosun at rams.colostate.edu  Mon Apr 30 06:07:51 2012
+From: libosun at rams.colostate.edu (Libo Sun)
+Date: Sun, 29 Apr 2012 22:07:51 -0600
+Subject: [R-sig-hpc] 'Rmpi' issue
+Message-ID: <CAAjXVjp=CEDGW2GeAQuT2C66ExSZHXOA1Zje81mzn55ReKWaVA@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120429/df5cc4a3/attachment.pl>
+
+From pauljohn32 at gmail.com  Mon Apr 30 08:24:21 2012
+From: pauljohn32 at gmail.com (Paul Johnson)
+Date: Mon, 30 Apr 2012 01:24:21 -0500
+Subject: [R-sig-hpc] 'Rmpi' issue
+In-Reply-To: <CAAjXVjp=CEDGW2GeAQuT2C66ExSZHXOA1Zje81mzn55ReKWaVA@mail.gmail.com>
+References: <CAAjXVjp=CEDGW2GeAQuT2C66ExSZHXOA1Zje81mzn55ReKWaVA@mail.gmail.com>
+Message-ID: <CAErODj9N6WO6sPUiMipNhTLUELuDhCjpuRk7OcrRsLfStQDA0g@mail.gmail.com>
+
+Greetings,
+
+You'll have to spend more time studying the basics of creating a
+cluster inside R and talking to its nodes.
+
+
+Your R program is not complete enough to create a cluster and talk to
+it, try some examples I have here for working code.
+
+http://web.ku.edu/~quant/cgi-bin/mw1/index.php?title=Cluster:Main#R_Packages_and_Parallel_Computing
+
+Go to the hpcexample archive, something like:
+
+http://winstat.quant.ku.edu/svn/hpcexample/trunk/Ex53-HelloWorldRmpi
+
+or
+http://winstat.quant.ku.edu/svn/hpcexample/trunk/Ex60-HelloWorldSnow
+
+
+You appear to have a very ancient R, if 2.11 is what I see there.  I'd
+not bother with such an old setup. Do  you even know for sure if Rmpi
+is working there?  Can't your system admin give you a working example?
+
+You will probably need to know more about your cluster, I don't have
+time to study up on that for you.  The error messages are suspiciously
+like an MS Windows system.  That would be surprising.  On a Linux
+cluster, I've never seen a dynLoad message like you have.
+
+
+
+On Sun, Apr 29, 2012 at 11:07 PM, Libo Sun <libosun at rams.colostate.edu> wrote:
+> Hi,
+>
+> I am trying to test 'Rmpi' on Blacklight,
+> http://www.psc.edu/machines/sgi/uv/blacklight.php, in PSC.
+>
+> The R code I am trying to run is very simple:
+>
+> mpi.remote.exec(paste("I am",mpi.comm.rank(),"of",mpi.comm.size()))
+> mpi.remote.exec(paste("I am",Sys.info()1,"of",mpi.comm.size()))
+>
+> The batch file:
+>
+> #!/bin/csh
+> #PBS -l walltime=5:00
+> #PBS -l ncpus=16
+> #PBS -o test.out
+> #PBS -j oe
+> #PBS -q debug
+>
+> # define module command
+> source /usr/share/modules/init/csh
+>
+> set echo
+> date
+>
+> # load R module
+> module load R/2.11.1
+> module load Rmpi
+> module swap mpt/2.04 mpt/2.01
+>
+> # move to scratch space to run job
+> cd $SCRATCH
+>
+> # copy input file to scratch space
+> cp $HOME/test.R .
+> cp $HOME/.Rprofile .
+>
+> mpirun -np 16 R --no-save -q < test.R > test.Rout
+>
+> However, here are some error messages I got:
+>
+> ?*** caught segfault ***
+> address (nil), cause 'memory not mapped'
+>
+> Traceback:
+> ?1: dyn.load(file, DLLpath = DLLpath, ...)
+> ?2: library.dynam("Rmpi", pkg, lib)
+> ?3: f(libname, pkgname)
+> ?4: firstlib(which.lib.loc, package)
+> ?5: doTryCatch(return(expr), name, parentenv, handler)
+> ?6: tryCatchOne(expr, names, parentenv, handlers[[1L]])
+> ?7: tryCatchList(expr, classes, parentenv, handlers)
+> ?8: tryCatch(expr, error = function(e) { ? ?call <- conditionCall(e) ? ?if
+> (!is.null(call)) { ? ? ? ?if (identical(call[[1L]],
+> quote(doTryCatch))) ? ? ? ? ? ? call <- sys.call(-4L) ? ? ? ?dcall <-
+> deparse(call)[1L] ? ? ? ?prefix <- paste("Error in", dcall, ": ")
+> LONG <- 75L ? ? ? ?msg <- conditionMessage(e) ? ? ? ?sm <- strsplit(msg,
+> "\n")[[1L]] ? ? ? ?w <- 14L + nchar(dcall, type = "w") + nchar(sm[1L], type
+> = "w") ? ? ? ?if (is.na(w)) ? ? ? ? ? ? w <- 14L + nchar(dcall, type = "b")
+> + nchar(sm[1L], ? ? ? ? ? ? ? ? type = "b") ? ? ? ?if (w >
+> LONG) ? ? ? ? ? ? prefix <- paste(prefix, "\n ?", sep = "") ? ?} ? ?else
+> prefix <- "Error : " ? ?msg <- paste(prefix, conditionMessage(e), "\n", sep
+> = "") ? ?.Internal(seterrmessage(msg[1L])) ? ?if (!silent &&
+> identical(getOption("show.error.messages"), ? ? ? ? TRUE)) {
+> cat(msg, file = stderr()) ? ? ? ?.Internal(printDeferredWarnings()) ? ?}
+> invisible(structure(msg, class = "try-error"))})
+> ?9: try(firstlib(which.lib.loc, package))
+> 10: library(Rmpi, logical.return = TRUE)
+> aborting ...
+>
+> Any idea how to fix this?
+>
+> Many thanks,
+> Libo
+>
+> ? ? ? ?[[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+
+-- 
+Paul E. Johnson
+Professor, Political Science ? ?Assoc. Director
+1541 Lilac Lane, Room 504 ? ? Center for Research Methods
+University of Kansas ? ? ? ? ? ? ? University of Kansas
+http://pj.freefaculty.org ? ? ? ? ? ?http://quant.ku.edu
+
+
+From libosun at rams.colostate.edu  Mon Apr 30 23:14:43 2012
+From: libosun at rams.colostate.edu (Libo Sun)
+Date: Mon, 30 Apr 2012 15:14:43 -0600
+Subject: [R-sig-hpc] 'Rmpi' issue
+In-Reply-To: <CALh21iLXaykB_-UOUC=FWHt-HB7yC9qQq-kpzRyjUisSoAS32A@mail.gmail.com>
+References: <CAAjXVjp=CEDGW2GeAQuT2C66ExSZHXOA1Zje81mzn55ReKWaVA@mail.gmail.com>
+	<CALh21iLXaykB_-UOUC=FWHt-HB7yC9qQq-kpzRyjUisSoAS32A@mail.gmail.com>
+Message-ID: <CAAjXVjpW746GYwdKao0D_ZuZeZEK1oDFMdc8MAkxfvT1FMmARQ@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120430/adcd5cd6/attachment.pl>
+

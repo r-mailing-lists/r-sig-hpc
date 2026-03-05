@@ -1,0 +1,57 @@
+From carnivorescience at gmail.com  Sat May  9 20:38:16 2015
+From: carnivorescience at gmail.com (Guillaume Chapron)
+Date: Sat, 9 May 2015 20:38:16 +0200
+Subject: [R-sig-hpc] R package with multi-threaded C
+Message-ID: <A87C85E0-AC23-4BF5-A103-4D4D9DC86F85@gmail.com>
+
+Hello,
+
+I am trying to develop a R package that calls a multi-threaded C function and I am struggling on how to do this properly. The C program I originally wrote (prior to thinking about building it into a R package) uses Grand Central Dispatch library (for multi-threading on a Mac) and GSL (for RNG). Importantly, each thread has its own seed (the program runs Monte Carlo simulations). 
+
+Now that I am looking at modifying this to be included in a R package, I am not sure how to proceed with having a parallel and portable C code using the RNG seed from R. In the book R Programming for Bioinformatics by Gentleman (2008), it says p. 201:
+
+"The decision to have these functions (GetRNGstate and SetRNGstate) manipulate a global variable, .Random.seed, is slightly unfortunate as it makes it somewhat more difficult to manage several different random number streams simultaneously."
+
+Has anyone been able to do this or is there a package implementing something similar? I could always have the C code single-threaded but then simulations are going to be quite long so I am really keen on a multi-thread approach.
+
+Thanks!
+
+--
+Guillaume Chapron, PhD
+
+Grims? Wildlife Research Station
+Swedish University of Agricultural Sciences
+SE - 73091 Riddarhyttan, Sweden
+
+From edd at debian.org  Sat May  9 20:56:41 2015
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Sat, 9 May 2015 13:56:41 -0500
+Subject: [R-sig-hpc] R package with multi-threaded C
+In-Reply-To: <A87C85E0-AC23-4BF5-A103-4D4D9DC86F85@gmail.com>
+References: <A87C85E0-AC23-4BF5-A103-4D4D9DC86F85@gmail.com>
+Message-ID: <21838.22633.833647.135246@max.nulle.part>
+
+
+On 9 May 2015 at 20:38, Guillaume Chapron wrote:
+| Hello,
+| 
+| I am trying to develop a R package that calls a multi-threaded C function and I am struggling on how to do this properly. The C program I originally wrote (prior to thinking about building it into a R package) uses Grand Central Dispatch library (for multi-threading on a Mac) and GSL (for RNG). Importantly, each thread has its own seed (the program runs Monte Carlo simulations). 
+| 
+| Now that I am looking at modifying this to be included in a R package, I am not sure how to proceed with having a parallel and portable C code using the RNG seed from R. In the book R Programming for Bioinformatics by Gentleman (2008), it says p. 201:
+| 
+| "The decision to have these functions (GetRNGstate and SetRNGstate) manipulate a global variable, .Random.seed, is slightly unfortunate as it makes it somewhat more difficult to manage several different random number streams simultaneously."
+| 
+| Has anyone been able to do this or is there a package implementing something similar? I could always have the C code single-threaded but then simulations are going to be quite long so I am really keen on a multi-thread approach.
+
+Yes and yes. People have done / are doing this a lot.  
+
+You correctly identified the issue with the RNGs -- so you need stream-aware
+and/or multithreading-ready RNGs.  Which exist on CRAN in a few packages --
+have a look at the Task View for HPC where I think I mention some.
+
+Dirk
+
+-- 
+http://dirk.eddelbuettel.com | @eddelbuettel | edd at debian.org
+
+

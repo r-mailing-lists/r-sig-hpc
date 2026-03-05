@@ -1,0 +1,799 @@
+From jeff.howbert at insilicos.com  Fri Oct  7 00:07:50 2011
+From: jeff.howbert at insilicos.com (Jeff Howbert)
+Date: Thu, 6 Oct 2011 15:07:50 -0700
+Subject: [R-sig-hpc] cores vs. slots vs. slaves
+Message-ID: <4e8e26e6.a440440a.5a0b.ffff8385@mx.google.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20111006/684486cf/attachment.pl>
+
+From edd at debian.org  Fri Oct  7 00:37:29 2011
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Thu, 6 Oct 2011 17:37:29 -0500
+Subject: [R-sig-hpc] cores vs. slots vs. slaves
+In-Reply-To: <4e8e26e6.a440440a.5a0b.ffff8385@mx.google.com>
+References: <4e8e26e6.a440440a.5a0b.ffff8385@mx.google.com>
+Message-ID: <20110.11689.728706.874124@max.nulle.part>
+
+
+On 6 October 2011 at 15:07, Jeff Howbert wrote:
+| We are seeing some odd behavior in the allocation of R tasks to MPI slots
+| under OpenMPI.  All of the following takes place on a parallel compute
+| system we built and run on Amazon Web Services.  Hardware is two AWS cluster
+| compute nodes (cc1.4xlarge), each with 8 cores.  We designate one node as
+| the "head" node, and the other as the "client" node.
+| 
+|  
+| 
+| Scenario A: We request, via the hostfile, 8 slots on the head node and 8
+| slots on the client node.  We then spawn an R cluster using RMPI, with 1
+| master and 15 slaves.  The master (rank 0) and 8 slaves (rank 1-8), i.e. a
+| total of 9 R tasks, appear on the head node, and only 7 slaves (rank 9-15)
+| appear on the client node.
+| 
+|  
+| 
+| Scenario B: We request, via the hostfile, 7 slots on the head node and 8
+| slots on the client node.  We then spawn an R cluster using RMPI, with 1
+| master and 15 slaves (same as Scenario A).  The master (rank 0) and 7 slaves
+| (rank 1-7), i.e. a total of 8 R tasks, appear on the head node, and 8 slaves
+| (rank 8-15) appear on the client node.
+| 
+|  
+| 
+| We have run several parallel jobs under both scenarios, and Scenario A is
+| always considerably slower (c. 40%) than Scenario B, suggesting that in
+| Scenario A there really are more slots (9?) than available cores (8) on the
+| head node.
+| 
+|  
+| 
+| Does anyone have insight into the source of this behavior?  Is it OpenMPI,
+| RMPI, or some interaction between the two?  Thanks.
+
+I'd bet it is the Open MPI layer.  Rmpi, after all, just requests into MPI
+via the MPI.  Can you cook up a simple C client program which you can test
+the same way?
+
+Dirk
+  
+ 
+| Jeff Howbert
+| 
+| Brian Pratt
+| 
+| Insilicos LLC
+| 
+|  
+| 
+| 
+| 	[[alternative HTML version deleted]]
+| 
+| _______________________________________________
+| R-sig-hpc mailing list
+| R-sig-hpc at r-project.org
+| https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+-- 
+New Rcpp master class for R and C++ integration is scheduled for 
+San Francisco (Oct 8), more details / reg.info available at
+http://www.revolutionanalytics.com/products/training/public/rcpp-master-class.php
+
+
+From ostrouchovg at ornl.gov  Tue Oct 11 15:58:58 2011
+From: ostrouchovg at ornl.gov (George Ostrouchov)
+Date: Tue, 11 Oct 2011 09:58:58 -0400
+Subject: [R-sig-hpc] R CMD INSTALL configure.args and CC customization
+Message-ID: <4E944BA2.30007@ornl.gov>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20111011/2486a805/attachment.pl>
+
+From mspiegel at renci.org  Tue Oct 11 16:16:08 2011
+From: mspiegel at renci.org (Michael Spiegel)
+Date: Tue, 11 Oct 2011 14:16:08 +0000
+Subject: [R-sig-hpc] R CMD INSTALL configure.args and CC customization
+In-Reply-To: <4E944BA2.30007@ornl.gov>
+References: <4E944BA2.30007@ornl.gov>
+Message-ID: <7539F2BB274A034C9FE4BE8E134DC5BE0151172E@MAIL-MBX2.ad.renci.org>
+
+Thanks! This is a possible solution, but I would argue not a preferable solution. I'd advocate a mechanism that provides transparent support for MPI, analogous to the way that R 2.13.0 and upwards provides transparent support for OpenMP. Expressing a personal opinion, I would stress the importance of providing both shared memory and message parallel parallelism out-of-the-box in the R interpreter. To use OpenMP or MPI the user would need to have runtime libraries pre-installed on their system. This patch would make it easier for a library to auto-detect an MPI implementation, assuming mpicc is in the path.
+
+My initial post on r-devel had a bug, sorry about that. I've posted a new patch on r-sig-hpc that behaves as intended. It is available here: https://stat.ethz.ch/pipermail/r-sig-hpc/2011-September/001104.html.
+
+-----Original Message-----
+From: r-sig-hpc-bounces at r-project.org [mailto:r-sig-hpc-bounces at r-project.org] On Behalf Of George Ostrouchov
+Sent: Tuesday, October 11, 2011 9:59 AM
+To: michael.m.spiegler at gmail.com
+Cc: r-sig-hpc at r-project.org; r-devel at r-project.org
+Subject: Re: [R-sig-hpc] R CMD INSTALL configure.args and CC customization
+
+One way to deal with this is to install R itself with mpicc. Then all packages are installed with mpicc and get the required MPI libraries and includes by default. I have done this with R-2.13.0 on an Opteron cluster running CentOS-5 a while ago and so far it has worked out great.
+
+I crosspost to r-sig-hpc and welcome others to comment if there are potential downsides to this solution.
+
+George
+
+
+> Michael Spiegel michael.m.spiegel at gmail.com 
+> <mailto:r-devel%40r-project.org?Subject=Re%3A%20%5BRd%5D%20R%20CMD%20I
+> NSTALL%20configure.args%20and%20CC%20customization&In-Reply-To=%3CCANw
+> u5-rGUYrC73vRo04GJCdW_ZQerycbVU4K_2Dun1ytqNXQ7g%40mail.gmail.com%3E>
+> /Fri Sep 9 20:40:42 CEST 2011/
+> I am running into the following issue that has been previously 
+> reported on the R-devel mailing list. The short version is that I'm 
+> writing a package for MPI, and I'd like to change CC and SHLIB_LD to 
+> "mpicc". Trying to change them in Makevars.in has no effect, because 
+> the values are clobbered by /etc/R/Makeconf. Will the following 
+> changes to Makeconf.in introduce any problems?
+>
+> --Michael
+
+--
+George Ostrouchov
+Statistics and Data Sciences Group
+Computer Science and Mathematics Division Oak Ridge National Laboratory
+(865) 574-3137  http://www.csm.ornl.gov/~ost
+
+
+	[[alternative HTML version deleted]]
+
+_______________________________________________
+R-sig-hpc mailing list
+R-sig-hpc at r-project.org
+https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From MEC at stowers.org  Wed Oct 12 17:19:15 2011
+From: MEC at stowers.org (Cook, Malcolm)
+Date: Wed, 12 Oct 2011 10:19:15 -0500
+Subject: [R-sig-hpc] multicore:pvec error when length of v is less than
+	number of cores
+Message-ID: <2C40E43D1F7A56408C4463FD245DDDF985D547C4@EXCHMB-02.stowers-institute.org>
+
+Hi Simon et al,
+
+I find that the return value of multicore:pvec includes error messages when the length of input vector is less than number of cores.
+
+Additionally, to accomodate the error message being a character, any other non message results wind up being coerced to strings.
+
+Here is an example running on my 16 core computer:
+
+> tail(pvec(1:(multicore:::detectCores()-1),identity))
+[1] "11"                                         
+[2] "12"                                         
+[3] "13"                                         
+[4] "14"                                         
+[5] "15"                                         
+[6] "Error in l[[i]] : subscript out of bounds\n"
+Warning message:
+In pvec(1:(multicore:::detectCores() - 1), identity) :
+  some results may be missing, folded or caused an error
+
+The logic of computing the array indices needs revisiting.
+I quick-patched it by setting:
+  cores <- min(cores,n)
+right after pvec sets
+  n <- length(v)
+
+and now I get:
+
+> tail(pvec(1:(multicore:::detectCores()-1),identity))
+[1] 10 11 12 13 14 15
+
+Better?
+
+-Malcolm
+
+
+From jakshay at gmail.com  Sat Oct 15 19:30:31 2011
+From: jakshay at gmail.com (Akshay Jain)
+Date: Sat, 15 Oct 2011 23:00:31 +0530
+Subject: [R-sig-hpc] Distributed computing
+Message-ID: <CAFtbSf7vY0zo+D2gJxUeVZ7v6GHhCYCb4Df14VuKgbKof+LxDw@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20111015/132405ba/attachment.pl>
+
+From armstrong.whit at gmail.com  Sat Oct 15 21:06:34 2011
+From: armstrong.whit at gmail.com (Whit Armstrong)
+Date: Sat, 15 Oct 2011 15:06:34 -0400
+Subject: [R-sig-hpc] deathstar operational
+Message-ID: <CAMi=pg5K+SSYr+te-LGOCSM+vFGa+GjSrd=YFbEkH3gU4JEqfw@mail.gmail.com>
+
+Deathstar is a collection of init scrips and a few simple zmq binaries
+that allow for distributed computing using EC2 directly from your own
+workstation.
+
+You can check out your own copy here: https://github.com/armstrtw/deathstar.
+
+I've rolled it up into a public ami since I haven't had the time to
+put out a deb or rpm yet. The ami is a clone of just released ubuntu
+11.10 with a smattering of R packages installed as well as libzmq and
+the startup scripts from deathstar.
+
+Anyone with a valid EC2 account should be able to run this example
+(just substitute in your own key name in the startCluster command)
+assuming you are already set up to use ec2 commands from a shell.
+
+This example uses only 2 of the 8 core boxes amazon provides (c1.xlarge).
+
+You'll need the most recent versions of rzmq and AWS.tools installed
+on your local machine to run this demo.  You can obtain the packages
+from github. I'm not sure the cran versions are up to date.
+
+https://github.com/armstrtw/AWS.tools
+https://github.com/armstrtw/rzmq
+
+These packages are very new, so please email me if you encounter any
+bugs (or post an issue on the respective github site).
+
+I think these packages significantly lower the bar for anyone who
+wants to use R and AWS for distributed computing.  Another key
+advantage is that you can fire any AMI you want, so please feel free
+to clone my ami, and install your own custom packages (that's what I
+do for my own sims).
+
+Feedback welcome.
+
+This is the sim I ran (again shamelessly stealing JD Long's estimatePi example).
+
+whit at spartan:~$ cat zmq.aws.lapply.test.r
+library(AWS.tools)
+library(rzmq)
+
+
+estimatePi <- function(seed) {
+    set.seed(seed)
+    numDraws <- 1e6
+
+    r <- .5
+    x <- runif(numDraws, min=-r, max=r)
+    y <- runif(numDraws, min=-r, max=r)
+    inCircle <- ifelse( (x^2 + y^2)^.5 < r , 1, 0)
+
+    sum(inCircle) / length(inCircle) * 4
+}
+
+cl <- startCluster(ami="ami-9d5f93f4",key="maher-ave",instance.count=2,instance.type="c1.xlarge")
+print("starting sim.")
+run.time <- system.time(ans <-
+zmq.cluster.lapply(cluster=cl$instances[,"dnsName"],as.list(1:1e3),estimatePi))
+print("sim completed.")
+res <- terminateCluster(cl)
+
+
+print(mean(unlist(ans)))
+print(run.time)
+print(attr(ans,"execution.report"))
+
+pi.est <- mean(unlist(ans))
+print("result:")
+print(pi.est)
+whit at spartan:~$
+
+
+and output from my run:
+> source("zmq.aws.lapply.test.r")
+Loading required package: XML
+....
+[1] "starting sim."
+checking tcp://ec2-184-72-90-249.compute-1.amazonaws.com:6001 status: ready
+checking tcp://ec2-174-129-168-81.compute-1.amazonaws.com:6001 status: ready
+[1] "sim completed."
+[1] 3.141587
+   user  system elapsed
+  0.104   0.032 122.631
+                     [,1]
+ip-10-36-251-13:668    63
+ip-10-36-251-13:671    63
+ip-10-36-251-13:675    63
+ip-10-36-251-13:679    62
+ip-10-36-251-13:683    63
+ip-10-36-251-13:687    62
+ip-10-36-251-13:691    62
+ip-10-36-251-13:694    62
+ip-10-84-179-195:705   63
+ip-10-84-179-195:709   63
+ip-10-84-179-195:713   62
+ip-10-84-179-195:717   62
+ip-10-84-179-195:721   62
+ip-10-84-179-195:726   63
+ip-10-84-179-195:729   62
+ip-10-84-179-195:732   63
+[1] "result:"
+[1] 3.141587
+> res
+     [,1]       [,2]         [,3]      [,4]
+[1,] "INSTANCE" "i-40d4d020" "running" "shutting-down"
+[2,] "INSTANCE" "i-42d4d022" "running" "shutting-down"
+>
+
+-Whit
+
+
+From edd at debian.org  Sun Oct 16 02:44:09 2011
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Sat, 15 Oct 2011 19:44:09 -0500
+Subject: [R-sig-hpc] Distributed computing
+In-Reply-To: <CAFtbSf7vY0zo+D2gJxUeVZ7v6GHhCYCb4Df14VuKgbKof+LxDw@mail.gmail.com>
+References: <CAFtbSf7vY0zo+D2gJxUeVZ7v6GHhCYCb4Df14VuKgbKof+LxDw@mail.gmail.com>
+Message-ID: <20122.10457.978876.603912@max.nulle.part>
+
+
+On 15 October 2011 at 23:00, Akshay Jain wrote:
+| Hi everyone
+| 
+| I have about 5-6 old laptops which are lying waste. I want to do some large
+| data analysis using neural network algorithms.what is the best way to
+| connect them to a grid in order to pool their CPU resources?
+| 
+| There is a package "gridR"  or RHIPE? Which is the best package for my
+| needs? What is the one which requires minimum technical knowledge as I am
+| not from an IT/computer science background, so not familiar with java etc.
+
+We wrote a survey paper on the 'state of the art in parallel computing with
+R' (see http://www.jstatsoft.org/v31/i01). We found Rmpi and snow to be
+dominant in most use cases -- and I still find their setup easier than Hadoop
+but others may differ.
+
+You can get these laptops to use in a quickly built cluster simply by drpping
+Ubuntu or Debian onto them, but it helps if you know some Unix/Linux tricks
+and know eg how to propaget ssh keys.  
+
+Distributed computing with minimal IT knowledge is unfortunately a little bit
+of a contradiction in terms.  Your easiest bet may be to donate the laptops
+and buy a cheap four or six core box and rely on the multicore package---or
+the parallel package in R 2.14.0 due out in two weeks.
+
+Dirk
+
+-- 
+"Outside of a dog, a book is a man's best friend. Inside of a dog, it is too
+dark to read." -- Groucho Marx
+
+
+From sdavis2 at mail.nih.gov  Sun Oct 16 14:30:49 2011
+From: sdavis2 at mail.nih.gov (Sean Davis)
+Date: Sun, 16 Oct 2011 08:30:49 -0400
+Subject: [R-sig-hpc] Distributed computing
+In-Reply-To: <20122.10457.978876.603912@max.nulle.part>
+References: <CAFtbSf7vY0zo+D2gJxUeVZ7v6GHhCYCb4Df14VuKgbKof+LxDw@mail.gmail.com>
+	<20122.10457.978876.603912@max.nulle.part>
+Message-ID: <CANeAVBnM==SohBJ5q5_DDiF5i-M-vOptWCWnbovZ5S7Wsb_H2A@mail.gmail.com>
+
+On Sat, Oct 15, 2011 at 8:44 PM, Dirk Eddelbuettel <edd at debian.org> wrote:
+>
+> On 15 October 2011 at 23:00, Akshay Jain wrote:
+> | Hi everyone
+> |
+> | I have about 5-6 old laptops which are lying waste. I want to do some large
+> | data analysis using neural network algorithms.what is the best way to
+> | connect them to a grid in order to pool their CPU resources?
+> |
+> | There is a package "gridR" ?or RHIPE? Which is the best package for my
+> | needs? What is the one which requires minimum technical knowledge as I am
+> | not from an IT/computer science background, so not familiar with java etc.
+>
+> We wrote a survey paper on the 'state of the art in parallel computing with
+> R' (see http://www.jstatsoft.org/v31/i01). We found Rmpi and snow to be
+> dominant in most use cases -- and I still find their setup easier than Hadoop
+> but others may differ.
+>
+> You can get these laptops to use in a quickly built cluster simply by drpping
+> Ubuntu or Debian onto them, but it helps if you know some Unix/Linux tricks
+> and know eg how to propaget ssh keys.
+>
+> Distributed computing with minimal IT knowledge is unfortunately a little bit
+> of a contradiction in terms. ?Your easiest bet may be to donate the laptops
+> and buy a cheap four or six core box and rely on the multicore package---or
+> the parallel package in R 2.14.0 due out in two weeks.
+
+And if buying hardware is not in the cards, there are a few AMIs
+bundled with R out there that could be dropped onto Amazon to give you
+a relatively large SMP machine that would serve the same purpose.
+
+Sean
+
+
+From zach.mayer at gmail.com  Sun Oct 16 14:56:18 2011
+From: zach.mayer at gmail.com (Zachary Mayer)
+Date: Sun, 16 Oct 2011 08:56:18 -0400
+Subject: [R-sig-hpc] Distributed computing
+In-Reply-To: <CANeAVBnM==SohBJ5q5_DDiF5i-M-vOptWCWnbovZ5S7Wsb_H2A@mail.gmail.com>
+References: <CAFtbSf7vY0zo+D2gJxUeVZ7v6GHhCYCb4Df14VuKgbKof+LxDw@mail.gmail.com>
+	<20122.10457.978876.603912@max.nulle.part>
+	<CANeAVBnM==SohBJ5q5_DDiF5i-M-vOptWCWnbovZ5S7Wsb_H2A@mail.gmail.com>
+Message-ID: <-9019738604258062211@unknownmsgid>
+
+Could you provide a link to some of these AMIs?  The only only one I'm
+aware of is the bioconductor AMI.
+
+Sent from my iPhone
+
+On Oct 16, 2011, at 8:31 AM, Sean Davis <sdavis2 at mail.nih.gov> wrote:
+
+> there are a few AMIs
+> bundled with R out there that could be dropped onto Amazon to give you
+> a relatively large SMP machine that would serve the same purpose.
+>
+> Sean
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From sdavis2 at mail.nih.gov  Sun Oct 16 15:19:17 2011
+From: sdavis2 at mail.nih.gov (Sean Davis)
+Date: Sun, 16 Oct 2011 09:19:17 -0400
+Subject: [R-sig-hpc] Distributed computing
+In-Reply-To: <-9019738604258062211@unknownmsgid>
+References: <CAFtbSf7vY0zo+D2gJxUeVZ7v6GHhCYCb4Df14VuKgbKof+LxDw@mail.gmail.com>
+	<20122.10457.978876.603912@max.nulle.part>
+	<CANeAVBnM==SohBJ5q5_DDiF5i-M-vOptWCWnbovZ5S7Wsb_H2A@mail.gmail.com>
+	<-9019738604258062211@unknownmsgid>
+Message-ID: <CANeAVBm6=eHMKJBn6gAupivUQ1H0mkdjDnpJHkzQg947GmK11A@mail.gmail.com>
+
+On Sun, Oct 16, 2011 at 8:56 AM, Zachary Mayer <zach.mayer at gmail.com> wrote:
+> Could you provide a link to some of these AMIs? ?The only only one I'm
+> aware of is the bioconductor AMI.
+
+The bioconductor AMI would be a reasonable choice I think.  Here is
+another that bundles R:
+
+http://cloudbiolinux.org/
+
+Dirk may be aware of others.  Dirk (I think) also maintains a ton of
+R-related debs, so you could probably get away with a pretty standard
+debian AMI and simply add R via the normal apt get to get what you
+want.
+
+Sean
+
+
+> Sent from my iPhone
+>
+> On Oct 16, 2011, at 8:31 AM, Sean Davis <sdavis2 at mail.nih.gov> wrote:
+>
+>> there are a few AMIs
+>> bundled with R out there that could be dropped onto Amazon to give you
+>> a relatively large SMP machine that would serve the same purpose.
+>>
+>> Sean
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From edd at debian.org  Sun Oct 16 16:48:57 2011
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Sun, 16 Oct 2011 09:48:57 -0500
+Subject: [R-sig-hpc] Distributed computing
+In-Reply-To: <CANeAVBm6=eHMKJBn6gAupivUQ1H0mkdjDnpJHkzQg947GmK11A@mail.gmail.com>
+References: <CAFtbSf7vY0zo+D2gJxUeVZ7v6GHhCYCb4Df14VuKgbKof+LxDw@mail.gmail.com>
+	<20122.10457.978876.603912@max.nulle.part>
+	<CANeAVBnM==SohBJ5q5_DDiF5i-M-vOptWCWnbovZ5S7Wsb_H2A@mail.gmail.com>
+	<-9019738604258062211@unknownmsgid>
+	<CANeAVBm6=eHMKJBn6gAupivUQ1H0mkdjDnpJHkzQg947GmK11A@mail.gmail.com>
+Message-ID: <20122.61145.458937.154001@max.nulle.part>
+
+
+On 16 October 2011 at 09:19, Sean Davis wrote:
+| On Sun, Oct 16, 2011 at 8:56 AM, Zachary Mayer <zach.mayer at gmail.com> wrote:
+| > Could you provide a link to some of these AMIs? ?The only only one I'm
+| > aware of is the bioconductor AMI.
+| 
+| The bioconductor AMI would be a reasonable choice I think.  Here is
+| another that bundles R:
+| 
+| http://cloudbiolinux.org/
+
+Whit (who is leading a parallel thread here under the 'deathstar' banner
+covering his R-based AMI tools) and I discussed that in email a few weeks
+back.  No clear choices dominate but ...
+ 
+| Dirk may be aware of others.  Dirk (I think) also maintains a ton of
+| R-related debs, so you could probably get away with a pretty standard
+| debian AMI and simply add R via the normal apt get to get what you
+| want.
+
+... Ubuntu has builds at http://cloud.ubuntu.com/ami and via another link on
+the EC2 tutorial page at the Ubuntu wiki, and Eric Hammond has a popular set
+too with a server configuration at his http://alestic.net site.
+
+I guess curerntly good approaches are to either start from the BioC one and
+strip it down (if you're like and don't do Genomics) or start with the basic
+Ubuntu ones and add packages as Sean suggests. That is the route that Whit
+took.
+
+Dirk
+
+-- 
+"Outside of a dog, a book is a man's best friend. Inside of a dog, it is too
+dark to read." -- Groucho Marx
+
+
+From armstrong.whit at gmail.com  Sun Oct 16 21:44:27 2011
+From: armstrong.whit at gmail.com (Whit Armstrong)
+Date: Sun, 16 Oct 2011 15:44:27 -0400
+Subject: [R-sig-hpc] Distributed computing
+In-Reply-To: <20122.61145.458937.154001@max.nulle.part>
+References: <CAFtbSf7vY0zo+D2gJxUeVZ7v6GHhCYCb4Df14VuKgbKof+LxDw@mail.gmail.com>
+	<20122.10457.978876.603912@max.nulle.part>
+	<CANeAVBnM==SohBJ5q5_DDiF5i-M-vOptWCWnbovZ5S7Wsb_H2A@mail.gmail.com>
+	<-9019738604258062211@unknownmsgid>
+	<CANeAVBm6=eHMKJBn6gAupivUQ1H0mkdjDnpJHkzQg947GmK11A@mail.gmail.com>
+	<20122.61145.458937.154001@max.nulle.part>
+Message-ID: <CAMi=pg7c8_N3ewdD5Di42pP+Y0jWj0XPSCtuK_G98w0mwnXT=Q@mail.gmail.com>
+
+It is incredibly easy to get started w/ ec2.
+
+1) pick a base ubuntu from the link that Dirk sent, or a redhat based
+distro if that's your thing
+2) boot up a micro instance (2 cents per hour, or free for new accounts).
+3) ssh into the box
+4) install all the custom R packages you want and any additional
+software w/ apt-get or yum.
+5) when you're happy with the installed packages and setup, halt the
+box (but do not terminate it)
+6) in the management console, right click on your instance, and choose
+'Create Image (EBS AMI)'
+7) once this process is completed you have your own custom spin with
+its own ami identifier
+
+For the deathstar image I built on Friday, this took about 20 minutes.
+ Far less if you're only installing from apt-get or yum.
+
+Additionally, you can try the AWS.tools package I posted to cran last
+week, which allows launching and terminating instances, and s3
+commands from R.
+
+http://cran.r-project.org/web/packages/AWS.tools/index.html
+or
+https://github.com/armstrtw/AWS.tools
+
+fyi, my public image for deathstar is under this ami: ami-9d5f93f4.
+
+Cheers,
+Whit
+
+
+On Sun, Oct 16, 2011 at 10:48 AM, Dirk Eddelbuettel <edd at debian.org> wrote:
+>
+> On 16 October 2011 at 09:19, Sean Davis wrote:
+> | On Sun, Oct 16, 2011 at 8:56 AM, Zachary Mayer <zach.mayer at gmail.com> wrote:
+> | > Could you provide a link to some of these AMIs? ?The only only one I'm
+> | > aware of is the bioconductor AMI.
+> |
+> | The bioconductor AMI would be a reasonable choice I think. ?Here is
+> | another that bundles R:
+> |
+> | http://cloudbiolinux.org/
+>
+> Whit (who is leading a parallel thread here under the 'deathstar' banner
+> covering his R-based AMI tools) and I discussed that in email a few weeks
+> back. ?No clear choices dominate but ...
+>
+> | Dirk may be aware of others. ?Dirk (I think) also maintains a ton of
+> | R-related debs, so you could probably get away with a pretty standard
+> | debian AMI and simply add R via the normal apt get to get what you
+> | want.
+>
+> ... Ubuntu has builds at http://cloud.ubuntu.com/ami and via another link on
+> the EC2 tutorial page at the Ubuntu wiki, and Eric Hammond has a popular set
+> too with a server configuration at his http://alestic.net site.
+>
+> I guess curerntly good approaches are to either start from the BioC one and
+> strip it down (if you're like and don't do Genomics) or start with the basic
+> Ubuntu ones and add packages as Sean suggests. That is the route that Whit
+> took.
+>
+> Dirk
+>
+> --
+> "Outside of a dog, a book is a man's best friend. Inside of a dog, it is too
+> dark to read." -- Groucho Marx
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From jakshay at gmail.com  Mon Oct 17 11:09:15 2011
+From: jakshay at gmail.com (Akshay Jain)
+Date: Mon, 17 Oct 2011 14:39:15 +0530
+Subject: [R-sig-hpc] Distributed computing
+In-Reply-To: <CAMi=pg7c8_N3ewdD5Di42pP+Y0jWj0XPSCtuK_G98w0mwnXT=Q@mail.gmail.com>
+References: <CAFtbSf7vY0zo+D2gJxUeVZ7v6GHhCYCb4Df14VuKgbKof+LxDw@mail.gmail.com>
+	<20122.10457.978876.603912@max.nulle.part>
+	<CANeAVBnM==SohBJ5q5_DDiF5i-M-vOptWCWnbovZ5S7Wsb_H2A@mail.gmail.com>
+	<-9019738604258062211@unknownmsgid>
+	<CANeAVBm6=eHMKJBn6gAupivUQ1H0mkdjDnpJHkzQg947GmK11A@mail.gmail.com>
+	<20122.61145.458937.154001@max.nulle.part>
+	<CAMi=pg7c8_N3ewdD5Di42pP+Y0jWj0XPSCtuK_G98w0mwnXT=Q@mail.gmail.com>
+Message-ID: <CAFtbSf6CX63YKyL_Z4MEApkVDOMzWtdXKpOF24cf3FMrMtNgbg@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20111017/db9d40c4/attachment.pl>
+
+From armstrong.whit at gmail.com  Mon Oct 17 14:34:02 2011
+From: armstrong.whit at gmail.com (Whit Armstrong)
+Date: Mon, 17 Oct 2011 08:34:02 -0400
+Subject: [R-sig-hpc] Distributed computing
+In-Reply-To: <CAFtbSf6CX63YKyL_Z4MEApkVDOMzWtdXKpOF24cf3FMrMtNgbg@mail.gmail.com>
+References: <CAFtbSf7vY0zo+D2gJxUeVZ7v6GHhCYCb4Df14VuKgbKof+LxDw@mail.gmail.com>
+	<20122.10457.978876.603912@max.nulle.part>
+	<CANeAVBnM==SohBJ5q5_DDiF5i-M-vOptWCWnbovZ5S7Wsb_H2A@mail.gmail.com>
+	<-9019738604258062211@unknownmsgid>
+	<CANeAVBm6=eHMKJBn6gAupivUQ1H0mkdjDnpJHkzQg947GmK11A@mail.gmail.com>
+	<20122.61145.458937.154001@max.nulle.part>
+	<CAMi=pg7c8_N3ewdD5Di42pP+Y0jWj0XPSCtuK_G98w0mwnXT=Q@mail.gmail.com>
+	<CAFtbSf6CX63YKyL_Z4MEApkVDOMzWtdXKpOF24cf3FMrMtNgbg@mail.gmail.com>
+Message-ID: <CAMi=pg6JEu=nrtEMT2yFJ5n+RUjKj0+e4Q3rYZ2DysrEGFwxJw@mail.gmail.com>
+
+> Is it possible to get something bigger than "Extra Large"?Hi-CPU On-Demand
+> Instance? The point that I am trying to ask is that I can easily run
+> multiple instances of AMI on AWS but can I somehow pool their resources to
+> do A LOT of data crunching? (hundreds of GBs)?
+
+That is exactly the point.
+
+Read my other thread (the "deathstar" thread).
+
+Recently I fired 15 c1.xlarge instances (8 cores each for 120 cores
+total), and ran a job in less than an hour, that takes 24 hours if I
+run it on my own workstation.
+
+What deathstar gives you is an lapply  that can be called from  your
+workstation, that will fire jobs in parallel into an amazon 'cluster.'
+ The cluster is simply a list of names of the amazon machines.
+
+I put up a gist here: https://gist.github.com/1292481
+
+but here is the core of what you do to fire jobs into the cluster
+(just use your own ssh key):
+
+cl <- startCluster(ami="ami-9d5f93f4",key="maher-ave",instance.count=2,instance.type="c1.xlarge")
+ans <- zmq.cluster.lapply(cluster=cl$instances[,"dnsName"],as.list(1:1e3),estimatePi)
+res <- terminateCluster(cl)
+
+ZMQ will allow you to move large objects across the wire, but if you
+do have hundreds of GB's, then simply upload the data using S3, and
+then use the zmq.cluster.lapply to index into your s3 object.  The
+AWS.tools package has the basic s3 commands.
+
+I haven't tested the code, but it would look something like this:
+
+> big.data <- list(); for(i in 1:100) big.data[[i]] <- rnorm(1e5)
+> print(object.size(big.data),units="Mb")
+76.3 Mb
+> s3.put(big.data,"s3://klsdiversified-prod/big.data.rds")
+[1] "File '/tmp/Rtmpo7Manp/file2d96e778' stored as
+'s3://klsdiversified-prod/big.data.rds' (76854203 bytes in 31.6
+seconds, 2.32 MB/s) [1 of 1]"
+>
+
+Then fire your clusters, and use the argument 1:100 to index into the
+list, and apply a function on each item.
+
+In normal R/lapply, would be like this:
+foo <- function(i) { sum(abs(big.data[[i]])) }
+result <- lapply(1:100,foo)
+
+but w/ zmq.cluster.lapply:
+foo <- function(i) { big.data <-
+s3.get("s3://klsdiversified-prod/big.data.rds");
+sum(abs(big.data[[i]])) }
+result <- zmq.cluster.lapply(cluster=cl$instances[,"dnsName"],as.list(1:100),foo)
+
+Alternatively, you can store each chunk of data in a separate s3
+object, and then pass the bucket names to the zmq.cluster.lapply
+command.
+
+-Whit
+
+
+From Muriel.Mewissen at ed.ac.uk  Mon Oct 31 11:43:23 2011
+From: Muriel.Mewissen at ed.ac.uk (Muriel Mewissen)
+Date: Mon, 31 Oct 2011 10:43:23 -0000
+Subject: [R-sig-hpc] SPRINT & HECToR training course for R users - 1
+	December 2011 in Oxford
+Message-ID: <007901cc97b9$e9e98140$bdbc83c0$@Mewissen@ed.ac.uk>
+
+Dear All,
+
+ 
+
+I'd like to bring the following course to your attention:
+
+ 
+
+SPRINT training course: user-friendly statistical analysis using HECToR, the
+UK's most powerful supercomputer
+
+ 
+
+SPRINT (Simple Parallel R INTerface) provides easy access to high
+performance computing (HPC) for the analysis of high-throughput,
+post-genomic data using the statistical programming language R. The first
+ever SPRINT training course will be run at NAG Oxford on December 1st 2011.
+The course aims to give a general overview of the hardware, software and
+configuration of the HECToR system in the context of using SPRINT.
+
+ 
+
+The first full version of the SPRINT framework - SPRINT v1.0.0 - will be
+released this month. SPRINT gives R users the parallel tool kit they need to
+perform computationally-challenging statistical analyses easily on HPC. It
+lifts the limitations on data size and analysis time commonly found in many
+disciplines such as bioinformatics, where large volumes of highly parallel,
+high throughput post-genomic data are generated. SPRINT is unique in its HPC
+platform independence, its focus on complex, hard to parallelise,
+data-dependent functions and its user friendliness.
+
+ 
+
+SPRINT contains optimised versions of the following R functionality:
+pair-wise Pearson's correlation, permutation testing, random forest, rank
+product, partitioning around medoids and apply. It is available to use on
+HECToR, the UK's national academic supercomputing service, which is hosted
+by EPCC.
+
+ 
+
+More information, including how to register, is available at:
+http://www.hector.ac.uk/cse/training/sprint/
+
+Information about costs and eligibility:
+http://www.hector.ac.uk/cse/training/eligibility/
+
+SPRINT is an open-source project and is open to contributions. All sources
+are available from R-Forge: r-forge.r-project.org
+<http://r-forge.r-project.org/>  
+Packaged releases are available from CRAN: cran.r-project.or
+SPRINT project website: www.r-sprint.org <http://www.r-sprint.org/> 
+Contact the SPRINT team: sprint at ed.ac.uk
+
+ 
+
+ 
+
+---
+
+Muriel Mewissen (+44 131 242 6283)
+
+ 
+
+Division of Pathway Medicine
+
+University of Edinburgh Medical School
+
+The Chancellor's building
+
+49 Little France Crescent
+
+Edinburgh, EH16 4SB
+
+--
+
+ 
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20111031/7dc302a3/attachment.html>
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20111031/7dc302a3/attachment.pl>
+

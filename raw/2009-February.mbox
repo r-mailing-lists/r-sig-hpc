@@ -1,0 +1,1531 @@
+From hyu at stats.uwo.ca  Sun Feb  1 18:08:19 2009
+From: hyu at stats.uwo.ca (Hao Yu)
+Date: Sun, 1 Feb 2009 12:08:19 -0500 (EST)
+Subject: [R-sig-hpc] Unable to install Rmpi under Leopard with MPICH2
+ installed
+In-Reply-To: <C5AA2ACD.DF98%MAB@Stowers.org>
+References: <C5AA2ACD.DF98%MAB@Stowers.org>
+Message-ID: <fd3271f0c03d37b292378fd42137e98c.squirrel@www.stats.uwo.ca>
+
+Hi Marco,
+
+Can you check if MPICH2 is compiled with dynamic link libs? Rmpi needs
+dynamic libs to work. You can use ldd to Rmpi.so to see which libs are
+linked to it.
+
+> ld warning: in /usr/local/lib/libmpich.a, file is not of required
+> architecture
+Seems indicating static link.
+
+Leopard has openmpi installed. I have universal binary version Rmpi on
+Rmpi website (32bit though).
+
+Hao
+
+
+Blanchette, Marco wrote:
+> Dear list,
+>
+> I found one of my problem. There was a orphan header file (mpi.h) from
+> lam-mpi left in /usr/include that was breaking ./configure script. Now,
+> after removing the file, I can succesfully build Rmpi from source (see
+> below). It builds in 64bit as seen by the -arch x86_64 flag passed to gcc
+> (see below). However, when I try to load Rmpi in R I still get a library
+> error. Again, your kind help would be appreciated. I would really like to
+> hear whether the problem comes from the MPICH2 library not build in 64
+> bit.
+>
+> Thanks
+>
+> Marco
+>
+> ### Error from R following attempt to load Rmpi
+>> library(Rmpi)
+> Error in dyn.load(file, DLLpath = DLLpath, ...) :
+>   unable to load shared library
+> '/Users/mab/Library/R/2.8/library/Rmpi/libs/x86_64/Rmpi.so':
+>   dlopen(/Users/mab/Library/R/2.8/library/Rmpi/libs/x86_64/Rmpi.so, 6):
+> Symbol not found: _MPI_Abort
+>   Referenced from:
+> /Users/mab/Library/R/2.8/library/Rmpi/libs/x86_64/Rmpi.so
+>   Expected in: dynamic lookup
+>
+> Error in library(Rmpi) : .First.lib failed for 'Rmpi'
+> Error in dyn.unload(file.path(libpath, "libs", paste("Rmpi",
+> .Platform$dynlib.ext,  :
+>   dynamic/shared library
+> '/Users/mab/Library/R/2.8/library/Rmpi/libs/Rmpi.so' was not loaded
+>
+>
+> ### Output from installing Rmpi
+> m007344upz:src mab$ R CMD INSTALL Rmpi
+> * Installing to library '/Users/mab/Library/R/2.8/library'
+> * Installing *source* package 'Rmpi' ...
+> checking for gcc... gcc
+> checking for C compiler default output file name... a.out
+> checking whether the C compiler works... yes
+> checking whether we are cross compiling... no
+> checking for suffix of executables...
+> checking for suffix of object files... o
+> checking whether we are using the GNU C compiler... yes
+> checking whether gcc accepts -g... yes
+> checking for gcc option to accept ISO C89... none needed
+> I am here /usr/local
+> Try to find mpi.h ...
+> Found in /usr/local/include
+> Try to find libmpi.so or libmpich.a
+> Found libmpich in /usr/local/lib
+> checking whether MPICH2 is declared... yes
+> checking whether MPICH2 is declared... (cached) yes
+> checking for openpty in -lutil... yes
+> checking for main in -lpthread... yes
+> configure: creating ./config.status
+> config.status: creating src/Makevars
+> ** libs
+> ** arch - x86_64
+> gcc-4.2 -arch x86_64 -std=gnu99
+> -I/Library/Frameworks/R.framework/Resources/include
+> -I/Library/Frameworks/R.framework/Resources/include/x86_64
+> -DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\"
+> -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\" -DHAVE_DECL_MPICH2=1
+> -DHAVE_DECL_MPICH2=1 -I/usr/local/include -DMPI2 -DMPICH -fPIC
+> -I/usr/local/include    -fPIC  -g -O2 -c RegQuery.c -o RegQuery.o
+> gcc-4.2 -arch x86_64 -std=gnu99
+> -I/Library/Frameworks/R.framework/Resources/include
+> -I/Library/Frameworks/R.framework/Resources/include/x86_64
+> -DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\"
+> -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\" -DHAVE_DECL_MPICH2=1
+> -DHAVE_DECL_MPICH2=1 -I/usr/local/include -DMPI2 -DMPICH -fPIC
+> -I/usr/local/include    -fPIC  -g -O2 -c Rmpi.c -o Rmpi.o
+> gcc-4.2 -arch x86_64 -std=gnu99
+> -I/Library/Frameworks/R.framework/Resources/include
+> -I/Library/Frameworks/R.framework/Resources/include/x86_64
+> -DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\"
+> -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\" -DHAVE_DECL_MPICH2=1
+> -DHAVE_DECL_MPICH2=1 -I/usr/local/include -DMPI2 -DMPICH -fPIC
+> -I/usr/local/include    -fPIC  -g -O2 -c conversion.c -o conversion.o
+> gcc-4.2 -arch x86_64 -std=gnu99
+> -I/Library/Frameworks/R.framework/Resources/include
+> -I/Library/Frameworks/R.framework/Resources/include/x86_64
+> -DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\"
+> -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\" -DHAVE_DECL_MPICH2=1
+> -DHAVE_DECL_MPICH2=1 -I/usr/local/include -DMPI2 -DMPICH -fPIC
+> -I/usr/local/include    -fPIC  -g -O2 -c internal.c -o internal.o
+> gcc-4.2 -arch x86_64 -std=gnu99 -dynamiclib
+> -Wl,-headerpad_max_install_names  -undefined dynamic_lookup -single_module
+> -multiply_defined suppress -L/usr/local/lib -o Rmpi.so RegQuery.o Rmpi.o
+> conversion.o internal.o -L/usr/local/lib -lmpich -lutil -lpthread -fPIC
+> -F/Library/Frameworks/R.framework/.. -framework R -Wl,-framework
+> -Wl,CoreFoundation
+> ld warning: in /usr/local/lib/libmpich.a, file is not of required
+> architecture
+> ** R
+> ** demo
+> ** inst
+> ** preparing package for lazy loading
+> ** help
+>  >>> Building/Updating help pages for package 'Rmpi'
+>      Formats: text html latex example
+> ** building package indices ...
+> * DONE (Rmpi)
+>
+>
+> On 1/31/09 3:01 PM, "Blanchette, Marco" <MAB at stowers.org> wrote:
+>
+> Dear list,
+>
+> Because one of the application we use do not run under lam-mpi, I just
+> migrated from lam-mpi 7.1.2 to MPICH2 1.0.8. I have been struggling to
+> reinstall Rmpi with the new 64 bit R deployment [R 2.8.1 Patched
+> (2009-01-29)] on a Mac Pro running Mac OSX 10.5.5 (leopard). Snow builds
+> and runs correctly, however Rmpi give the following error after
+> installation (either from the repository or from a local install):
+>> library(Rmpi)
+> Error in dyn.load(file, DLLpath = DLLpath, ...) :
+>   unable to load shared library
+> '/Users/mab/Library/R/2.8/library/Rmpi/libs/x86_64/Rmpi.so':
+>   dlopen(/Users/mab/Library/R/2.8/library/Rmpi/libs/x86_64/Rmpi.so, 6):
+> Library not loaded: /usr//lib/libmpi.0.dylib
+>   Referenced from:
+> /Users/mab/Library/R/2.8/library/Rmpi/libs/x86_64/Rmpi.so
+>   Reason: image not found
+> Error in library(Rmpi) : .First.lib failed for 'Rmpi'
+> Error in dyn.unload(file.path(libpath, "libs", paste("Rmpi",
+> .Platform$dynlib.ext,  :
+>   dynamic/shared library
+> '/Users/mab/Library/R/2.8/library/Rmpi/libs/Rmpi.so' was not loaded
+>
+> MPICH2 (the mpirun, mpiexec and mpicc) is install under /usr/local/bin and
+> the libaries are under /usr/local/lib. Is the standard R CMD INSTALL Rmpi
+> is suppose to guess the correct configuration? Do I need to have MPICH2
+> compile in 64bit? I use to be able to run Rmpi with lam-mpi no problem
+> under the 64 bit R 2.8.0.
+>
+> Your help will be greatly appreciated.
+>
+> Thanks
+>
+> Marco
+> --
+> Marco Blanchette, Ph.D.
+> Assistant Investigator
+> Stowers Institute for Medical Research
+> 1000 East 50th St.
+>
+> Kansas City, MO 64110
+>
+> Tel: 816-926-4071
+> Cell: 816-726-8419
+> Fax: 816-926-2018
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+>
+> --
+> Marco Blanchette, Ph.D.
+> Assistant Investigator
+> Stowers Institute for Medical Research
+> 1000 East 50th St.
+>
+> Kansas City, MO 64110
+>
+> Tel: 816-926-4071
+> Cell: 816-726-8419
+> Fax: 816-926-2018
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+-- 
+Department of Statistics & Actuarial Sciences
+Fax Phone#:(519)-661-3813
+The University of Western Ontario
+Office Phone#:(519)-661-3622
+London, Ontario N6A 5B7
+http://www.stats.uwo.ca/faculty/yu
+
+
+From srinivasraghav at gmail.com  Mon Feb  2 09:03:03 2009
+From: srinivasraghav at gmail.com (srinivasa raghavan)
+Date: Mon, 2 Feb 2009 13:33:03 +0530
+Subject: [R-sig-hpc] R high performance computing in 32 bit windows 2003
+Message-ID: <e45b69190902020003l1f0fdb05x1ce598dcc3c34164@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090202/cb3f39c4/attachment.pl>
+
+From srinivasraghav at gmail.com  Mon Feb  2 09:19:13 2009
+From: srinivasraghav at gmail.com (srinivasa raghavan)
+Date: Mon, 2 Feb 2009 03:19:13 -0500
+Subject: [R-sig-hpc] Personal invitation from srinivasa raghavan
+Message-ID: <20090202031913.2107738923@unyk.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090202/f2305f6e/attachment.pl>
+
+From osklyar at maninvestments.com  Mon Feb  2 18:27:24 2009
+From: osklyar at maninvestments.com (Sklyar, Oleg (London))
+Date: Mon, 2 Feb 2009 17:27:24 -0000
+Subject: [R-sig-hpc] Rmpi hanging on slave nodes
+Message-ID: <1A68FCB28DE72F4BA3B967E6506CCE43047DF616@mildnpexmb01.maninvestments.ad.man.com>
+
+Dear Hao, dear list:
+
+for some time now I have had strange issues with Rmpi which essentially
+result in the head node spawning jobs to slave nodes, those run for a
+couple of seconds and then hang and never return back to the head node
+(see the 'top' output below). The issue occurs *only* when I run a
+function like the one below (simplified) being a part of a package. If I
+run the same from the global environment, or if I run the below domaccs
+that broadcasts a function being defined in the global environment, then
+everything runs through.
+
+Now out of 10 custom packages that I have, the above problem occurs for
+just about two if I import them into the calling package. All other do
+not have any adverse effect. I was trying to strip off functionality of
+the two mentioned packages to avoid name clashes etc, but was not able
+to locate any particular function that would lead to clashes -- at some
+point if the package is attached, Rmpi stops working. I understand that
+this information is very vague, but I was thinking that somebody has had
+a similar problem already and knows the answer. The same issue with Rmpi
+0.5-5 through to 0.5-7
+
+Will be grateful for any ideas.
+
+Thanks,
+Oleg
+
+PS: I am sorry I cannot post the exact code as it is not open source,
+but then it would be too large anyway.
+
+function = sim(tsdata, ...) {
+  domaccs = function(tsdata, ...) {
+    mpi.spawn.Rslaves(nslaves=length(tsdata), needlog=FALSE)
+    res = mpi.parLapply(tsdata, 
+      function(data, ...) {
+        require(Sim)
+        singleSim(data, ...)
+      }, ..., job.num=length(tsdata))
+    mpi.close.Rslaves()
+    res
+  }
+  domaccs(tsdata, ...)
+}
+
+
+It is RHEL5 64bit, LAM 7.1.4, 16-node cluster of Opterons
+
+> sessionInfo()
+R version 2.9.0 Under development (unstable) (2008-09-30 r46585) 
+x86_64-unknown-linux-gnu 
+
+locale:
+C
+
+attached base packages:
+[1] splines   stats     graphics  utils     datasets  grDevices methods
+
+[8] base     
+
+other attached packages:
+ [1] Rmpi_0.5-7         Sim_0.2.41      Data_0.2.20        NagLib_0.1.7
+
+ [5] Finance_0.1.77     DBConn_0.2.24   ROracle_0.5-9      RODBC_1.2-3
+
+ [9] DBI_0.2-4          Calendar_0.2.88 Base_0.1.36    
+
+loaded via a namespace (and not attached):
+[1] tools_2.9.0
+
+Dr Oleg Sklyar
+Research Technologist
+AHL / Man Investments Ltd
++44 (0)20 7144 3107
+osklyar at maninvestments.com
+
+**********************************************************************
+Please consider the environment before printing this email or its attachments.
+The contents of this email are for the named addressees ...{{dropped:19}}
+
+
+From gabraham at csse.unimelb.edu.au  Tue Feb  3 02:27:01 2009
+From: gabraham at csse.unimelb.edu.au (Gad Abraham)
+Date: Tue, 03 Feb 2009 12:27:01 +1100
+Subject: [R-sig-hpc] mpi_comm_spawn error with Rmpi and snow on SGI Altix
+Message-ID: <49879D65.20304@csse.unimelb.edu.au>
+
+Hi,
+
+I'm running R-2.8.1 on SuSE linux (don't know which version, kernel 
+2.6.16.60-0.27-default) on an SGI Altix cluster.
+
+Rmpi 0.5-6 and snow 0.3-3 both installed OK, Rmpi is linked correctly AFAIK:
+ > R CMD ldd Rmpi.so
+linux-gate.so.1 =>  (0xa000000000000000)
+libmpi.so => /usr/lib/libmpi.so (0x200000080008c000)
+...
+
+I'm trying to call the script testsnow.R:
+
+library(snow)
+cl <- makeCluster(4, "MPI")
+
+fun <- function(i) {
+    x <- matrix(rnorm(3e6), ncol=3)
+    replicate(1000, crossprod(x))
+}
+
+system.time({
+    r <- parLapply(cl, 1:4, fun)
+})
+
+
+I call it with another script submitted to qsub:
+#!/bin/sh
+#$ -cwd
+#$ -pe mpi 2
+mpirun -np 1 /home/gabraham/bin/R --vanilla < testsnow.R
+
+
+This fails with the error:
+
+Error calling job_getjid(): No such file or directory
+Error in .Call("mpi_comm_spawn", as.character(slave), 
+as.character(slavearg),  :
+   C symbol name "mpi_comm_spawn" not in DLL for package "Rmpi"
+Calls: makeCluster ... switch -> makeMPIcluster -> mpi.comm.spawn -> .Call
+Execution halted
+MPI: MPI_COMM_WORLD rank 0 has terminated without calling MPI_Finalize()
+MPI: aborting job
+
+Any idea what's happening?
+
+Thanks,
+Gad
+
+-- 
+Gad Abraham
+Dept. CSSE and NICTA
+The University of Melbourne
+Parkville 3010, Victoria, Australia
+email: gabraham at csse.unimelb.edu.au
+web: http://www.csse.unimelb.edu.au/~gabraham
+
+
+From stefan.theussl at wu-wien.ac.at  Tue Feb  3 10:41:28 2009
+From: stefan.theussl at wu-wien.ac.at (Stefan Theussl)
+Date: Tue, 03 Feb 2009 10:41:28 +0100
+Subject: [R-sig-hpc] mpi_comm_spawn error with Rmpi and snow on SGI Altix
+In-Reply-To: <49879D65.20304@csse.unimelb.edu.au>
+References: <49879D65.20304@csse.unimelb.edu.au>
+Message-ID: <49881148.3090805@wu-wien.ac.at>
+
+Hi Gad,
+
+Presumably you have installed an old implementation of MPI. 
+mpi.comm.spawn has been supported since the MPI 1.2 standard as far as I 
+remember. Can you pls tell us which implementation/version of MPI you 
+use? (in case of LAM you may send us the output of 'laminfo')
+
+Best,
+Stefan
+
+Gad Abraham wrote:
+> Hi,
+>
+> I'm running R-2.8.1 on SuSE linux (don't know which version, kernel 
+> 2.6.16.60-0.27-default) on an SGI Altix cluster.
+>
+> Rmpi 0.5-6 and snow 0.3-3 both installed OK, Rmpi is linked correctly 
+> AFAIK:
+> > R CMD ldd Rmpi.so
+> linux-gate.so.1 =>  (0xa000000000000000)
+> libmpi.so => /usr/lib/libmpi.so (0x200000080008c000)
+> ...
+>
+> I'm trying to call the script testsnow.R:
+>
+> library(snow)
+> cl <- makeCluster(4, "MPI")
+>
+> fun <- function(i) {
+>    x <- matrix(rnorm(3e6), ncol=3)
+>    replicate(1000, crossprod(x))
+> }
+>
+> system.time({
+>    r <- parLapply(cl, 1:4, fun)
+> })
+>
+>
+> I call it with another script submitted to qsub:
+> #!/bin/sh
+> #$ -cwd
+> #$ -pe mpi 2
+> mpirun -np 1 /home/gabraham/bin/R --vanilla < testsnow.R
+>
+>
+> This fails with the error:
+>
+> Error calling job_getjid(): No such file or directory
+> Error in .Call("mpi_comm_spawn", as.character(slave), 
+> as.character(slavearg),  :
+>   C symbol name "mpi_comm_spawn" not in DLL for package "Rmpi"
+> Calls: makeCluster ... switch -> makeMPIcluster -> mpi.comm.spawn -> 
+> .Call
+> Execution halted
+> MPI: MPI_COMM_WORLD rank 0 has terminated without calling MPI_Finalize()
+> MPI: aborting job
+>
+> Any idea what's happening?
+>
+> Thanks,
+> Gad
+>
+
+
+From gabraham at csse.unimelb.edu.au  Fri Feb  6 02:20:49 2009
+From: gabraham at csse.unimelb.edu.au (Gad Abraham)
+Date: Fri, 06 Feb 2009 12:20:49 +1100
+Subject: [R-sig-hpc] mpi_comm_spawn error with Rmpi and snow on SGI Altix
+In-Reply-To: <49881148.3090805@wu-wien.ac.at>
+References: <49879D65.20304@csse.unimelb.edu.au>
+	<49881148.3090805@wu-wien.ac.at>
+Message-ID: <498B9071.6070504@csse.unimelb.edu.au>
+
+Stefan Theussl wrote:
+> Hi Gad,
+> 
+> Presumably you have installed an old implementation of MPI. 
+> mpi.comm.spawn has been supported since the MPI 1.2 standard as far as I 
+> remember. Can you pls tell us which implementation/version of MPI you 
+> use? (in case of LAM you may send us the output of 'laminfo')
+
+Hi Stefan & Martin,
+
+I'm merging my offline conversation with Martin.
+
+Details of the system:
+SGI Altix 3700Bx2, SUSE enterprise server 10 SP1
+/usr/lib/libmpi.so comes from the SGI package sgi-mpt-1.21-sgi601r1 
+which according to its release notes supports some MPI2 features like 
+MPI_Comm_spawn.
+
+Martin suggested to check if the symbols are in the library, and that 
+perhaps Rmpi isn't configuring itself correctly with -DMPI2:
+
+ > nm /usr/lib/libmpi.so | grep comm_spawn
+0000000000099180 W mpi_comm_spawn_
+0000000000099180 W mpi_comm_spawn__
+000000000009b390 W mpi_comm_spawn_multiple_
+000000000009b390 W mpi_comm_spawn_multiple__
+0000000000164dc0 T MPI_SGI_comm_spawn_request
+0000000000099180 T pmpi_comm_spawn_
+0000000000099180 W pmpi_comm_spawn__
+000000000009b390 T pmpi_comm_spawn_multiple_
+000000000009b390 W pmpi_comm_spawn_multiple__
+
+
+Here's sample output from R CMD INSTALL Rmpi, -DMPI2 indeed not set:
+
+gcc -std=gnu99 -I/home/gabraham/dmf/Software/R-2.8.1/include 
+-DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" 
+-DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\" -I/usr/include  -DUNKNOWN 
+-fPIC -I/usr/local/include    -fpic  -g -O2 -c conversion.c -o conversion.o
+
+
+If I recompile Rmpi with either MPI_DEPS="-DMPI2" R CMD INSTALL Rmpi, or 
+by setting MPI_DEPS="-DMPI2" in Rmpi/configure.ac then autoconf then R 
+CMD INSTALL, as suggested by Martin, then -DMPI2 is set:
+
+gcc -std=gnu99 -I/home/gabraham/dmf/Software/R-2.8.1/include 
+-DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" 
+-DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\"  -I/usr/include -DMPI2 
+-DUNKNOWN -fPIC -I/usr/local/include    -fpic  -g -O2 -c conversion.c -o 
+conversion.o
+
+
+but I get a different error when I run the example code:
+
+Error calling job_getjid(): No such file or directory
+Error in mpi.comm.spawn(slave = mpitask, slavearg = args, nslaves = 
+count,  :
+   Error during spawn request
+Calls: makeCluster ... switch -> makeMPIcluster -> mpi.comm.spawn -> .Call
+Execution halted
+MPI: MPI_COMM_WORLD rank 0 has terminated without calling MPI_Finalize()
+MPI: aborting job
+
+
+Thanks,
+Gad
+
+-- 
+Gad Abraham
+Dept. CSSE and NICTA
+The University of Melbourne
+Parkville 3010, Victoria, Australia
+email: gabraham at csse.unimelb.edu.au
+web: http://www.csse.unimelb.edu.au/~gabraham
+
+
+From nakama at ki.rim.or.jp  Fri Feb  6 05:17:53 2009
+From: nakama at ki.rim.or.jp (Ei-ji Nakama)
+Date: Fri, 6 Feb 2009 13:17:53 +0900
+Subject: [R-sig-hpc] mpi_comm_spawn error with Rmpi and snow on SGI Altix
+In-Reply-To: <498B9071.6070504@csse.unimelb.edu.au>
+References: <49879D65.20304@csse.unimelb.edu.au>
+	<49881148.3090805@wu-wien.ac.at>
+	<498B9071.6070504@csse.unimelb.edu.au>
+Message-ID: <dc41e1260902052017r2ca334dfw8b984bf7f6348a22@mail.gmail.com>
+
+Hi,
+
+Was universe of size specified?
+
+http://www.techpubs.sgi.com/library/tpl/cgi-bin/getdoc.cgi/linux/bks/SGI_Developer/books/MPT_UG/sgi_html/ch03.html#id5188254
+
+
+2009/2/6 Gad Abraham <gabraham at csse.unimelb.edu.au>:
+> Stefan Theussl wrote:
+>>
+>> Hi Gad,
+>>
+>> Presumably you have installed an old implementation of MPI. mpi.comm.spawn
+>> has been supported since the MPI 1.2 standard as far as I remember. Can you
+>> pls tell us which implementation/version of MPI you use? (in case of LAM you
+>> may send us the output of 'laminfo')
+>
+> Hi Stefan & Martin,
+>
+> I'm merging my offline conversation with Martin.
+>
+> Details of the system:
+> SGI Altix 3700Bx2, SUSE enterprise server 10 SP1
+> /usr/lib/libmpi.so comes from the SGI package sgi-mpt-1.21-sgi601r1 which
+> according to its release notes supports some MPI2 features like
+> MPI_Comm_spawn.
+>
+> Martin suggested to check if the symbols are in the library, and that
+> perhaps Rmpi isn't configuring itself correctly with -DMPI2:
+>
+>> nm /usr/lib/libmpi.so | grep comm_spawn
+> 0000000000099180 W mpi_comm_spawn_
+> 0000000000099180 W mpi_comm_spawn__
+> 000000000009b390 W mpi_comm_spawn_multiple_
+> 000000000009b390 W mpi_comm_spawn_multiple__
+> 0000000000164dc0 T MPI_SGI_comm_spawn_request
+> 0000000000099180 T pmpi_comm_spawn_
+> 0000000000099180 W pmpi_comm_spawn__
+> 000000000009b390 T pmpi_comm_spawn_multiple_
+> 000000000009b390 W pmpi_comm_spawn_multiple__
+>
+>
+> Here's sample output from R CMD INSTALL Rmpi, -DMPI2 indeed not set:
+>
+> gcc -std=gnu99 -I/home/gabraham/dmf/Software/R-2.8.1/include
+> -DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\"
+> -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\" -I/usr/include  -DUNKNOWN
+> -fPIC -I/usr/local/include    -fpic  -g -O2 -c conversion.c -o conversion.o
+>
+>
+> If I recompile Rmpi with either MPI_DEPS="-DMPI2" R CMD INSTALL Rmpi, or by
+> setting MPI_DEPS="-DMPI2" in Rmpi/configure.ac then autoconf then R CMD
+> INSTALL, as suggested by Martin, then -DMPI2 is set:
+>
+> gcc -std=gnu99 -I/home/gabraham/dmf/Software/R-2.8.1/include
+> -DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\"
+> -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\"  -I/usr/include -DMPI2
+> -DUNKNOWN -fPIC -I/usr/local/include    -fpic  -g -O2 -c conversion.c -o
+> conversion.o
+>
+>
+> but I get a different error when I run the example code:
+>
+> Error calling job_getjid(): No such file or directory
+> Error in mpi.comm.spawn(slave = mpitask, slavearg = args, nslaves = count,
+>  :
+>  Error during spawn request
+> Calls: makeCluster ... switch -> makeMPIcluster -> mpi.comm.spawn -> .Call
+> Execution halted
+> MPI: MPI_COMM_WORLD rank 0 has terminated without calling MPI_Finalize()
+> MPI: aborting job
+>
+>
+> Thanks,
+> Gad
+>
+> --
+> Gad Abraham
+> Dept. CSSE and NICTA
+> The University of Melbourne
+> Parkville 3010, Victoria, Australia
+> email: gabraham at csse.unimelb.edu.au
+> web: http://www.csse.unimelb.edu.au/~gabraham
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+>
+>
+
+-- 
+EI-JI Nakama  <nakama (a) ki.rim.or.jp>
+"\u4e2d\u9593\u6804\u6cbb"  <nakama (a) ki.rim.or.jp>
+
+
+From gabraham at csse.unimelb.edu.au  Mon Feb  9 00:18:53 2009
+From: gabraham at csse.unimelb.edu.au (Gad Abraham)
+Date: Mon, 09 Feb 2009 10:18:53 +1100
+Subject: [R-sig-hpc] mpi_comm_spawn error with Rmpi and snow on SGI Altix
+In-Reply-To: <dc41e1260902052017r2ca334dfw8b984bf7f6348a22@mail.gmail.com>
+References: <49879D65.20304@csse.unimelb.edu.au>	
+	<49881148.3090805@wu-wien.ac.at>	
+	<498B9071.6070504@csse.unimelb.edu.au>
+	<dc41e1260902052017r2ca334dfw8b984bf7f6348a22@mail.gmail.com>
+Message-ID: <498F685D.6050209@csse.unimelb.edu.au>
+
+Ei-ji Nakama wrote:
+> Hi,
+> 
+> Was universe of size specified?
+> 
+> http://www.techpubs.sgi.com/library/tpl/cgi-bin/getdoc.cgi/linux/bks/SGI_Developer/books/MPT_UG/sgi_html/ch03.html#id5188254
+> 
+
+
+Hi Ei-ji,
+
+I added -up to the script called by qsub:
+#!/bin/sh
+#$ -cwd
+#$ -pe mpi 2
+mpirun -up 2 -np 1 /home/gabraham/bin/R --vanilla < testsnow.R
+
+but I still get the same error:
+ > cat testsnow.sh.e394520
+Error calling job_getjid(): No such file or directory
+Error in mpi.comm.spawn(slave = mpitask, slavearg = args, nslaves = 
+count,  :
+   Error during spawn request
+Calls: makeCluster ... switch -> makeMPIcluster -> mpi.comm.spawn -> .Call
+Execution halted
+MPI: MPI_COMM_WORLD rank 0 has terminated without calling MPI_Finalize()
+MPI: aborting job
+
+G.
+
+-- 
+Gad Abraham
+Dept. CSSE and NICTA
+The University of Melbourne
+Parkville 3010, Victoria, Australia
+email: gabraham at csse.unimelb.edu.au
+web: http://www.csse.unimelb.edu.au/~gabraham
+
+
+From nakama at ki.rim.or.jp  Mon Feb  9 11:55:59 2009
+From: nakama at ki.rim.or.jp (Ei-ji Nakama)
+Date: Mon, 9 Feb 2009 19:55:59 +0900
+Subject: [R-sig-hpc] mpi_comm_spawn error with Rmpi and snow on SGI Altix
+In-Reply-To: <498F685D.6050209@csse.unimelb.edu.au>
+References: <49879D65.20304@csse.unimelb.edu.au>
+	<49881148.3090805@wu-wien.ac.at>
+	<498B9071.6070504@csse.unimelb.edu.au>
+	<dc41e1260902052017r2ca334dfw8b984bf7f6348a22@mail.gmail.com>
+	<498F685D.6050209@csse.unimelb.edu.au>
+Message-ID: <dc41e1260902090255s7d42169alf1ee6d90b4b80581@mail.gmail.com>
+
+Hi, Gad.
+
+> I added -up to the script called by qsub:
+
+qsub is OpenPBS?
+
+> #!/bin/sh
+> #$ -cwd
+> #$ -pe mpi 2
+> mpirun -up 2 -np 1 /home/gabraham/bin/R --vanilla < testsnow.R
+
+does as follows maybe if it is OpenPBS.
+
+#!/bin/bash
+#PBS -N testsnow
+#PBS -q <<Name of queue that you of your machine can use>>
+#PBS -l ncpus=3
+#PBS -o testsnow.out
+#PBS -e testsnow.err
+mpirun -up 2 -np 1 /home/gabraham/bin/R CMD BATCH --vanilla testsnow.R
+
+try `man qsub'.
+
+> but I still get the same error:
+>> cat testsnow.sh.e394520
+> Error calling job_getjid(): No such file or directory
+> Error in mpi.comm.spawn(slave = mpitask, slavearg = args, nslaves = count,
+>  :
+>  Error during spawn request
+> Calls: makeCluster ... switch -> makeMPIcluster -> mpi.comm.spawn -> .Call
+> Execution halted
+> MPI: MPI_COMM_WORLD rank 0 has terminated without calling MPI_Finalize()
+> MPI: aborting job
+
+
+-- 
+EI-JI Nakama  <nakama (a) ki.rim.or.jp>
+"\u4e2d\u9593\u6804\u6cbb"  <nakama (a) ki.rim.or.jp>
+
+
+From gabraham at csse.unimelb.edu.au  Wed Feb 11 05:16:21 2009
+From: gabraham at csse.unimelb.edu.au (Gad Abraham)
+Date: Wed, 11 Feb 2009 15:16:21 +1100
+Subject: [R-sig-hpc] mpi_comm_spawn error with Rmpi and snow on SGI Altix
+In-Reply-To: <dc41e1260902090255s7d42169alf1ee6d90b4b80581@mail.gmail.com>
+References: <49879D65.20304@csse.unimelb.edu.au>	
+	<49881148.3090805@wu-wien.ac.at>	
+	<498B9071.6070504@csse.unimelb.edu.au>	
+	<dc41e1260902052017r2ca334dfw8b984bf7f6348a22@mail.gmail.com>	
+	<498F685D.6050209@csse.unimelb.edu.au>
+	<dc41e1260902090255s7d42169alf1ee6d90b4b80581@mail.gmail.com>
+Message-ID: <49925115.8060106@csse.unimelb.edu.au>
+
+Ei-ji Nakama wrote:
+> Hi, Gad.
+> 
+>> I added -up to the script called by qsub:
+> 
+> qsub is OpenPBS?
+
+Ei-ji,
+
+qsub is from Sun Grid Engine
+
+Gad
+
+> 
+>> #!/bin/sh
+>> #$ -cwd
+>> #$ -pe mpi 2
+>> mpirun -up 2 -np 1 /home/gabraham/bin/R --vanilla < testsnow.R
+> 
+> does as follows maybe if it is OpenPBS.
+> 
+> #!/bin/bash
+> #PBS -N testsnow
+> #PBS -q <<Name of queue that you of your machine can use>>
+> #PBS -l ncpus=3
+> #PBS -o testsnow.out
+> #PBS -e testsnow.err
+> mpirun -up 2 -np 1 /home/gabraham/bin/R CMD BATCH --vanilla testsnow.R
+> 
+> try `man qsub'.
+
+
+
+-- 
+Gad Abraham
+Dept. CSSE and NICTA
+The University of Melbourne
+Parkville 3010, Victoria, Australia
+email: gabraham at csse.unimelb.edu.au
+web: http://www.csse.unimelb.edu.au/~gabraham
+
+
+From ingeborg_schmidt at ymail.com  Wed Feb 11 14:33:21 2009
+From: ingeborg_schmidt at ymail.com (Ingeborg Schmidt)
+Date: Wed, 11 Feb 2009 05:33:21 -0800 (PST)
+Subject: [R-sig-hpc] Rmpi with Open MPI on Debian
+Message-ID: <839562.87794.qm@web24704.mail.ird.yahoo.com>
+
+Hello,
+I wish to use Rmpi with Open MPI on Debian. Slaves should be spawned on serveral computers which should be able to communicate with a single master. However, there does not seem to be a default hostfile for Open MPI that is used. So when I use
+library(Rmpi)
+mpi.spawn.Rslaves()
+it only spawns one slaves on the localhost instead of several thereads on all my computers. I am unable to find any useful documentation of Open MPI (yes, I checked the FAQ on open-mpi.org). Is there such a thing as a default hostfile that is used when calling mpi.spawn.Rslaves() ? Or is there any other way to use mpi.spawn.Rslaves() with Open MPI so that slaves are spawned across multiple computers?
+
+I am unsure about calling R via orterun. The only tutorials regarding orterun and R I found (e.g. http://dirk.eddelbuettel.com/papers/bocDec2008introHPCwithR.pdf ) seemed to imply that there either is no master or the master identifies itself by looking at it's mpi.comm.rank() . Moreover running
+paste("I am", mpi.comm.rank(), "of", mpi.comm.size())
+via
+orterun --hostfile MYHOSTFILE -n CPUNUMBER Rslaves.sh RTest.R testlog needlog /PATH/TO/R
+results in
+"I am 0 of 0"
+on every node.
+This is not what I want, I would like only the master to execute my R script and send relevant methods to the slaves via mpi.bcast.Robj2slave(). My code contains commands like mpi.remote.exec() which I would like to keep. I have not yet seen any examples that are able to combine calling R via orterun with communication between the slaves with mpi.remote.exec() etc.
+
+By the way: Can you recommend a method to lower the thread priory of the R slaves so that other calculations done on the same computers are not disturbed? Is placing a nice (Linux command to lower thread priority) before R in the Rslaves.sh sufficient when using mpi.spawn.Rslaves()?
+
+Cheers,
+Ingeborg Schmidt
+
+
+
+
+
+From osklyar at maninvestments.com  Wed Feb 11 14:49:01 2009
+From: osklyar at maninvestments.com (Sklyar, Oleg (London))
+Date: Wed, 11 Feb 2009 13:49:01 -0000
+Subject: [R-sig-hpc] Rmpi with Open MPI on Debian
+In-Reply-To: <839562.87794.qm@web24704.mail.ird.yahoo.com>
+References: <839562.87794.qm@web24704.mail.ird.yahoo.com>
+Message-ID: <1A68FCB28DE72F4BA3B967E6506CCE43047DF661@mildnpexmb01.maninvestments.ad.man.com>
+
+I had the same problem with RHEL5 and the main problem was the lack of
+documentation. What you might want is to look into
+/etc/openmpi-default-hostfile, which in my case had to be populated
+with:
+
+mynode1 slots=7
+mynode2 slots=7 
+
+etc. You might also want to try and create a local user-specific
+hostfile if default OpenMPI configuration on Debian supports that,
+pretty much with the same contents located in ~/.openmpi/hostfile
+
+Both worked for me. However Rmpi still reports that the universe size is
+1, i.e. in conctrast to LAM I could not rely on that value to get the
+number of CPUs I can use w/o LB.
+
+Dr Oleg Sklyar
+Research Technologist
+AHL / Man Investments Ltd
++44 (0)20 7144 3107
+osklyar at maninvestments.com 
+
+> -----Original Message-----
+> From: r-sig-hpc-bounces at r-project.org 
+> [mailto:r-sig-hpc-bounces at r-project.org] On Behalf Of Ingeborg Schmidt
+> Sent: 11 February 2009 13:33
+> To: r-sig-hpc at r-project.org
+> Subject: [R-sig-hpc] Rmpi with Open MPI on Debian
+> 
+> Hello,
+> I wish to use Rmpi with Open MPI on Debian. Slaves should be 
+> spawned on serveral computers which should be able to 
+> communicate with a single master. However, there does not 
+> seem to be a default hostfile for Open MPI that is used. So when I use
+> library(Rmpi)
+> mpi.spawn.Rslaves()
+> it only spawns one slaves on the localhost instead of several 
+> thereads on all my computers. I am unable to find any useful 
+> documentation of Open MPI (yes, I checked the FAQ on 
+> open-mpi.org). Is there such a thing as a default hostfile 
+> that is used when calling mpi.spawn.Rslaves() ? Or is there 
+> any other way to use mpi.spawn.Rslaves() with Open MPI so 
+> that slaves are spawned across multiple computers?
+> 
+> I am unsure about calling R via orterun. The only tutorials 
+> regarding orterun and R I found (e.g. 
+> http://dirk.eddelbuettel.com/papers/bocDec2008introHPCwithR.pd
+> f ) seemed to imply that there either is no master or the 
+> master identifies itself by looking at it's mpi.comm.rank() . 
+> Moreover running
+> paste("I am", mpi.comm.rank(), "of", mpi.comm.size())
+> via
+> orterun --hostfile MYHOSTFILE -n CPUNUMBER Rslaves.sh RTest.R 
+> testlog needlog /PATH/TO/R
+> results in
+> "I am 0 of 0"
+> on every node.
+> This is not what I want, I would like only the master to 
+> execute my R script and send relevant methods to the slaves 
+> via mpi.bcast.Robj2slave(). My code contains commands like 
+> mpi.remote.exec() which I would like to keep. I have not yet 
+> seen any examples that are able to combine calling R via 
+> orterun with communication between the slaves with 
+> mpi.remote.exec() etc.
+> 
+> By the way: Can you recommend a method to lower the thread 
+> priory of the R slaves so that other calculations done on the 
+> same computers are not disturbed? Is placing a nice (Linux 
+> command to lower thread priority) before R in the Rslaves.sh 
+> sufficient when using mpi.spawn.Rslaves()?
+> 
+> Cheers,
+> Ingeborg Schmidt
+> 
+> 
+> 
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+
+**********************************************************************
+Please consider the environment before printing this email or its attachments.
+The contents of this email are for the named addressees ...{{dropped:19}}
+
+
+From edd at debian.org  Wed Feb 11 16:25:26 2009
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Wed, 11 Feb 2009 09:25:26 -0600
+Subject: [R-sig-hpc] Rmpi with Open MPI on Debian
+In-Reply-To: <1A68FCB28DE72F4BA3B967E6506CCE43047DF661@mildnpexmb01.maninvestments.ad.man.com>
+References: <839562.87794.qm@web24704.mail.ird.yahoo.com>
+	<1A68FCB28DE72F4BA3B967E6506CCE43047DF661@mildnpexmb01.maninvestments.ad.man.com>
+Message-ID: <18834.60902.806611.69383@ron.nulle.part>
+
+
+On 11 February 2009 at 13:49, Sklyar, Oleg \(London\) wrote:
+| I had the same problem with RHEL5 and the main problem was the lack of
+| documentation.
+
+Yes, there is a bit of experimentation required which is why I hoped that my
+'cookbook' examples in the tutorial would help.  They help me when I can't
+remember how I did something two months prior ...
+
+| What you might want is to look into
+| /etc/openmpi-default-hostfile, which in my case had to be populated
+| with:
+| 
+| mynode1 slots=7
+| mynode2 slots=7 
+| 
+| etc. You might also want to try and create a local user-specific
+| hostfile if default OpenMPI configuration on Debian supports that,
+| pretty much with the same contents located in ~/.openmpi/hostfile
+
+AFAIK ortrun allows you either do that on the cmd line or via the config
+file. The config file is not mandatory/
+ 
+| Both worked for me. However Rmpi still reports that the universe size is
+| 1, i.e. in conctrast to LAM I could not rely on that value to get the
+| number of CPUs I can use w/o LB.
+
+Well as I mentioned to Ingeborg in private email (before I convinced her to
+post here, many eyeballs principle etc):
+
+edd at ron:~/src/latex/conferences/bocDec2008/scripts/parallel$ orterun -n 2 ./helloMPIworld.r
+Hello, rank 0 size 2 on ron 
+Hello, rank 1 size 2 on ron 
+edd at ron:~/src/latex/conferences/bocDec2008/scripts/parallel$ cat helloMPIworld.r
+#!/usr/bin/env r
+
+library(Rmpi)	# calls MPI_Init
+
+rk <- mpi.comm.rank(0)
+sz <- mpi.comm.size(0)
+name <- mpi.get.processor.name()
+cat("Hello, rank", rk, "size", sz, "on", name, "\n")
+
+#if (mpi.is.master()) mpi.finalize()
+mpi.quit()
+edd at ron:~/src/latex/conferences/bocDec2008/scripts/parallel$ 
+
+The same works perfectly fine for me at work with multiple hosts (which I
+can't do at home as the Ubuntu boxen still run OMPI 1.2.8 where my Debian
+server runs 1.3).
+
+I think Ingeborg's problem is in
+
+   orterun --hostfile MYHOSTFILE -n CPUNUMBER Rslaves.sh RTest.R testlog needlog /PATH/TO/R
+
+the direct use of Rslaves.sh.  This spawns n masters, not one master and in a
+rank of n.  I had more luck with 'litter' scripts (easy for Ingeborg after
+"apt-get install littler") and Rscript may work too.
+
+All the invocations gets trickier once you put slurm of top of it -- but
+there are ways to do it as the aforementioned tutorial shows.  My favourite
+allows you say on the command-line how many nodes you have and everything
+then just flows through. So no hard-coded number of slaves etc pp.
+
+I'd love to hear what other tricks people have come up with.
+
+Hth, Dirk
+
+| 
+| Dr Oleg Sklyar
+| Research Technologist
+| AHL / Man Investments Ltd
+| +44 (0)20 7144 3107
+| osklyar at maninvestments.com 
+| 
+| > -----Original Message-----
+| > From: r-sig-hpc-bounces at r-project.org 
+| > [mailto:r-sig-hpc-bounces at r-project.org] On Behalf Of Ingeborg Schmidt
+| > Sent: 11 February 2009 13:33
+| > To: r-sig-hpc at r-project.org
+| > Subject: [R-sig-hpc] Rmpi with Open MPI on Debian
+| > 
+| > Hello,
+| > I wish to use Rmpi with Open MPI on Debian. Slaves should be 
+| > spawned on serveral computers which should be able to 
+| > communicate with a single master. However, there does not 
+| > seem to be a default hostfile for Open MPI that is used. So when I use
+| > library(Rmpi)
+| > mpi.spawn.Rslaves()
+| > it only spawns one slaves on the localhost instead of several 
+| > thereads on all my computers. I am unable to find any useful 
+| > documentation of Open MPI (yes, I checked the FAQ on 
+| > open-mpi.org). Is there such a thing as a default hostfile 
+| > that is used when calling mpi.spawn.Rslaves() ? Or is there 
+| > any other way to use mpi.spawn.Rslaves() with Open MPI so 
+| > that slaves are spawned across multiple computers?
+| > 
+| > I am unsure about calling R via orterun. The only tutorials 
+| > regarding orterun and R I found (e.g. 
+| > http://dirk.eddelbuettel.com/papers/bocDec2008introHPCwithR.pd
+| > f ) seemed to imply that there either is no master or the 
+| > master identifies itself by looking at it's mpi.comm.rank() . 
+| > Moreover running
+| > paste("I am", mpi.comm.rank(), "of", mpi.comm.size())
+| > via
+| > orterun --hostfile MYHOSTFILE -n CPUNUMBER Rslaves.sh RTest.R 
+| > testlog needlog /PATH/TO/R
+| > results in
+| > "I am 0 of 0"
+| > on every node.
+| > This is not what I want, I would like only the master to 
+| > execute my R script and send relevant methods to the slaves 
+| > via mpi.bcast.Robj2slave(). My code contains commands like 
+| > mpi.remote.exec() which I would like to keep. I have not yet 
+| > seen any examples that are able to combine calling R via 
+| > orterun with communication between the slaves with 
+| > mpi.remote.exec() etc.
+| > 
+| > By the way: Can you recommend a method to lower the thread 
+| > priory of the R slaves so that other calculations done on the 
+| > same computers are not disturbed? Is placing a nice (Linux 
+| > command to lower thread priority) before R in the Rslaves.sh 
+| > sufficient when using mpi.spawn.Rslaves()?
+| > 
+| > Cheers,
+| > Ingeborg Schmidt
+| > 
+| > 
+| > 
+| > 
+| > _______________________________________________
+| > R-sig-hpc mailing list
+| > R-sig-hpc at r-project.org
+| > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+| > 
+| 
+| **********************************************************************
+| Please consider the environment before printing this email or its attachments.
+| The contents of this email are for the named addressees ...{{dropped:19}}
+| 
+| _______________________________________________
+| R-sig-hpc mailing list
+| R-sig-hpc at r-project.org
+| https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+-- 
+Three out of two people have difficulties with fractions.
+
+
+From hyu at stats.uwo.ca  Wed Feb 11 20:46:15 2009
+From: hyu at stats.uwo.ca (Hao Yu)
+Date: Wed, 11 Feb 2009 14:46:15 -0500 (EST)
+Subject: [R-sig-hpc] Rmpi with Open MPI on Debian
+In-Reply-To: <839562.87794.qm@web24704.mail.ird.yahoo.com>
+References: <839562.87794.qm@web24704.mail.ird.yahoo.com>
+Message-ID: <56c110cbada9cee44b3b4a720ab0fd20.squirrel@www.stats.uwo.ca>
+
+Hi Ingeborg,
+
+Dirk already answered some of your questions so I will not repeat here. I
+just address some of your issues.
+
+Overall OpenMPI is not a friendly MPI environment to work with unless it
+runs under job or resource management such as slurm. This effects how Rmpi
+runs under OpenMPI. The way of spawning R slaves under LAM is not working
+any more under OpenMPI. Under LAM, one just uses
+R -> library(Rmpi) ->  mpi.spawn.Rslaves()
+as long as host file is set. Under OpenMPI this leads only one R slave on
+the master host no matter how many remote hosts are specified in OpenMPI
+hostfile. One has to use orterun to tell Rmpi where remote hosts are.
+README in Rmpi shows how to spawn R slaves with mpirun. It applies to
+orterun as well. Here is how I do it:
+1. Copy R in R's bin to, say, Rort which should be in PATH.
+2. Modify Rort to add a line
+   R_PROFILE=${R_HOME_DIR}/library/Rmpi/Rprofile; export R_PROFILE
+right after R_HOME_DIR
+3. To have one master and 4 slaves, run
+   orterun -np 5 Rort R CMD BATCH R.in R.out
+
+e.g., I have one R.in like
+######
+#library(Rmpi)
+mpi.universe.size()
+#mpi.spawn.Rslaves()
+#mpi.setup.rngstream()
+mpi.parReplicate(100,mean(rnorm(10000000)))
+mpi.close.Rslaves()
+mpi.quit()
+######
+Notice that library(Rmpi) and mpi.spawn.Rslaves are commented out since
+Rprofile takes care of loading and spawning.
+
+Regarding 100%cpu usage from slaves while they are waiting, unfortunately,
+I cannot fix it until a new release of OpenMPI solves this issue. In Rmpi
+0.5-7 I add a few nonblocking parallel apply functions. However they just
+reduce cpu usages on master only. I don't know if those slaves will
+automatically yield to other programs. Nevertheless, you can try with nice
+function. You need to modify Rslaves.sh in Rmpi's inst to add nice in
+front of
+$R_HOME/bin/R --no-init-file ...
+
+Hao
+
+Ingeborg Schmidt wrote:
+> Hello,
+> I wish to use Rmpi with Open MPI on Debian. Slaves should be spawned on
+> serveral computers which should be able to communicate with a single
+> master. However, there does not seem to be a default hostfile for Open MPI
+> that is used. So when I use
+> library(Rmpi)
+> mpi.spawn.Rslaves()
+> it only spawns one slaves on the localhost instead of several thereads on
+> all my computers. I am unable to find any useful documentation of Open MPI
+> (yes, I checked the FAQ on open-mpi.org). Is there such a thing as a
+> default hostfile that is used when calling mpi.spawn.Rslaves() ? Or is
+> there any other way to use mpi.spawn.Rslaves() with Open MPI so that
+> slaves are spawned across multiple computers?
+>
+> I am unsure about calling R via orterun. The only tutorials regarding
+> orterun and R I found (e.g.
+> http://dirk.eddelbuettel.com/papers/bocDec2008introHPCwithR.pdf ) seemed
+> to imply that there either is no master or the master identifies itself by
+> looking at it's mpi.comm.rank() . Moreover running
+> paste("I am", mpi.comm.rank(), "of", mpi.comm.size())
+> via
+> orterun --hostfile MYHOSTFILE -n CPUNUMBER Rslaves.sh RTest.R testlog
+> needlog /PATH/TO/R
+> results in
+> "I am 0 of 0"
+> on every node.
+> This is not what I want, I would like only the master to execute my R
+> script and send relevant methods to the slaves via mpi.bcast.Robj2slave().
+> My code contains commands like mpi.remote.exec() which I would like to
+> keep. I have not yet seen any examples that are able to combine calling R
+> via orterun with communication between the slaves with mpi.remote.exec()
+> etc.
+>
+> By the way: Can you recommend a method to lower the thread priory of the R
+> slaves so that other calculations done on the same computers are not
+> disturbed? Is placing a nice (Linux command to lower thread priority)
+> before R in the Rslaves.sh sufficient when using mpi.spawn.Rslaves()?
+>
+> Cheers,
+> Ingeborg Schmidt
+>
+>
+>
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+-- 
+Department of Statistics & Actuarial Sciences
+Fax Phone#:(519)-661-3813
+The University of Western Ontario
+Office Phone#:(519)-661-3622
+London, Ontario N6A 5B7
+http://www.stats.uwo.ca/faculty/yu
+
+
+From edd at debian.org  Thu Feb 12 03:31:05 2009
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Wed, 11 Feb 2009 20:31:05 -0600
+Subject: [R-sig-hpc] Rmpi with Open MPI on Debian
+In-Reply-To: <56c110cbada9cee44b3b4a720ab0fd20.squirrel@www.stats.uwo.ca>
+References: <839562.87794.qm@web24704.mail.ird.yahoo.com>
+	<56c110cbada9cee44b3b4a720ab0fd20.squirrel@www.stats.uwo.ca>
+Message-ID: <18835.35305.322240.189010@ron.nulle.part>
+
+
+On 11 February 2009 at 14:46, Hao Yu wrote:
+| Overall OpenMPI is not a friendly MPI environment to work with unless it
+| runs under job or resource management such as slurm. This effects how Rmpi
+| runs under OpenMPI. The way of spawning R slaves under LAM is not working
+| any more under OpenMPI. Under LAM, one just uses
+| R -> library(Rmpi) ->  mpi.spawn.Rslaves()
+| as long as host file is set. Under OpenMPI this leads only one R slave on
+| the master host no matter how many remote hosts are specified in OpenMPI
+| hostfile. One has to use orterun to tell Rmpi where remote hosts are.
+| README in Rmpi shows how to spawn R slaves with mpirun. It applies to
+| orterun as well. Here is how I do it:
+| 1. Copy R in R's bin to, say, Rort which should be in PATH.
+| 2. Modify Rort to add a line
+|    R_PROFILE=${R_HOME_DIR}/library/Rmpi/Rprofile; export R_PROFILE
+| right after R_HOME_DIR
+| 3. To have one master and 4 slaves, run
+|    orterun -np 5 Rort R CMD BATCH R.in R.out
+| 
+| e.g., I have one R.in like
+| ######
+| #library(Rmpi)
+| mpi.universe.size()
+| #mpi.spawn.Rslaves()
+| #mpi.setup.rngstream()
+| mpi.parReplicate(100,mean(rnorm(10000000)))
+| mpi.close.Rslaves()
+| mpi.quit()
+| ######
+| Notice that library(Rmpi) and mpi.spawn.Rslaves are commented out since
+| Rprofile takes care of loading and spawning.
+
+Very interesting. You can do the same with littler as well, defining
+the R_PROFILE environment variable on the fly in the shell:
+
+edd at ron:~/src/progs/R> R_PROFILE=/usr/lib/R/site-library/Rmpi/Rprofile orterun -n 3 ./rmpitest.r
+master (rank 0, comm 1) of size 3 is running on: ron
+slave1 (rank 1, comm 1) of size 3 is running on: ron
+slave2 (rank 2, comm 1) of size 3 is running on: ron
+Loading required package: rlecuyer
+Loading required package: rlecuyer
+Loading required package: rlecuyer
+      Min.    1st Qu.     Median       Mean    3rd Qu.       Max.
+-0.0012100 -0.0003179  0.0001109  0.0002848  0.0007210  0.0032570
+edd at ron:~/src/progs/R>
+
+
+where I used 
+
+
+edd at ron:~/src/progs/R> cat rmpitest.r
+#!/usr/bin/r
+
+# Start via
+#   R_PROFILE=/usr/lib/R/site-library/Rmpi/Rprofile orterun -n 3 ./rmpitest.r
+# which loads Rmpi and spawns
+
+mpi.universe.size()
+mpi.setup.rngstream()
+res <- mpi.parReplicate(20,mean(rnorm(1000000)))   # reduced n and N
+mpi.close.Rslaves()
+print(summary(res))
+mpi.quit()
+
+
+Dirk
+
+
+-- 
+Three out of two people have difficulties with fractions.
+
+
+From osklyar at maninvestments.com  Thu Feb 12 11:17:52 2009
+From: osklyar at maninvestments.com (Sklyar, Oleg (London))
+Date: Thu, 12 Feb 2009 10:17:52 -0000
+Subject: [R-sig-hpc] Rmpi: Connection to lifeline [[...,0],0] lost
+Message-ID: <1A68FCB28DE72F4BA3B967E6506CCE43047DF66B@mildnpexmb01.maninvestments.ad.man.com>
+
+After moving to OpenMPI from LAM, we started to get the following error
+messages with Rmpi:
+
+[hpc01:06981] [[11499,1],0] routed:binomial: Connection to lifeline
+[[11499,0],0] lost
+
+The main script is a lengthy 3-hour long process that periodically
+spawns short 2-minute long jobs onto the nodes. Any ideas what this
+could be?
+
+Thanks.
+
+Oleg
+
+--------------------------------------------------
+
+*** R 2.9.0 (svn -r 47821) [/share/research/R-devel/20090203/lib64/R]
+***
+> library(Rmpi)
+> sessionInfo()
+R version 2.9.0 Under development (unstable) (2009-02-02 r47821) 
+x86_64-unknown-linux-gnu 
+
+locale:
+C
+
+attached base packages:
+[1] stats     graphics  utils     datasets  grDevices methods   base
+
+
+other attached packages:
+[1] Rmpi_0.5-7
+
+--------------------------------------------------
+
+[hpc01] ~
+* ompi_info
+                 Package: Open MPI osklyar at hpc01 Distribution
+                Open MPI: 1.3
+   Open MPI SVN revision: r20295
+   Open MPI release date: Jan 19, 2009
+                Open RTE: 1.3
+   Open RTE SVN revision: r20295
+   Open RTE release date: Jan 19, 2009
+                    OPAL: 1.3
+       OPAL SVN revision: r20295
+       OPAL release date: Jan 19, 2009
+            Ident string: 1.3
+                  Prefix: /share/research/opt/openmpi
+ Configured architecture: x86_64-unknown-linux-gnu
+          Configure host: hpc01
+           Configured by: osklyar
+           Configured on: Tue Feb  3 15:04:03 GMT 2009
+          Configure host: hpc01
+                Built by: osklyar
+                Built on: Tue Feb  3 15:19:46 GMT 2009
+              Built host: hpc01
+              C bindings: yes
+            C++ bindings: yes
+      Fortran77 bindings: yes (all)
+      Fortran90 bindings: yes
+ Fortran90 bindings size: small
+              C compiler: gcc
+     C compiler absolute: /share/research/opt/bin/gcc
+            C++ compiler: g++
+   C++ compiler absolute: /share/research/opt/bin/g++
+      Fortran77 compiler: gfortran
+  Fortran77 compiler abs: /share/research/opt/bin/gfortran
+      Fortran90 compiler: gfortran
+  Fortran90 compiler abs: /share/research/opt/bin/gfortran
+             C profiling: yes
+           C++ profiling: yes
+     Fortran77 profiling: yes
+     Fortran90 profiling: yes
+          C++ exceptions: no
+          Thread support: posix (mpi: no, progress: no)
+           Sparse Groups: no
+  Internal debug support: no
+     MPI parameter check: runtime
+Memory profiling support: no
+Memory debugging support: no
+         libltdl support: yes
+   Heterogeneous support: no
+ mpirun default --prefix: no
+         MPI I/O support: yes
+       MPI_WTIME support: gettimeofday
+Symbol visibility support: yes
+   FT Checkpoint support: no  (checkpoint thread: no)
+           MCA backtrace: execinfo (MCA v2.0, API v2.0, Component v1.3)
+              MCA memory: ptmalloc2 (MCA v2.0, API v2.0, Component v1.3)
+           MCA paffinity: linux (MCA v2.0, API v2.0, Component v1.3)
+               MCA carto: auto_detect (MCA v2.0, API v2.0, Component
+v1.3)
+               MCA carto: file (MCA v2.0, API v2.0, Component v1.3)
+           MCA maffinity: first_use (MCA v2.0, API v2.0, Component v1.3)
+               MCA timer: linux (MCA v2.0, API v2.0, Component v1.3)
+         MCA installdirs: env (MCA v2.0, API v2.0, Component v1.3)
+         MCA installdirs: config (MCA v2.0, API v2.0, Component v1.3)
+                 MCA dpm: orte (MCA v2.0, API v2.0, Component v1.3)
+              MCA pubsub: orte (MCA v2.0, API v2.0, Component v1.3)
+           MCA allocator: basic (MCA v2.0, API v2.0, Component v1.3)
+           MCA allocator: bucket (MCA v2.0, API v2.0, Component v1.3)
+                MCA coll: basic (MCA v2.0, API v2.0, Component v1.3)
+                MCA coll: hierarch (MCA v2.0, API v2.0, Component v1.3)
+                MCA coll: inter (MCA v2.0, API v2.0, Component v1.3)
+                MCA coll: self (MCA v2.0, API v2.0, Component v1.3)
+                MCA coll: sm (MCA v2.0, API v2.0, Component v1.3)
+                MCA coll: tuned (MCA v2.0, API v2.0, Component v1.3)
+                  MCA io: romio (MCA v2.0, API v2.0, Component v1.3)
+               MCA mpool: fake (MCA v2.0, API v2.0, Component v1.3)
+               MCA mpool: rdma (MCA v2.0, API v2.0, Component v1.3)
+               MCA mpool: sm (MCA v2.0, API v2.0, Component v1.3)
+                 MCA pml: cm (MCA v2.0, API v2.0, Component v1.3)
+                 MCA pml: ob1 (MCA v2.0, API v2.0, Component v1.3)
+                 MCA pml: v (MCA v2.0, API v2.0, Component v1.3)
+                 MCA bml: r2 (MCA v2.0, API v2.0, Component v1.3)
+              MCA rcache: vma (MCA v2.0, API v2.0, Component v1.3)
+                 MCA btl: self (MCA v2.0, API v2.0, Component v1.3)
+                 MCA btl: sm (MCA v2.0, API v2.0, Component v1.3)
+                 MCA btl: tcp (MCA v2.0, API v2.0, Component v1.3)
+                MCA topo: unity (MCA v2.0, API v2.0, Component v1.3)
+                 MCA osc: pt2pt (MCA v2.0, API v2.0, Component v1.3)
+                 MCA osc: rdma (MCA v2.0, API v2.0, Component v1.3)
+                 MCA iof: hnp (MCA v2.0, API v2.0, Component v1.3)
+                 MCA iof: orted (MCA v2.0, API v2.0, Component v1.3)
+                 MCA iof: tool (MCA v2.0, API v2.0, Component v1.3)
+                 MCA oob: tcp (MCA v2.0, API v2.0, Component v1.3)
+                MCA odls: default (MCA v2.0, API v2.0, Component v1.3)
+                 MCA ras: slurm (MCA v2.0, API v2.0, Component v1.3)
+               MCA rmaps: rank_file (MCA v2.0, API v2.0, Component v1.3)
+               MCA rmaps: round_robin (MCA v2.0, API v2.0, Component
+v1.3)
+               MCA rmaps: seq (MCA v2.0, API v2.0, Component v1.3)
+                 MCA rml: oob (MCA v2.0, API v2.0, Component v1.3)
+              MCA routed: binomial (MCA v2.0, API v2.0, Component v1.3)
+              MCA routed: direct (MCA v2.0, API v2.0, Component v1.3)
+              MCA routed: linear (MCA v2.0, API v2.0, Component v1.3)
+                 MCA plm: rsh (MCA v2.0, API v2.0, Component v1.3)
+                 MCA plm: slurm (MCA v2.0, API v2.0, Component v1.3)
+               MCA filem: rsh (MCA v2.0, API v2.0, Component v1.3)
+              MCA errmgr: default (MCA v2.0, API v2.0, Component v1.3)
+                 MCA ess: env (MCA v2.0, API v2.0, Component v1.3)
+                 MCA ess: hnp (MCA v2.0, API v2.0, Component v1.3)
+                 MCA ess: singleton (MCA v2.0, API v2.0, Component v1.3)
+                 MCA ess: slurm (MCA v2.0, API v2.0, Component v1.3)
+                 MCA ess: tool (MCA v2.0, API v2.0, Component v1.3)
+             MCA grpcomm: bad (MCA v2.0, API v2.0, Component v1.3)
+             MCA grpcomm: basic (MCA v2.0, API v2.0, Component v1.3)
+
+Dr Oleg Sklyar
+Research Technologist
+AHL / Man Investments Ltd
++44 (0)20 7144 3107
+osklyar at maninvestments.com
+
+**********************************************************************
+Please consider the environment before printing this email or its attachments.
+The contents of this email are for the named addressees ...{{dropped:19}}
+
+
+From gabraham at csse.unimelb.edu.au  Mon Feb 16 00:24:52 2009
+From: gabraham at csse.unimelb.edu.au (Gad Abraham)
+Date: Mon, 16 Feb 2009 10:24:52 +1100
+Subject: [R-sig-hpc] mpi_comm_spawn error with Rmpi and snow on SGI Altix
+In-Reply-To: <dc41e1260902110608i475beba1k2fad60aa4323de6a@mail.gmail.com>
+References: <49879D65.20304@csse.unimelb.edu.au>	
+	<49881148.3090805@wu-wien.ac.at>	
+	<498B9071.6070504@csse.unimelb.edu.au>	
+	<dc41e1260902052017r2ca334dfw8b984bf7f6348a22@mail.gmail.com>	
+	<498F685D.6050209@csse.unimelb.edu.au>	
+	<dc41e1260902090255s7d42169alf1ee6d90b4b80581@mail.gmail.com>	
+	<49925115.8060106@csse.unimelb.edu.au>
+	<dc41e1260902110608i475beba1k2fad60aa4323de6a@mail.gmail.com>
+Message-ID: <4998A444.8010707@csse.unimelb.edu.au>
+
+Ei-ji Nakama wrote:
+> Hi,
+> 
+> Sorry, Im poor English.
+> 
+> 2009/2/11 Gad Abraham <gabraham at csse.unimelb.edu.au>:
+>> qsub is from Sun Grid Engine
+> 
+> Oops.
+> 
+>>>> #!/bin/sh
+>>>> #$ -cwd
+>>>> #$ -pe mpi 2
+>>>> mpirun -up 2 -np 1 /home/gabraham/bin/R --vanilla < testsnow.R
+> 
+> | testsnow.R:cl <- makeCluster(4, "MPI")
+> 
+> necessary CPU resource.
+> master 1 + slave 4 = 5
+> 
+> #!/bin/sh
+> #$ -cwd
+> #$ -pe mpi 5
+> mpirun -up 5 -np 1 /home/gabraham/bin/R --vanilla < testsnow.R
+
+Yep, it works now:
+
+Without snow:
+ > system.time({
++    r <- lapply(1:4, fun)
++ })
+    user  system elapsed
+487.580   0.064 488.578
+ >
+ > cat("With snow:\n")
+With snow:
+ > system.time({
++    r <- parLapply(cl, 1:4, fun)
++ })
+    user  system elapsed
+122.260   0.000 122.503
+ >
+
+Thanks for your help!
+Gad
+
+
+-- 
+Gad Abraham
+Dept. CSSE and NICTA
+The University of Melbourne
+Parkville 3010, Victoria, Australia
+email: gabraham at csse.unimelb.edu.au
+web: http://www.csse.unimelb.edu.au/~gabraham
+
+
+From srinivasraghav at gmail.com  Mon Feb 16 11:46:30 2009
+From: srinivasraghav at gmail.com (srinivasa raghavan)
+Date: Mon, 16 Feb 2009 05:46:30 -0500
+Subject: [R-sig-hpc] Personal invitation from srinivasa raghavan
+Message-ID: <20090216054630.-759877180@unyk.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090216/ef1bc891/attachment.pl>
+

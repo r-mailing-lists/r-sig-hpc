@@ -1,0 +1,3646 @@
+From pauljohn32 at gmail.com  Tue Mar  2 18:26:20 2010
+From: pauljohn32 at gmail.com (Paul Johnson)
+Date: Tue, 2 Mar 2010 11:26:20 -0600
+Subject: [R-sig-hpc] multithreaded blas. can you smarten me up?
+Message-ID: <13e802631003020926i382a7b79icfad26f4b33e442c@mail.gmail.com>
+
+I have been searching for advice about installing R on quad core
+systems that exist within a cluster and I came to a post in r-help.
+The thread "[R] (performance) time in Windows vs Linux" was pretty
+long, and at one point Professor Ripley observed:
+
+On Mon, Jun 29, 2009 at 1:59 AM, Prof Brian Ripley
+<ripley at stats.ox.ac.uk> wrote:
+
+>
+> The only way that a single R process will be using more than one CPU is if
+> you have added a mulithreaded BLAS (and I've never heard of one being used
+> successfully with R for Windows) or other add-on such as Luke Tierney's
+> pmath[0] packages.  Packages such as snow and multicore run multiple R
+> processes.
+>
+> I do run a multithreaded BLAS on my 8-core Linux box and do often see 'top'
+> well over 100% -- I just tested and saw 798.9%.
+>
+
+Clearly, I need some multithreaded BLAS library. After installing
+that, one must re-compile R with the configure option to force it to
+use that BLAS.
+
+Does anybody know if it is then necessary to force a re-compile of all
+R packages as well?  (here's me wishing they would just take advantage
+of R's access to that BLAS, but I doubt it).
+
+
+
+-- 
+Paul E. Johnson
+Professor, Political Science
+1541 Lilac Lane, Room 504
+University of Kansas
+
+
+From edd at debian.org  Tue Mar  2 18:43:49 2010
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Tue, 2 Mar 2010 11:43:49 -0600
+Subject: [R-sig-hpc] multithreaded blas. can you smarten me up?
+In-Reply-To: <13e802631003020926i382a7b79icfad26f4b33e442c@mail.gmail.com>
+References: <13e802631003020926i382a7b79icfad26f4b33e442c@mail.gmail.com>
+Message-ID: <19341.20053.828980.380235@ron.nulle.part>
+
+
+On 2 March 2010 at 11:26, Paul Johnson wrote:
+| I have been searching for advice about installing R on quad core
+| systems that exist within a cluster and I came to a post in r-help.
+| The thread "[R] (performance) time in Windows vs Linux" was pretty
+| long, and at one point Professor Ripley observed:
+| 
+| On Mon, Jun 29, 2009 at 1:59 AM, Prof Brian Ripley
+| <ripley at stats.ox.ac.uk> wrote:
+| 
+| >
+| > The only way that a single R process will be using more than one CPU is if
+| > you have added a mulithreaded BLAS (and I've never heard of one being used
+| > successfully with R for Windows) or other add-on such as Luke Tierney's
+| > pmath[0] packages.  Packages such as snow and multicore run multiple R
+| > processes.
+| >
+| > I do run a multithreaded BLAS on my 8-core Linux box and do often see 'top'
+| > well over 100% -- I just tested and saw 798.9%.
+| >
+| 
+| Clearly, I need some multithreaded BLAS library. After installing
+| that, one must re-compile R with the configure option to force it to
+        ^^^^^^^^^^^^^^^^^^^^^
+
+Not so. "The nice thing about standards...." as the quip goes. 
+
+Blas is one.  So you take your _existing_ R installation, swap the blas and
+you're done.  
+ 
+That is one reason why we _like_ dynamic linking. You can substiture
+libraries at well (provided the API/ABI stays the same).
+
+| Does anybody know if it is then necessary to force a re-compile of all
+| R packages as well?  (here's me wishing they would just take advantage
+| of R's access to that BLAS, but I doubt it).
+
+Likewise, you don't.  There is some good advide in the R Admin manual.
+
+Dirk
+
+-- 
+  Registration is open for the 2nd International conference R / Finance 2010
+  See http://www.RinFinance.com for details, and see you in Chicago in April!
+
+
+From edd at debian.org  Tue Mar  2 18:43:49 2010
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Tue, 2 Mar 2010 11:43:49 -0600
+Subject: [R-sig-hpc] multithreaded blas. can you smarten me up?
+In-Reply-To: <13e802631003020926i382a7b79icfad26f4b33e442c@mail.gmail.com>
+References: <13e802631003020926i382a7b79icfad26f4b33e442c@mail.gmail.com>
+Message-ID: <19341.20053.828980.380235@ron.nulle.part>
+
+
+On 2 March 2010 at 11:26, Paul Johnson wrote:
+| I have been searching for advice about installing R on quad core
+| systems that exist within a cluster and I came to a post in r-help.
+| The thread "[R] (performance) time in Windows vs Linux" was pretty
+| long, and at one point Professor Ripley observed:
+| 
+| On Mon, Jun 29, 2009 at 1:59 AM, Prof Brian Ripley
+| <ripley at stats.ox.ac.uk> wrote:
+| 
+| >
+| > The only way that a single R process will be using more than one CPU is if
+| > you have added a mulithreaded BLAS (and I've never heard of one being used
+| > successfully with R for Windows) or other add-on such as Luke Tierney's
+| > pmath[0] packages.  Packages such as snow and multicore run multiple R
+| > processes.
+| >
+| > I do run a multithreaded BLAS on my 8-core Linux box and do often see 'top'
+| > well over 100% -- I just tested and saw 798.9%.
+| >
+| 
+| Clearly, I need some multithreaded BLAS library. After installing
+| that, one must re-compile R with the configure option to force it to
+        ^^^^^^^^^^^^^^^^^^^^^
+
+Not so. "The nice thing about standards...." as the quip goes. 
+
+Blas is one.  So you take your _existing_ R installation, swap the blas and
+you're done.  
+ 
+That is one reason why we _like_ dynamic linking. You can substiture
+libraries at well (provided the API/ABI stays the same).
+
+| Does anybody know if it is then necessary to force a re-compile of all
+| R packages as well?  (here's me wishing they would just take advantage
+| of R's access to that BLAS, but I doubt it).
+
+Likewise, you don't.  There is some good advide in the R Admin manual.
+
+Dirk
+
+-- 
+  Registration is open for the 2nd International conference R / Finance 2010
+  See http://www.RinFinance.com for details, and see you in Chicago in April!
+
+
+From pauljohn32 at gmail.com  Tue Mar  2 22:51:00 2010
+From: pauljohn32 at gmail.com (Paul Johnson)
+Date: Tue, 2 Mar 2010 15:51:00 -0600
+Subject: [R-sig-hpc] care to send me some big working example R on
+	multiprocessor systems?
+Message-ID: <13e802631003021351q54c70a5cuc370631320066af7@mail.gmail.com>
+
+For stress testing on a new cluster, I'm trying to collect a big-ish R
+programs that use multicore and/or Rmpi (or other R MPI packages).
+Has anybody started a collection of "self contained working examples"?
+ If nobody has such a collection, please consider forwarding them to
+me and I'll post them on a web site.  We'll be testing the effect of
+replacing the ordinary BLAS with gotoblas2 (multithreaded) and
+comparing various MPI libraries.  It is important for me to get a
+sample of R usages, because my MPI experience is limited and I only
+use a little bit of it.
+
+If you mail the examples to me directly it is OK, or
+r-sig-hpc at r-project.org might be a good target as well.
+
+pj
+-- 
+Paul E. Johnson
+Professor, Political Science
+1541 Lilac Lane, Room 504
+University of Kansas
+
+
+From win at comets.de  Wed Mar  3 08:36:38 2010
+From: win at comets.de (Melwin)
+Date: Wed, 03 Mar 2010 08:36:38 +0100
+Subject: [R-sig-hpc] care to send me some big working example R on
+ multiprocessor systems?
+In-Reply-To: <13e802631003021351q54c70a5cuc370631320066af7@mail.gmail.com>
+References: <13e802631003021351q54c70a5cuc370631320066af7@mail.gmail.com>
+Message-ID: <op.u8zd3ca1yqqyib@mueggelsee.geoecology.uni-potsdam.de>
+
+Hi Paul,
+under http://www.rforge.net/ppso/ you'll find our PPSO package which is  
+intended for optimization of functions (search for minima) using Particle  
+Swarm Optimization or Dynamically Dimensioned Search.
+Since it can be used in parallel mode using Rmpi (see optim_ppso_robust or  
+optim_pdds_robust), and because the example problems given there are  
+self-contained and can be inflated easily (simply increase number of  
+parameters in sample functions or tighten abortion criteria), these may be  
+of interest to you. If you need help, feel free to contact me.
+
+
+regards,
+
+Melwin
+
+Am 02.03.2010, 22:51 Uhr, schrieb Paul Johnson <pauljohn32 at gmail.com>:
+
+> For stress testing on a new cluster, I'm trying to collect a big-ish R
+> programs that use multicore and/or Rmpi (or other R MPI packages).
+> Has anybody started a collection of "self contained working examples"?
+>  If nobody has such a collection, please consider forwarding them to
+> me and I'll post them on a web site.  We'll be testing the effect of
+> replacing the ordinary BLAS with gotoblas2 (multithreaded) and
+> comparing various MPI libraries.  It is important for me to get a
+> sample of R usages, because my MPI experience is limited and I only
+> use a little bit of it.
+>
+> If you mail the examples to me directly it is OK, or
+> r-sig-hpc at r-project.org might be a good target as well.
+>
+> pj
+
+
+--
+
+
+From Debabrata.Midya at services.nsw.gov.au  Thu Mar  4 00:50:18 2010
+From: Debabrata.Midya at services.nsw.gov.au (Debabrata Midya)
+Date: Thu, 04 Mar 2010 10:50:18 +1100
+Subject: [R-sig-hpc] care to send me some big working example R
+	on	multiprocessor systems
+Message-ID: <4B8F906A.5860.00D0.0@services.nsw.gov.au>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100304/4cc13f16/attachment.pl>
+
+From win at comets.de  Thu Mar  4 09:35:38 2010
+From: win at comets.de (Melwin)
+Date: Thu, 04 Mar 2010 09:35:38 +0100
+Subject: [R-sig-hpc] care to send me some big working example R on
+ multiprocessor systems
+In-Reply-To: <4B8F906A.5860.00D0.0@services.nsw.gov.au>
+References: <4B8F906A.5860.00D0.0@services.nsw.gov.au>
+Message-ID: <op.u81bhon3yqqyib@mueggelsee.geoecology.uni-potsdam.de>
+
+Hi Deb,
+PPSO in parallel mode should also run on a single processor, although you  
+won't gain anything from that beyond just testing (in fact, I will be  
+slower due to the overhead involved, unless your objective function takes  
+long to evaluate without computational burden, e.g. due to extensive file  
+i/o).
+Which Windows MPI-variant do you use (MPICHII or DeinoMPI)? I tested your  
+code snippet successfully on Windows 2000/DeinoMPI/R-2.10.0. In any case,  
+I recommend using optim_ppso_robust, which is more elaborated by now.
+Please let me know if you experience further problems.
+
+cheers,
+Melwin
+
+Am 04.03.2010, 00:50 Uhr, schrieb Debabrata Midya  
+<Debabrata.Midya at services.nsw.gov.au>:
+>
+> Melwin,
+> Thanks in advance.
+> I am using Windows XP and trying to use ppso especially the parallel  
+> mode using Rmpi.
+> I have installed R-2.10.1, ppso_0.9-921.zip and Rmpi_0.5-9.zip.
+> I need your assistance to solve the problem below:
+>  1. Currently I have only 1 processor. Is it possible to use optim_ppso  
+> or optim_ppso_robust on 1 processor?
+> 2. When I run:
+>
+>         result = optim_ppso(objective_function=rastrigin_function,  
+> nslaves=1, max_number_function_calls=200, projectfile=NULL,  
+> logfile=NULL)     #standard version
+> The system hangs.
+> Once again thank you very much for the time you have given.
+> Regards,
+> Deb
+
+
+From hyu at stats.uwo.ca  Thu Mar  4 18:09:58 2010
+From: hyu at stats.uwo.ca (Hao Yu)
+Date: Thu, 4 Mar 2010 12:09:58 -0500 (EST)
+Subject: [R-sig-hpc] care to send me some big working example R on
+ multiprocessor systems
+In-Reply-To: <op.u81bhon3yqqyib@mueggelsee.geoecology.uni-potsdam.de>
+References: <4B8F906A.5860.00D0.0@services.nsw.gov.au>
+	<op.u81bhon3yqqyib@mueggelsee.geoecology.uni-potsdam.de>
+Message-ID: <8c12f523de160456cf941a94f0fe9344.squirrel@www.stats.uwo.ca>
+
+It works for me as well.
+
+Deb: Can you check if Rmpi runs on its own (spawning slaves) before ppso?
+If Rmpi is not setting properly on Windows, it will hang.
+
+Melwin: Do you have more time consuming codes to share? Intel asks me to
+provide some R codes to test their MPI against others under R. But my
+codes are mostly related to simulation and overhead with MPI is minimum.
+Thanks.
+
+Hao
+
+
+Melwin wrote:
+> Hi Deb,
+> PPSO in parallel mode should also run on a single processor, although you
+> won't gain anything from that beyond just testing (in fact, I will be
+> slower due to the overhead involved, unless your objective function takes
+> long to evaluate without computational burden, e.g. due to extensive file
+> i/o).
+> Which Windows MPI-variant do you use (MPICHII or DeinoMPI)? I tested your
+> code snippet successfully on Windows 2000/DeinoMPI/R-2.10.0. In any case,
+> I recommend using optim_ppso_robust, which is more elaborated by now.
+> Please let me know if you experience further problems.
+>
+> cheers,
+> Melwin
+>
+> Am 04.03.2010, 00:50 Uhr, schrieb Debabrata Midya
+> <Debabrata.Midya at services.nsw.gov.au>:
+>>
+>> Melwin,
+>> Thanks in advance.
+>> I am using Windows XP and trying to use ppso especially the parallel
+>> mode using Rmpi.
+>> I have installed R-2.10.1, ppso_0.9-921.zip and Rmpi_0.5-9.zip.
+>> I need your assistance to solve the problem below:
+>>  1. Currently I have only 1 processor. Is it possible to use optim_ppso
+>> or optim_ppso_robust on 1 processor?
+>> 2. When I run:
+>>
+>>         result = optim_ppso(objective_function=rastrigin_function,
+>> nslaves=1, max_number_function_calls=200, projectfile=NULL,
+>> logfile=NULL)     #standard version
+>> The system hangs.
+>> Once again thank you very much for the time you have given.
+>> Regards,
+>> Deb
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+-- 
+Department of Statistics & Actuarial Sciences
+Fax Phone#:(519)-661-3813
+The University of Western Ontario
+Office Phone#:(519)-661-3622
+London, Ontario N6A 5B7
+http://www.stats.uwo.ca/faculty/yu
+
+
+From Debabrata.Midya at services.nsw.gov.au  Fri Mar  5 01:22:22 2010
+From: Debabrata.Midya at services.nsw.gov.au (Debabrata Midya)
+Date: Fri, 05 Mar 2010 11:22:22 +1100
+Subject: [R-sig-hpc] care to send me some big working example
+	R	onmultiprocessor systems
+In-Reply-To: <op.u81bhon3yqqyib@mueggelsee.geoecology.uni-potsdam.de>
+References: <4B8F906A.5860.00D0.0@services.nsw.gov.au>
+	<op.u81bhon3yqqyib@mueggelsee.geoecology.uni-potsdam.de>
+Message-ID: <4B90E96E.5860.00D0.0@services.nsw.gov.au>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100305/46ab1033/attachment.pl>
+
+From Debabrata.Midya at services.nsw.gov.au  Fri Mar  5 02:07:59 2010
+From: Debabrata.Midya at services.nsw.gov.au (Debabrata Midya)
+Date: Fri, 05 Mar 2010 12:07:59 +1100
+Subject: [R-sig-hpc] To run bugsparallel
+Message-ID: <4B90F41E.5860.00D0.0@services.nsw.gov.au>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100305/2dfa05cd/attachment.pl>
+
+From pauljohn32 at gmail.com  Fri Mar  5 06:48:20 2010
+From: pauljohn32 at gmail.com (Paul Johnson)
+Date: Thu, 4 Mar 2010 23:48:20 -0600
+Subject: [R-sig-hpc] To run bugsparallel
+In-Reply-To: <4B90F41E.5860.00D0.0@services.nsw.gov.au>
+References: <4B90F41E.5860.00D0.0@services.nsw.gov.au>
+Message-ID: <13e802631003042148v151c79d8s1e5caa8b79135f8@mail.gmail.com>
+
+I didn't want you to think we are ignoring you.  I don't know the
+answer because I use Linux, not Windows, and you do outline a very
+complicated toolchain.  I can ask some questions that may help you
+think through this.
+
+1. You have success with MPI programs in R?  Except for winbugs, I
+mean. Right?  You can run the examples that circulate with programs
+like Rmpi or snowFT?
+
+2. You have success running just ONE thread with winbugs from R?  (no
+parallelism). Right?
+
+3. When you run winbugs from R, are you able to get it to run multiple
+chains at once (without invoking MPI)?
+
+4. what is "bugsparallel" software?  Do we have any reason to believe
+it is good?
+
+I doubt that testing all of this on a one processor system is useful.
+In my experience, mpich will notice that and refuse to do anything at
+all.
+
+On Linux, Winbugs works horribly for me.  There is an alternative
+implementation of BUGS called jags that runs on Linux.  I believe that
+if you really want to get something that works in an understandable
+way, you might consider going in that direction.  I'm sorry nobody
+stepped up to answer your question, but you have to admit that you
+have created a very complicated problem and there aren't many Windows
+users who have tried it. Especially on one processor systems.
+
+pj
+
+On Thu, Mar 4, 2010 at 7:07 PM, Debabrata Midya
+<Debabrata.Midya at services.nsw.gov.au> wrote:
+> Hi,
+>
+> Thanks in advance.
+>
+> I have posted this one on 25 Feb 2010 and so far I have not received
+> any answer. That is why, I am posting it once again. I may be excused
+> for this.
+>
+> I have come across bugsparallel software to run WinBUGS in parallel.
+>
+> I need your assistance to solve this problem. The computer hangs while
+> running at bugs.fit <- bugsParallel(??.)
+>
+> I have described below how I have tried.
+>
+> 1. I am running on Windows XP and I have tested on a Pentium? D CPU
+> 2.80GHz, 1.50 GB of RAM and it has a single processor (for a test run
+> only).
+>
+>
+> 2. Installed: MPICH2 requires Microsoft .Net 2.0 .NET Framework Version
+> 2.0 Redistributable Package (
+> http://www.microsoft.com/downloads/details.aspx?familyid=AEA55F2F-07B5-4A8C-8A44-B4E1B196D5C0&amp;displaylang=en
+> )(NETCFSetupv2.msi)
+>
+> 3. Installed: Visual C++ 2005 SP1 Redistributable Package (x86) (
+> http://www.microsoft.com/downloads/details.aspx?FamilyID=200b2fd9-ae1a-4a14-984d-389c36f85647&amp;DisplayLang=en
+> ). (vcredist_x86.exe)
+>
+> 3. Installed: MPICH2 for Windows (mpich2-1.2.1-win-ia32.msi )
+>
+> 4. ? ? ?I have installed R-2.10.1 and Rmpi 0.5-9. I have tested the
+> following code and it works.
+>
+> library(Rmpi)
+> mpi.spawn.Rslaves(nslaves=3)
+> mpi.parReplicate(20, mean(rnorm(1000)))
+> mpi.close.Rslaves()
+>
+> 5. I have installed rlecuyer (0.3-1), coda (0.13-4) and lattice.
+>
+> 6. I have installed WinBUGS 1.4
+>
+> 7. ? ? ?But the machine hangs on bugs.fit <- bugsParallel(??.) whenever
+> I run bugsparallel code. That means the program runs up to
+> mpi.setup.rngstream() # initializes parallel random number generation
+>
+> model.name = "FXaExample1" # root name of modeling files
+> workDir = "M:/Rmpi/bugsparallel/bugsParallel/FXaExample1" # change to
+> match the path to the directory containing FXaExample1.R and
+> FXaExample1.txt
+> toolsDir = "M:/Rmpi/bugsparallel/bugsParallel/bugsTools" # change to
+> match your setup
+> bugsDir = paste("M:/WinBUGS14/",sep="")
+> nSlaves = 4
+>
+> library(Rmpi)
+> library(rlecuyer)
+> library(coda)
+> library(lattice)
+> source(paste(toolsDir,"/bgillespie.utilities.R",sep="")) # These are a
+> few of my favorite things
+> source(paste(toolsDir,"/bugsParallel-1.0.R",sep=""))
+> source(paste(toolsDir,"/bugs.tools.R",sep="")) # A few BUGS-specific
+> utilities
+>
+> set.seed("10271998") # not required but forces consistent results
+> setwd(workDir)
+> ###################################################################
+> # Data management
+>
+> xdata = read.csv("fxa.data.avg.csv")
+>
+> # create WinBUGS data set
+> bugsdata = list(
+> ? ? ? ? ? ?nobs = nrow(xdata),
+> ? ? ? ? ? ?cobs = xdata$cavg,
+> ? ? ? ? ? ?FXa = xdata$fxa.inh.avg)
+>
+> # create initial estimates
+> bugsinit = function() list(
+> ? ? ? ? ? ?Emax = runif(1,40,100),
+> ? ? ? ? ? ?logEC50 = rnorm(1,log(100),0.4),
+> ? ? ? ? ? ?gamma = 10*rbeta(1,0.25,5),
+> ? ? ? ? ? ?sigma = exp(rnorm(1,log(5),0.2)))
+>
+> # specify what variables to monitor
+> parameters = c("Emax","EC50","gamma","sigma","FXaPred")
+>
+> # specify the variables for which you want history and density plots
+> parameters.to.plot = c("deviance","Emax","EC50","gamma","sigma")
+>
+> ################################################################################################
+> # run WinBUGS
+>
+> n.chains = nSlaves
+> n.iter = 600
+> n.burnin = 100
+> n.thin = 5
+>
+> mpi.spawn.Rslaves(nslaves = nSlaves) # launches multiple R slave
+> processes on available processors
+> mpi.setup.rngstream() # initializes parallel random number generation
+>
+> if(.Platform$OS.type == "windows"){
+> ? ? ? ? ? ?bugs.fit <- bugsParallel(data=bugsdata,inits=bugsinit,
+>
+> parameters.to.save=parameters,model.file=paste(getwd(),"/",model.name,".txt",sep=""),
+>
+> n.chains=n.chains,n.iter=n.iter,n.thin=n.thin,n.burnin=n.burnin,refresh=10,clearWD=T,
+> ? ? ? ? ? ? ? ? ? ? ? ?bugs.directory = bugsDir)
+> }else if(.Platform$OS.type == "unix"){
+> # ? ? ? ? ?wineBin = "/Applications/Darwine/Wine.bundle/Contents/bin"
+> ? ? ? ? ? ?wineBin = "/usr/local/MacPorts/bin"
+> ? ? ? ? ? ?bugs.fit <- bugsParallel(data=bugsdata,inits=bugsinit,
+>
+> parameters.to.save=parameters,model.file=paste(getwd(),"/",model.name,".txt",sep=""),
+>
+> n.chains=n.chains,n.iter=n.iter,n.thin=n.thin,n.burnin=n.burnin,refresh=10,clearWD=T,
+> ? ? ? ? ? ? ? ? ? ? ? ?bugs.directory = bugsDir, useWINE=T,
+> WINE=paste(wineBin,"/wine",sep=""),
+> ? ? ? ? ? ? ? ? ? ? ? ?newWINE=T,
+> WINEPATH=paste(wineBin,"/winepath",sep=""))
+> }
+>
+> It runs up to mpi.setup.rngstream() but hangs on at
+>
+> bugs.fit <- bugsParallel(??.)
+>
+> Once again, thank you very much for the time you have given.
+>
+> I am looking forward for your reply.
+>
+> Regards,
+>
+>
+> Deb
+>
+> *************************************************************************************
+>
+> This email message, including any attached files, is confidential and
+> intended solely for the use of the individual or entity to whom it is
+> addressed.
+>
+> The Department of Services, Technology and Administration prohibits the
+> right to publish, copy, distribute or disclose any information contained in
+> this email, or its attachments, by any party other than the intended
+> recipient. If you have received this email in error please notify the sender
+> and delete it from your system.
+>
+> No employee or agent is authorised to conclude any binding agreement
+> on behalf of the Department of Services, Technology and Administration
+> by email. The views or opinions presented in this email are solely those of
+> the author and do not necessarily represent those of the Department,
+> except where the sender expressly, and with authority, states them to be
+> the views of the Department of Services, Technology and Administration.
+>
+> The Department of Services, Technology and Administration accepts no
+> liability for any loss or damage arising from the use of this email and
+> recommends that the recipient check this email and any attached files for
+> the presence of viruses.
+>
+> *************************************************************************************
+>
+> ? ? ? ?[[alternative HTML version deleted]]
+>
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+>
+
+
+
+-- 
+Paul E. Johnson
+Professor, Political Science
+1541 Lilac Lane, Room 504
+University of Kansas
+
+
+From win at comets.de  Fri Mar  5 08:55:36 2010
+From: win at comets.de (Melwin)
+Date: Fri, 05 Mar 2010 08:55:36 +0100
+Subject: [R-sig-hpc] care to send me some big working example R
+ onmultiprocessor systems
+In-Reply-To: <4B90E96E.5860.00D0.0@services.nsw.gov.au>
+References: <4B8F906A.5860.00D0.0@services.nsw.gov.au>
+	<op.u81bhon3yqqyib@mueggelsee.geoecology.uni-potsdam.de>
+	<4B90E96E.5860.00D0.0@services.nsw.gov.au>
+Message-ID: <op.u824aybwyqqyib@mueggelsee.geoecology.uni-potsdam.de>
+
+Hi Deb,
+I was NOT trying to suggest that you mandatorily need DeinoMPI. However,
+afaik either MPICHII *OR* DeinoMPI is required for Rmpi under Windows.
+Please note that there are two versions of the Rmpi package, depending on
+if you use MPICHII or DeinoMPI. Although the aim is parallel computing, I
+doubt that it is a good idea to run these two in parallel ;-)
+Anyway, you should follow Hao's advice and first make sure Rmpi is working
+properly on its own. Please try some of the simple Rmpi examples to see if
+they work and let me know the result.
+
+Melwin
+
+PS: As for the configuration of DeinoMPI, I have to admit that I never got
+a true multi-machine Rmpi session working. Although I could include remote
+machines in DeinoMPI, in R Rmpi-slaves were exclusively spawned locally. I
+didn't try MPICHII at all, but resorted to Ubuntu-Linux, where everything
+went much smoother.
+
+Am 05.03.2010, 01:22 Uhr, schrieb Debabrata Midya
+<Debabrata.Midya at services.nsw.gov.au>:
+
+> Melwin,
+> Thanks for your reply. I need you assistance to run ppso using DeinoMPI  
+> as well.
+> As per your advice, I will start using optim_ppso_robust.
+> 1. Which Windows MPI-variant do you use (MPICHII or DeinoMPI)?
+> I have installed Windows MPICH2 and provided the path \MPICH2\bin\ in  
+> the path variable and it works well on R-2.10.1.
+> 2. DeinoMPI
+> I am unable to run the same code as in (1) using DeinoMPI.
+> I have installed DeinoMPI.2.0.1.msi and I have tried to set the  
+> followings. I feel I have not done correctly. Do you have any advice on  
+> it? The systems hangs.
+> a. Click "enable create store options"
+> b. Click "Create Credential Store"
+> c. In "Add Credential", add your account and password
+> Once again thank you very much for the time you have given.
+> Regards,
+> Deb
+>
+>>>> Melwin <win at comets.de> 4/03/2010 7:35 pm >>>
+> Hi Deb,
+> PPSO in parallel mode should also run on a single processor, although you
+> won't gain anything from that beyond just testing (in fact, I will be
+> slower due to the overhead involved, unless your objective function takes
+> long to evaluate without computational burden, e.g. due to extensive file
+> i/o).
+> Which Windows MPI-variant do you use (MPICHII or DeinoMPI)? I tested your
+> code snippet successfully on Windows 2000/DeinoMPI/R-2.10.0. In any case,
+> I recommend using optim_ppso_robust, which is more elaborated by now.
+> Please let me know if you experience further problems.
+>
+> cheers,
+> Melwin
+>
+> Am 04.03.2010, 00:50 Uhr, schrieb Debabrata Midya
+> <Debabrata.Midya at services.nsw.gov.au>:
+>>
+--
+
+
+From armstrong.whit at gmail.com  Fri Mar  5 14:07:48 2010
+From: armstrong.whit at gmail.com (Whit Armstrong)
+Date: Fri, 5 Mar 2010 08:07:48 -0500
+Subject: [R-sig-hpc] To run bugsparallel
+In-Reply-To: <13e802631003042148v151c79d8s1e5caa8b79135f8@mail.gmail.com>
+References: <4B90F41E.5860.00D0.0@services.nsw.gov.au>
+	<13e802631003042148v151c79d8s1e5caa8b79135f8@mail.gmail.com>
+Message-ID: <8ec76081003050507h6c82cf5dkd0cc7847786ff66d@mail.gmail.com>
+
+Running jags w/ Rmpi works, but  you may have to hack the R2jags source a bit.
+
+The issue we had was that all the Rmpi instances running on one
+machine try to write the data files to the same location.
+
+I still have the patched package if you are interested.
+
+Another way to tackle the problem is to run
+pymc(http://code.google.com/p/pymc/) using python/boostmpi.
+
+Happy to talk more about either of those options.
+
+-Whit
+
+
+On Fri, Mar 5, 2010 at 12:48 AM, Paul Johnson <pauljohn32 at gmail.com> wrote:
+> I didn't want you to think we are ignoring you. ?I don't know the
+> answer because I use Linux, not Windows, and you do outline a very
+> complicated toolchain. ?I can ask some questions that may help you
+> think through this.
+>
+> 1. You have success with MPI programs in R? ?Except for winbugs, I
+> mean. Right? ?You can run the examples that circulate with programs
+> like Rmpi or snowFT?
+>
+> 2. You have success running just ONE thread with winbugs from R? ?(no
+> parallelism). Right?
+>
+> 3. When you run winbugs from R, are you able to get it to run multiple
+> chains at once (without invoking MPI)?
+>
+> 4. what is "bugsparallel" software? ?Do we have any reason to believe
+> it is good?
+>
+> I doubt that testing all of this on a one processor system is useful.
+> In my experience, mpich will notice that and refuse to do anything at
+> all.
+>
+> On Linux, Winbugs works horribly for me. ?There is an alternative
+> implementation of BUGS called jags that runs on Linux. ?I believe that
+> if you really want to get something that works in an understandable
+> way, you might consider going in that direction. ?I'm sorry nobody
+> stepped up to answer your question, but you have to admit that you
+> have created a very complicated problem and there aren't many Windows
+> users who have tried it. Especially on one processor systems.
+>
+> pj
+>
+> On Thu, Mar 4, 2010 at 7:07 PM, Debabrata Midya
+> <Debabrata.Midya at services.nsw.gov.au> wrote:
+>> Hi,
+>>
+>> Thanks in advance.
+>>
+>> I have posted this one on 25 Feb 2010 and so far I have not received
+>> any answer. That is why, I am posting it once again. I may be excused
+>> for this.
+>>
+>> I have come across bugsparallel software to run WinBUGS in parallel.
+>>
+>> I need your assistance to solve this problem. The computer hangs while
+>> running at bugs.fit <- bugsParallel(??.)
+>>
+>> I have described below how I have tried.
+>>
+>> 1. I am running on Windows XP and I have tested on a Pentium? D CPU
+>> 2.80GHz, 1.50 GB of RAM and it has a single processor (for a test run
+>> only).
+>>
+>>
+>> 2. Installed: MPICH2 requires Microsoft .Net 2.0 .NET Framework Version
+>> 2.0 Redistributable Package (
+>> http://www.microsoft.com/downloads/details.aspx?familyid=AEA55F2F-07B5-4A8C-8A44-B4E1B196D5C0&amp;displaylang=en
+>> )(NETCFSetupv2.msi)
+>>
+>> 3. Installed: Visual C++ 2005 SP1 Redistributable Package (x86) (
+>> http://www.microsoft.com/downloads/details.aspx?FamilyID=200b2fd9-ae1a-4a14-984d-389c36f85647&amp;DisplayLang=en
+>> ). (vcredist_x86.exe)
+>>
+>> 3. Installed: MPICH2 for Windows (mpich2-1.2.1-win-ia32.msi )
+>>
+>> 4. ? ? ?I have installed R-2.10.1 and Rmpi 0.5-9. I have tested the
+>> following code and it works.
+>>
+>> library(Rmpi)
+>> mpi.spawn.Rslaves(nslaves=3)
+>> mpi.parReplicate(20, mean(rnorm(1000)))
+>> mpi.close.Rslaves()
+>>
+>> 5. I have installed rlecuyer (0.3-1), coda (0.13-4) and lattice.
+>>
+>> 6. I have installed WinBUGS 1.4
+>>
+>> 7. ? ? ?But the machine hangs on bugs.fit <- bugsParallel(??.) whenever
+>> I run bugsparallel code. That means the program runs up to
+>> mpi.setup.rngstream() # initializes parallel random number generation
+>>
+>> model.name = "FXaExample1" # root name of modeling files
+>> workDir = "M:/Rmpi/bugsparallel/bugsParallel/FXaExample1" # change to
+>> match the path to the directory containing FXaExample1.R and
+>> FXaExample1.txt
+>> toolsDir = "M:/Rmpi/bugsparallel/bugsParallel/bugsTools" # change to
+>> match your setup
+>> bugsDir = paste("M:/WinBUGS14/",sep="")
+>> nSlaves = 4
+>>
+>> library(Rmpi)
+>> library(rlecuyer)
+>> library(coda)
+>> library(lattice)
+>> source(paste(toolsDir,"/bgillespie.utilities.R",sep="")) # These are a
+>> few of my favorite things
+>> source(paste(toolsDir,"/bugsParallel-1.0.R",sep=""))
+>> source(paste(toolsDir,"/bugs.tools.R",sep="")) # A few BUGS-specific
+>> utilities
+>>
+>> set.seed("10271998") # not required but forces consistent results
+>> setwd(workDir)
+>> ###################################################################
+>> # Data management
+>>
+>> xdata = read.csv("fxa.data.avg.csv")
+>>
+>> # create WinBUGS data set
+>> bugsdata = list(
+>> ? ? ? ? ? ?nobs = nrow(xdata),
+>> ? ? ? ? ? ?cobs = xdata$cavg,
+>> ? ? ? ? ? ?FXa = xdata$fxa.inh.avg)
+>>
+>> # create initial estimates
+>> bugsinit = function() list(
+>> ? ? ? ? ? ?Emax = runif(1,40,100),
+>> ? ? ? ? ? ?logEC50 = rnorm(1,log(100),0.4),
+>> ? ? ? ? ? ?gamma = 10*rbeta(1,0.25,5),
+>> ? ? ? ? ? ?sigma = exp(rnorm(1,log(5),0.2)))
+>>
+>> # specify what variables to monitor
+>> parameters = c("Emax","EC50","gamma","sigma","FXaPred")
+>>
+>> # specify the variables for which you want history and density plots
+>> parameters.to.plot = c("deviance","Emax","EC50","gamma","sigma")
+>>
+>> ################################################################################################
+>> # run WinBUGS
+>>
+>> n.chains = nSlaves
+>> n.iter = 600
+>> n.burnin = 100
+>> n.thin = 5
+>>
+>> mpi.spawn.Rslaves(nslaves = nSlaves) # launches multiple R slave
+>> processes on available processors
+>> mpi.setup.rngstream() # initializes parallel random number generation
+>>
+>> if(.Platform$OS.type == "windows"){
+>> ? ? ? ? ? ?bugs.fit <- bugsParallel(data=bugsdata,inits=bugsinit,
+>>
+>> parameters.to.save=parameters,model.file=paste(getwd(),"/",model.name,".txt",sep=""),
+>>
+>> n.chains=n.chains,n.iter=n.iter,n.thin=n.thin,n.burnin=n.burnin,refresh=10,clearWD=T,
+>> ? ? ? ? ? ? ? ? ? ? ? ?bugs.directory = bugsDir)
+>> }else if(.Platform$OS.type == "unix"){
+>> # ? ? ? ? ?wineBin = "/Applications/Darwine/Wine.bundle/Contents/bin"
+>> ? ? ? ? ? ?wineBin = "/usr/local/MacPorts/bin"
+>> ? ? ? ? ? ?bugs.fit <- bugsParallel(data=bugsdata,inits=bugsinit,
+>>
+>> parameters.to.save=parameters,model.file=paste(getwd(),"/",model.name,".txt",sep=""),
+>>
+>> n.chains=n.chains,n.iter=n.iter,n.thin=n.thin,n.burnin=n.burnin,refresh=10,clearWD=T,
+>> ? ? ? ? ? ? ? ? ? ? ? ?bugs.directory = bugsDir, useWINE=T,
+>> WINE=paste(wineBin,"/wine",sep=""),
+>> ? ? ? ? ? ? ? ? ? ? ? ?newWINE=T,
+>> WINEPATH=paste(wineBin,"/winepath",sep=""))
+>> }
+>>
+>> It runs up to mpi.setup.rngstream() but hangs on at
+>>
+>> bugs.fit <- bugsParallel(??.)
+>>
+>> Once again, thank you very much for the time you have given.
+>>
+>> I am looking forward for your reply.
+>>
+>> Regards,
+>>
+>>
+>> Deb
+>>
+>> *************************************************************************************
+>>
+>> This email message, including any attached files, is confidential and
+>> intended solely for the use of the individual or entity to whom it is
+>> addressed.
+>>
+>> The Department of Services, Technology and Administration prohibits the
+>> right to publish, copy, distribute or disclose any information contained in
+>> this email, or its attachments, by any party other than the intended
+>> recipient. If you have received this email in error please notify the sender
+>> and delete it from your system.
+>>
+>> No employee or agent is authorised to conclude any binding agreement
+>> on behalf of the Department of Services, Technology and Administration
+>> by email. The views or opinions presented in this email are solely those of
+>> the author and do not necessarily represent those of the Department,
+>> except where the sender expressly, and with authority, states them to be
+>> the views of the Department of Services, Technology and Administration.
+>>
+>> The Department of Services, Technology and Administration accepts no
+>> liability for any loss or damage arising from the use of this email and
+>> recommends that the recipient check this email and any attached files for
+>> the presence of viruses.
+>>
+>> *************************************************************************************
+>>
+>> ? ? ? ?[[alternative HTML version deleted]]
+>>
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>>
+>
+>
+>
+> --
+> Paul E. Johnson
+> Professor, Political Science
+> 1541 Lilac Lane, Room 504
+> University of Kansas
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From noah at bio.umass.edu  Sat Mar  6 19:10:40 2010
+From: noah at bio.umass.edu (Noah Charney)
+Date: Sat, 6 Mar 2010 13:10:40 -0500
+Subject: [R-sig-hpc] snow clusters on Windows
+Message-ID: <e4e9c221471e70c790d93c8a21575b2d.squirrel@www.bio.umass.edu>
+
+Thanks Steve,
+
+I've made a bit more progress firing up local nodes with your suggestions,
+but I'm still stuck.
+
+I can succsesfully use the "manual=TRUE" option to start up slaves locally
+if I run:
+
+>makeSOCKcluster("128.XXX.XXX.XX", manual=TRUE) #(as long as the IP
+address is for the local computer)
+
+then I run a *.bat file with the requested command from a local command
+shell...
+
+But this only works locally.  I still can't get any slaves started on
+other machines on the network.  I know ssh is still working, because I can
+talk to the other machines in the network using:
+
+>system("ssh 128.XXX.XXX.XX date")
+
+And, as you mentioned, the log file doesn't have much in it since the
+slaves never get established.
+
+Any other suggestions?
+
+
+Thanks again!
+-Noah
+-- 
+Organismic and Evolutionary Biology
+University of Massachusetts Amherst
+221 Morrill Science Center South
+Amherst, MA 01003
+
+
+____________________________________________________________________________
+############################################################################
+
+
+makeSOCKcluster will hang if it cannot successfully start all of the
+cluster slaves.  I believe that your second R/snow session is "unhanging"
+the first session because it is starting up slaves for the first session. 
+You
+can actually do something very much like that, in a more supported way,
+by using the "manual" option with makeSOCKcluster.  It will display a command
+to use to start each of the slaves.  I think that might be worth doing,
+because
+it might uncover the error that's occurring.
+
+In general, it's a good idea to use the makeSOCKcluster "outfile" option,
+which
+will capture error messages in a file on each of the slaves, but that
+won't help
+if you aren't able to start the slaves running in the first place.
+
+A common problem is that the slaves can't connect back to the master after
+they're started.  That can be fixed by specifying the makeSOCKcluster
+"master" option.  You can diagnose that problem from the log files created
+using the "outfile" option.  But I doubt that you're having that problem,
+otherwise that would happen when you specified "localhost" to
+makeSOCKcluster.
+
+On Windows, I often specify the slaves and the master using IP addresses,
+using a command such as:
+
+ cl <- makeCluster(c("192.168.0.101", "192.168.0.102"),
+              outfile="C:/temp/snow.log", master="192.168.0.100")
+
+- Steve
+
+
+On Tue, Jan 26, 2010 at 11:44 AM, Noah Charney <noah at bio.umass.edu> wrote:
+> Guy et al,
+>
+> Thanks for the pointers! I appear to have gotten much of the way there
+> (solution described below), but there remains a very strange problem with
+> makeCluster(). ?I'm still just testing it out on a single computer, and,
+> as before, it works fine when I call:
+>
+>> makeSOCKcluster("localhost")
+>
+> But if I specify my local host by name:
+>
+>> makeSOCKcluster("Poopy")
+>
+> It will hang up indefinitely until I open a second R workspace/window on
+> the same machine, and try to call the localhost:
+>
+>> cl<-makeSOCKcluster("localhost")
+> Error in socketConnection(port = port, server = TRUE, blocking = TRUE, ?:
+> ?cannot open the connection
+> In addition: Warning message:
+> In socketConnection(port = port, server = TRUE, blocking = TRUE, ?:
+> ?port 10187 cannot be opened
+>
+> This error message seems to be a good sign, because when I now look back
+> at the original R workspace, it will have completed making the cluster.
+> If I try to make a 3 node cluster, then I need to "nudge" it as above 3
+> times from the other workspace. ?Once the cluster is established,
+> clusterApply seems to work fine. ?Thoughts?
+>
+> ------
+> To get ssh running from R in the first place on Windows, which was my
+> original question:
+>
+> Install copssh (http://www.itefix.no/i2/download)
+>
+> Add the ...copssh/bin/ directory to Path variable in windows (Control
+> Panel -> System -> Advanced System Settings -> System Variables -> Path)
+>
+> To speed things up considerably, changed UseDNS to "no" (and deleted
+> preceding # to uncomment) in C:\Program Files\CopSSH\etc\sshd_config
+>
+> I also added a "hosts" file to the CopSSH\etc\ directory with the local IP
+> and hostname, but I don't think this was necessary
+>
+> Followed directions to set up password-less ssh login from
+> http://nws-r.sourceforge.net/docs/getting_started.html :
+>
+> ? ? ? ?To generate public and private keys, follow the steps below.
+> ? ? ? ?Open a DOS terminal
+> ? ? ? ?ssh-keygen -t rsa
+> ? ? ? ?cd .ssh (.ssh directory is located in C:/Program
+Files/copssh/home/user
+> on Windows)
+> ? ? ? ?cp id_rsa.pub authorized_keys This step allows password-less
+login to
+> local machine.
+> ? ? ? ?For all remote machines that you want password-less login, append
+the
+> content of id_rsa.pub to their ?authorized_keys file.
+> ? ? ? ?To test the password-less login, type the following command:
+> ? ? ? ?% ssh hostname date
+> ? ? ? ?If everything is setup correctly, you should not be asked for
+password
+> and the current date on remote machine will be returned.
+>
+>
+> Now, from R, we should be able to type:
+>> system("ssh #insert computer name here# date")
+> Tue Jan 26 11:30:31 EST 2010
+>>
+>
+> Thanks
+> -Noah Charney
+> --
+> Organismic and Evolutionary Biology
+> University of Massachusetts Amherst
+> 221 Morrill Science Center South
+> Amherst, MA 01003
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+Hi Noah,
+
+While I did not use snow, I was able to sucessfully implement cluster
+computing with windows workstations using NetWorkSpaces:
+http://nws-r.sourceforge.net/
+
+As you noted the key to these solutions is to get SSH running on windows
+boxes which can be accomplished with Cygwin
+http://www.cygwin.com/
+
+The biggest challenge was configuring SSH and here are some links that I
+had found helpful back when I was setting this up:
+
+http://www1.umn.edu/oit/prod/groups/oit/@pub/@oit/@web/@security/documents/asset/oit_asset_001221.pdf
+
+http://lifehacker.com/205090/geek-to-live--set-up-a-personal-home-ssh-server
+
+http://www.bmonday.com/articles/653.aspx
+
+Good Luck!
+
+Best,
+
+-- Guy
+
+
+-----Original Message-----
+From: r-sig-hpc-bounces at r-project.org [mailto:r-sig-hpc-bounces at
+r-project.org] On Behalf Of Noah Charney
+Sent: Monday, January 18, 2010 11:59 AM
+To: r-sig-hpc at r-project.org
+Subject: [R-sig-hpc] snow clusters on Windows
+
+R-HPC list members,
+
+I am wondering if anyone could help us with the setup for snow clusters on
+windows machines.  Is there something specific we need to do to set up SSH
+so that R can access it in the absence of linux?  We are working on
+Windows Server 2003, and on Vista, the problem is the same on both.  We
+can create local clusters using the name "localhost" on any computer, but
+no other name/IP address we substitute for "localhost" works.  Example
+code is below.
+
+#This works fine
+> cl<-makeCluster('localhost',type='SOCK')
+> cl
+[[1]]
+$con
+    description           class            mode            text
+opened
+"<-Poopy:10187"      "sockconn"           "a+b"        "binary"
+"opened"
+       can read       can write
+          "yes"           "yes"
+$host
+[1] "localhost"
+attr(,"class")
+[1] "SOCKnode"
+attr(,"class")
+[1] "SOCKcluster" "cluster"
+
+> stopCluster(cl)
+
+#But if we try to call the home computer by name or IP address, or
+anything else, it doesn't work...
+> cl<-makeCluster('192.168.1.1',type='SOCK')
+
+#It just hangs there until we hit 'escape', at which point it says:
+Warning message:
+In system(cmd, wait = FALSE, input = "") : ssh not found
+
+
+Thanks
+-Noah Charney
+---
+Organismic and Evolutionary Biology
+University of Massachusetts Amherst
+221 Morrill Science Center South
+Amherst, MA 01003-9297
+
+
+From stephen.b.weston at gmail.com  Sat Mar  6 19:38:26 2010
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Sat, 6 Mar 2010 13:38:26 -0500
+Subject: [R-sig-hpc] snow clusters on Windows
+In-Reply-To: <e4e9c221471e70c790d93c8a21575b2d.squirrel@www.bio.umass.edu>
+References: <e4e9c221471e70c790d93c8a21575b2d.squirrel@www.bio.umass.edu>
+Message-ID: <57e838141003061038q776de918u123f0b60a6e3a4eb@mail.gmail.com>
+
+Hi Noah,
+
+What happens when you start the slaves manually on other
+machines on your network?  Do they simply hang?
+
+One of the reasons that it's useful to use manual mode is that
+it makes it easier to see any error message.  And if they do
+hang, you can hit CTRL-C, and then type "traceback()" to
+find out where the program was hung.  I would need some
+more information of that sort before I could even guess what
+your problem is.
+
+That being said, have you ruled out any problems due to
+a firewall?  That is a classic problem when going from one
+to many machines.
+
+- Steve
+
+
+On Sat, Mar 6, 2010 at 1:10 PM, Noah Charney <noah at bio.umass.edu> wrote:
+> Thanks Steve,
+>
+> I've made a bit more progress firing up local nodes with your suggestions,
+> but I'm still stuck.
+>
+> I can succsesfully use the "manual=TRUE" option to start up slaves locally
+> if I run:
+>
+>>makeSOCKcluster("128.XXX.XXX.XX", manual=TRUE) #(as long as the IP
+> address is for the local computer)
+>
+> then I run a *.bat file with the requested command from a local command
+> shell...
+>
+> But this only works locally. ?I still can't get any slaves started on
+> other machines on the network. ?I know ssh is still working, because I can
+> talk to the other machines in the network using:
+>
+>>system("ssh 128.XXX.XXX.XX date")
+>
+> And, as you mentioned, the log file doesn't have much in it since the
+> slaves never get established.
+>
+> Any other suggestions?
+>
+>
+> Thanks again!
+> -Noah
+> --
+> Organismic and Evolutionary Biology
+> University of Massachusetts Amherst
+> 221 Morrill Science Center South
+> Amherst, MA 01003
+>
+>
+> ____________________________________________________________________________
+> ############################################################################
+>
+>
+> makeSOCKcluster will hang if it cannot successfully start all of the
+> cluster slaves. ?I believe that your second R/snow session is "unhanging"
+> the first session because it is starting up slaves for the first session.
+> You
+> can actually do something very much like that, in a more supported way,
+> by using the "manual" option with makeSOCKcluster. ?It will display a command
+> to use to start each of the slaves. ?I think that might be worth doing,
+> because
+> it might uncover the error that's occurring.
+>
+> In general, it's a good idea to use the makeSOCKcluster "outfile" option,
+> which
+> will capture error messages in a file on each of the slaves, but that
+> won't help
+> if you aren't able to start the slaves running in the first place.
+>
+> A common problem is that the slaves can't connect back to the master after
+> they're started. ?That can be fixed by specifying the makeSOCKcluster
+> "master" option. ?You can diagnose that problem from the log files created
+> using the "outfile" option. ?But I doubt that you're having that problem,
+> otherwise that would happen when you specified "localhost" to
+> makeSOCKcluster.
+>
+> On Windows, I often specify the slaves and the master using IP addresses,
+> using a command such as:
+>
+> ?cl <- makeCluster(c("192.168.0.101", "192.168.0.102"),
+> ? ? ? ? ? ? ?outfile="C:/temp/snow.log", master="192.168.0.100")
+>
+> - Steve
+>
+>
+> On Tue, Jan 26, 2010 at 11:44 AM, Noah Charney <noah at bio.umass.edu> wrote:
+>> Guy et al,
+>>
+>> Thanks for the pointers! I appear to have gotten much of the way there
+>> (solution described below), but there remains a very strange problem with
+>> makeCluster(). ?I'm still just testing it out on a single computer, and,
+>> as before, it works fine when I call:
+>>
+>>> makeSOCKcluster("localhost")
+>>
+>> But if I specify my local host by name:
+>>
+>>> makeSOCKcluster("Poopy")
+>>
+>> It will hang up indefinitely until I open a second R workspace/window on
+>> the same machine, and try to call the localhost:
+>>
+>>> cl<-makeSOCKcluster("localhost")
+>> Error in socketConnection(port = port, server = TRUE, blocking = TRUE, ?:
+>> ?cannot open the connection
+>> In addition: Warning message:
+>> In socketConnection(port = port, server = TRUE, blocking = TRUE, ?:
+>> ?port 10187 cannot be opened
+>>
+>> This error message seems to be a good sign, because when I now look back
+>> at the original R workspace, it will have completed making the cluster.
+>> If I try to make a 3 node cluster, then I need to "nudge" it as above 3
+>> times from the other workspace. ?Once the cluster is established,
+>> clusterApply seems to work fine. ?Thoughts?
+>>
+>> ------
+>> To get ssh running from R in the first place on Windows, which was my
+>> original question:
+>>
+>> Install copssh (http://www.itefix.no/i2/download)
+>>
+>> Add the ...copssh/bin/ directory to Path variable in windows (Control
+>> Panel -> System -> Advanced System Settings -> System Variables -> Path)
+>>
+>> To speed things up considerably, changed UseDNS to "no" (and deleted
+>> preceding # to uncomment) in C:\Program Files\CopSSH\etc\sshd_config
+>>
+>> I also added a "hosts" file to the CopSSH\etc\ directory with the local IP
+>> and hostname, but I don't think this was necessary
+>>
+>> Followed directions to set up password-less ssh login from
+>> http://nws-r.sourceforge.net/docs/getting_started.html :
+>>
+>> ? ? ? ?To generate public and private keys, follow the steps below.
+>> ? ? ? ?Open a DOS terminal
+>> ? ? ? ?ssh-keygen -t rsa
+>> ? ? ? ?cd .ssh (.ssh directory is located in C:/Program
+> Files/copssh/home/user
+>> on Windows)
+>> ? ? ? ?cp id_rsa.pub authorized_keys This step allows password-less
+> login to
+>> local machine.
+>> ? ? ? ?For all remote machines that you want password-less login, append
+> the
+>> content of id_rsa.pub to their ?authorized_keys file.
+>> ? ? ? ?To test the password-less login, type the following command:
+>> ? ? ? ?% ssh hostname date
+>> ? ? ? ?If everything is setup correctly, you should not be asked for
+> password
+>> and the current date on remote machine will be returned.
+>>
+>>
+>> Now, from R, we should be able to type:
+>>> system("ssh #insert computer name here# date")
+>> Tue Jan 26 11:30:31 EST 2010
+>>>
+>>
+>> Thanks
+>> -Noah Charney
+>> --
+>> Organismic and Evolutionary Biology
+>> University of Massachusetts Amherst
+>> 221 Morrill Science Center South
+>> Amherst, MA 01003
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+> Hi Noah,
+>
+> While I did not use snow, I was able to sucessfully implement cluster
+> computing with windows workstations using NetWorkSpaces:
+> http://nws-r.sourceforge.net/
+>
+> As you noted the key to these solutions is to get SSH running on windows
+> boxes which can be accomplished with Cygwin
+> http://www.cygwin.com/
+>
+> The biggest challenge was configuring SSH and here are some links that I
+> had found helpful back when I was setting this up:
+>
+> http://www1.umn.edu/oit/prod/groups/oit/@pub/@oit/@web/@security/documents/asset/oit_asset_001221.pdf
+>
+> http://lifehacker.com/205090/geek-to-live--set-up-a-personal-home-ssh-server
+>
+> http://www.bmonday.com/articles/653.aspx
+>
+> Good Luck!
+>
+> Best,
+>
+> -- Guy
+>
+>
+> -----Original Message-----
+> From: r-sig-hpc-bounces at r-project.org [mailto:r-sig-hpc-bounces at
+> r-project.org] On Behalf Of Noah Charney
+> Sent: Monday, January 18, 2010 11:59 AM
+> To: r-sig-hpc at r-project.org
+> Subject: [R-sig-hpc] snow clusters on Windows
+>
+> R-HPC list members,
+>
+> I am wondering if anyone could help us with the setup for snow clusters on
+> windows machines. ?Is there something specific we need to do to set up SSH
+> so that R can access it in the absence of linux? ?We are working on
+> Windows Server 2003, and on Vista, the problem is the same on both. ?We
+> can create local clusters using the name "localhost" on any computer, but
+> no other name/IP address we substitute for "localhost" works. ?Example
+> code is below.
+>
+> #This works fine
+>> cl<-makeCluster('localhost',type='SOCK')
+>> cl
+> [[1]]
+> $con
+> ? ?description ? ? ? ? ? class ? ? ? ? ? ?mode ? ? ? ? ? ?text
+> opened
+> "<-Poopy:10187" ? ? ?"sockconn" ? ? ? ? ? "a+b" ? ? ? ?"binary"
+> "opened"
+> ? ? ? can read ? ? ? can write
+> ? ? ? ? ?"yes" ? ? ? ? ? "yes"
+> $host
+> [1] "localhost"
+> attr(,"class")
+> [1] "SOCKnode"
+> attr(,"class")
+> [1] "SOCKcluster" "cluster"
+>
+>> stopCluster(cl)
+>
+> #But if we try to call the home computer by name or IP address, or
+> anything else, it doesn't work...
+>> cl<-makeCluster('192.168.1.1',type='SOCK')
+>
+> #It just hangs there until we hit 'escape', at which point it says:
+> Warning message:
+> In system(cmd, wait = FALSE, input = "") : ssh not found
+>
+>
+> Thanks
+> -Noah Charney
+> ---
+> Organismic and Evolutionary Biology
+> University of Massachusetts Amherst
+> 221 Morrill Science Center South
+> Amherst, MA 01003-9297
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From Debabrata.Midya at services.nsw.gov.au  Mon Mar  8 00:03:15 2010
+From: Debabrata.Midya at services.nsw.gov.au (Debabrata Midya)
+Date: Mon, 08 Mar 2010 10:03:15 +1100
+Subject: [R-sig-hpc] To run bugsparallel
+In-Reply-To: <13e802631003042148v151c79d8s1e5caa8b79135f8@mail.gmail.com>
+References: <4B90F41E.5860.00D0.0@services.nsw.gov.au>
+	<13e802631003042148v151c79d8s1e5caa8b79135f8@mail.gmail.com>
+Message-ID: <4B94CB62.5860.00D0.0@services.nsw.gov.au>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100308/cf2d4fe2/attachment.pl>
+
+From Debabrata.Midya at services.nsw.gov.au  Mon Mar  8 00:07:47 2010
+From: Debabrata.Midya at services.nsw.gov.au (Debabrata Midya)
+Date: Mon, 08 Mar 2010 10:07:47 +1100
+Subject: [R-sig-hpc] To run bugsparallel
+In-Reply-To: <8ec76081003050507h6c82cf5dkd0cc7847786ff66d@mail.gmail.com>
+References: <4B90F41E.5860.00D0.0@services.nsw.gov.au>
+	<13e802631003042148v151c79d8s1e5caa8b79135f8@mail.gmail.com>
+	<8ec76081003050507h6c82cf5dkd0cc7847786ff66d@mail.gmail.com>
+Message-ID: <4B94CC72.5860.00D0.0@services.nsw.gov.au>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100308/82eb89fa/attachment.pl>
+
+From mwkimpel at gmail.com  Mon Mar  8 06:03:28 2010
+From: mwkimpel at gmail.com (Mark Kimpel)
+Date: Mon, 8 Mar 2010 00:03:28 -0500
+Subject: [R-sig-hpc] nesting mcapply cause hang with large matrices
+Message-ID: <6b93d1831003072103n50d716fdj22014a5ea6a31044@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100308/c8a39e28/attachment.pl>
+
+From mwkimpel at gmail.com  Mon Mar  8 07:11:10 2010
+From: mwkimpel at gmail.com (Mark Kimpel)
+Date: Mon, 8 Mar 2010 01:11:10 -0500
+Subject: [R-sig-hpc] nesting mcapply cause hang with large matrices
+In-Reply-To: <6b93d1831003072103n50d716fdj22014a5ea6a31044@mail.gmail.com>
+References: <6b93d1831003072103n50d716fdj22014a5ea6a31044@mail.gmail.com>
+Message-ID: <6b93d1831003072211x52846edata9f4e2bf5bdc05b9@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100308/515e1027/attachment.pl>
+
+From jeedward at yahoo.com  Tue Mar  9 23:37:35 2010
+From: jeedward at yahoo.com (John Edward)
+Date: Tue, 9 Mar 2010 14:37:35 -0800 (PST)
+Subject: [R-sig-hpc] Call for papers: HPCS-10, USA, July 2010
+Message-ID: <319623.25921.qm@web45909.mail.sp1.yahoo.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100309/e6e658d8/attachment.pl>
+
+From matloff at cs.ucdavis.edu  Thu Mar 11 06:37:01 2010
+From: matloff at cs.ucdavis.edu (Norm Matloff)
+Date: Wed, 10 Mar 2010 21:37:01 -0800
+Subject: [R-sig-hpc] ANNOUNCE--Rdsm package, a threads-like environment for R
+Message-ID: <20100311053700.GA15981@laura>
+
+
+My long-promised Rdsm package is now on CRAN.  Some of you may recall
+that I made a prototype available on my own Web page last July.  This is
+the official version, much evolved since I released the prototype.
+
+The CRAN description states:  
+
+   Provides a threads-like programming environment for R, usable both on
+   a multicore machine and across a network of multiple machines. The
+   package gives the illusion of shared memory, again even across
+   multiple machines on a network.
+
+This is based on a similar package I wrote for Perl back in 2002.
+
+Rdsm should complement the bigmemory package written by Mike Kane and
+Jay Emerson.  As noted above and in my July announcement for my
+prototype, Rdsm works across a network of machines, while bigmemory is
+limited to multicore platforms.  On the other hand, bigmemory is capable
+of handling huge data structures, which Rdsm is not.  Rdsm is intended
+for parallel/distributed computing, while bigmemory is currently used
+primarily for the problems its name implies.  However, if bigmemory is
+used as a parallel R vehicle on a multicore machine, it may be faster
+than Rdsm for some applications, given its direct use of bare shared
+memory; typically, though, they should provide similar performance in
+such contexts.  By the way, I have a prototype of an infrastructure
+package to facilitate using bigmemory as a parallel R engine. 
+
+Norm Matloff
+University of California, Davis
+
+
+From ashwin.kapur at gmail.com  Wed Mar 17 21:26:16 2010
+From: ashwin.kapur at gmail.com (Ashwin Kapur)
+Date: Wed, 17 Mar 2010 16:26:16 -0400
+Subject: [R-sig-hpc] Big Data packages
+Message-ID: <DCFC1B07-B1A2-4DDC-82A9-3B8DE51548E3@gmail.com>
+
+Just wondering if anyone has opinions on the various big data packages for R, ff vs bigmemory vs anything else.  Is anyone working on or is there already a package for connecting hdf5 to R for handling huge datasets as opposed to the hdf5 package which basically just allows you to read everything in an hdf5 at once.  I was also wondering what advantages ff/bigmemory may have to existing libraries in C for the same the most prominent of which is probably hdf5.
+
+--Ashwin
+
+From daniel.cegielka at gmail.com  Wed Mar 17 21:41:48 2010
+From: daniel.cegielka at gmail.com (=?ISO-8859-2?Q?Daniel_Cegie=B3ka?=)
+Date: Wed, 17 Mar 2010 21:41:48 +0100
+Subject: [R-sig-hpc] Big Data packages
+In-Reply-To: <DCFC1B07-B1A2-4DDC-82A9-3B8DE51548E3@gmail.com>
+References: <DCFC1B07-B1A2-4DDC-82A9-3B8DE51548E3@gmail.com>
+Message-ID: <5ddf2c611003171341i5499843cn6b86bd31e0975417@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100317/a7a96591/attachment.pl>
+
+From daniel.cegielka at gmail.com  Wed Mar 17 21:43:28 2010
+From: daniel.cegielka at gmail.com (=?ISO-8859-2?Q?Daniel_Cegie=B3ka?=)
+Date: Wed, 17 Mar 2010 21:43:28 +0100
+Subject: [R-sig-hpc] Big Data packages
+In-Reply-To: <5ddf2c611003171341i5499843cn6b86bd31e0975417@mail.gmail.com>
+References: <DCFC1B07-B1A2-4DDC-82A9-3B8DE51548E3@gmail.com>
+	<5ddf2c611003171341i5499843cn6b86bd31e0975417@mail.gmail.com>
+Message-ID: <5ddf2c611003171343w25e5c22v490da183fcddd333@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100317/f53c42ca/attachment.pl>
+
+From renaud at mancala.cbio.uct.ac.za  Thu Mar 18 12:18:02 2010
+From: renaud at mancala.cbio.uct.ac.za (Renaud Gaujoux)
+Date: Thu, 18 Mar 2010 13:18:02 +0200
+Subject: [R-sig-hpc] multicore package and C/C++ code: any special care?
+Message-ID: <4BA20BEA.9090405@cbio.uct.ac.za>
+
+Hi,
+
+my package aims to be used in a multicore and/or computer-cluster 
+environment.
+I'm re-implementing part of the code in C++. Apparently it's running ok 
+in multicore mode, but I want to be sure there is no potential problem 
+with this, on any platform.
+Is there any special things to worry about (thread-safe, memory, etc, ...)?
+Thanks.
+
+Bests,
+Renaud
+
+PS: even if there is nothing to worry about, I'd be happy to get some 
+insights on the reason behind it.
+
+
+From brian at braverock.com  Thu Mar 18 12:36:02 2010
+From: brian at braverock.com (Brian G. Peterson)
+Date: Thu, 18 Mar 2010 06:36:02 -0500
+Subject: [R-sig-hpc] multicore package and C/C++ code: any special care?
+In-Reply-To: <4BA20BEA.9090405@cbio.uct.ac.za>
+References: <4BA20BEA.9090405@cbio.uct.ac.za>
+Message-ID: <4BA21022.9010202@braverock.com>
+
+Renaud Gaujoux wrote:
+> Hi,
+>
+> my package aims to be used in a multicore and/or computer-cluster 
+> environment.
+> I'm re-implementing part of the code in C++. Apparently it's running 
+> ok in multicore mode, but I want to be sure there is no potential 
+> problem with this, on any platform.
+> Is there any special things to worry about (thread-safe, memory, etc, 
+> ...)?
+> Thanks.
+>
+> Bests,
+> Renaud
+>
+> PS: even if there is nothing to worry about, I'd be happy to get some 
+> insights on the reason behind it.
+'multicore' spawns separate R processes to run for each core.  Your 
+custom C/C++ code should not make use of shared memory blocks that could 
+be overwritten by one of the other R processes, or expect interprocess 
+communication to work between the processes without explicit handling.  
+If all your memory is explicitly allocated, used, and cleaned up, you 
+should have no problems.  Loop dependence, or dependence on some shared 
+global in the calling R environment, should be avoided.  Be explicit 
+about both inputs and outputs to your code.
+
+Others are definitely more qualified to get at the nuances, but this 
+should cover the broad strokes.
+
+Regards,
+
+    - Brian
+
+-- 
+Brian G. Peterson
+http://braverock.com/brian/
+Ph: 773-459-4973
+IM: bgpbraverock
+
+
+From renaud at mancala.cbio.uct.ac.za  Thu Mar 18 13:03:43 2010
+From: renaud at mancala.cbio.uct.ac.za (Renaud Gaujoux)
+Date: Thu, 18 Mar 2010 14:03:43 +0200
+Subject: [R-sig-hpc] multicore package and C/C++ code: any special care?
+In-Reply-To: <4BA21022.9010202@braverock.com>
+References: <4BA20BEA.9090405@cbio.uct.ac.za> <4BA21022.9010202@braverock.com>
+Message-ID: <4BA2169F.2070904@cbio.uct.ac.za>
+
+Ok, thanks. So it should be all fine.
+I do make use of shared memory objects (with the package bigmemory) but 
+it only on the R side in a %dopar% loop (doMC).
+The C++ code is independent of it and only used in part of the 
+inner-loop computation, I deal with concurrent access to these shared 
+objects via rw.mutex objects (also from bigmemory):
+
+# basically this gets the best (max) result among 100
+compute.all <- function(x, ...){
+
+                ## 1. SETUP                              
+                # - Define a shared memory objects
+                best.shared <- shared.big.matrix(1, 1, type='double', 
+init=NA)           
+                   
+                # - Define a mutex to control the access to the shared 
+memory objects
+                mut <- rw.mutex()
+                mut.desc <- bigmemory::describe(mut)           
+                   
+                ## 2. RUN
+                res.runs <- foreach(n=1:100) %dopar% {
+                   
+                    # here is the C++ part
+                    res <- cppcomputation(x, ...)
+                   
+                   # load shared object
+                   best.shared <- attach.big.matrix(best.desc)
+                       
+                   ##LOCK_MUTEX                   
+                   # retrieve and lock the mutex
+                   mut <- attach.rw.mutex(mut.desc)   
+                   rwlock(mut)
+                       
+                   # check if the result is greater than the previous max
+                   best <- best.shared[]
+                   if( is.na(best) || res > best ){
+                      
+                       # update residuals
+                       best.shared[] <- res
+                                                      
+                   }
+                   else res <- NULL
+                       
+                   
+                   # unlock the mutex
+                   bigmemory::unlock(mut)
+                   ##END_LOCK_MUTEX
+                                   
+                   # return the result
+                  res
+            }
+
+             res.runs
+}           
+
+
+Bests,
+Renaud
+
+Brian G. Peterson wrote:
+> Renaud Gaujoux wrote:
+>> Hi,
+>>
+>> my package aims to be used in a multicore and/or computer-cluster 
+>> environment.
+>> I'm re-implementing part of the code in C++. Apparently it's running 
+>> ok in multicore mode, but I want to be sure there is no potential 
+>> problem with this, on any platform.
+>> Is there any special things to worry about (thread-safe, memory, etc, 
+>> ...)?
+>> Thanks.
+>>
+>> Bests,
+>> Renaud
+>>
+>> PS: even if there is nothing to worry about, I'd be happy to get some 
+>> insights on the reason behind it.
+> 'multicore' spawns separate R processes to run for each core.  Your 
+> custom C/C++ code should not make use of shared memory blocks that 
+> could be overwritten by one of the other R processes, or expect 
+> interprocess communication to work between the processes without 
+> explicit handling.  If all your memory is explicitly allocated, used, 
+> and cleaned up, you should have no problems.  Loop dependence, or 
+> dependence on some shared global in the calling R environment, should 
+> be avoided.  Be explicit about both inputs and outputs to your code.
+>
+> Others are definitely more qualified to get at the nuances, but this 
+> should cover the broad strokes.
+>
+> Regards,
+>
+>    - Brian
+>
+
+
+From atp at piskorski.com  Thu Mar 18 16:57:40 2010
+From: atp at piskorski.com (Andrew Piskorski)
+Date: Thu, 18 Mar 2010 11:57:40 -0400
+Subject: [R-sig-hpc] Big Data packages
+In-Reply-To: <DCFC1B07-B1A2-4DDC-82A9-3B8DE51548E3@gmail.com>
+References: <DCFC1B07-B1A2-4DDC-82A9-3B8DE51548E3@gmail.com>
+Message-ID: <20100318155739.GA1237@piskorski.com>
+
+On Wed, Mar 17, 2010 at 04:26:16PM -0400, Ashwin Kapur wrote:
+> Just wondering if anyone has opinions on the various big data packages for
+> R, ff vs bigmemory vs anything else.  Is anyone working on or is there
+
+I don't really know.  However, since both ff and bigmemory are
+intended for use with giant larger-than-RAM matrices via memory-mapped
+files on disk, back c. October 2009 I briefly tried out both in order
+to answer one question:
+
+Is either package a straightforward drop-in replacement for EXISTING
+code manipulating large R matrices, in order to reduce R's massive
+(and probably quite inefficient) memory use in such cases?
+
+The short answer is no, they're not.  Neither one even really attempts
+to work transparently as a matrix in R.  Both packages have major
+quirks and special behaviors which in practice seem to mean that you
+must write your code specifically for them.  These include smaller
+things like is.na() or apply() not working, to conceptually bigger
+ones like pass-by-reference rather than the pass-by-value R uses
+everywhere else.
+
+And if you're writing special-case code, then other tools, like
+RSQLite or perhaps even Metakit, also become options.  Note that I
+have no particular opinion on how useful ff or bigmemory are in
+general, I didn't even attempt to figure that out.
+
+And finally, some other out-there technologies to keep an eye on for
+potential use in massive data manipulation in R (but unlike the
+packages above, these probably are not usable with R right now):
+
+- If completed, Jean-Claude Wippler's Vlerq might well have been very
+  useful for R, perhaps even as a unification of and upgrade to R's
+  native matrix, array, and data frame data structures.  Unfortunately
+  that project is dead.  It also sounded in some ways like what Kdb/Q do.
+
+- MonetDB is interesting, but may be too server-like for embedded use
+  from R.
+
+- Alex van Ballegooij's "RAM" Relational Array Mapping extension for
+  MonetDB sounds potentially relevant for R-like use of matrices, but
+  it's not clear whether it actually worked for anything other than
+  his PhD thesis.
+  http://www.cwi.nl/en/2009/1026/New-array-database-technology-for-scientists
+
+- If SciDB gets anywhere, it might end up useful as an out-of-core
+  multi-dimensional matrix back-end for R, even though it is intended
+  more as an RDBMS server rather than a lightweight library.
+
+-- 
+Andrew Piskorski <atp at piskorski.com>
+http://www.piskorski.com/
+
+
+From brian at braverock.com  Thu Mar 18 17:10:48 2010
+From: brian at braverock.com (Brian G. Peterson)
+Date: Thu, 18 Mar 2010 11:10:48 -0500
+Subject: [R-sig-hpc] Big Data packages
+In-Reply-To: <20100318155739.GA1237@piskorski.com>
+References: <DCFC1B07-B1A2-4DDC-82A9-3B8DE51548E3@gmail.com>
+	<20100318155739.GA1237@piskorski.com>
+Message-ID: <4BA25088.5040308@braverock.com>
+
+I think if you are looking for a matrix-like replacement, you should 
+probably look at Jeff Ryan (author of xts, quantmod, others)
+'indexing' package.  It is very 'R-like' in its usage and subsetting, 
+holding the 'index' in memory.  It turns out to be faster than bigmemory 
+for most types of access.
+
+  - Brian
+
+Andrew Piskorski wrote:
+> On Wed, Mar 17, 2010 at 04:26:16PM -0400, Ashwin Kapur wrote:
+>   
+>> Just wondering if anyone has opinions on the various big data packages for
+>> R, ff vs bigmemory vs anything else.  Is anyone working on or is there
+>>     
+>
+> I don't really know.  However, since both ff and bigmemory are
+> intended for use with giant larger-than-RAM matrices via memory-mapped
+> files on disk, back c. October 2009 I briefly tried out both in order
+> to answer one question:
+>
+> Is either package a straightforward drop-in replacement for EXISTING
+> code manipulating large R matrices, in order to reduce R's massive
+> (and probably quite inefficient) memory use in such cases?
+>
+> The short answer is no, they're not.  Neither one even really attempts
+> to work transparently as a matrix in R.  Both packages have major
+> quirks and special behaviors which in practice seem to mean that you
+> must write your code specifically for them.  These include smaller
+> things like is.na() or apply() not working, to conceptually bigger
+> ones like pass-by-reference rather than the pass-by-value R uses
+> everywhere else.
+>
+> And if you're writing special-case code, then other tools, like
+> RSQLite or perhaps even Metakit, also become options.  Note that I
+> have no particular opinion on how useful ff or bigmemory are in
+> general, I didn't even attempt to figure that out.
+>
+> And finally, some other out-there technologies to keep an eye on for
+> potential use in massive data manipulation in R (but unlike the
+> packages above, these probably are not usable with R right now):
+>
+> - If completed, Jean-Claude Wippler's Vlerq might well have been very
+>   useful for R, perhaps even as a unification of and upgrade to R's
+>   native matrix, array, and data frame data structures.  Unfortunately
+>   that project is dead.  It also sounded in some ways like what Kdb/Q do.
+>
+> - MonetDB is interesting, but may be too server-like for embedded use
+>   from R.
+>
+> - Alex van Ballegooij's "RAM" Relational Array Mapping extension for
+>   MonetDB sounds potentially relevant for R-like use of matrices, but
+>   it's not clear whether it actually worked for anything other than
+>   his PhD thesis.
+>   http://www.cwi.nl/en/2009/1026/New-array-database-technology-for-scientists
+>
+> - If SciDB gets anywhere, it might end up useful as an out-of-core
+>   multi-dimensional matrix back-end for R, even though it is intended
+>   more as an RDBMS server rather than a lightweight library.
+>
+>   
+
+
+-- 
+Brian G. Peterson
+http://braverock.com/brian/
+Ph: 773-459-4973
+IM: bgpbraverock
+
+
+From ashwin.kapur at gmail.com  Thu Mar 18 17:21:42 2010
+From: ashwin.kapur at gmail.com (Ashwin Kapur)
+Date: Thu, 18 Mar 2010 12:21:42 -0400
+Subject: [R-sig-hpc] Antw:  Big Data packages
+In-Reply-To: <4BA1F13F0200002700007D80@gwia2.boku.ac.at>
+References: <DCFC1B07-B1A2-4DDC-82A9-3B8DE51548E3@gmail.com>
+	<4BA1F13F0200002700007D80@gwia2.boku.ac.at>
+Message-ID: <2971D054-E8D9-4790-BADE-20206193B822@gmail.com>
+
+I've been looking at big data packages on CRAN though I haven't looked at RForge much yet.  So far I've played with bigmemory and ff.  Both are great packages, though ff seemed closer to what would work for me.  I have code that uses large multi (3) dimensional arrays and bigmemory doesn't do more than 2 dimensions.  Performance for filebacked matrices seems to be quite a bit slower, though admittedly I've only been playing with the packages for a short time so that probably has more to do with it than the packages themselves.
+
+From what I can see, for file backed matrices neither ff nor bigmemory seemed to take advantage of the fact that using some CPU to make disk access faster actually makes things MUCH faster because disk access is a few orders of magnitude than anything else. So basically compressing data is a huge win because you do much less disk access.  Compression is sometimes considered an issue because for the better compression algorithms you need to compress the whole matrix and uncompress the whole thing as well so for huge matrices you can end up swapping while compressing and decompressing, but the better scientific data handling libraries get around this by asking you to specify a chunk size, so say for a 500x10000x400 array you specify a chunksize of 1x10000x400 and the library compresses chunks of data of that size and indexes them.  You generally choose chunks such that the typical amount of data you handle at one time is one chunk.  Other optimizations are also generally done.
+
+One other important optimization is transposing the binary data.  Typical scientific datasets are made up of numbers relatively close to each other.  If you consider how they are represented on the machine, you could easily have a dataset for which the higher order bits are identical.  Now when you consider that most compression algorithms are some variant of run length encoding there is an obvious optimization.  If you try to compress the data as is the compressor can't do all that much.  However if you essentially transpose the binary vectors, so you have all the highest order bits first, then the next ones etc if say all the highest order bits are the same, they can be stored in essentially one size_t and so on.  Again this is memory intensive, but chunking and compressing and saving chunks separately gets around this problem.  So instead of the typical 3x - 4x compression, typical compression goes to about 10x and for some datasets much higher which translates into much higher read and write speed.
+
+Of course the "obvious" optimizations like sparse storage for sparse matrices etc are important too.
+
+Other languages I use for HPC generally have interfaces to the various data handling libraries, notably hdf5 and netcdf so you can use multiple languages to interact with the same datasets.  To me a package that wraps hdf5 is an obvious need, especially now that it seems clear that hdf5 is probably the "best" (tm) such library and even the netcdf team agrees, having made the latest version is netcdf is just a wrapper over hdf5.  From what I can tell there are a couple of R packages that can read hdf5 but as far as I can tell neither actually provides an interface that is useful for HPC applications, just a way of taking a hdf5 file and putting the whole thing into memory which is impossible if it's a truly large file.
+
+I am aware of sqlite etc but they really aren't designed for doing file backed data storage for HPC applications.  They are rather more general libraries.  I'm wondering if there are packages out there that connect R to hdf5 etc out there that people are aware of.  I don't want to start on a package writing adventure if it's already been done.  And of course I'm aware that creating a package of this sort that creates data types that can be used as simple drop in replacements for standard R matrices or arrays is let's just say likely to be complicated without rewriting R.
+
+Thanks for the pointers to Metakit, RAM and SciDB.  I'll play with them for a bit.
+
+--Ashwin
+
+From jeff.a.ryan at gmail.com  Thu Mar 18 18:07:22 2010
+From: jeff.a.ryan at gmail.com (Jeff Ryan)
+Date: Thu, 18 Mar 2010 12:07:22 -0500
+Subject: [R-sig-hpc] Antw: Big Data packages
+In-Reply-To: <2971D054-E8D9-4790-BADE-20206193B822@gmail.com>
+References: <DCFC1B07-B1A2-4DDC-82A9-3B8DE51548E3@gmail.com>
+	<4BA1F13F0200002700007D80@gwia2.boku.ac.at>
+	<2971D054-E8D9-4790-BADE-20206193B822@gmail.com>
+Message-ID: <e8e755251003181007k2bcc8593j478fa8ecd0dc8717@mail.gmail.com>
+
+The 'indexing' package on R-forge is very much in alpha, but it does
+some things quite well now.
+
+The definition of 'big data' is obviously user-driven.  10GB probably
+requires very different thinking than 10TB.
+
+I designed 'indexing' and 'mmap' for the former, on up to hopefully
+the TB range.  The limitation at present is simply that it relies on a
+single system to run, no communication channel yet.
+
+In a nutshell, mmap is a high-level wrapper (R) to a low-level sys
+call (mmap) that is at the heart of every database. Currently supports
+on-the-fly conversion from machine types of char/1,2,3 and 4 byte
+signed and unsigned ints, 32 and 64 bit floats, complex and raw.
+There is even support for C-style structs, to effectively implement
+'row' storage (keeping data on one page in memory).  This is most
+similar to ff or bigmemory in design goal, but quite a bit different
+in implementation.  The on-disk structure is nothing but a byte
+string.  No metadata, etc.  The idea is for ultimate portability
+within a system, since the filebacked objects can be shared.
+
+Caveats to mmap at present (March 2010) are no windows support and it
+is little-endian.  But those are reasonable shortcomings given the
+prevalence of x86 and *nix in HPC and 'real' computing. ;-)
+
+The 'indexing' package provides simple semantics to do exactly that,
+index and search data. It uses mmap-ed objects (though multiple
+backends are in the works, including just memory) and
+can index any vector ... be it stand-alone or part of another data
+object (data.frame, matrix, xts, zoo, ...)
+
+The design of indexing was to make subsetting (a requirement of really
+big data) as R-like as possible:
+
+db <- loadIndex("symbols")
+loadIndex("delta", double())
+loadIndex("bid", int32(), extractFUN=function(x) x/100)
+loadIndex("ask", int32(), extractFUN=function(x) x/100)
+
+db[symbols=="AAPL", data.frame(symbol, delta, spread=ask-bid)]
+
+works
+
+So does:
+
+lapply(c("AAPL","CSCO"), function(x) db[symbols==x,
+data.frame(symbols, delta)[delta > 0.5,]])
+
+All the above use the index (if available) and are very fast.  70
+million obs data set of end-of-day option prices (19 rows) (3GB + 3GB
+indexing), requires no memory to speak of and 0.018s to return 90k
+rows (AAPL example).  All on a laptop with a little 5400 rpm drive.
+Indexing supports RLE encoding if appropriate, and will eventually do
+more along the lines of compression.
+
+Na?ve timings against MonetDB, MySQL etc are very good. (read: much better).
+
+Again, serious 'work-in-progress', but it is being used by me daily to
+get at data that is otherwise impossible to use in R.  Feedback and
+testing from others is very welcomed...
+
+RBerkeley (also my code) is quite useful as well, and has most of the
+functionality that comes with the DB software.  70+ functions of the
+API.  BerkeleyDB is a nice key-value store that is very fast (despite
+what the new kids in the NoSQL crowd say), and has a long history of
+deployment and use.
+
+HTH
+Jeff
+
+
+On Thu, Mar 18, 2010 at 11:21 AM, Ashwin Kapur <ashwin.kapur at gmail.com> wrote:
+> I've been looking at big data packages on CRAN though I haven't looked at RForge much yet. ?So far I've played with bigmemory and ff. ?Both are great packages, though ff seemed closer to what would work for me. ?I have code that uses large multi (3) dimensional arrays and bigmemory doesn't do more than 2 dimensions. ?Performance for filebacked matrices seems to be quite a bit slower, though admittedly I've only been playing with the packages for a short time so that probably has more to do with it than the packages themselves.
+>
+> From what I can see, for file backed matrices neither ff nor bigmemory seemed to take advantage of the fact that using some CPU to make disk access faster actually makes things MUCH faster because disk access is a few orders of magnitude than anything else. So basically compressing data is a huge win because you do much less disk access. ?Compression is sometimes considered an issue because for the better compression algorithms you need to compress the whole matrix and uncompress the whole thing as well so for huge matrices you can end up swapping while compressing and decompressing, but the better scientific data handling libraries get around this by asking you to specify a chunk size, so say for a 500x10000x400 array you specify a chunksize of 1x10000x400 and the library compresses chunks of data of that size and indexes them. ?You generally choose chunks such that the typical amount of data you handle at one time is one chunk. ?Other optimizations are also generally done.
+>
+> One other important optimization is transposing the binary data. ?Typical scientific datasets are made up of numbers relatively close to each other. ?If you consider how they are represented on the machine, you could easily have a dataset for which the higher order bits are identical. ?Now when you consider that most compression algorithms are some variant of run length encoding there is an obvious optimization. ?If you try to compress the data as is the compressor can't do all that much. ?However if you essentially transpose the binary vectors, so you have all the highest order bits first, then the next ones etc if say all the highest order bits are the same, they can be stored in essentially one size_t and so on. ?Again this is memory intensive, but chunking and compressing and saving chunks separately gets around this problem. ?So instead of the typical 3x - 4x compression, typical compression goes to about 10x and for some datasets much higher which translates into much !
+> ?higher read and write speed.
+>
+> Of course the "obvious" optimizations like sparse storage for sparse matrices etc are important too.
+>
+> Other languages I use for HPC generally have interfaces to the various data handling libraries, notably hdf5 and netcdf so you can use multiple languages to interact with the same datasets. ?To me a package that wraps hdf5 is an obvious need, especially now that it seems clear that hdf5 is probably the "best" (tm) such library and even the netcdf team agrees, having made the latest version is netcdf is just a wrapper over hdf5. ?From what I can tell there are a couple of R packages that can read hdf5 but as far as I can tell neither actually provides an interface that is useful for HPC applications, just a way of taking a hdf5 file and putting the whole thing into memory which is impossible if it's a truly large file.
+>
+> I am aware of sqlite etc but they really aren't designed for doing file backed data storage for HPC applications. ?They are rather more general libraries. ?I'm wondering if there are packages out there that connect R to hdf5 etc out there that people are aware of. ?I don't want to start on a package writing adventure if it's already been done. ?And of course I'm aware that creating a package of this sort that creates data types that can be used as simple drop in replacements for standard R matrices or arrays is let's just say likely to be complicated without rewriting R.
+>
+> Thanks for the pointers to Metakit, RAM and SciDB. ?I'll play with them for a bit.
+>
+> --Ashwin
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+
+-- 
+Jeffrey Ryan
+jeffrey.ryan at insightalgo.com
+
+ia: insight algorithmics
+www.insightalgo.com
+
+
+From brad.spiers at bankofamerica.com  Fri Mar 19 17:55:01 2010
+From: brad.spiers at bankofamerica.com (Spiers, Brad)
+Date: Fri, 19 Mar 2010 11:55:01 -0500
+Subject: [R-sig-hpc] How to configure R to work with GPUs transparently
+Message-ID: <527F820C40F2314DBCB467F8AA1BD64F0126026E@ex2k.bankofamerica.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100319/3cd1e8d1/attachment.pl>
+
+From matloff at cs.ucdavis.edu  Fri Mar 19 18:25:49 2010
+From: matloff at cs.ucdavis.edu (Norm Matloff)
+Date: Fri, 19 Mar 2010 10:25:49 -0700
+Subject: [R-sig-hpc] How to configure R to work with GPUs transparently
+In-Reply-To: <527F820C40F2314DBCB467F8AA1BD64F0126026E@ex2k.bankofamerica.com>
+References: <527F820C40F2314DBCB467F8AA1BD64F0126026E@ex2k.bankofamerica.com>
+Message-ID: <20100319172549.GB18385@laura>
+
+Though there is a lot of potential here, there are a lot of difficulties
+as well.
+
+For example, there is the issue of having R sense that one actually does
+have a suitable GPU, and that CUDA (or OpenCL) is installed.  One could
+have the innards of lm(), say, do this sensing, but it would mean a
+significant delay.  As an alternative, this could be done when R starts
+up, and then having R set some environment variable; I don't see
+problems with this, but there could be some.
+
+Next there are GPU configuration issues--numbers of rows and columns of
+blocks, numbers of rows, columns and layers of threads per block, and so
+on.  This would be highly dependent on which GPU device the user has,
+the R function being called, and things like problem size (numbers of
+observations and variables).
+
+I think a big question is whether there is enough demand out there for
+this to be done.  My own impression, possibly incorrect, is that the
+vast majority of R users have little or no need for the power of GPUs.
+
+By the way, if anyone is interested, I have an introduction to GPU
+programming in my open-source textbook on parallel processing,
+http://heather.cs.ucdavis.edu/~matloff/158/PLN/ParProcBook.pdf
+
+Norm 
+
+On Fri, Mar 19, 2010 at 11:55:01AM -0500, Spiers, Brad wrote:
+> Hi,
+> 
+>    I am trying to get R to work with an NVIDIA GPU transparently.  I
+> know about gputools, but they require changing R scripts to include
+> "gpu" before the relevant calls.  
+> 
+>  
+> 
+>    According to the Cula Tools folks, R is actually a client of theirs,
+> so there should be some way to get R to work with GPUs natively.  I
+> seriously doubt that I am the first person to try this.  If someone has
+> done this, could you please share how you have done so?  If you know
+> that this does not work, could you please confirm?  Thanks.
+> 
+>  
+> 
+> --Brad
+> 
+>  
+> 
+> Bradford T. Spiers
+> 
+> SVP; Sr. Architect
+> 
+> Technology Innovation Portfolio
+> 
+> Bank of America
+> 
+> 222 Broadway, NYC, NY 10038, USA
+> 
+>  
+> 
+> 
+> 	[[alternative HTML version deleted]]
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From edd at debian.org  Fri Mar 19 18:23:46 2010
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Fri, 19 Mar 2010 12:23:46 -0500
+Subject: [R-sig-hpc] How to configure R to work with GPUs transparently
+In-Reply-To: <527F820C40F2314DBCB467F8AA1BD64F0126026E@ex2k.bankofamerica.com>
+References: <527F820C40F2314DBCB467F8AA1BD64F0126026E@ex2k.bankofamerica.com>
+Message-ID: <19363.45858.751900.113076@ron.nulle.part>
+
+
+On 19 March 2010 at 11:55, Spiers, Brad wrote:
+|    I am trying to get R to work with an NVIDIA GPU transparently.  I
+| know about gputools, but they require changing R scripts to include
+| "gpu" before the relevant calls.  
+
+Correct.
+
+In order to execute code on the GPU instead of the CPU, you actually need to
+have code that the GPU understands and that is written in a way the such that
+the GPU features are taken advantage of.
+
+And sadly, there is no magic wand that takes existing code and just makes it
+work there.  Just how you can't just execute your (x86) Windows binaries on
+your (old PPC) Mac etc pp.
+
+|    According to the Cula Tools folks, R is actually a client of theirs,
+| so there should be some way to get R to work with GPUs natively.  I
+
+Can you quote what they state, please?
+
+| seriously doubt that I am the first person to try this.  If someone has
+| done this, could you please share how you have done so?  If you know
+| that this does not work, could you please confirm?  Thanks.
+
+Dirk
+
+-- 
+  Registration is open for the 2nd International conference R / Finance 2010
+  See http://www.RinFinance.com for details, and see you in Chicago in April!
+
+
+From brad.spiers at bankofamerica.com  Fri Mar 19 18:29:13 2010
+From: brad.spiers at bankofamerica.com (Spiers, Brad)
+Date: Fri, 19 Mar 2010 12:29:13 -0500
+Subject: [R-sig-hpc] How to configure R to work with GPUs transparently
+In-Reply-To: <19363.45858.751900.113076@ron.nulle.part>
+References: <527F820C40F2314DBCB467F8AA1BD64F0126026E@ex2k.bankofamerica.com>
+	<19363.45858.751900.113076@ron.nulle.part>
+Message-ID: <527F820C40F2314DBCB467F8AA1BD64F012602EA@ex2k.bankofamerica.com>
+
+Dirk,
+   Thanks for your response.
+
+   Here is what culatools told me:
+
+Ticket Name: R installation question
+Ticket ID: WATS-14
+Reply Submitted: Mar-18-2010 (02:49)
+Reply Submitted By: john
+Reply:  
+Hi Brad,<br />
+We're actually not in any way involved with the R project - they are an
+end user that has integrated our product.<br /> <br /> Notably, neither
+we nor CUBLAS provide a symbol &quot;dgemm_&quot; - that is a CPU call
+rather than a GPU call. The Nvidia CUBLAS provides cublasDgemm, which is
+the closest thing to that.  I don't know too much about the R-tools but
+you might want to also continue to link to a CPU BLAS with -lblas in the
+BLAS_LIBS.  The R package might still want to link both CPU and GPU
+versions in case a GPU is not present?<br /> <br /> Regards,<br /> John
+
+
+   I had thought that culatools provided a BLAS interface, but that is
+apparently wrong.  From the response above, I thought there might be
+some flag in R configuration that I could not find via
+googling--something like "--use-GPU" that would have R use some
+integrated version of culatools.  However, from the manuals and from
+what you're saying, that does not appear to be possible.
+
+   If anyone is aware of such a flag in R--one that will enable the GPU
+automatically, without changing code--please let me know.  Thanks.
+
+--Brad
+
+-----Original Message-----
+From: Dirk Eddelbuettel [mailto:edd at debian.org] 
+Sent: Friday, March 19, 2010 1:24 PM
+To: Spiers, Brad
+Cc: r-sig-hpc at r-project.org
+Subject: Re: [R-sig-hpc] How to configure R to work with GPUs
+transparently
+
+
+On 19 March 2010 at 11:55, Spiers, Brad wrote:
+|    I am trying to get R to work with an NVIDIA GPU transparently.  I
+| know about gputools, but they require changing R scripts to include
+| "gpu" before the relevant calls.  
+
+Correct.
+
+In order to execute code on the GPU instead of the CPU, you actually
+need to
+have code that the GPU understands and that is written in a way the such
+that
+the GPU features are taken advantage of.
+
+And sadly, there is no magic wand that takes existing code and just
+makes it
+work there.  Just how you can't just execute your (x86) Windows binaries
+on
+your (old PPC) Mac etc pp.
+
+|    According to the Cula Tools folks, R is actually a client of
+theirs,
+| so there should be some way to get R to work with GPUs natively.  I
+
+Can you quote what they state, please?
+
+| seriously doubt that I am the first person to try this.  If someone
+has
+| done this, could you please share how you have done so?  If you know
+| that this does not work, could you please confirm?  Thanks.
+
+Dirk
+
+-- 
+  Registration is open for the 2nd International conference R / Finance
+2010
+  See http://www.RinFinance.com for details, and see you in Chicago in
+April!
+
+
+From matloff at cs.ucdavis.edu  Fri Mar 19 18:42:25 2010
+From: matloff at cs.ucdavis.edu (Norm Matloff)
+Date: Fri, 19 Mar 2010 10:42:25 -0700
+Subject: [R-sig-hpc] How to configure R to work with GPUs transparently
+In-Reply-To: <20100319172549.GB18385@laura>
+References: <527F820C40F2314DBCB467F8AA1BD64F0126026E@ex2k.bankofamerica.com>
+	<20100319172549.GB18385@laura>
+Message-ID: <20100319174224.GA19489@laura>
+
+
+On Fri, Mar 19, 2010 at 10:25:49AM -0700, Norm Matloff wrote:
+
+> For example, there is the issue of having R sense that one actually does
+> have a suitable GPU, and that CUDA (or OpenCL) is installed.  One could
+> have the innards of lm(), say, do this sensing, but it would mean a
+> significant delay.  As an alternative, this could be done when R starts
+> up, and then having R set some environment variable; I don't see
+> problems with this, but there could be some.
+
+For those who may not be familiar with GPU programming and who might
+wonder if there is a disconnect between my reply and Dirk's, I should
+clarify:
+
+I took Brad's posting to mean that he is proposing that many of the more
+computation-intensive R functions be extended, so that the code in lm(),
+say, would first check to see if a GPU and the GPU software are present.
+The code would then take different actions in the two cases (present and
+nonpresent).  This is in contrast to a situation in which any R code
+would automatically use GPUs, which as Dirk points out, is not possible.
+
+By the way, I should also add that while GPUs are great for the
+"embarrassingly parallel" applications, it's hard to make them work well
+for other kinds of parallel apps.  See for instance an analysis of parallel 
+graph algorithms on GPUs at http://arxiv4.library.cornell.edu/abs/1002.4482
+
+Norm
+
+
+From edd at debian.org  Fri Mar 19 19:12:53 2010
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Fri, 19 Mar 2010 13:12:53 -0500
+Subject: [R-sig-hpc] How to configure R to work with GPUs transparently
+In-Reply-To: <527F820C40F2314DBCB467F8AA1BD64F012602EA@ex2k.bankofamerica.com>
+References: <527F820C40F2314DBCB467F8AA1BD64F0126026E@ex2k.bankofamerica.com>
+	<19363.45858.751900.113076@ron.nulle.part>
+	<527F820C40F2314DBCB467F8AA1BD64F012602EA@ex2k.bankofamerica.com>
+Message-ID: <19363.48805.254116.94221@ron.nulle.part>
+
+
+On 19 March 2010 at 12:29, Spiers, Brad wrote:
+| Ticket Name: R installation question
+| Ticket ID: WATS-14
+| Reply Submitted: Mar-18-2010 (02:49)
+| Reply Submitted By: john
+| Reply:  
+| Hi Brad,<br />
+| We're actually not in any way involved with the R project - they are an
+| end user that has integrated our product.<br /> <br /> Notably, neither
+| we nor CUBLAS provide a symbol &quot;dgemm_&quot; - that is a CPU call
+| rather than a GPU call. The Nvidia CUBLAS provides cublasDgemm, which is
+| the closest thing to that.  I don't know too much about the R-tools but
+| you might want to also continue to link to a CPU BLAS with -lblas in the
+| BLAS_LIBS.  The R package might still want to link both CPU and GPU
+| versions in case a GPU is not present?<br /> <br /> Regards,<br /> John
+
+That is a somewhat different story. 
+
+Blas is indeed an external interface, and just how you can make your R
+processing faster by installing an optimised Blas library like Goto, Atlas,
+Intel MKL, ... you can conceivably also gain by letting the GPU handle Blas.
+But as the answer stated, that still involves going 'inside' and replacing
+dgemm class (to Blas) with cublasDgemm (to GPU).
+
+Moreover, trouble is that back in real-life, we are rarely seeing our _total
+processing_ constrained by the Blas / linear algebra portion.  Plus, some
+Blas are already using multiple cores so the net gain is small.
+
+|    I had thought that culatools provided a BLAS interface, but that is
+| apparently wrong.  From the response above, I thought there might be
+| some flag in R configuration that I could not find via
+| googling--something like "--use-GPU" that would have R use some
+| integrated version of culatools.  However, from the manuals and from
+| what you're saying, that does not appear to be possible.
+
+You are again asking for a magic wand. Someone would have had to add an
+option --use-GPU.  But sadly, nobody has.
+
+Dirk
+ 
+PS  If you want to learn more about GPU programming and R, our upcoming
+conference 'R / Finance' has both a GPU tutorial and a paper presentation,
+both handled by J Buckner and M Seligman, authors of gputools.  Details in my
+signature or at www.RinFinance.com
+
+
+|    If anyone is aware of such a flag in R--one that will enable the GPU
+| automatically, without changing code--please let me know.  Thanks.
+| 
+| --Brad
+| 
+| -----Original Message-----
+| From: Dirk Eddelbuettel [mailto:edd at debian.org] 
+| Sent: Friday, March 19, 2010 1:24 PM
+| To: Spiers, Brad
+| Cc: r-sig-hpc at r-project.org
+| Subject: Re: [R-sig-hpc] How to configure R to work with GPUs
+| transparently
+| 
+| 
+| On 19 March 2010 at 11:55, Spiers, Brad wrote:
+| |    I am trying to get R to work with an NVIDIA GPU transparently.  I
+| | know about gputools, but they require changing R scripts to include
+| | "gpu" before the relevant calls.  
+| 
+| Correct.
+| 
+| In order to execute code on the GPU instead of the CPU, you actually
+| need to
+| have code that the GPU understands and that is written in a way the such
+| that
+| the GPU features are taken advantage of.
+| 
+| And sadly, there is no magic wand that takes existing code and just
+| makes it
+| work there.  Just how you can't just execute your (x86) Windows binaries
+| on
+| your (old PPC) Mac etc pp.
+| 
+| |    According to the Cula Tools folks, R is actually a client of
+| theirs,
+| | so there should be some way to get R to work with GPUs natively.  I
+| 
+| Can you quote what they state, please?
+| 
+| | seriously doubt that I am the first person to try this.  If someone
+| has
+| | done this, could you please share how you have done so?  If you know
+| | that this does not work, could you please confirm?  Thanks.
+| 
+| Dirk
+| 
+| -- 
+|   Registration is open for the 2nd International conference R / Finance
+| 2010
+|   See http://www.RinFinance.com for details, and see you in Chicago in
+| April!
+
+-- 
+  Registration is open for the 2nd International conference R / Finance 2010
+  See http://www.RinFinance.com for details, and see you in Chicago in April!
+
+
+From brad.spiers at bankofamerica.com  Fri Mar 19 19:21:38 2010
+From: brad.spiers at bankofamerica.com (Spiers, Brad)
+Date: Fri, 19 Mar 2010 13:21:38 -0500
+Subject: [R-sig-hpc] How to configure R to work with GPUs transparently
+In-Reply-To: <19363.48805.254116.94221@ron.nulle.part>
+References: <527F820C40F2314DBCB467F8AA1BD64F0126026E@ex2k.bankofamerica.com>
+	<19363.45858.751900.113076@ron.nulle.part>
+	<527F820C40F2314DBCB467F8AA1BD64F012602EA@ex2k.bankofamerica.com>
+	<19363.48805.254116.94221@ron.nulle.part>
+Message-ID: <527F820C40F2314DBCB467F8AA1BD64F0126038B@ex2k.bankofamerica.com>
+
+Thanks, Dirk.
+
+I didn't think there was a magic wand, but it's best to be sure.
+
+--Brad
+
+-----Original Message-----
+From: Dirk Eddelbuettel [mailto:edd at debian.org] 
+Sent: Friday, March 19, 2010 2:13 PM
+To: Spiers, Brad
+Cc: Dirk Eddelbuettel; r-sig-hpc at r-project.org
+Subject: RE: [R-sig-hpc] How to configure R to work with GPUs
+transparently
+
+
+On 19 March 2010 at 12:29, Spiers, Brad wrote:
+| Ticket Name: R installation question
+| Ticket ID: WATS-14
+| Reply Submitted: Mar-18-2010 (02:49)
+| Reply Submitted By: john
+| Reply:  
+| Hi Brad,<br />
+| We're actually not in any way involved with the R project - they are
+an
+| end user that has integrated our product.<br /> <br /> Notably,
+neither
+| we nor CUBLAS provide a symbol &quot;dgemm_&quot; - that is a CPU call
+| rather than a GPU call. The Nvidia CUBLAS provides cublasDgemm, which
+is
+| the closest thing to that.  I don't know too much about the R-tools
+but
+| you might want to also continue to link to a CPU BLAS with -lblas in
+the
+| BLAS_LIBS.  The R package might still want to link both CPU and GPU
+| versions in case a GPU is not present?<br /> <br /> Regards,<br />
+John
+
+That is a somewhat different story. 
+
+Blas is indeed an external interface, and just how you can make your R
+processing faster by installing an optimised Blas library like Goto,
+Atlas,
+Intel MKL, ... you can conceivably also gain by letting the GPU handle
+Blas.
+But as the answer stated, that still involves going 'inside' and
+replacing
+dgemm class (to Blas) with cublasDgemm (to GPU).
+
+Moreover, trouble is that back in real-life, we are rarely seeing our
+_total
+processing_ constrained by the Blas / linear algebra portion.  Plus,
+some
+Blas are already using multiple cores so the net gain is small.
+
+|    I had thought that culatools provided a BLAS interface, but that is
+| apparently wrong.  From the response above, I thought there might be
+| some flag in R configuration that I could not find via
+| googling--something like "--use-GPU" that would have R use some
+| integrated version of culatools.  However, from the manuals and from
+| what you're saying, that does not appear to be possible.
+
+You are again asking for a magic wand. Someone would have had to add an
+option --use-GPU.  But sadly, nobody has.
+
+Dirk
+ 
+PS  If you want to learn more about GPU programming and R, our upcoming
+conference 'R / Finance' has both a GPU tutorial and a paper
+presentation,
+both handled by J Buckner and M Seligman, authors of gputools.  Details
+in my
+signature or at www.RinFinance.com
+
+
+|    If anyone is aware of such a flag in R--one that will enable the
+GPU
+| automatically, without changing code--please let me know.  Thanks.
+| 
+| --Brad
+| 
+| -----Original Message-----
+| From: Dirk Eddelbuettel [mailto:edd at debian.org] 
+| Sent: Friday, March 19, 2010 1:24 PM
+| To: Spiers, Brad
+| Cc: r-sig-hpc at r-project.org
+| Subject: Re: [R-sig-hpc] How to configure R to work with GPUs
+| transparently
+| 
+| 
+| On 19 March 2010 at 11:55, Spiers, Brad wrote:
+| |    I am trying to get R to work with an NVIDIA GPU transparently.  I
+| | know about gputools, but they require changing R scripts to include
+| | "gpu" before the relevant calls.  
+| 
+| Correct.
+| 
+| In order to execute code on the GPU instead of the CPU, you actually
+| need to
+| have code that the GPU understands and that is written in a way the
+such
+| that
+| the GPU features are taken advantage of.
+| 
+| And sadly, there is no magic wand that takes existing code and just
+| makes it
+| work there.  Just how you can't just execute your (x86) Windows
+binaries
+| on
+| your (old PPC) Mac etc pp.
+| 
+| |    According to the Cula Tools folks, R is actually a client of
+| theirs,
+| | so there should be some way to get R to work with GPUs natively.  I
+| 
+| Can you quote what they state, please?
+| 
+| | seriously doubt that I am the first person to try this.  If someone
+| has
+| | done this, could you please share how you have done so?  If you know
+| | that this does not work, could you please confirm?  Thanks.
+| 
+| Dirk
+| 
+| -- 
+|   Registration is open for the 2nd International conference R /
+Finance
+| 2010
+|   See http://www.RinFinance.com for details, and see you in Chicago in
+| April!
+
+-- 
+  Registration is open for the 2nd International conference R / Finance
+2010
+  See http://www.RinFinance.com for details, and see you in Chicago in
+April!
+
+
+From mseligman at rapidbiologics.com  Fri Mar 19 22:20:39 2010
+From: mseligman at rapidbiologics.com (Mark Seligman)
+Date: Fri, 19 Mar 2010 16:20:39 -0500
+Subject: [R-sig-hpc] R-sig-hpc] How to configure R to work with GPUs
+	transparently
+Message-ID: <20100319162039.5xfuf81n5n5wcgow@webmail.opentransfer.com>
+
+> I took Brad's posting to mean that he is proposing that many of the more
+> computation-intensive R functions be extended, so that the code in lm(),
+> say, would first check to see if a GPU and the GPU software are present.
+> The code would then take different actions in the two cases (present and
+> nonpresent).  This is in contrast to a situation in which any R code
+> would automatically use GPUs, which as Dirk points out, is not possible.
+>
+> By the way, I should also add that while GPUs are great for the
+> "embarrassingly parallel" applications, it's hard to make them work well
+> for other kinds of parallel apps.
+
+One of the goals of the "gputools" package is to learn just what roles  
+this type of coprocessor can play in R.  We've found significant  
+speedups (> 10x) in the "lm()" command, for example, but please note a  
+couple of caveats:
+
+i) This compares a double-precision CPU implementation with a  
+single-precision GPU implementation.
+
+ii) Data-transfer rates to and from the card are much slower than  
+to/from RAM.  In particular, dimensions greater than about 1000x1000  
+are required just to see break-even in performance.
+
+As for the first problem, it should be noted that much faster  
+double-precision arithmetic will be supported in future generations of  
+GPU.  For now, though, the more dramatic speedups are limited to  
+single-precision implementations.
+
+As for the second problem, the flip side is that you can now call,  
+say, "lm()" on much larger matrices and get an answer in something  
+approaching acceptable "user time".  If you need to call "lm()" on  
+smaller matrices many times in a loop, however, a GPU probably will  
+not buy you much unless you do the added work of implementing the  
+enclosing loop in the GPU.
+
+More directly to the points you raise, though:
+
+Right now GPU support for R is limited to a small subset of  
+command-level implementations.  These ports are somewhat hard to  
+implement but, once implemented, they may benefit a large number of  
+users.  They are also relatively easy to maintain as newer, more  
+powerful GPU hardware becomes available.
+
+It is true that the GPU really shines on embarrassingly-parallel  
+applications and that communication and synchronization costs subtract  
+from their potential.  The same could be said of a parallel cluster or  
+a multicore chip, though.  If "someone else" has done the work to  
+provide the tools to make them useful, though, it seems that the GPU,  
+like these other types of hardware, may have a long-term niche to fill.
+
+Ultimately (pie in the sky?) it would be nice if R itself sniffed out  
+the user's resident hardware and pulled in libraries built to take  
+advantage of that particular configuration.  In other words, the  
+details of mapping command to library are kept hidden from the user.   
+Nicer still if, at run time, R could choose the library into which to  
+call based on the characteristics of the data - e.g., scalar for a  
+certain size of matrix, GPU for a very large matrix, some mix of GPU  
+and multicore for an interative problem with a large matrix.  This is  
+a really tough thing to get right, though.
+
+
+From b.rowe at baml.com  Mon Mar 22 16:26:56 2010
+From: b.rowe at baml.com (Rowe, Brian Lee Yung (Portfolio Analytics))
+Date: Mon, 22 Mar 2010 11:26:56 -0400
+Subject: [R-sig-hpc] How to configure R to work with GPUs transparently
+In-Reply-To: <20100319172549.GB18385@laura>
+Message-ID: <3BAD818D9407B043817CC6D89ABA14EC05A81FA7@MLNYC20MB051.amrs.win.ml.com>
+
+I wonder if there isn't a simpler way of glueing this together that
+produces more portable code with the cost being a little extra
+configuration overhead. To me the goal is some form of functional
+polymorphism that is:
+1. backwards compatible (i.e. defaults to standard behavior)
+2. granular enough to control processing at an object level
+3. consistent with current R idioms
+
+With danger of over-simplifying the problem, I think that the problem is
+not so different from method dispatching and the UseMethod construct.
+
+One approach is to support an additional reserved attribute on objects,
+just like class() e.g. arch(). If the object has such an attribute and
+it is "gpu", then appropriate dispatching could occur. Otherwise,
+dispatch in the normal way. It's not difficult to see how this follows
+the general approach of UseMethod (and in fact most of the changes could
+probably be isolated to that function).
+
+The configuration, then, is telling R what objects you want to pass to
+the GPUs by explicitly attaching the arch attribute to those objects.
+This approach would protect existing users from unexpected consequences
+in situations where GPU overhead outweighs the performance gains. As
+users adopted this approach, eventually certain libraries may default to
+the gpu arch, but it could still be user configurable based on specific
+users' needs.
+
+Following this approach, I think it solves most of the need for better
+code portability between GPU and non-GPU code and also provides a clear
+path forward from a "standards" and consistency perspective for others
+planning on writing libraries to leverage GPUs.
+
+Regards,
+Brian
+
+-----Original Message-----
+From: r-sig-hpc-bounces at r-project.org
+[mailto:r-sig-hpc-bounces at r-project.org] On Behalf Of Norm Matloff
+Sent: Friday, March 19, 2010 1:26 PM
+To: r-sig-hpc at r-project.org
+Subject: Re: [R-sig-hpc] How to configure R to work with GPUs
+transparently
+
+
+Though there is a lot of potential here, there are a lot of difficulties
+as well.
+
+For example, there is the issue of having R sense that one actually does
+have a suitable GPU, and that CUDA (or OpenCL) is installed.  One could
+have the innards of lm(), say, do this sensing, but it would mean a
+significant delay.  As an alternative, this could be done when R starts
+up, and then having R set some environment variable; I don't see
+problems with this, but there could be some.
+
+Next there are GPU configuration issues--numbers of rows and columns of
+blocks, numbers of rows, columns and layers of threads per block, and so
+on.  This would be highly dependent on which GPU device the user has,
+the R function being called, and things like problem size (numbers of
+observations and variables).
+
+I think a big question is whether there is enough demand out there for
+this to be done.  My own impression, possibly incorrect, is that the
+vast majority of R users have little or no need for the power of GPUs.
+
+By the way, if anyone is interested, I have an introduction to GPU
+programming in my open-source textbook on parallel processing,
+http://heather.cs.ucdavis.edu/~matloff/158/PLN/ParProcBook.pdf
+
+Norm 
+
+On Fri, Mar 19, 2010 at 11:55:01AM -0500, Spiers, Brad wrote:
+> Hi,
+> 
+>    I am trying to get R to work with an NVIDIA GPU transparently.  I
+> know about gputools, but they require changing R scripts to include
+> "gpu" before the relevant calls.  
+> 
+>  
+> 
+>    According to the Cula Tools folks, R is actually a client of
+theirs,
+> so there should be some way to get R to work with GPUs natively.  I
+> seriously doubt that I am the first person to try this.  If someone
+has
+> done this, could you please share how you have done so?  If you know
+> that this does not work, could you please confirm?  Thanks.
+> 
+>  
+> 
+> --Brad
+> 
+>  
+> 
+> Bradford T. Spiers
+> 
+> SVP; Sr. Architect
+> 
+> Technology Innovation Portfolio
+> 
+> Bank of America
+> 
+> 222 Broadway, NYC, NY 10038, USA
+> 
+>  
+> 
+> 
+> 	[[alternative HTML version deleted]]
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+_______________________________________________
+R-sig-hpc mailing list
+R-sig-hpc at r-project.org
+https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+--------------------------------------------------------------------------
+This message w/attachments (message) may be privileged, confidential or proprietary, and if you are not an intended recipient, please notify the sender, do not use or share it and delete it. The information contained in this e-mail was obtained from sources believed to be reliable; however, the accuracy or completeness of this information is not guaranteed. Unless specifically indicated, this message is not an offer to sell or a solicitation of any investment products or other financial product or service, an official confirmation of any transaction, or an official statement of Merrill Lynch. Subject to applicable law, Merrill Lynch may monitor, review and retain e-communications (EC) traveling through its networks/systems. The laws of the country of each sender/recipient may impact the handling of EC, and EC may be archived, supervised and produced in countries other than the country in which you are located. This message cannot be guaranteed to be secure or error-free. References to "Merrill Lynch" are references to any company in the Merrill Lynch & Co., Inc. group of companies, which are wholly-owned by Bank of America Corporation. Securities and Insurance Products: * Are Not FDIC Insured * Are Not Bank Guaranteed * May Lose Value * Are Not a Bank Deposit * Are Not a Condition to Any Banking Service or Activity * Are Not Insured by Any Federal Government Agency. Past performance is no guarantee of future results. Attachments that are part of this E-communication may have additional important disclosures and disclaimers, which you should read. This message is subject to terms available at the following link: http://www.ml.com/e-communications_terms/. By messaging with Merrill Lynch you consent to the foregoing.
+--------------------------------------------------------------------------
+
+
+From cboettig at gmail.com  Wed Mar 24 10:55:20 2010
+From: cboettig at gmail.com (Carl Boettiger)
+Date: Wed, 24 Mar 2010 02:55:20 -0700
+Subject: [R-sig-hpc] parallel code using snowfall
+Message-ID: <5c3749c41003240255j7b22695ey9948a05b82356878@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100324/f2439222/attachment.pl>
+
+From mvalle at cscs.ch  Wed Mar 24 10:59:30 2010
+From: mvalle at cscs.ch (Mario Valle)
+Date: Wed, 24 Mar 2010 10:59:30 +0100
+Subject: [R-sig-hpc] parallel code using snowfall
+In-Reply-To: <5c3749c41003240255j7b22695ey9948a05b82356878@mail.gmail.com>
+References: <5c3749c41003240255j7b22695ey9948a05b82356878@mail.gmail.com>
+Message-ID: <4BA9E282.3080309@cscs.ch>
+
+sfExport(f)
+
+
+On 24-Mar-10 10:55, Carl Boettiger wrote:
+> Dear r-sig-hpc,
+>
+> I am puzzled why my parallel command loses track of my function definitions
+> during the call.  For instance, consider the following codeblock:
+>
+>
+> sfInit(parallel=TRUE, cpus=2)
+> f<- function(x){ dnorm(x, 1, 2) }
+> g<- function(x){ 2*f(x)}
+> sfSapply(1:10, g)
+>
+>
+> This fails to run, giving the error:
+> Error in checkForRemoteErrors(val) :
+>    2 nodes produced errors; first error: could not find function "f"
+>
+> even though it runs fine in serial, with sfInit(parallel=F). Why does the
+> package loose track of f?  This becomes quite problematic when writing
+> functions such as g that depend on functions provided by other packages,
+> etc.  Any suggestions or possible workarounds?
+>
+> Thanks for your help,
+>
+> Carl
+>
+
+-- 
+Ing. Mario Valle
+Data Analysis and Visualization Group            | 
+http://www.cscs.ch/~mvalle
+Swiss National Supercomputing Centre (CSCS)      | Tel:  +41 (91) 610.82.60
+v. Cantonale Galleria 2, 6928 Manno, Switzerland | Fax:  +41 (91) 610.82.82
+
+
+From cboettig at gmail.com  Wed Mar 24 11:07:11 2010
+From: cboettig at gmail.com (Carl Boettiger)
+Date: Wed, 24 Mar 2010 03:07:11 -0700
+Subject: [R-sig-hpc] parallel code using snowfall
+In-Reply-To: <4BA9E282.3080309@cscs.ch>
+References: <5c3749c41003240255j7b22695ey9948a05b82356878@mail.gmail.com>
+	<4BA9E282.3080309@cscs.ch>
+Message-ID: <5c3749c41003240307j7be26f07p610eae07cf7aa496@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100324/e1075ddb/attachment.pl>
+
+From cboettig at gmail.com  Wed Mar 24 11:31:56 2010
+From: cboettig at gmail.com (Carl Boettiger)
+Date: Wed, 24 Mar 2010 03:31:56 -0700
+Subject: [R-sig-hpc] parallel code using snowfall
+In-Reply-To: <5c3749c41003240307j7be26f07p610eae07cf7aa496@mail.gmail.com>
+References: <5c3749c41003240255j7b22695ey9948a05b82356878@mail.gmail.com>
+	<4BA9E282.3080309@cscs.ch>
+	<5c3749c41003240307j7be26f07p610eae07cf7aa496@mail.gmail.com>
+Message-ID: <5c3749c41003240331y7587f594h52c67649c04aa811@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100324/461d5416/attachment.pl>
+
+From mvalle at cscs.ch  Wed Mar 24 11:40:11 2010
+From: mvalle at cscs.ch (Mario Valle)
+Date: Wed, 24 Mar 2010 11:40:11 +0100
+Subject: [R-sig-hpc] parallel code using snowfall
+In-Reply-To: <5c3749c41003240331y7587f594h52c67649c04aa811@mail.gmail.com>
+References: <5c3749c41003240255j7b22695ey9948a05b82356878@mail.gmail.com>	
+	<4BA9E282.3080309@cscs.ch>	
+	<5c3749c41003240307j7be26f07p610eae07cf7aa496@mail.gmail.com>
+	<5c3749c41003240331y7587f594h52c67649c04aa811@mail.gmail.com>
+Message-ID: <4BA9EC0B.10604@cscs.ch>
+
+sfLibrary could be useful (check example)
+
+Ciao!
+		mario
+
+On 24-Mar-10 11:31, Carl Boettiger wrote:
+> Dear R-sig-phylo,
+>
+> Is there a way to export all functions from a particular namespace in
+> sfExport?
+>
+> I find I can export all functions I have declared using sfExportAll(),
+> but functions I have imported from a library I have to export one by one:
+>
+> sfExport("fn1", namespace="packagename")
+> sfExport("fn2", namespace="packagename")
+> sfExport("fn3", namespace="packagename2")
+>
+> Also, is it computationally inefficient to export more functions than
+> necessary for the computation?  Thanks again for the help,
+>
+> Carl
+>
+> On Wed, Mar 24, 2010 at 3:07 AM, Carl Boettiger <cboettig at gmail.com
+> <mailto:cboettig at gmail.com>> wrote:
+>
+>     Dear Mario, list,
+>
+>     Thank you very much.  Seems I need quotes, sfExport("f"), and this
+>     works perfectly.
+>
+>     Yours,
+>     Carl
+>
+>
+>     On Wed, Mar 24, 2010 at 2:59 AM, Mario Valle <mvalle at cscs.ch
+>     <mailto:mvalle at cscs.ch>> wrote:
+>
+>         sfExport(f)
+>
+>
+>
+>         On 24-Mar-10 10:55, Carl Boettiger wrote:
+>
+>             Dear r-sig-hpc,
+>
+>             I am puzzled why my parallel command loses track of my
+>             function definitions
+>             during the call.  For instance, consider the following
+>             codeblock:
+>
+>
+>             sfInit(parallel=TRUE, cpus=2)
+>             f<- function(x){ dnorm(x, 1, 2) }
+>             g<- function(x){ 2*f(x)}
+>             sfSapply(1:10, g)
+>
+>
+>             This fails to run, giving the error:
+>             Error in checkForRemoteErrors(val) :
+>                2 nodes produced errors; first error: could not find
+>             function "f"
+>
+>             even though it runs fine in serial, with sfInit(parallel=F).
+>             Why does the
+>             package loose track of f?  This becomes quite problematic
+>             when writing
+>             functions such as g that depend on functions provided by
+>             other packages,
+>             etc.  Any suggestions or possible workarounds?
+>
+>             Thanks for your help,
+>
+>             Carl
+>
+>
+>         --
+>         Ing. Mario Valle
+>         Data Analysis and Visualization Group            |
+>         http://www.cscs.ch/~mvalle
+>         Swiss National Supercomputing Centre (CSCS)      | Tel:  +41
+>         (91) 610.82.60
+>         v. Cantonale Galleria 2, 6928 Manno, Switzerland | Fax:  +41
+>         (91) 610.82.82
+>
+>
+>
+>
+>     --
+>     Carl Boettiger
+>     Population Biology, UC Davis
+>     http://two.ucdavis.edu/~cboettig
+>
+>
+>
+>
+> --
+> Carl Boettiger
+> Population Biology, UC Davis
+> http://two.ucdavis.edu/~cboettig
+
+-- 
+Ing. Mario Valle
+Data Analysis and Visualization Group            | 
+http://www.cscs.ch/~mvalle
+Swiss National Supercomputing Centre (CSCS)      | Tel:  +41 (91) 610.82.60
+v. Cantonale Galleria 2, 6928 Manno, Switzerland | Fax:  +41 (91) 610.82.82
+
+
+From brian at braverock.com  Wed Mar 24 12:12:54 2010
+From: brian at braverock.com (Brian G. Peterson)
+Date: Wed, 24 Mar 2010 06:12:54 -0500
+Subject: [R-sig-hpc] parallel code using snowfall
+In-Reply-To: <5c3749c41003240331y7587f594h52c67649c04aa811@mail.gmail.com>
+References: <5c3749c41003240255j7b22695ey9948a05b82356878@mail.gmail.com>	<4BA9E282.3080309@cscs.ch>	<5c3749c41003240307j7be26f07p610eae07cf7aa496@mail.gmail.com>
+	<5c3749c41003240331y7587f594h52c67649c04aa811@mail.gmail.com>
+Message-ID: <4BA9F3B6.3080302@braverock.com>
+
+On 03/24/2010 05:31 AM, Carl Boettiger wrote:
+> Dear R-sig-phylo,
+>
+> Is there a way to export all functions from a particular namespace in
+> sfExport?
+>
+> I find I can export all functions I have declared using sfExportAll(), but
+> functions I have imported from a library I have to export one by one:
+>
+> sfExport("fn1", namespace="packagename")
+> sfExport("fn2", namespace="packagename")
+> sfExport("fn3", namespace="packagename2")
+>
+> Also, is it computationally inefficient to export more functions than
+> necessary for the computation?  Thanks again for the help,
+>    
+
+The 'foreach' package will automatically export any variables or 
+functions that execute inside the foreach 'loop' construct.  Others that 
+are not obviously needed (such as packages with hidden dependencies) may 
+be explicitly exported.  foreach has a 'doSNOW' parallel backend.
+
+It is not 'computationally inefficient' per se to export more than 
+required, but it does take time to register all those objects, and to 
+move them across the network.  So it is generally best to send only what 
+you need to workers, and focus their activities on CPU-bound tasks, 
+returning summary data that may be recombined and manuipulated by the 
+master node.
+
+Regards,
+
+     - Brian
+
+-- 
+Brian G. Peterson
+http://braverock.com/brian/
+Ph: 773-459-4973
+IM: bgpbraverock
+
+
+From jeedward at yahoo.com  Thu Mar 25 21:12:20 2010
+From: jeedward at yahoo.com (John Edward)
+Date: Thu, 25 Mar 2010 13:12:20 -0700 (PDT)
+Subject: [R-sig-hpc] Call for papers (Deadline Extended): HPCS-10, USA,
+	July 2010
+Message-ID: <288878.63780.qm@web45914.mail.sp1.yahoo.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100325/1de814bf/attachment.pl>
+
+From kfor at uw.edu  Fri Mar 26 00:45:59 2010
+From: kfor at uw.edu (Kyle J. Foreman)
+Date: Thu, 25 Mar 2010 16:45:59 -0700
+Subject: [R-sig-hpc] Rsge problems (sge.ret.ext)
+Message-ID: <D8EC777F3A0BDB4586B3D08316792847042D38B0B5@ads-mbx-01.exchange.washington.edu>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100325/ab973d1a/attachment.pl>
+
+From Kevin.Buckley at ecs.vuw.ac.nz  Mon Mar 29 02:19:28 2010
+From: Kevin.Buckley at ecs.vuw.ac.nz (Kevin.Buckley at ecs.vuw.ac.nz)
+Date: Mon, 29 Mar 2010 13:19:28 +1300
+Subject: [R-sig-hpc] Rmpi on NetBSD with OpenMPI
+Message-ID: <825fc8e152e00bdf7998195969f81b61.squirrel@mail.ecs.vuw.ac.nz>
+
+Hi there,
+
+I have recently compiled Rmpi 0.5-8 against the OpenMPI 1.4
+installation on the School's NetBSD workstations.
+
+As someone who spent some time getting OpenMPI to run upon
+NetBSD, I am aware that it's not a common combination, so
+I am posting here more in hope that someone will have seen
+similar errors and has any pointers, than expecting an actual
+solution for our platform and MPI flavour combo.
+
+
+Basically, when I come to load the Rmpi library
+
+> library(Rmpi, lib.loc="/local/scratch/kevin/Pkgs/R/")
+
+I get a swathe of OpenMPI errors (attached below)
+
+I have tried invoking R using orterun instead of mpirun,
+as suggested in the thread from this list from Feb 2009
+entitled,
+
+ Rmpi with Open MPI on Debian
+
+as, despite the Debian slant, that actually seemed to touch upon
+generic OpenMPI issues.
+
+For background:
+
+When I compiled the Rmpi.so, I had to do so by overiding the
+compiler and linker via a ~/.R/Makevars file as there seemed
+no other way to get the OpenMPI wrappers passed to the R build
+process on the command line.
+
+That issue was touched upon in another thread on this list from
+Jan 2010
+
+  R CMD INSTALL configure.args and CC customization
+
+
+So, with an ~/.R/Makevars that has
+
+CC=mpicc
+SHLIB_LD=mpicc
+
+
+I do an
+
+R CMD INSTALL --library=/local/scratch/kevin/Pkgs/R Rmpi_0.5-8.tar.gz \
+  --configure-args=--with-Rmpi-type=OPENMPI \
+  --configure-args=--with-Rmpi-libpath=/usr/pkg/lib/openmpi  \
+  --configure-args=--with-Rmpi-include=/usr/pkg/include
+
+and see
+
+* installing *source* package 'Rmpi' ...
+checking for openpty in -lutil... yes
+checking for main in -lpthread... yes
+configure: creating ./config.status
+config.status: creating src/Makevars
+** libs
+mpicc -I/usr/pkg/lib/R/include -DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\"
+-DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\"
+-I/usr/pkg/include  -DMPI2 -DOPENMPI -I/usr/include -I/usr/pkg/include
+-I/usr/pkg/include/freetype2    -fpic  -O2 -march=pentiumpro
+-I/usr/include -I/usr/pkg/include -I/usr/pkg/include/freetype2 -c
+RegQuery.c -o RegQuery.o
+mpicc -I/usr/pkg/lib/R/include -DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\"
+-DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\"
+-I/usr/pkg/include  -DMPI2 -DOPENMPI -I/usr/include -I/usr/pkg/include
+-I/usr/pkg/include/freetype2    -fpic  -O2 -march=pentiumpro
+-I/usr/include -I/usr/pkg/include -I/usr/pkg/include/freetype2 -c Rmpi.c
+-o Rmpi.o
+mpicc -I/usr/pkg/lib/R/include -DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\"
+-DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\"
+-I/usr/pkg/include  -DMPI2 -DOPENMPI -I/usr/include -I/usr/pkg/include
+-I/usr/pkg/include/freetype2    -fpic  -O2 -march=pentiumpro
+-I/usr/include -I/usr/pkg/include -I/usr/pkg/include/freetype2 -c
+conversion.c -o conversion.o
+mpicc -I/usr/pkg/lib/R/include -DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\"
+-DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\"
+-I/usr/pkg/include  -DMPI2 -DOPENMPI -I/usr/include -I/usr/pkg/include
+-I/usr/pkg/include/freetype2    -fpic  -O2 -march=pentiumpro
+-I/usr/include -I/usr/pkg/include -I/usr/pkg/include/freetype2 -c
+internal.c -o internal.o
+mpicc -shared -L/usr/lib -Wl,-R/usr/lib -L/usr/pkg/lib -Wl,-R/usr/pkg/lib
+-o Rmpi.so RegQuery.o Rmpi.o conversion.o internal.o
+-L/usr/pkg/lib/openmpi -lmpi -lutil -lpthread -Wl,-R/usr/pkg/lib/R/lib
+-L/usr/pkg/lib/R/lib -lR
+** R
+** demo
+** inst
+** preparing package for lazy loading
+** help
+*** installing help indices
+** building package indices ...
+* DONE (Rmpi)
+
+The shared library itself shows that it's aware of the OpenMPI stuff
+
+$ldd /local/scratch/kevin/Pkgs/R/Rmpi/libs/Rmpi.so
+/local/scratch/kevin/Pkgs/R/Rmpi/libs/Rmpi.so:
+        -lc.12 => /usr/lib/libc.so.12
+        -lltdl.7 => /usr/pkg/lib/libltdl.so.7
+        -lutil.7 => /usr/lib/libutil.so.7
+        -lm.0 => /usr/lib/libm.so.0
+        -lpthread.0 => /usr/lib/libpthread.so.0
+        -lopen-pal.0 => /usr/pkg/lib/libopen-pal.so.0
+        -lopen-rte.0 => /usr/pkg/lib/libopen-rte.so.0
+        -lmpi.0 => /usr/pkg/lib/libmpi.so.0
+        -lblas.1 => /usr/pkg/lib/libblas.so.1
+        -lintl.0 => /usr/lib/libintl.so.0
+        -ltermcap.0 => /usr/lib/libtermcap.so.0
+        -lreadline.6 => /usr/pkg/lib/libreadline.so.6
+        -lpcre.0 => /usr/pkg/lib/libpcre.so.0
+        -llzma.0 => /usr/pkg/lib/liblzma.so.0
+        -lbz2.1 => /usr/lib/libbz2.so.1
+        -lz.1 => /usr/lib/libz.so.1
+        -liconv.2 => /usr/pkg/lib/libiconv.so.2
+        -lR => /usr/pkg/lib/R/lib/libR.so
+
+however after either invoking R as
+
+orterun -n 1 R --no-save
+
+and trying to load the library at the R prompt, or setting
+R_PROFILE to load it automatically
+
+via the following block:
+
+if (!invisible(library(Rmpi,logical.return = TRUE,
+lib.loc="/local/scratch/kevin/Pkgs/R/"))){
+    warning("Rmpi cannot be loaded")
+    q(save = "no")
+}
+
+
+$ R_PROFILE=/local/scratch/kevin/Pkgs/R/Rmpi/Rprofile orterun -n 1 R
+--no-save
+
+I see the same errors from OpenMPI
+
+
+[europa.ecs.vuw.ac.nz:09687] mca: base: component_find: unable to open
+/usr/pkg/lib/openmpi/mca_carto_auto_detect: perhaps a missing symbol, or
+compiled for a different version of Open MPI? (ignored)
+[europa.ecs.vuw.ac.nz:09687] mca: base: component_find: unable to open
+/usr/pkg/lib/openmpi/mca_carto_file: perhaps a missing symbol, or compiled
+for a different version of Open MPI? (ignored)
+[europa.ecs.vuw.ac.nz:09687] mca: base: component_find: unable to open
+/usr/pkg/lib/openmpi/mca_ess_env: perhaps a missing symbol, or compiled
+for a different version of Open MPI? (ignored)
+--------------------------------------------------------------------------
+A requested component was not found, or was unable to be opened.  This
+means that this component is either not installed or is unable to be
+used on your system (e.g., sometimes this means that shared libraries
+that the component requires are unable to be found/loaded).  Note that
+Open MPI stopped checking at the first component that it did not find.
+
+Host:      europa.ecs.vuw.ac.nz
+Framework: ess
+Component: env
+--------------------------------------------------------------------------
+[europa.ecs.vuw.ac.nz:09687] [[INVALID],INVALID] ORTE_ERROR_LOG: Error in
+file runtime/orte_init.c at line 120
+--------------------------------------------------------------------------
+It looks like orte_init failed for some reason; your parallel process is
+likely to abort.  There are many reasons that a parallel process can
+fail during orte_init; some of which are due to configuration or
+environment problems.  This failure appears to be an internal failure;
+here's some additional information (which may only be relevant to an
+Open MPI developer):
+
+  orte_ess_base_open failed
+  --> Returned value Error (-1) instead of ORTE_SUCCESS
+--------------------------------------------------------------------------
+--------------------------------------------------------------------------
+It looks like MPI_INIT failed for some reason; your parallel process is
+likely to abort.  There are many reasons that a parallel process can
+fail during MPI_INIT; some of which are due to configuration or environment
+problems.  This failure appears to be an internal failure; here's some
+additional information (which may only be relevant to an Open MPI
+developer):
+
+  ompi_mpi_init: orte_init failed
+  --> Returned "Error" (-1) instead of "Success" (0)
+--------------------------------------------------------------------------
+*** An error occurred in MPI_Init
+*** before MPI was initialized
+*** MPI_ERRORS_ARE_FATAL (your MPI job will now abort)
+[europa.ecs.vuw.ac.nz:9687] Abort before MPI_INIT completed successfully;
+not able to guarantee that all other processes were killed!
+
+
+If I just do an orterun of R and dont use Rmpi, things seem to work.
+
+Oh yeah, I also tried submitting a job into our SGE grid, in case
+OpenMPI gets a different set up when running within SGE as opposed
+to on the desktop but see the same errors.
+
+
+As I say, if anyone has seen similar errors upon their platform,
+I'd be interested to hear of your experiences.
+
+Kevin
+
+-- 
+Kevin M. Buckley                                  Room:  CO327
+School of Engineering and                         Phone: +64 4 463 5971
+ Computer Science
+Victoria University of Wellington
+New Zealand
+
+
+From danelliottster at gmail.com  Mon Mar 29 16:37:49 2010
+From: danelliottster at gmail.com (Daniel Elliott)
+Date: Mon, 29 Mar 2010 08:37:49 -0600
+Subject: [R-sig-hpc] increasing max number of socket connections
+Message-ID: <f08455591003290737v6d90f1e6lf60153377dce727d@mail.gmail.com>
+
+Hello all,
+
+We compile our own R binary from source.  Would the group be so kind
+as to give me an idea of how difficult it would be to increase the max
+number of socket connections R can make.  I was told this could be
+done by recompiling the source.  Also, if you all feel that this is
+not too painful, I would appreciate some guidance on where to start
+looking in the source.
+
+We are running R on 64-bit Fedora Linux.
+
+I need this so I can use SNOW to spawn a very large number of
+processes on our network.
+
+- dan
+
+
+From brian at braverock.com  Mon Mar 29 16:43:02 2010
+From: brian at braverock.com (Brian G. Peterson)
+Date: Mon, 29 Mar 2010 09:43:02 -0500
+Subject: [R-sig-hpc] increasing max number of socket connections
+In-Reply-To: <f08455591003290737v6d90f1e6lf60153377dce727d@mail.gmail.com>
+References: <f08455591003290737v6d90f1e6lf60153377dce727d@mail.gmail.com>
+Message-ID: <4BB0BC76.5050809@braverock.com>
+
+On 03/29/2010 09:37 AM, Daniel Elliott wrote:
+> We compile our own R binary from source.  Would the group be so kind
+> as to give me an idea of how difficult it would be to increase the max
+> number of socket connections R can make.  I was told this could be
+> done by recompiling the source.  Also, if you all feel that this is
+> not too painful, I would appreciate some guidance on where to start
+> looking in the source.
+>
+> We are running R on 64-bit Fedora Linux.
+>
+> I need this so I can use SNOW to spawn a very large number of
+> processes on our network.
+>    
+
+Wouldn't using an external system such as pvm, MPI, or NetworkSpaces 
+make more sence than socket clusters using SNOW?  My experience is that 
+SNOW socket clusters are quite useful on a small scale, and quite 
+fragile on a large scale...
+
+Regards,
+
+     - Brian
+
+-- 
+Brian G. Peterson
+http://braverock.com/brian/
+Ph: 773-459-4973
+IM: bgpbraverock
+
+
+From vqnguyen at uci.edu  Mon Mar 29 18:15:18 2010
+From: vqnguyen at uci.edu (Vinh Nguyen)
+Date: Mon, 29 Mar 2010 09:15:18 -0700
+Subject: [R-sig-hpc] increasing max number of socket connections
+Message-ID: <13c5a0ae1003290915i10a20c81k910a3b430364bdd@mail.gmail.com>
+
+I use R with snow + Rmpi + openmpi + SGE for my parallel computing
+needs.  I specify many cores per job and this seems to be the easiest
+route (you don't need to specify the list of nodes really, you just
+specify the number of cores you need), not to mention fair allocation
+of resource among multiple users via SGE.  David Smith from Revolution
+Computing shared the document on how they set this up.  I documented
+my own experiences at
+http://supernerdycool.blogspot.com/2010/01/scheduled-parallel-computing-with-r-r.html
+
+Vinh
+
+from gmane.comp.lang.r.hpc by Brian G. Peterson
+
+Wouldn't using an external system such as pvm, MPI, or NetworkSpaces
+make more sence than socket clusters using SNOW?  My experience is that
+SNOW socket clusters are quite useful on a small scale, and quite
+fragile on a large scale...
+
+Regards,
+
+     - Brian
+
+
+From pauljohn32 at gmail.com  Mon Mar 29 21:36:34 2010
+From: pauljohn32 at gmail.com (Paul Johnson)
+Date: Mon, 29 Mar 2010 14:36:34 -0500
+Subject: [R-sig-hpc] Followup about mpirun and R interaction
+Message-ID: <13e802631003291236m37ab484l4bc1aea3e68289ca@mail.gmail.com>
+
+We run Rocks Cluster Linux with the Torque scheduler.
+
+I've been testing various ways of running R  with MPI.  While
+Googling, I've found a countless variety of different ways of
+submitting R batch jobs on a cluster, whether with R itself, Rscript,
+or littler.  I've been puzzled that some submission scripts using
+Openmpi, for example, will not include "mpirun" or "orterun" in the
+submission command.  But some do.
+
+While experimenting with R snow and doMPI packages this weekend, I've
+formed a hunch and I wonder if you think it might be correct. I'll
+post the full working examples on my website once I think I've got
+this mostly not-wrong.
+
+Here's a submit script I use on a system where Rmpi is compiled
+against OpenMPI-1.4.1.
+
+============================================
+
+#!/bin/sh
+#
+#This is an example script example.sh
+#
+#These commands set up the Grid Environment for your job:
+#PBS -N SnowHelloWorld
+#PBS -l nodes=10:ppn=4
+#PBS -l walltime=00:10:00
+#PBS -M pauljohn at ku.edu
+#PBS -m bea
+
+cd $PBS_O_WORKDIR
+
+### THIS WORKS:
+###orterun -np 1 R --no-save --vanilla -f snow-hello.R
+
+### And this also works:
+R --no-save -vanilla -f snow-hello.R
+
+### THIS FAILS:
+### orterun  R --no-save --vanilla -f snow-hello.R
+============================================
+
+
+The output from the first two is essentially the same. A job gets sent
+to the compute nodes, the nodes report back, and the output is
+collected up.
+
+My theory is that when I have the "-np 1" option on orterun, it
+basically has "no effect" because orterun is not asked to do any of
+the work it would usually do if it were launched with lots of
+processors.  Inside the script, in the example below using snow, the
+makeCluster() command spawns out the work.
+
+If I don't put the "-np1" option in the orterun, command, the program
+crashes.  I do see a lot of output about starting R on lots and lots
+of systems, but there's a crash that is hard to diagnose (still trying
+to figure it out).
+
+If I'm not using snow, but rather just plain "bare" Rmpi, the program
+runs with the "-np1" option for orterun, but when I take that out,
+then there is an error file generated for each compute node. They have
+names like this:
+
+compute-0-9.5393+1.30005.log
+compute-0-4.29848+1.27497.log
+compute-0-9.5395+1.29951.log
+
+Error in f(libname, pkgname) : ignoring SIGPIPE signal
+Warning message:
+Rmpi cannot be loaded
+
+I'm attaching the examples for these now, just for the record.
+
+Mostly I'm wondering if I'm alone in my puzzlement over how R and MPI
+connect to each other in a submission script.
+
+Or, if you do use orterun with more than 1 process in your submission
+script, can I see what your R script?
+
+pj
+
+============Example program using snow=======================
+$ cat snow-hello.R
+### Paul Johnson
+### 2010-03-25
+
+### Demonstration of SNOW "Simple Network of Workstations" using MPI
+### "Message Passing Interface" (OpenMPI implementation)
+
+
+
+library(snow)
+
+p <- rnorm(123, m=33)
+
+
+cl <- makeCluster(107, type="MPI")
+
+
+### sends function to each system
+clusterCall( cl, function() Sys.info()[c("nodename","machine")])
+
+
+clusterCall( cl, function() rnorm(1, 33,1 ) )
+
+
+myNorms <- matrix( rnorm(1000), ncol=10 )
+
+## goes column by column
+mypapply <- parApply(cl, myNorms, 2,  print )
+
+attributes(mypapply)
+
+mypapply <- parApply(cl, myNorms, 2, mean )
+
+mypapply
+
+myNorms <- matrix( rnorm(10000), ncol=100)
+
+mySum <- function( v ){
+    s <-Sys.info()[c("nodename")]
+    ms <- sum(v)
+    list(s, ms)
+}
+
+mypcapply <- parApply(cl, myNorms, 2,  mySum)
+
+mypcapply
+
+myNorms <- matrix(rnorm(250000), ncol=250)
+
+myMeans <- function(v){
+  s <- Sys.info()[c("nodename")]
+  ms <- mean(v)
+  list(s, ms)
+}
+
+mypcapply <- parApply(cl, myNorms, 2, myMeans )
+
+mypcapply
+
+stopCluster(cl)
+mpi.quit()
+
+
+=================================================
+
+
+Example that uses Rmpi:
+
+===================$ cat sub-hello.sh
+#!/bin/sh
+#
+#This is an example script example.sh
+#
+#These commands set up the Grid Environment for your job:
+#PBS -N RmpiHelloWorld
+#PBS -l nodes=10:ppn=4
+#PBS -l walltime=00:10:00
+#PBS -M pauljohn at ku.edu
+#PBS -m bea
+#PBS -q default
+
+cd $PBS_O_WORKDIR
+
+## Works
+##orterun -np 1 R --vanilla --no-save -f mpi-hello.R
+
+###Fails
+###orterun R --vanilla --no-save -f mpi-hello.R
+
+## Works:
+R --vanilla -no-save -f mpi-hello.R
+===============================
+
+===================$ cat mpi-hello.R
+if (!is.loaded("mpi_intitialize")){
+  library(Rmpi)
+}
+
+## see http://math.acadiau.ca/ACMMaC/Rmpi/sample.html
+# Spawn as many slaves as possible mpi.spawn.Rslaves()
+
+### Try worker processes; set to smaller number
+### to demonstrate the load balancing option below
+mpi.spawn.Rslaves(nslaves=18)
+
+### This will take as many nodes are there are nodes x np
+## mpi.spawn.Rslaves()
+
+
+# In case R exits unexpectedly, have it automatically clean up
+# resources taken up by Rmpi (slaves, memory, etc...)
+.Last <- function(){
+  if (is.loaded("mpi_initialize")){
+    if (mpi.comm.size(1) > 0){
+      print("Please use mpi.close.Rslaves() to close slaves.")
+      mpi.close.Rslaves()
+      }
+      print("Please use mpi.quit() to quit R")
+      .Call("mpi_finalize")
+    }
+}
+
+mpi.remote.exec(paste("I am",mpi.comm.rank(),"of",mpi.comm.size()))
+
+
+
+
+
+getSampleMean <- function(n=100, m=44, sd=33){
+    mysys <- Sys.info()[c("nodename")]
+    x <- rnorm(n=n, m=m, sd=sd)
+    mx <- mean(x)
+    list(mysys, x, mx)
+}
+
+mpimeans <- mpi.apply(1:17, getSampleMean, n=100, m=33)
+
+mpimeans
+
+### following should cause error, asks for too many nodes
+##mpimeans2 <- mpi.apply(1:100, getSampleMean)
+##mpimeans2
+### That error kills the whole program if in batch mode
+
+## more concise output
+getSampleMean <- function(n=1000, m=88, sd=18){
+    mysys <- Sys.info()[c("nodename")]
+    x <- rnorm(n=n, m=m, sd=sd)
+    mx <- mean(x)
+    sdx <- sd(x)
+    c(mysys, length(x), mx, sdx)
+}
+
+
+### LB "Load Balancing" handles it
+mpimeans3 <- mpi.applyLB(1:100, getSampleMean, n=1500, m=66)
+
+mpimeans3
+
+
+mpi.close.Rslaves()
+mpi.quit()
+
+===========================
+
+
+
+
+
+
+
+-- 
+Paul E. Johnson
+Professor, Political Science
+1541 Lilac Lane, Room 504
+University of Kansas
+
+
+From steinja at ucla.edu  Mon Mar 29 21:47:46 2010
+From: steinja at ucla.edu (Jason Stein)
+Date: Mon, 29 Mar 2010 12:47:46 -0700
+Subject: [R-sig-hpc] Loading Rmpi library problem
+Message-ID: <1bb422f91003291247l9ff9c77s957b8c360a190fdd@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100329/2d0dfe19/attachment.pl>
+
+From nakama at ki.rim.or.jp  Tue Mar 30 07:31:56 2010
+From: nakama at ki.rim.or.jp (Ei-ji Nakama)
+Date: Tue, 30 Mar 2010 14:31:56 +0900
+Subject: [R-sig-hpc] increasing max number of socket connections
+In-Reply-To: <f08455591003290737v6d90f1e6lf60153377dce727d@mail.gmail.com>
+References: <f08455591003290737v6d90f1e6lf60153377dce727d@mail.gmail.com>
+Message-ID: <dc41e1261003292231s55fe0790m1d6e49fce10c72ea@mail.gmail.com>
+
+Hi,
+
+The value of NCONNECTIONS in src/main/connections.c is the socket
+maximum value.
+
+----8<----8<----8<----8<----8<----8<----8<----8<----8<----8<----8<----8<----
+
+#define NCONNECTIONS 128 /* snow needs one per slave node */
+
+----8<----8<----8<----8<----8<----8<----8<----8<----8<----8<----8<----8<----
+
+
+
+2010/3/29 Daniel Elliott <danelliottster at gmail.com>:
+> Hello all,
+>
+> We compile our own R binary from source. ?Would the group be so kind
+> as to give me an idea of how difficult it would be to increase the max
+> number of socket connections R can make. ?I was told this could be
+> done by recompiling the source. ?Also, if you all feel that this is
+> not too painful, I would appreciate some guidance on where to start
+> looking in the source.
+>
+> We are running R on 64-bit Fedora Linux.
+>
+> I need this so I can use SNOW to spawn a very large number of
+> processes on our network.
+>
+> - dan
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+>
+>
+
+
+
+-- 
+EI-JI Nakama  <nakama (a) ki.rim.or.jp>
+"\u4e2d\u9593\u6804\u6cbb"  <nakama (a) ki.rim.or.jp>
+
+

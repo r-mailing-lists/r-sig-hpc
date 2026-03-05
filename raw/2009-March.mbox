@@ -1,0 +1,1646 @@
+From lynesh at cardiff.ac.uk  Wed Mar  4 14:36:33 2009
+From: lynesh at cardiff.ac.uk (Huw Lynes)
+Date: Wed, 04 Mar 2009 13:36:33 +0000
+Subject: [R-sig-hpc] Rmpi working with OpenMPI and PBSPro but snow fails
+Message-ID: <1236173793.2818.24.camel@w609.insrv.cf.ac.uk>
+
+
+Sorry for the long post but I'm having trouble getting snow to behave
+sensibly and was hoping someone else can spot where I'm going wrong.
+
+I've managed to get to the point where Rmpi seems to be working properly
+with PBSPro using OpenMPI. This is with Rmpi 0.5-7 and OpenMPI 1.3.
+OpenMPI is compiled against the task manager API from PBSPro and running
+a set of MPI test programs all seems well. Running the following R
+script:
+
+------------------------------------------------------------------------
+#add the R MPI package if it is not already loaded.
+if  (!is.loaded("mpi_initialize")) {
+   library("Rmpi")
+}
+# In case R exits unexpectedly, have it automatically clean up
+# resources taken up by Rmpi (slaves, memory, etc...)
+
+.Last <- function(){
+if (is.loaded("mpi_initialize")){
+      if (mpi.comm.size(1) > 0){
+          print("Please use mpi.close.Rslaves() to close slaves.")
+          mpi.close.Rslaves()
+      }
+      print("Please use mpi.quit() to quit R")
+      .Call("mpi_finalize")
+  }
+}
+
+# Tell all slaves to return a message identifying themselves
+mpi.remote.exec(paste("I am",mpi.comm.rank(),"of",mpi.comm.size()))
+print("RANK")
+print(mpi.comm.rank())
+
+# Tell all slaves to close down, and exit the program
+mpi.close.Rslaves()
+mpi.quit()
+-----------------------------------------------------------------------
+
+as part of the following PBS script:
+
+------------------------------------------------------------------------
+#!/bin/bash
+#PBS -q workq
+#PBS -l select=2:ncpus=4:mpiprocs=4
+#PBS -l place=scatter:excl
+
+
+module load apps/R
+module load libs/R-mpi
+
+cd $PBS_O_WORKDIR
+cat $PBS_NODEFILE
+
+mpiexec R --no-save -q -f mpi_test.r
+------------------------------------------------------------------------
+
+gives the following output:
+
+-------------------------------------------------------------------------
+arccacluster178
+arccacluster178
+arccacluster178
+arccacluster178
+arccacluster180
+arccacluster180
+arccacluster180
+arccacluster180
+WARNING: ignoring environment value of R_HOME
+WARNING: ignoring environment value of R_HOME
+WARNING: ignoring environment value of R_HOME
+WARNING: ignoring environment value of R_HOME
+WARNING: ignoring environment value of R_HOME
+WARNING: ignoring environment value of R_HOME
+WARNING: ignoring environment value of R_HOME
+WARNING: ignoring environment value of R_HOME
+master (rank 0, comm 1) of size 8 is running on: arccacluster178 
+slave1 (rank 1, comm 1) of size 8 is running on: arccacluster178 
+slave2 (rank 2, comm 1) of size 8 is running on: arccacluster178 
+slave3 (rank 3, comm 1) of size 8 is running on: arccacluster178 
+slave4 (rank 4, comm 1) of size 8 is running on: arccacluster180 
+slave5 (rank 5, comm 1) of size 8 is running on: arccacluster180 
+slave6 (rank 6, comm 1) of size 8 is running on: arccacluster180 
+slave7 (rank 7, comm 1) of size 8 is running on: arccacluster180 
+> #add the R MPI package if it is not already loaded.
+> if  (!is.loaded("mpi_initialize")) {
++    library("Rmpi")
++ }
+> # In case R exits unexpectedly, have it automatically clean up
+> # resources taken up by Rmpi (slaves, memory, etc...)
+> 
+> .Last <- function(){
++ if (is.loaded("mpi_initialize")){
++       if (mpi.comm.size(1) > 0){
++           print("Please use mpi.close.Rslaves() to close slaves.")
++           mpi.close.Rslaves()
++       }
++       print("Please use mpi.quit() to quit R")
++       .Call("mpi_finalize")
++   }
++ }
+> 
+> # Tell all slaves to return a message identifying themselves
+> mpi.remote.exec(paste("I am",mpi.comm.rank(),"of",mpi.comm.size()))
+$slave1
+[1] "I am 1 of 8"
+
+$slave2
+[1] "I am 2 of 8"
+
+$slave3
+[1] "I am 3 of 8"
+
+$slave4
+[1] "I am 4 of 8"
+
+$slave5
+[1] "I am 5 of 8"
+
+$slave6
+[1] "I am 6 of 8"
+
+$slave7
+[1] "I am 7 of 8"
+
+> print("RANK")
+[1] "RANK"
+> print(mpi.comm.rank())
+[1] 0
+> 
+> # Tell all slaves to close down, and exit the program
+> mpi.close.Rslaves()
+[1] 1
+> mpi.quit()
+-----------------------------------------------------------------------
+
+Which kind of makes sense. We are using the Rprofile that ships with
+Rmpi which does all the MPI setup for us. It seems that once that
+profile has run only the master process actually parses the R script
+which isn't what I was expecting from using MPI in other languages but I
+can see how it would be useful.
+
+Moving onto snow in the same environment trying to setup by using
+getMPICluster() returns an error in checkCluster() saying that there is
+something wrong with the cluster.
+
+If I try to manually create a cluster by doing something like:
+
+npus <- Sys.getenv("NCPUS")
+cl <- makeCluster(ncpus,type="MPI")
+
+I get an error that the cluster already exists.
+
+Any thoughts on what I should be looking at to try and chase this down?
+
+Thanks,
+Huw
+
+-- 
+Huw Lynes                       | Advanced Research Computing
+HEC Sysadmin                    | Cardiff University
+                                | Redwood Building, 
+Tel: +44 (0) 29208 70626        | King Edward VII Avenue, CF10 3NB
+
+
+From luke at stat.uiowa.edu  Wed Mar  4 14:49:52 2009
+From: luke at stat.uiowa.edu (luke at stat.uiowa.edu)
+Date: Wed, 4 Mar 2009 07:49:52 -0600 (CST)
+Subject: [R-sig-hpc] Rmpi working with OpenMPI and PBSPro but snow fails
+In-Reply-To: <1236173793.2818.24.camel@w609.insrv.cf.ac.uk>
+References: <1236173793.2818.24.camel@w609.insrv.cf.ac.uk>
+Message-ID: <alpine.LFD.2.00.0903040744090.9833@nokomis.stat.uiowa.edu>
+
+On Wed, 4 Mar 2009, Huw Lynes wrote:
+
+>
+> Sorry for the long post but I'm having trouble getting snow to behave
+> sensibly and was hoping someone else can spot where I'm going wrong.
+>
+> I've managed to get to the point where Rmpi seems to be working properly
+> with PBSPro using OpenMPI. This is with Rmpi 0.5-7 and OpenMPI 1.3.
+> OpenMPI is compiled against the task manager API from PBSPro and running
+> a set of MPI test programs all seems well. Running the following R
+> script:
+>
+> ------------------------------------------------------------------------
+> #add the R MPI package if it is not already loaded.
+> if  (!is.loaded("mpi_initialize")) {
+>   library("Rmpi")
+> }
+> # In case R exits unexpectedly, have it automatically clean up
+> # resources taken up by Rmpi (slaves, memory, etc...)
+>
+> .Last <- function(){
+> if (is.loaded("mpi_initialize")){
+>      if (mpi.comm.size(1) > 0){
+>          print("Please use mpi.close.Rslaves() to close slaves.")
+>          mpi.close.Rslaves()
+>      }
+>      print("Please use mpi.quit() to quit R")
+>      .Call("mpi_finalize")
+>  }
+> }
+>
+> # Tell all slaves to return a message identifying themselves
+> mpi.remote.exec(paste("I am",mpi.comm.rank(),"of",mpi.comm.size()))
+> print("RANK")
+> print(mpi.comm.rank())
+>
+> # Tell all slaves to close down, and exit the program
+> mpi.close.Rslaves()
+> mpi.quit()
+> -----------------------------------------------------------------------
+>
+> as part of the following PBS script:
+>
+> ------------------------------------------------------------------------
+> #!/bin/bash
+> #PBS -q workq
+> #PBS -l select=2:ncpus=4:mpiprocs=4
+> #PBS -l place=scatter:excl
+>
+>
+> module load apps/R
+> module load libs/R-mpi
+>
+> cd $PBS_O_WORKDIR
+> cat $PBS_NODEFILE
+>
+> mpiexec R --no-save -q -f mpi_test.r
+> ------------------------------------------------------------------------
+>
+> gives the following output:
+>
+> -------------------------------------------------------------------------
+> arccacluster178
+> arccacluster178
+> arccacluster178
+> arccacluster178
+> arccacluster180
+> arccacluster180
+> arccacluster180
+> arccacluster180
+> WARNING: ignoring environment value of R_HOME
+> WARNING: ignoring environment value of R_HOME
+> WARNING: ignoring environment value of R_HOME
+> WARNING: ignoring environment value of R_HOME
+> WARNING: ignoring environment value of R_HOME
+> WARNING: ignoring environment value of R_HOME
+> WARNING: ignoring environment value of R_HOME
+> WARNING: ignoring environment value of R_HOME
+> master (rank 0, comm 1) of size 8 is running on: arccacluster178
+> slave1 (rank 1, comm 1) of size 8 is running on: arccacluster178
+> slave2 (rank 2, comm 1) of size 8 is running on: arccacluster178
+> slave3 (rank 3, comm 1) of size 8 is running on: arccacluster178
+> slave4 (rank 4, comm 1) of size 8 is running on: arccacluster180
+> slave5 (rank 5, comm 1) of size 8 is running on: arccacluster180
+> slave6 (rank 6, comm 1) of size 8 is running on: arccacluster180
+> slave7 (rank 7, comm 1) of size 8 is running on: arccacluster180
+>> #add the R MPI package if it is not already loaded.
+>> if  (!is.loaded("mpi_initialize")) {
+> +    library("Rmpi")
+> + }
+>> # In case R exits unexpectedly, have it automatically clean up
+>> # resources taken up by Rmpi (slaves, memory, etc...)
+>>
+>> .Last <- function(){
+> + if (is.loaded("mpi_initialize")){
+> +       if (mpi.comm.size(1) > 0){
+> +           print("Please use mpi.close.Rslaves() to close slaves.")
+> +           mpi.close.Rslaves()
+> +       }
+> +       print("Please use mpi.quit() to quit R")
+> +       .Call("mpi_finalize")
+> +   }
+> + }
+>>
+>> # Tell all slaves to return a message identifying themselves
+>> mpi.remote.exec(paste("I am",mpi.comm.rank(),"of",mpi.comm.size()))
+> $slave1
+> [1] "I am 1 of 8"
+>
+> $slave2
+> [1] "I am 2 of 8"
+>
+> $slave3
+> [1] "I am 3 of 8"
+>
+> $slave4
+> [1] "I am 4 of 8"
+>
+> $slave5
+> [1] "I am 5 of 8"
+>
+> $slave6
+> [1] "I am 6 of 8"
+>
+> $slave7
+> [1] "I am 7 of 8"
+>
+>> print("RANK")
+> [1] "RANK"
+>> print(mpi.comm.rank())
+> [1] 0
+>>
+>> # Tell all slaves to close down, and exit the program
+>> mpi.close.Rslaves()
+> [1] 1
+>> mpi.quit()
+> -----------------------------------------------------------------------
+>
+> Which kind of makes sense. We are using the Rprofile that ships with
+> Rmpi which does all the MPI setup for us. It seems that once that
+> profile has run only the master process actually parses the R script
+> which isn't what I was expecting from using MPI in other languages but I
+> can see how it would be useful.
+>
+> Moving onto snow in the same environment trying to setup by using
+> getMPICluster() returns an error in checkCluster() saying that there is
+> something wrong with the cluster.
+
+I don't know what "Moving to snow" means exactly as you don't give
+details of you you are starting things up so I have to guess.  If you
+are using mpiexec then you need to run snow via the RMPISNOW shell
+script, which for NPROCS sets up a master and a cluster with NPROCS -
+1 workers, and then use
+
+cl <- makeCluster()
+
+to access the already running cluster.
+
+luke
+
+>
+> If I try to manually create a cluster by doing something like:
+>
+> npus <- Sys.getenv("NCPUS")
+> cl <- makeCluster(ncpus,type="MPI")
+>
+> I get an error that the cluster already exists.
+>
+> Any thoughts on what I should be looking at to try and chase this down?
+>
+> Thanks,
+> Huw
+>
+>
+
+-- 
+Luke Tierney
+Chair, Statistics and Actuarial Science
+Ralph E. Wareham Professor of Mathematical Sciences
+University of Iowa                  Phone:             319-335-3386
+Department of Statistics and        Fax:               319-335-3017
+    Actuarial Science
+241 Schaeffer Hall                  email:      luke at stat.uiowa.edu
+Iowa City, IA 52242                 WWW:  http://www.stat.uiowa.edu
+
+
+From lynesh at cardiff.ac.uk  Wed Mar  4 15:13:37 2009
+From: lynesh at cardiff.ac.uk (Huw Lynes)
+Date: Wed, 04 Mar 2009 14:13:37 +0000
+Subject: [R-sig-hpc] Rmpi working with OpenMPI and PBSPro but snow fails
+In-Reply-To: <alpine.LFD.2.00.0903040744090.9833@nokomis.stat.uiowa.edu>
+References: <1236173793.2818.24.camel@w609.insrv.cf.ac.uk>
+	<alpine.LFD.2.00.0903040744090.9833@nokomis.stat.uiowa.edu>
+Message-ID: <1236176017.2818.50.camel@w609.insrv.cf.ac.uk>
+
+On Wed, 2009-03-04 at 07:49 -0600, luke at stat.uiowa.edu wrote:
+> On Wed, 4 Mar 2009, Huw Lynes wrote:
+> 
+> >
+
+Hi Luke,
+
+Thanks for the quick response.
+
+> > Moving onto snow in the same environment trying to setup by using
+> > getMPICluster() returns an error in checkCluster() saying that there is
+> > something wrong with the cluster.
+> 
+> I don't know what "Moving to snow" means exactly as you don't give
+> details of you you are starting things up so I have to guess.  If you
+> are using mpiexec then you need to run snow via the RMPISNOW shell
+> script, which for NPROCS sets up a master and a cluster with NPROCS -
+> 1 workers, and then use
+> 
+> cl <- makeCluster()
+> 
+> to access the already running cluster.
+> 
+
+If I take the following trivial R script:
+
+------------------------------------------------------------------------
+
+library(Rmpi)
+library(snow)
+
+cl <- makeCluster()
+clusterCall(cl, function() Sys.info()[c("nodename","machine")])
+stopCluster(cl)
+------------------------------------------------------------------------
+
+and run it as 
+------------------------------------------------------------------------
+#!/bin/bash
+#PBS -q SMP_queue
+#PBS -l select=1:ncpus=4:mpiprocs=4
+#PBS -l place=scatter:excl
+
+
+module load apps/R
+module load libs/R-mpi
+
+cd $PBS_O_WORKDIR
+cat $PBS_NODEFILE
+
+mpiexec RMPISNOW -f snowtest_solo.r
+-----------------------------------------------------------------------
+
+all the R processes just sit there spinning rather than doing anything
+useful and I have to kill the job.
+
+the suggestion in this mail:
+https://stat.ethz.ch/pipermail/r-sig-hpc/2009-January/000069.html
+
+results in the same problem of R spinning. I suspect that there is
+something different about my OpenMPI setup that means snow is failing to
+set up a master process. So you end up with all four processes as slaves
+spinning on a network poll.
+
+-- 
+Huw Lynes                       | Advanced Research Computing
+HEC Sysadmin                    | Cardiff University
+                                | Redwood Building, 
+Tel: +44 (0) 29208 70626        | King Edward VII Avenue, CF10 3NB
+
+
+From luke at stat.uiowa.edu  Wed Mar  4 15:52:46 2009
+From: luke at stat.uiowa.edu (luke at stat.uiowa.edu)
+Date: Wed, 4 Mar 2009 08:52:46 -0600 (CST)
+Subject: [R-sig-hpc] Rmpi working with OpenMPI and PBSPro but snow fails
+In-Reply-To: <1236176017.2818.50.camel@w609.insrv.cf.ac.uk>
+References: <1236173793.2818.24.camel@w609.insrv.cf.ac.uk>
+	<alpine.LFD.2.00.0903040744090.9833@nokomis.stat.uiowa.edu>
+	<1236176017.2818.50.camel@w609.insrv.cf.ac.uk>
+Message-ID: <alpine.LFD.2.00.0903040845210.9833@nokomis.stat.uiowa.edu>
+
+mpiexec -n 3 RMPISNOW -f snowtest_solo.r
+
+works for me with OpenMPI (openmpi-1.2.4-2.fc9.x86_64) and current snow.
+
+The RMPISNOW does try to identify the master to adjust the arguments
+but that shouldn't cause confusion about who is the master -- that is
+based on the rank.  It may be that your profile file setting you
+mentioned is gettng inthe way as RMPISNOW uses the R_PROFILE
+environment variable to get the top level code into the processes.
+
+luke
+
+
+
+
+On Wed, 4 Mar 2009, Huw Lynes wrote:
+
+> On Wed, 2009-03-04 at 07:49 -0600, luke at stat.uiowa.edu wrote:
+>> On Wed, 4 Mar 2009, Huw Lynes wrote:
+>>
+>>>
+>
+> Hi Luke,
+>
+> Thanks for the quick response.
+>
+>>> Moving onto snow in the same environment trying to setup by using
+>>> getMPICluster() returns an error in checkCluster() saying that there is
+>>> something wrong with the cluster.
+>>
+>> I don't know what "Moving to snow" means exactly as you don't give
+>> details of you you are starting things up so I have to guess.  If you
+>> are using mpiexec then you need to run snow via the RMPISNOW shell
+>> script, which for NPROCS sets up a master and a cluster with NPROCS -
+>> 1 workers, and then use
+>>
+>> cl <- makeCluster()
+>>
+>> to access the already running cluster.
+>>
+>
+> If I take the following trivial R script:
+>
+> ------------------------------------------------------------------------
+>
+> library(Rmpi)
+> library(snow)
+>
+> cl <- makeCluster()
+> clusterCall(cl, function() Sys.info()[c("nodename","machine")])
+> stopCluster(cl)
+> ------------------------------------------------------------------------
+>
+> and run it as
+> ------------------------------------------------------------------------
+> #!/bin/bash
+> #PBS -q SMP_queue
+> #PBS -l select=1:ncpus=4:mpiprocs=4
+> #PBS -l place=scatter:excl
+>
+>
+> module load apps/R
+> module load libs/R-mpi
+>
+> cd $PBS_O_WORKDIR
+> cat $PBS_NODEFILE
+>
+> mpiexec RMPISNOW -f snowtest_solo.r
+> -----------------------------------------------------------------------
+>
+> all the R processes just sit there spinning rather than doing anything
+> useful and I have to kill the job.
+>
+> the suggestion in this mail:
+> https://stat.ethz.ch/pipermail/r-sig-hpc/2009-January/000069.html
+>
+> results in the same problem of R spinning. I suspect that there is
+> something different about my OpenMPI setup that means snow is failing to
+> set up a master process. So you end up with all four processes as slaves
+> spinning on a network poll.
+>
+>
+
+-- 
+Luke Tierney
+Chair, Statistics and Actuarial Science
+Ralph E. Wareham Professor of Mathematical Sciences
+University of Iowa                  Phone:             319-335-3386
+Department of Statistics and        Fax:               319-335-3017
+    Actuarial Science
+241 Schaeffer Hall                  email:      luke at stat.uiowa.edu
+Iowa City, IA 52242                 WWW:  http://www.stat.uiowa.edu
+
+
+From nakama at ki.rim.or.jp  Thu Mar  5 03:24:02 2009
+From: nakama at ki.rim.or.jp (Ei-ji Nakama)
+Date: Thu, 5 Mar 2009 11:24:02 +0900
+Subject: [R-sig-hpc] Rmpi working with OpenMPI and PBSPro but snow fails
+In-Reply-To: <1236173793.2818.24.camel@w609.insrv.cf.ac.uk>
+References: <1236173793.2818.24.camel@w609.insrv.cf.ac.uk>
+Message-ID: <dc41e1260903041824u74b64c22g810a3bc603606a42@mail.gmail.com>
+
+Hi
+
+To see whether your Open MPI installation has been configured to
+use the PBS launcher
+
+$ ompi_info | grep tm
+
+2009/3/4 Huw Lynes <lynesh at cardiff.ac.uk>:
+> WARNING: ignoring environment value of R_HOME
+
+Please imagine the working of openmpi and PBS when MPI_spawn.
+
+> module load apps/R
+> module load libs/R-mpi
+
+You try to define the environment variable in the shell of PBS.
+set it before qsub.
+
+$ man qsub       # It might be different in your environment.
+  -V    Declares that all environment variables in the qsub command's
+         environment are to be exported to the batch job.
+
+$ module load apps/R
+$ module load libs/R-mpi
+$ qsub -V pbsshell.sh
+
+-- 
+EI-JI Nakama  <nakama (a) ki.rim.or.jp>
+"\u4e2d\u9593\u6804\u6cbb"  <nakama (a) ki.rim.or.jp>
+
+
+From chavan.shweta at gmail.com  Thu Mar  5 06:18:10 2009
+From: chavan.shweta at gmail.com (Shweta S. Chavan)
+Date: Wed, 4 Mar 2009 23:18:10 -0600
+Subject: [R-sig-hpc] Parallelization using 'snow' package
+Message-ID: <52a579880903042118l9b0cae1rfec330cb51b3a65@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090304/0a0142c2/attachment.pl>
+
+From lynesh at cardiff.ac.uk  Thu Mar  5 11:03:32 2009
+From: lynesh at cardiff.ac.uk (Huw Lynes)
+Date: Thu, 05 Mar 2009 10:03:32 +0000
+Subject: [R-sig-hpc] Rmpi working with OpenMPI and PBSPro but snow fails
+In-Reply-To: <dc41e1260903041824u74b64c22g810a3bc603606a42@mail.gmail.com>
+References: <1236173793.2818.24.camel@w609.insrv.cf.ac.uk>
+	<dc41e1260903041824u74b64c22g810a3bc603606a42@mail.gmail.com>
+Message-ID: <1236247412.2806.6.camel@w609.insrv.cf.ac.uk>
+
+On Thu, 2009-03-05 at 11:24 +0900, Ei-ji Nakama wrote:
+> Hi
+> 
+> To see whether your Open MPI installation has been configured to
+> use the PBS launcher
+> 
+> $ ompi_info | grep tm
+
+
+Yes it is.
+
+[scmhl2 at arccacluster8 Rmpi_tests]$ ompi_info | grep tm
+              MCA memory: ptmalloc2 (MCA v2.0, API v2.0, Component v1.3)
+                 MCA ras: tm (MCA v2.0, API v2.0, Component v1.3)
+                 MCA plm: tm (MCA v2.0, API v2.0, Component v1.3)
+
+
+> 2009/3/4 Huw Lynes <lynesh at cardiff.ac.uk>:
+> > WARNING: ignoring environment value of R_HOME
+> 
+> Please imagine the working of openmpi and PBS when MPI_spawn.
+
+I'm not sure I understand what you mean. Could you elaborate?
+
+> You try to define the environment variable in the shell of PBS.
+
+In this instance the shell of PBS is just a bash script launched by
+pbs_mom so setting environment here or in the login shell is
+functionally equivalent except that PBS isn't entirely reliable when it
+comes to sending complex environments through.
+
+> set it before qsub.
+> 
+> $ man qsub       # It might be different in your environment.
+>   -V    Declares that all environment variables in the qsub command's
+>          environment are to be exported to the batch job.
+> 
+> $ module load apps/R
+> $ module load libs/R-mpi
+> $ qsub -V pbsshell.sh
+
+Behaves exactly the same. Including the warnings about R_HOME.
+
+Thanks,
+Huw
+
+> 
+-- 
+Huw Lynes                       | Advanced Research Computing
+HEC Sysadmin                    | Cardiff University
+                                | Redwood Building, 
+Tel: +44 (0) 29208 70626        | King Edward VII Avenue, CF10 3NB
+
+
+From lynesh at cardiff.ac.uk  Thu Mar  5 12:24:44 2009
+From: lynesh at cardiff.ac.uk (Huw Lynes)
+Date: Thu, 05 Mar 2009 11:24:44 +0000
+Subject: [R-sig-hpc] Rmpi working with OpenMPI and PBSPro but snow fails
+In-Reply-To: <alpine.LFD.2.00.0903040845210.9833@nokomis.stat.uiowa.edu>
+References: <1236173793.2818.24.camel@w609.insrv.cf.ac.uk>
+	<alpine.LFD.2.00.0903040744090.9833@nokomis.stat.uiowa.edu>
+	<1236176017.2818.50.camel@w609.insrv.cf.ac.uk>
+	<alpine.LFD.2.00.0903040845210.9833@nokomis.stat.uiowa.edu>
+Message-ID: <1236252284.2806.64.camel@w609.insrv.cf.ac.uk>
+
+
+OK results of some more testing. RMPISNOW is looking for
+OMPI_MCA_ns_nds_vpid which OpenMPI 1.3 doesn't seem to export. It does
+export OMPI_MCA_orte_ess_vpid. So I've altered RMPISNOW to look for
+that.
+
+This results in one R process being launched as --no-save and the others
+being launched as --slave.
+
+However the slave processes all exit leaving the master hanging there
+with nothing to do.
+
+To debug I replaced --slave with --verbose --no-save
+The last thing the worker processes print is 
+
+ >R_ReplConsole(): before "for(;;)" {main.c}
+
+At this point it seems like it would be worth going back to basics and
+trying to get snow working with the SOCK method rather than mpi. 
+
+So using this simple script:
+library(snow)
+
+ncpus <- Sys.getenv("NCPUS")
+cl <- makeCluster(ncpus, type = "SOCK")
+clusterCall(cl, function() Sys.info()[c("nodename","machine")])
+stopCluster(cl)
+
+
+fails with:
+Error in makeMPIcluster(spec, ...) : no nodes available.
+Calls: makeCluster -> switch -> makeMPIcluster
+Error in inherits(cl, "cluster") : object "cl" not found
+Calls: clusterCall -> checkCluster -> inherits
+Error in stopCluster(cl) : object "cl" not found
+
+It seems to use MPI if it can find it even when I've explicitly told it
+to use sockets. Is there a way around this?
+
+Thanks,
+Huw 
+
+
+
+-- 
+Huw Lynes                       | Advanced Research Computing
+HEC Sysadmin                    | Cardiff University
+                                | Redwood Building, 
+Tel: +44 (0) 29208 70626        | King Edward VII Avenue, CF10 3NB
+
+
+From lynesh at cardiff.ac.uk  Thu Mar  5 15:01:06 2009
+From: lynesh at cardiff.ac.uk (Huw Lynes)
+Date: Thu, 05 Mar 2009 14:01:06 +0000
+Subject: [R-sig-hpc] Rmpi working with OpenMPI and PBSPro but snow fails
+In-Reply-To: <alpine.LFD.2.00.0903050733210.9833@nokomis.stat.uiowa.edu>
+References: <1236173793.2818.24.camel@w609.insrv.cf.ac.uk>
+	<alpine.LFD.2.00.0903040744090.9833@nokomis.stat.uiowa.edu>
+	<1236176017.2818.50.camel@w609.insrv.cf.ac.uk>
+	<alpine.LFD.2.00.0903040845210.9833@nokomis.stat.uiowa.edu>
+	<1236252284.2806.64.camel@w609.insrv.cf.ac.uk>
+	<alpine.LFD.2.00.0903050733210.9833@nokomis.stat.uiowa.edu>
+Message-ID: <1236261666.2806.88.camel@w609.insrv.cf.ac.uk>
+
+On Thu, 2009-03-05 at 07:45 -0600, luke at stat.uiowa.edu wrote:
+> On Thu, 5 Mar 2009, Huw Lynes wrote:
+> 
+> You must be doing something differently than I am.  I have Rmpi and
+> pvm installed, but when I ask for a SOCK cluster in a standard R
+> session that is what I get, even if I load Rmpi first (and it is what
+> I would expect based on the code).  Whe I try to run your example I do
+> get an error, but that is because you are passing a string to
+> makeCluster rather than an number. If I use the file
+> 
+> -------------------------------(snow-err.R)-----------------------------------
+> library(snow)
+> 
+> ncpus <- as.numeric(Sys.getenv("NCPUS"))
+> cl <- makeCluster(ncpus, type = "SOCK")
+> clusterCall(cl, function() Sys.info()[c("nodename","machine")])
+> stopCluster(cl)
+> ------------------------------------------------------------------------------
+> 
+> with
+> 
+>       env NCPUS=2 R -f snow-err.R
+> 
+
+Right I worked out what I was doing wrong. I was still pointing to the
+mpi script in my PBS script. I fixed the SOCK script based on your
+advice and it's now working.
+
+> ncpus <- as.numeric(Sys.getenv("NCPUS"))
+> cl <- makeCluster(2, type = "SOCK")
+> clusterCall(cl, function() Sys.info()[c("nodename","machine")])
+[[1]]
+         nodename           machine 
+"arccacluster268"          "x86_64" 
+
+[[2]]
+         nodename           machine 
+"arccacluster268"          "x86_64" 
+
+> stopCluster(cl)
+
+Just need to do some more de-bugging on the MPI side of it.
+
+Thanks,
+Huw
+
+-- 
+Huw Lynes                       | Advanced Research Computing
+HEC Sysadmin                    | Cardiff University
+                                | Redwood Building, 
+Tel: +44 (0) 29208 70626        | King Edward VII Avenue, CF10 3NB
+
+
+From lynesh at cardiff.ac.uk  Mon Mar  9 10:46:23 2009
+From: lynesh at cardiff.ac.uk (Huw Lynes)
+Date: Mon, 09 Mar 2009 09:46:23 +0000
+Subject: [R-sig-hpc] Rmpi working with OpenMPI and PBSPro but snow fails
+In-Reply-To: <alpine.LFD.2.00.0903050733210.9833@nokomis.stat.uiowa.edu>
+References: <1236173793.2818.24.camel@w609.insrv.cf.ac.uk>
+	<alpine.LFD.2.00.0903040744090.9833@nokomis.stat.uiowa.edu>
+	<1236176017.2818.50.camel@w609.insrv.cf.ac.uk>
+	<alpine.LFD.2.00.0903040845210.9833@nokomis.stat.uiowa.edu>
+	<1236252284.2806.64.camel@w609.insrv.cf.ac.uk>
+	<alpine.LFD.2.00.0903050733210.9833@nokomis.stat.uiowa.edu>
+Message-ID: <1236591983.2798.15.camel@w609.insrv.cf.ac.uk>
+
+On Thu, 2009-03-05 at 07:45 -0600, luke at stat.uiowa.edu wrote:
+> On Thu, 5 Mar 2009, Huw Lynes wrote:
+> 
+> >
+> > OK results of some more testing. RMPISNOW is looking for
+> > OMPI_MCA_ns_nds_vpid which OpenMPI 1.3 doesn't seem to export. It does
+> > export OMPI_MCA_orte_ess_vpid. So I've altered RMPISNOW to look for
+> > that.
+> 
+> Thanks -- I will update RMPISNOW to check for both.
+> 
+> >
+> > This results in one R process being launched as --no-save and the others
+> > being launched as --slave.
+> >
+> > However the slave processes all exit leaving the master hanging there
+> > with nothing to do.
+> >
+> > To debug I replaced --slave with --verbose --no-save
+> > The last thing the worker processes print is
+> >
+> > >R_ReplConsole(): before "for(;;)" {main.c}
+> 
+> Do you have the full output from the worker processes (stdout and stderr)?
+> 
+
+Here is the full stderr as sent back by PBS.
+
+-----------------------------------------------------------------------------
+now
+dyn.load("/software/applications/R/2.8.1/gnu-4.2.4/lib64/R/library/methods/libs/methods.so") ...
+now
+dyn.load("/software/applications/R/2.8.1/gnu-4.2.4/lib64/R/library/methods/libs/methods.so") ...
+now
+dyn.load("/software/applications/R/2.8.1/gnu-4.2.4/lib64/R/library/methods/libs/methods.so") ...
+now
+dyn.load("/software/applications/R/2.8.1/gnu-4.2.4/lib64/R/library/grDevices/libs/grDevices.so") ...
+now
+dyn.load("/software/applications/R/2.8.1/gnu-4.2.4/lib64/R/library/grDevices/libs/grDevices.so") ...
+now
+dyn.load("/software/applications/R/2.8.1/gnu-4.2.4/lib64/R/library/grDevices/libs/grDevices.so") ...
+Garbage collection 1 = 0+0+1 (level 2) ... 
+5.2 Mbytes of cons cells used (27%)
+0.9 Mbytes of vectors used (14%)
+Garbage collection 1 = 0+0+1 (level 2) ... 
+5.2 Mbytes of cons cells used (27%)
+0.9 Mbytes of vectors used (14%)
+Garbage collection 1 = 0+0+1 (level 2) ... 
+5.2 Mbytes of cons cells used (27%)
+0.9 Mbytes of vectors used (14%)
+Garbage collection 2 = 1+0+1 (level 0) ... 
+5.4 Mbytes of cons cells used (29%)
+0.9 Mbytes of vectors used (15%)
+now
+dyn.load("/software/applications/R/2.8.1/gnu-4.2.4/lib64/R/library/stats/libs/stats.so") ...
+Garbage collection 2 = 1+0+1 (level 0) ... 
+5.4 Mbytes of cons cells used (29%)
+0.9 Mbytes of vectors used (15%)
+now
+dyn.load("/software/applications/R/2.8.1/gnu-4.2.4/lib64/R/library/stats/libs/stats.so") ...
+Garbage collection 2 = 1+0+1 (level 0) ... 
+5.4 Mbytes of cons cells used (29%)
+0.9 Mbytes of vectors used (15%)
+now
+dyn.load("/software/applications/R/2.8.1/gnu-4.2.4/lib64/R/library/stats/libs/stats.so") ...
+ >R_ReplConsole(): before "for(;;)" {main.c}
+ >R_ReplConsole(): before "for(;;)" {main.c}
+ >R_ReplConsole(): before "for(;;)" {main.c}
+mpirun: killing job...
+
+--------------------------------------------------------------------------
+mpirun noticed that process rank 0 with PID 9820 on node arccacluster268
+exited on signal 0 (Unknown signal 0).
+--------------------------------------------------------------------------
+mpirun: clean termination accomplished
+-------------------------------------------------------------------------------
+
+and the full stdout
+
+-------------------------------------------------------------------------------
+slave 3
+slave 2
+slave 1
+WARNING: ignoring environment value of R_HOME
+
+R version 2.8.1 (2008-12-22)
+Copyright (C) 2008 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library("Rmpi")
+WARNING: ignoring environment value of R_HOME
+WARNING: ignoring environment value of R_HOME
+WARNING: ignoring environment value of R_HOME
+
+R version 2.8.1 (2008-12-22)
+Copyright (C) 2008 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+
+R version 2.8.1 (2008-12-22)
+Copyright (C) 2008 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+
+R version 2.8.1 (2008-12-22)
+Copyright (C) 2008 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> 
+> 
+> 
+-------------------------------------------------------------------------------
+
+The interesting thing is that now that I have the SOCK version working
+properly I can see what the output should be:
+
+[[4]]
+         nodename           machine 
+"arccacluster268"          "x86_64" 
+
+Now if I look at the strace from the slave processes in the MPI version
+I can see that they are writing this information but it doesn't seem to
+be getting back to the master. What seems to be happening is that the
+cluster gets set up. The slaves get sent their commands and run them
+properly, but that information never gets back to the master. So the
+slaves exit cleanly and the master is left sitting their waiting for
+information that it will never receive.
+
+Thanks,
+Huw
+
+
+
+
+-- 
+Huw Lynes                       | Advanced Research Computing
+HEC Sysadmin                    | Cardiff University
+                                | Redwood Building, 
+Tel: +44 (0) 29208 70626        | King Edward VII Avenue, CF10 3NB
+
+
+From Mark.Lyman at atk.com  Mon Mar  9 21:47:06 2009
+From: Mark.Lyman at atk.com (Lyman, Mark)
+Date: Mon, 9 Mar 2009 14:47:06 -0600
+Subject: [R-sig-hpc] Rmpi with PBSPro and OpenMPI
+Message-ID: <A6BB278845329C41A08CB3C52A0E2C100159CE80@ut40se02.atk.com>
+
+I just recently discovered this list and thought I would ask a question
+about a mildly annoying issue. Generally, our setup works great,
+however, I had to modify the .Last function in the .Rprofile file that
+comes with Rmpi. The function now looks like this:
+        .Last <- function ()
+        {
+                if (is.loaded("mpi_initialize")) {
+                        if (mpi.comm.size(1) > 1) {
+                                mpi.bcast.cmd(q("no"))
+                        }
+                }
+        }
+
+Without this modification, the R code is run successfully, but when
+mpi.quit/mpi.exit/mpi.finalize are run everything stops. It seems that
+the slaves are not being shut down appropriately, and the master never
+gets the signal it is waiting for that the slaves have shut down. Has
+anyone else had this issue and solved it? Or does anyone know what could
+be the cause?
+
+I'm not sure, but I'm afraid that this is related to the following error
+that I occasionally get from OpenMPI:
+
+[n087:30298] [0,0,0] mca_oob_tcp_recv_handler: invalid message type: 0
+[n039:29963] [0,1,65]-[0,0,0] mca_oob_tcp_peer_recv_blocking: recv()
+failed with errno=104
+[n087:30298] [0,0,0] mca_oob_tcp_recv_handler: invalid message type: 0
+[n039:29962] [0,1,64]-[0,0,0] mca_oob_tcp_peer_recv_blocking: recv()
+failed with errno=104
+[n087:30298] [0,0,0] mca_oob_tcp_recv_handler: invalid message type: 0
+[n039:29964] [0,1,66]-[0,0,0] mca_oob_tcp_peer_recv_blocking: recv()
+failed with errno=104
+[n087:30298] [0,0,0] mca_oob_tcp_recv_handler: invalid message type: 0
+[n039:29965] [0,1,67]-[0,0,0] mca_oob_tcp_peer_recv_blocking: recv()
+failed with errno=104
+
+Usually, I am able to kill and retry the job and everything works fine,
+but sometimes it can fail repeatedly. Please let me know if any more
+information is needed. As you can see, I am a statistician, and I am
+very new to HPC.
+
+Mark Lyman, Statistician
+Engineering Systems & Integration, ATK
+(435) 863-2863
+
+
+To call in the statistician after the experiment is done may be no more
+than asking him to perform a post-mortem examination: he may be able to
+say what the experiment died of.
+
+Sir Ronald Aylmer Fisher
+
+
+From hyu at stats.uwo.ca  Tue Mar 10 18:46:31 2009
+From: hyu at stats.uwo.ca (Hao Yu)
+Date: Tue, 10 Mar 2009 13:46:31 -0400 (EDT)
+Subject: [R-sig-hpc] Rmpi with PBSPro and OpenMPI
+In-Reply-To: <A6BB278845329C41A08CB3C52A0E2C100159CE80@ut40se02.atk.com>
+References: <A6BB278845329C41A08CB3C52A0E2C100159CE80@ut40se02.atk.com>
+Message-ID: <ddb481ea448b0582ce16cd15f30be847.squirrel@www.stats.uwo.ca>
+
+Hi Mark,
+
+What is the version of Rmpi you are using? Version 0.5-5 or older had a
+bug in Rprofile but it was solved since 0.5-6.
+
+.Last never intends to be a way to close R slaves. It is only used when
+some one doesn't close R salves and master properly. Here is what I
+normally do
+{karl:58}orterun -n 4 R --no-save -q
+master (rank 0, comm 1) of size 4 is running on: karl
+slave1 (rank 1, comm 1) of size 4 is running on: karl
+slave2 (rank 2, comm 1) of size 4 is running on: karl
+slave3 (rank 3, comm 1) of size 4 is running on: karl
+> #real codes here ....
+> mpi.close.Rslaves()
+mpi.close.Rslaves()
+[1] 1
+> mpi.quit()
+mpi.quit()
+
+Please note that master and slaves are created from one communicator. They
+live or die together, unlike spawning where master can live even slaves
+quit.
+
+Hao
+
+
+
+Lyman, Mark wrote:
+> I just recently discovered this list and thought I would ask a question
+> about a mildly annoying issue. Generally, our setup works great,
+> however, I had to modify the .Last function in the .Rprofile file that
+> comes with Rmpi. The function now looks like this:
+>         .Last <- function ()
+>         {
+>                 if (is.loaded("mpi_initialize")) {
+>                         if (mpi.comm.size(1) > 1) {
+>                                 mpi.bcast.cmd(q("no"))
+>                         }
+>                 }
+>         }
+>
+> Without this modification, the R code is run successfully, but when
+> mpi.quit/mpi.exit/mpi.finalize are run everything stops. It seems that
+> the slaves are not being shut down appropriately, and the master never
+> gets the signal it is waiting for that the slaves have shut down. Has
+> anyone else had this issue and solved it? Or does anyone know what could
+> be the cause?
+>
+> I'm not sure, but I'm afraid that this is related to the following error
+> that I occasionally get from OpenMPI:
+>
+> [n087:30298] [0,0,0] mca_oob_tcp_recv_handler: invalid message type: 0
+> [n039:29963] [0,1,65]-[0,0,0] mca_oob_tcp_peer_recv_blocking: recv()
+> failed with errno=104
+> [n087:30298] [0,0,0] mca_oob_tcp_recv_handler: invalid message type: 0
+> [n039:29962] [0,1,64]-[0,0,0] mca_oob_tcp_peer_recv_blocking: recv()
+> failed with errno=104
+> [n087:30298] [0,0,0] mca_oob_tcp_recv_handler: invalid message type: 0
+> [n039:29964] [0,1,66]-[0,0,0] mca_oob_tcp_peer_recv_blocking: recv()
+> failed with errno=104
+> [n087:30298] [0,0,0] mca_oob_tcp_recv_handler: invalid message type: 0
+> [n039:29965] [0,1,67]-[0,0,0] mca_oob_tcp_peer_recv_blocking: recv()
+> failed with errno=104
+>
+> Usually, I am able to kill and retry the job and everything works fine,
+> but sometimes it can fail repeatedly. Please let me know if any more
+> information is needed. As you can see, I am a statistician, and I am
+> very new to HPC.
+>
+> Mark Lyman, Statistician
+> Engineering Systems & Integration, ATK
+> (435) 863-2863
+>
+>
+> To call in the statistician after the experiment is done may be no more
+> than asking him to perform a post-mortem examination: he may be able to
+> say what the experiment died of.
+>
+> Sir Ronald Aylmer Fisher
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+-- 
+Department of Statistics & Actuarial Sciences
+Fax Phone#:(519)-661-3813
+The University of Western Ontario
+Office Phone#:(519)-661-3622
+London, Ontario N6A 5B7
+http://www.stats.uwo.ca/faculty/yu
+
+
+From Mark.Lyman at atk.com  Wed Mar 11 15:02:31 2009
+From: Mark.Lyman at atk.com (Lyman, Mark)
+Date: Wed, 11 Mar 2009 08:02:31 -0600
+Subject: [R-sig-hpc] Rmpi with PBSPro and OpenMPI
+In-Reply-To: <ddb481ea448b0582ce16cd15f30be847.squirrel@www.stats.uwo.ca>
+References: <A6BB278845329C41A08CB3C52A0E2C100159CE80@ut40se02.atk.com>
+	<ddb481ea448b0582ce16cd15f30be847.squirrel@www.stats.uwo.ca>
+Message-ID: <A6BB278845329C41A08CB3C52A0E2C100159D54F@ut40se02.atk.com>
+
+Thank you. I was using version 0.5-5. It seems that upgrading to version
+0.5-7 seems to have worked, mostly. If I try saving my workspace with
+mpi.quit("yes"), I get the following:
+
+[n026:09730] *** Process received signal ***
+[n026:09730] Signal: Segmentation fault (11)
+[n026:09730] Signal code:  (128)
+[n026:09730] Failing at address: (nil)
+[n026:09730] [ 0] /lib64/tls/libc.so.6 [0x2a95c84500]
+[n026:09730] [ 1] /lib64/ld-linux-x86-64.so.2 [0x2a9555d334]
+[n026:09730] [ 2] /lib64/ld-linux-x86-64.so.2 [0x2a9555d724]
+[n026:09730] [ 3] /lib64/ld-linux-x86-64.so.2 [0x2a9556119f]
+[n026:09730] [ 4] /lib64/ld-linux-x86-64.so.2 [0x2a95560ef2]
+[n026:09730] [ 5] /usr/lib64/libvapi.so(vipul_cleanup+0x50)
+[0x2a9965a4c0]
+[n026:09730] *** End of error message ***
+mpirun noticed that job rank 0 with PID 9730 on node n026c exited on
+signal 11 (Segmentation fault).
+
+Mark Lyman
+
+
+-----Original Message-----
+From: Hao Yu [mailto:hyu at stats.uwo.ca] 
+Sent: Tuesday, March 10, 2009 11:47 AM
+To: Lyman, Mark
+Cc: r-sig-hpc at r-project.org
+Subject: Re: [R-sig-hpc] Rmpi with PBSPro and OpenMPI
+
+Hi Mark,
+
+What is the version of Rmpi you are using? Version 0.5-5 or older had a
+bug in Rprofile but it was solved since 0.5-6.
+
+.Last never intends to be a way to close R slaves. It is only used when
+some one doesn't close R salves and master properly. Here is what I
+normally do
+{karl:58}orterun -n 4 R --no-save -q
+master (rank 0, comm 1) of size 4 is running on: karl
+slave1 (rank 1, comm 1) of size 4 is running on: karl
+slave2 (rank 2, comm 1) of size 4 is running on: karl
+slave3 (rank 3, comm 1) of size 4 is running on: karl
+> #real codes here ....
+> mpi.close.Rslaves()
+mpi.close.Rslaves()
+[1] 1
+> mpi.quit()
+mpi.quit()
+
+Please note that master and slaves are created from one communicator.
+They
+live or die together, unlike spawning where master can live even slaves
+quit.
+
+Hao
+
+
+
+Lyman, Mark wrote:
+> I just recently discovered this list and thought I would ask a
+question
+> about a mildly annoying issue. Generally, our setup works great,
+> however, I had to modify the .Last function in the .Rprofile file that
+> comes with Rmpi. The function now looks like this:
+>         .Last <- function ()
+>         {
+>                 if (is.loaded("mpi_initialize")) {
+>                         if (mpi.comm.size(1) > 1) {
+>                                 mpi.bcast.cmd(q("no"))
+>                         }
+>                 }
+>         }
+>
+> Without this modification, the R code is run successfully, but when
+> mpi.quit/mpi.exit/mpi.finalize are run everything stops. It seems that
+> the slaves are not being shut down appropriately, and the master never
+> gets the signal it is waiting for that the slaves have shut down. Has
+> anyone else had this issue and solved it? Or does anyone know what
+could
+> be the cause?
+>
+> I'm not sure, but I'm afraid that this is related to the following
+error
+> that I occasionally get from OpenMPI:
+>
+> [n087:30298] [0,0,0] mca_oob_tcp_recv_handler: invalid message type: 0
+> [n039:29963] [0,1,65]-[0,0,0] mca_oob_tcp_peer_recv_blocking: recv()
+> failed with errno=104
+> [n087:30298] [0,0,0] mca_oob_tcp_recv_handler: invalid message type: 0
+> [n039:29962] [0,1,64]-[0,0,0] mca_oob_tcp_peer_recv_blocking: recv()
+> failed with errno=104
+> [n087:30298] [0,0,0] mca_oob_tcp_recv_handler: invalid message type: 0
+> [n039:29964] [0,1,66]-[0,0,0] mca_oob_tcp_peer_recv_blocking: recv()
+> failed with errno=104
+> [n087:30298] [0,0,0] mca_oob_tcp_recv_handler: invalid message type: 0
+> [n039:29965] [0,1,67]-[0,0,0] mca_oob_tcp_peer_recv_blocking: recv()
+> failed with errno=104
+>
+> Usually, I am able to kill and retry the job and everything works
+fine,
+> but sometimes it can fail repeatedly. Please let me know if any more
+> information is needed. As you can see, I am a statistician, and I am
+> very new to HPC.
+>
+> Mark Lyman, Statistician
+> Engineering Systems & Integration, ATK
+> (435) 863-2863
+>
+>
+> To call in the statistician after the experiment is done may be no
+more
+> than asking him to perform a post-mortem examination: he may be able
+to
+> say what the experiment died of.
+>
+> Sir Ronald Aylmer Fisher
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+-- 
+Department of Statistics & Actuarial Sciences
+Fax Phone#:(519)-661-3813
+The University of Western Ontario
+Office Phone#:(519)-661-3622
+London, Ontario N6A 5B7
+http://www.stats.uwo.ca/faculty/yu
+
+
+From jgarcia at ija.csic.es  Fri Mar 27 15:14:20 2009
+From: jgarcia at ija.csic.es (jgarcia at ija.csic.es)
+Date: Fri, 27 Mar 2009 15:14:20 +0100 (CET)
+Subject: [R-sig-hpc] snow Error.
+Message-ID: <49076.86.0.49.130.1238163260.squirrel@paleo.ija.csic.es>
+
+Hello,
+
+I have a program that used to run well in October, it uses library snow.
+Since then, one change has ocurred (snow library has been updated) and
+another could have ocurred (I've unadvertently modified something).
+
+Anyway, now when I make the call:
+
+parallel.model.results <- clusterApply(cl,processors.struct,MCexe)
+
+ exactly as I used to do, where MCexe is my function and processors.struct
+is a list containing everything required by MCexe, I obtain the following
+error:
+
+Error in checkForRemoteErrors(val) :
+  2 nodes produced errors; first error: incorrect number of dimensions
+
+Please, do you have any clue about what could be the error?
+
+Best regards,
+
+Javier Garc?a-Pintado
+
+
+From luke at stat.uiowa.edu  Fri Mar 27 18:55:24 2009
+From: luke at stat.uiowa.edu (luke at stat.uiowa.edu)
+Date: Fri, 27 Mar 2009 12:55:24 -0500 (CDT)
+Subject: [R-sig-hpc] snow Error.
+In-Reply-To: <49076.86.0.49.130.1238163260.squirrel@paleo.ija.csic.es>
+References: <49076.86.0.49.130.1238163260.squirrel@paleo.ija.csic.es>
+Message-ID: <alpine.DEB.1.00.0903271249320.6552@luke-inspiron>
+
+Recent versons of snow signal an error if the value returned from a
+worker indicates an error.  The error handling facilities in snow are
+still evolving; for now id you don't want an error on a worker to
+become an error an the master you need to catch the error in the
+worker yourself and produce an appropriate result, e.g. by replacing
+MCexe by something like
+
+     function(...) tryCatch(MCexe(...), error = function(e) NULL)
+
+if NULL is OK as a result when the MCexe computation produces an error.
+
+luke
+
+On Fri, 27 Mar 2009, jgarcia at ija.csic.es wrote:
+
+> Hello,
+>
+> I have a program that used to run well in October, it uses library snow.
+> Since then, one change has ocurred (snow library has been updated) and
+> another could have ocurred (I've unadvertently modified something).
+>
+> Anyway, now when I make the call:
+>
+> parallel.model.results <- clusterApply(cl,processors.struct,MCexe)
+>
+> exactly as I used to do, where MCexe is my function and processors.struct
+> is a list containing everything required by MCexe, I obtain the following
+> error:
+>
+> Error in checkForRemoteErrors(val) :
+>  2 nodes produced errors; first error: incorrect number of dimensions
+>
+> Please, do you have any clue about what could be the error?
+>
+> Best regards,
+>
+> Javier Garc?a-Pintado
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+-- 
+Luke Tierney
+Chair, Statistics and Actuarial Science
+Ralph E. Wareham Professor of Mathematical Sciences
+University of Iowa                  Phone:             319-335-3386
+Department of Statistics and        Fax:               319-335-3017
+    Actuarial Science
+241 Schaeffer Hall                  email:      luke at stat.uiowa.edu
+Iowa City, IA 52242                 WWW:  http://www.stat.uiowa.edu
+
+From ivowel at gmail.com  Sun Mar 29 03:07:49 2009
+From: ivowel at gmail.com (ivowel at gmail.com)
+Date: Sun, 29 Mar 2009 01:07:49 +0000
+Subject: [R-sig-hpc] Recommended Rig for $/MFlops, Linear Algebra
+Message-ID: <00032557a0d6362377046637986e@google.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090329/643dfdd8/attachment.pl>
+
+From schmidb at ibe.med.uni-muenchen.de  Mon Mar 30 09:41:53 2009
+From: schmidb at ibe.med.uni-muenchen.de (Markus Schmidberger)
+Date: Mon, 30 Mar 2009 09:41:53 +0200
+Subject: [R-sig-hpc] Recommended Rig for $/MFlops, Linear Algebra
+In-Reply-To: <00032557a0d6362377046637986e@google.com>
+References: <00032557a0d6362377046637986e@google.com>
+Message-ID: <49D077C1.1020502@ibe.med.uni-muenchen.de>
+
+Hi,
+
+I can not give any information about the best architecture for R. But 
+there is some great work going on for R and multiprocessors:
+http://www.rforge.net/multicore/
+
+Attached some first results from the "National Supercomputer HLRB II - 
+SGI Altix 4700" in Munich. It is the computation time for a simple (but 
+enough computation time) bootstrap example. You can see a nearly linear 
+speed-up up to 64 processors!
+
+I hope to present more results (on more processors) at the UseR conference.
+
+Best
+Markus
+
+
+
+ivowel at gmail.com schrieb:
+> dear readers---following dirk's advice on r-help, let me ask if someone  
+> else has recently done research on what the top performing R platform for  
+> the money is. My needs are for monte-carlo simulations (which therefore are  
+> easily parallelizable to multiple cores; I don't think R can use "core i7"  
+> threads), mostly linear algebra. I thought I would share what little  
+> knowledge I gathered today (and collect any ideas/suggestions that I may  
+> have overlooked).
+>
+> the prime candidates would seem to be a dual Shanghai 2.3GHz system  
+> ($175/processor) + $100/motherboard + DDR2 Reg RAM; or a single core i7 920  
+> 2.66GHz ($280/processor) + $300/motherboard + DDR3 RAM. These two seem to  
+> be heads and shoulders above their siblings in $/performance. The Intel rig  
+> is about 20% more expensive...but being faster in linear non-parallel tasks  
+> is nice, too.
+>
+> In some benchmarks, Whetstone (on Tom's hardware) in particular, the core  
+> i7 is almost twice as fast. More importantly, I found web benchmarks of 160  
+> specfloat for a pair of 2.8GHz Core i7 Xeons vs. 105 for a dual Shanghai  
+> 2.7. Extrapolating, this would mean that the dual Shanghai 2.3GHz system  
+> does around 90, while the single core i7 920 does about 80 (including a  
+> slight bonus for single-processor use). It also presumes, as I believe,  
+> that specfloat is a good indication of how fast linear algebra will perform  
+> on R (and Stata). my big unknown here is whether specfloat can use  
+> multi-threading while R and Stata cannot or vice-versa. Does anybody know?
+>
+> So, AMD= $5/Specfloat. Intel= $6.75/Specfloat. This is only  
+> CPU/motherboard. Other components will cost similarly, and thus bring the  
+> relative ratio of the two closer to one another.
+>
+> I hope this helps. of course, in about a month, it will be different  
+> again...
+>
+> /iaw
+>
+> 	[[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>   
+
+
+-- 
+Dipl.-Tech. Math. Markus Schmidberger
+
+Ludwig-Maximilians-Universit?t M?nchen
+IBE - Institut f?r medizinische Informationsverarbeitung,
+Biometrie und Epidemiologie
+Marchioninistr. 15, D-81377 Muenchen
+URL: http://www.ibe.med.uni-muenchen.de 
+Mail: Markus.Schmidberger [at] ibe.med.uni-muenchen.de
+Tel: +49 (089) 7095 - 4497
+
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: Rmulti.pdf
+Type: application/pdf
+Size: 6640 bytes
+Desc: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090330/64314df7/attachment.pdf>
+
+From ivowel at gmail.com  Mon Mar 30 14:32:06 2009
+From: ivowel at gmail.com (ivo welch)
+Date: Mon, 30 Mar 2009 08:32:06 -0400
+Subject: [R-sig-hpc] Recommended Rig for $/MFlops, Linear Algebra
+In-Reply-To: <49D077C1.1020502@ibe.med.uni-muenchen.de>
+References: <00032557a0d6362377046637986e@google.com>
+	<49D077C1.1020502@ibe.med.uni-muenchen.de>
+Message-ID: <50d1c22d0903300532o30432729g129a73eae04cf2e7@mail.gmail.com>
+
+very nice.
+
+
+I am still trying to find out how AMD and Intel processors compare on
+linear algebra in R.  R's work is such task-specific (ok, say 2 or 3
+tasks) that this should be easily quantifiable.  I would in particular
+like to know whether the reasonably standard versions (OSX
+precompiled; linux with Atlas) are bound by the speed of the SSE*
+instructions, or by the speed of the floating point instructions at
+this point.  finally, I think it would be useful to learn which
+standard benchmark in the literature (specfloat or scimark or ...)
+would seem to be a good proxy for relative speed of processors.
+
+if you know of such a piece, please point me to it.  if no one else
+has written such a piece, I would be happy to donate remote access to
+an OSX machine, an Intel 2 core duo, and a phenom II to do some of it.
+ I do not know enough about the internals of R well enough so as to
+write on the subject.
+
+regards,
+
+/iaw
+
+
+
+
+On Mon, Mar 30, 2009 at 3:41 AM, Markus Schmidberger
+<schmidb at ibe.med.uni-muenchen.de> wrote:
+> Hi,
+>
+> I can not give any information about the best architecture for R. But there
+> is some great work going on for R and multiprocessors:
+> http://www.rforge.net/multicore/
+>
+> Attached some first results from the "National Supercomputer HLRB II - SGI
+> Altix 4700" in Munich. It is the computation time for a simple (but enough
+> computation time) bootstrap example. You can see a nearly linear speed-up up
+> to 64 processors!
+>
+> I hope to present more results (on more processors) at the UseR conference.
+>
+> Best
+> Markus
+>
+>
+>
+> ivowel at gmail.com schrieb:
+>>
+>> dear readers---following dirk's advice on r-help, let me ask if someone
+>> ?else has recently done research on what the top performing R platform for
+>> ?the money is. My needs are for monte-carlo simulations (which therefore are
+>> ?easily parallelizable to multiple cores; I don't think R can use "core i7"
+>> ?threads), mostly linear algebra. I thought I would share what little
+>> ?knowledge I gathered today (and collect any ideas/suggestions that I may
+>> ?have overlooked).
+>>
+>> the prime candidates would seem to be a dual Shanghai 2.3GHz system
+>> ?($175/processor) + $100/motherboard + DDR2 Reg RAM; or a single core i7 920
+>> ?2.66GHz ($280/processor) + $300/motherboard + DDR3 RAM. These two seem to
+>> ?be heads and shoulders above their siblings in $/performance. The Intel rig
+>> ?is about 20% more expensive...but being faster in linear non-parallel tasks
+>> ?is nice, too.
+>>
+>> In some benchmarks, Whetstone (on Tom's hardware) in particular, the core
+>> ?i7 is almost twice as fast. More importantly, I found web benchmarks of 160
+>> ?specfloat for a pair of 2.8GHz Core i7 Xeons vs. 105 for a dual Shanghai
+>> ?2.7. Extrapolating, this would mean that the dual Shanghai 2.3GHz system
+>> ?does around 90, while the single core i7 920 does about 80 (including a
+>> ?slight bonus for single-processor use). It also presumes, as I believe,
+>> ?that specfloat is a good indication of how fast linear algebra will perform
+>> ?on R (and Stata). my big unknown here is whether specfloat can use
+>> ?multi-threading while R and Stata cannot or vice-versa. Does anybody know?
+>>
+>> So, AMD= $5/Specfloat. Intel= $6.75/Specfloat. This is only
+>> ?CPU/motherboard. Other components will cost similarly, and thus bring the
+>> ?relative ratio of the two closer to one another.
+>>
+>> I hope this helps. of course, in about a month, it will be different
+>> ?again...
+>>
+>> /iaw
+>>
+>> ? ? ? ?[[alternative HTML version deleted]]
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>
+>
+> --
+> Dipl.-Tech. Math. Markus Schmidberger
+>
+> Ludwig-Maximilians-Universit?t M?nchen
+> IBE - Institut f?r medizinische Informationsverarbeitung,
+> Biometrie und Epidemiologie
+> Marchioninistr. 15, D-81377 Muenchen
+> URL: http://www.ibe.med.uni-muenchen.de Mail: Markus.Schmidberger [at]
+> ibe.med.uni-muenchen.de
+> Tel: +49 (089) 7095 - 4497
+>
+>
+
+
+From armstrong.whit at gmail.com  Tue Mar 31 21:51:22 2009
+From: armstrong.whit at gmail.com (Whit Armstrong)
+Date: Tue, 31 Mar 2009 15:51:22 -0400
+Subject: [R-sig-hpc] Rmpi -- anyone else seeing this error on a Redhat
+	system? Error: unknown option "--bootproxy"
+Message-ID: <8ec76080903311251kf5234f0t9ceb3d01243b6eb0@mail.gmail.com>
+
+I have two ubuntu systems running this code just fine.  Not quite sure
+what is causing the issue on the Redhat box.
+
+Anyone seen this before?
+
+Thanks,
+Whit
+
+
+[warmstrong at linuxsvr ~]$ R
+> library(Rmpi)
+> library(snow)
+> cl <- makeCluster(4,type = "MPI")
+[linuxsvr.kls.corp:29467] Error: unknown option "--bootproxy"
+input in flex scanner failed
+
+[linuxsvr.kls.corp:29465] [0,0,0] ORTE_ERROR_LOG: Timeout in file
+base/pls_base_orted_cmds.c at line 275
+[linuxsvr.kls.corp:29465] [0,0,0] ORTE_ERROR_LOG: Timeout in file
+pls_rsh_module.c at line 1166
+[linuxsvr.kls.corp:29465] [0,0,0] ORTE_ERROR_LOG: Timeout in file
+errmgr_hnp.c at line 90
+[linuxsvr.kls.corp:29465] ERROR: A daemon on node linuxsvr.kls.corp
+failed to start as expected.
+[linuxsvr.kls.corp:29465] ERROR: There may be more information available from
+[linuxsvr.kls.corp:29465] ERROR: the remote shell (see above).
+[linuxsvr.kls.corp:29465] ERROR: The daemon exited unexpectedly with status 2.
+
+

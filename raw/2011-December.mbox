@@ -1,0 +1,1198 @@
+From bsmith030465 at gmail.com  Sun Dec  4 20:00:15 2011
+From: bsmith030465 at gmail.com (Brian Smith)
+Date: Sun, 4 Dec 2011 14:00:15 -0500
+Subject: [R-sig-hpc] Rmpi installation with openmpi (on local directory)
+Message-ID: <CAEQKoCGUoB5ZY3Jhsjkehb5QB-J98vSUPeB2d8tVZjaUb+W2aw@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20111204/202e0479/attachment.pl>
+
+From simon.urbanek at r-project.org  Sun Dec  4 20:33:37 2011
+From: simon.urbanek at r-project.org (Simon Urbanek)
+Date: Sun, 4 Dec 2011 14:33:37 -0500
+Subject: [R-sig-hpc] Rmpi installation with openmpi (on local directory)
+In-Reply-To: <CAEQKoCGUoB5ZY3Jhsjkehb5QB-J98vSUPeB2d8tVZjaUb+W2aw@mail.gmail.com>
+References: <CAEQKoCGUoB5ZY3Jhsjkehb5QB-J98vSUPeB2d8tVZjaUb+W2aw@mail.gmail.com>
+Message-ID: <1C5B18D5-4521-4B6B-AB78-2F5B0DD367BB@r-project.org>
+
+
+On Dec 4, 2011, at 2:00 PM, Brian Smith wrote:
+
+> Hi,
+> 
+> I was trying to install the Rmpi package on a cluster (running SGE). I
+> first installed the openmpi package in my directory, and then installed the
+> Rmpi package (after downloading tarball from cran) by an interactive R
+> session.
+> 
+> If I load Rmpi within an R interactive session everything seems to be fine.
+> However, if I try to use the SGE then I get errors:
+> 
+> Error in dyn.load(file, DLLpath = DLLpath, ...) :
+>  unable to load shared object
+> '/home/bs/R/x86_64-unknown-linux-gnu-library/2.14/Rmpi/libs/Rmpi.so':
+>  libmpi.so.0: cannot open shared object file: No such file or directory
+> Error: package/namespace load failed for ?Rmpi?
+> Execution halted
+> 
+
+It seems that you don't have /home/bs/openmpi-1.4.4/lib (or wherever mpi lives on the cluster) in LD_LIBRARY_PATH on the cluster. You probably want something like
+export LD_LIBRARY_PATH="/home/bs/openmpi-1.4.4/lib:$LD_LIBRARY_PATH"
+
+Also note that R_HOME is ignored by R - it is overridden by the R script regardless so there is no point setting it in .bashrc (unless it's for some other scripts...)
+
+Cheers,
+Simon
+
+
+
+> Other details of my attempts at the installation are given below. Any help
+> would be greatly appreciated!
+> 
+> many thanks!
+> 
+> PS: I have read the previous threads on difficulties in installation of
+> Rmpi and have tried to follow the advice/example...
+> 
+> 
+> 
+> 
+> 
+> #######################################################
+> ####         INSTALL RMPI  WITH INTERACTIVE R SESSION        #####
+> #######################################################
+> 
+> [bs at server library]$ cd ~/R-2.14.0/bin
+> [bs at server bin]$ ./R
+>> 
+> install.packages("/home/bs/R-2.14.0/library/Rmpi_0.5-9.tar.gz",configure.args=c("--with-Rmpi-include=/home/bs/openmpi-1.4.4/include","--with-Rmpi-libpath=/home/bs/openmpi-1.4.4/lib","--with-Rmpi-type=OPENMPI"))
+> Installing package(s) into
+> ?/home/bs/R/x86_64-unknown-linux-gnu-library/2.14?
+> (as ?lib? is unspecified)
+> inferring 'repos = NULL' from the file name
+> * installing *source* package ?Rmpi? ...
+> checking for openpty in -lutil... no
+> checking for main in -lpthread... no
+> configure: creating ./config.status
+> config.status: creating src/Makevars
+> ** Creating default NAMESPACE file
+> ** libs
+> gcc -std=gnu99 -I/home/bs/R-2.14.0/lib64/R/include -DPACKAGE_NAME=\"\"
+> -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+> -DPACKAGE_BUGREPORT=\"\" -I/home/bs/openmpi-1.4.4/include  -DMPI2 -DOPENMPI
+> -I/usr/local/include    -fpic  -g -O2 -c RegQuery.c -o RegQuery.o
+> gcc -std=gnu99 -I/home/bs/R-2.14.0/lib64/R/include -DPACKAGE_NAME=\"\"
+> -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+> -DPACKAGE_BUGREPORT=\"\" -I/home/bs/openmpi-1.4.4/include  -DMPI2 -DOPENMPI
+> -I/usr/local/include    -fpic  -g -O2 -c Rmpi.c -o Rmpi.o
+> gcc -std=gnu99 -I/home/bs/R-2.14.0/lib64/R/include -DPACKAGE_NAME=\"\"
+> -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+> -DPACKAGE_BUGREPORT=\"\" -I/home/bs/openmpi-1.4.4/include  -DMPI2 -DOPENMPI
+> -I/usr/local/include    -fpic  -g -O2 -c conversion.c -o conversion.o
+> gcc -std=gnu99 -I/home/bs/R-2.14.0/lib64/R/include -DPACKAGE_NAME=\"\"
+> -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+> -DPACKAGE_BUGREPORT=\"\" -I/home/bs/openmpi-1.4.4/include  -DMPI2 -DOPENMPI
+> -I/usr/local/include    -fpic  -g -O2 -c internal.c -o internal.o
+> gcc -std=gnu99 -shared -L/usr/local/lib64 -o Rmpi.so RegQuery.o Rmpi.o
+> conversion.o internal.o -L/home/bs/openmpi-1.4.4/lib -lmpi
+> installing to /home/bs/R/x86_64-unknown-linux-gnu-library/2.14/Rmpi/libs
+> ** R
+> ** demo
+> ** inst
+> ** preparing package for lazy loading
+> ** help
+> *** installing help indices
+> ** building package indices ...
+> ** testing if installed package can be loaded
+> 
+> * DONE (Rmpi)
+>> library(Rmpi)
+>> 
+>> mpi.spawn.Rslaves(nslaves=2)
+>        2 slaves are spawned successfully. 0 failed.
+> master (rank 0, comm 1) of size 3 is running on: server
+> slave1 (rank 1, comm 1) of size 3 is running on: server
+> slave2 (rank 2, comm 1) of size 3 is running on: server
+>> x <- c(10,20)
+>> mpi.apply(x,runif)
+> [[1]]
+> [1] 0.5279140 0.6070291 0.5367963 0.2028148 0.3930856 0.2121955 0.3994963
+> [8] 0.4322645 0.6733323 0.4020272
+> 
+> [[2]]
+> [1] 0.39267299 0.48316984 0.88169217 0.15594098 0.81789819 0.40163353
+> [7] 0.25264554 0.52592001 0.72461786 0.16952091 0.52862589 0.05710565
+> [13] 0.48598241 0.34414770 0.62858189 0.42895010 0.88796806 0.93477003
+> [19] 0.82415421 0.73289008
+> 
+>> 
+> 
+> 
+> ############################
+> ###### MY loadRmpi.R file #####
+> ############################
+> library(snow)
+> library(Rmpi)
+> print('loaded...')
+> 
+> ############################
+> ###### eerror.out file   ##########
+> ############################
+> 
+> Error in dyn.load(file, DLLpath = DLLpath, ...) :
+>  unable to load shared object
+> '/home/bs/R/x86_64-unknown-linux-gnu-library/2.14/Rmpi/libs/Rmpi.so':
+>  libmpi.so.0: cannot open shared object file: No such file or directory
+> Error in dyn.load(file, DLLpath = DLLpath, ...) :
+>  unable to load shared object
+> '/home/bs/R/x86_64-unknown-linux-gnu-library/2.14/Rmpi/libs/Rmpi.so':
+>  libmpi.so.0: cannot open shared object file: No such file or directory
+> Error: package/namespace load failed for ?Rmpi?
+> Execution halted
+> 
+> ##############################
+> ############# R CMD ldd  Rmpi.so  ######
+> ##############################
+> 
+> [bs at server Rmpi]$ R CMD ldd
+> ~/R/x86_64-unknown-linux-gnu-library/2.14/Rmpi/libs/Rmpi.so
+>        libmpi.so.0 => /home/bs/openmpi-1.4.4/lib/libmpi.so.0
+> (0x0000002a95662000)
+>        libc.so.6 => /lib64/tls/libc.so.6 (0x0000002a9582b000)
+>        libopen-rte.so.0 => /home/bs/openmpi-1.4.4/lib/libopen-rte.so.0
+> (0x0000002a95a65000)
+>        libopen-pal.so.0 => /home/bs/openmpi-1.4.4/lib/libopen-pal.so.0
+> (0x0000002a95bb0000)
+>        libdl.so.2 => /lib64/libdl.so.2 (0x0000002a95d03000)
+>        libnsl.so.1 => /lib64/libnsl.so.1 (0x0000002a95e06000)
+>        libutil.so.1 => /lib64/libutil.so.1 (0x0000002a95f1f000)
+>        libm.so.6 => /lib64/tls/libm.so.6 (0x0000002a96022000)
+>        libpthread.so.0 => /lib64/tls/libpthread.so.0 (0x0000002a961a8000)
+>        /lib64/ld-linux-x86-64.so.2 (0x000000552aaaa000)
+> [bs at server Rmpi]$
+> 
+> 
+> 
+> ########################
+> ######## added to  .bashrc file #######
+> #########################
+> 
+> R_HOME=$HOME/R/x86_64-unknown-linux-gnu-library/2.14/
+> 
+> 	[[alternative HTML version deleted]]
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From bsmith030465 at gmail.com  Sun Dec  4 20:54:08 2011
+From: bsmith030465 at gmail.com (Brian Smith)
+Date: Sun, 4 Dec 2011 14:54:08 -0500
+Subject: [R-sig-hpc] Rmpi installation with openmpi (on local directory)
+In-Reply-To: <1C5B18D5-4521-4B6B-AB78-2F5B0DD367BB@r-project.org>
+References: <CAEQKoCGUoB5ZY3Jhsjkehb5QB-J98vSUPeB2d8tVZjaUb+W2aw@mail.gmail.com>
+	<1C5B18D5-4521-4B6B-AB78-2F5B0DD367BB@r-project.org>
+Message-ID: <CAEQKoCHKPK=-454FJokGyuymiQuFgqCCdKTW0oWJZd-fMfhLNQ@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20111204/b1ae805d/attachment.pl>
+
+From dutangc at gmail.com  Sun Dec  4 22:22:25 2011
+From: dutangc at gmail.com (Christophe Dutang)
+Date: Sun, 4 Dec 2011 22:22:25 +0100
+Subject: [R-sig-hpc] multicores, benchmark and windows
+Message-ID: <CF82F1A9-8AF7-46F1-A856-047FEE857838@gmail.com>
+
+Dear list,
+
+I'm trying to find the easiest way to use the multiple cores of my core i7 running windows 7 pro 64bit. 
+
+With the new R 2.14.0 version, we have the parallel package. Unfortunately mclapply function is not available with multiple cores on windows according to the documentation "It relies on forking and hence is not available on Windows unless mc.cores = 1.".
+
+An option on windows seems to be doSMP. Before testing on windows, I did a small test on my macbook (only 2 cores) between parallel and doSMP.
+
+With the code below, I observe both packages have similar computation times. So doSMP seems to be a good alternative.
+
+Does anyone know other packages supporting multicore on windows?
+
+Thanks in advance
+
+Christophe
+
+--
+Christophe Dutang
+Ph.D. student at ISFA, Lyon, France
+website: http://dutangc.free.fr
+
+______________________________________________________________________
+
+options(cores = 2)
+getOption('cores')
+
+#true parallel example
+sinc <- function(x)
+{
+	r <- sqrt(x[1]^2+x[2]^2)
+	10*sin(r)/r
+}
+
+x <- seq(-10, 10, length.out=100)
+g <- expand.grid(x=x, y=x)
+
+glist <- split(g, g[,'y'] > 0)
+
+n <- 10
+
+#sequential lapply
+
+#n=10 -> 0.2795
+system.time( replicate(n, lapply(glist, apply, 1, sinc) ), gcFirst=TRUE) / n
+
+
+#parallel's lapply
+library(parallel)
+
+#n=10 -> 0.2158
+system.time( replicate(n, mclapply(glist, apply, 1, sinc) ), gcFirst=TRUE) / n
+
+
+library(doSMP)
+w <- startWorkers()
+
+registerDoSMP(w)
+
+#sequential foreach
+
+#n=10 -> 0.2883
+system.time( replicate(n, foreach(i = 1:2) %do% apply(glist[[i]], 1, sinc) ), gcFirst=TRUE)[3] / n
+
+#parallel foreach
+
+#n=10 -> doesn't work!!
+system.time( replicate(n, foreach(i = 1:2) %dopar% apply(glist[[i]], 1, FUN= sinc) ), gcFirst=TRUE)[3] / n
+
+
+t1 <- c(0, 0, 0, 0, 0)
+for(j in 1:10)
+	t1 <- t1 + system.time(foreach(i = 1:2) %dopar% apply(glist[[i]], 1, FUN= sinc) )
+
+#n=10 -> 0.2027
+t1/n
+
+
+From simon.urbanek at r-project.org  Sun Dec  4 23:35:26 2011
+From: simon.urbanek at r-project.org (Simon Urbanek)
+Date: Sun, 4 Dec 2011 17:35:26 -0500
+Subject: [R-sig-hpc] Rmpi installation with openmpi (on local directory)
+In-Reply-To: <CAEQKoCHKPK=-454FJokGyuymiQuFgqCCdKTW0oWJZd-fMfhLNQ@mail.gmail.com>
+References: <CAEQKoCGUoB5ZY3Jhsjkehb5QB-J98vSUPeB2d8tVZjaUb+W2aw@mail.gmail.com>
+	<1C5B18D5-4521-4B6B-AB78-2F5B0DD367BB@r-project.org>
+	<CAEQKoCHKPK=-454FJokGyuymiQuFgqCCdKTW0oWJZd-fMfhLNQ@mail.gmail.com>
+Message-ID: <35012BC6-F15B-4214-96F4-918045274959@r-project.org>
+
+Brian,
+
+I don't think .bashrc/.bash_profile has anything to do with it - I'm not sure how you start MPI on the cluster, but typically .bashrc is only for the login session, it's not used for non-interactive sessions. Check the LD_LIBRARY_PATH value in R (via Sys.getenv()) on the cluster to make sure it is actually set properly. Note that probably the most reliable way is to either set it using Sys.setenv() or edit etc/ldpaths in $R_HOME. 
+
+Cheers,
+Simon
+
+
+On Dec 4, 2011, at 2:54 PM, Brian Smith wrote:
+
+> Hi Simon,
+> 
+> Thanks for the response. My .bash_profile is:
+> ==========================
+> 
+> # .bash_profile
+> 
+> # Get the aliases and functions
+> if [ -f ~/.bashrc ]; then
+>         . ~/.bashrc
+> fi
+> 
+> # User specific environment and startup programs
+> 
+> PATH=$PATH:$HOME/openmpi-1.4.4/bin/
+> 
+> export LD_LIBRARY_PATH="/home/bs/openmpi-1.4.4/lib:$LD_LIBRARY_PATH"
+> 
+> 
+> export PATH
+> unset USERNAME
+> 
+> =======================
+> 
+> On changing the PATH and restarting the shells and executing the R script, I still get the following error:
+> 
+> Error in dyn.load(file, DLLpath = DLLpath, ...) :
+>   unable to load shared object '/home/bs/R-2.14.0/lib64/R/library/Rmpi/libs/Rmpi.so':
+>   libmpi.so.0: cannot open shared object file: No such file or directory
+> Error: package/namespace load failed for ?Rmpi?
+> Execution halted
+> 
+> 
+> :(
+> 
+> 
+> 
+> 
+> 
+> 
+> On Sun, Dec 4, 2011 at 2:33 PM, Simon Urbanek <simon.urbanek at r-project.org> wrote:
+> 
+> On Dec 4, 2011, at 2:00 PM, Brian Smith wrote:
+> 
+> > Hi,
+> >
+> > I was trying to install the Rmpi package on a cluster (running SGE). I
+> > first installed the openmpi package in my directory, and then installed the
+> > Rmpi package (after downloading tarball from cran) by an interactive R
+> > session.
+> >
+> > If I load Rmpi within an R interactive session everything seems to be fine.
+> > However, if I try to use the SGE then I get errors:
+> >
+> > Error in dyn.load(file, DLLpath = DLLpath, ...) :
+> >  unable to load shared object
+> > '/home/bs/R/x86_64-unknown-linux-gnu-library/2.14/Rmpi/libs/Rmpi.so':
+> >  libmpi.so.0: cannot open shared object file: No such file or directory
+> > Error: package/namespace load failed for ?Rmpi?
+> > Execution halted
+> >
+> 
+> It seems that you don't have /home/bs/openmpi-1.4.4/lib (or wherever mpi lives on the cluster) in LD_LIBRARY_PATH on the cluster. You probably want something like
+> export LD_LIBRARY_PATH="/home/bs/openmpi-1.4.4/lib:$LD_LIBRARY_PATH"
+> 
+> Also note that R_HOME is ignored by R - it is overridden by the R script regardless so there is no point setting it in .bashrc (unless it's for some other scripts...)
+> 
+> Cheers,
+> Simon
+> 
+> 
+> 
+> > Other details of my attempts at the installation are given below. Any help
+> > would be greatly appreciated!
+> >
+> > many thanks!
+> >
+> > PS: I have read the previous threads on difficulties in installation of
+> > Rmpi and have tried to follow the advice/example...
+> >
+> >
+> >
+> >
+> >
+> > #######################################################
+> > ####         INSTALL RMPI  WITH INTERACTIVE R SESSION        #####
+> > #######################################################
+> >
+> > [bs at server library]$ cd ~/R-2.14.0/bin
+> > [bs at server bin]$ ./R
+> >>
+> > install.packages("/home/bs/R-2.14.0/library/Rmpi_0.5-9.tar.gz",configure.args=c("--with-Rmpi-include=/home/bs/openmpi-1.4.4/include","--with-Rmpi-libpath=/home/bs/openmpi-1.4.4/lib","--with-Rmpi-type=OPENMPI"))
+> > Installing package(s) into
+> > ?/home/bs/R/x86_64-unknown-linux-gnu-library/2.14?
+> > (as ?lib? is unspecified)
+> > inferring 'repos = NULL' from the file name
+> > * installing *source* package ?Rmpi? ...
+> > checking for openpty in -lutil... no
+> > checking for main in -lpthread... no
+> > configure: creating ./config.status
+> > config.status: creating src/Makevars
+> > ** Creating default NAMESPACE file
+> > ** libs
+> > gcc -std=gnu99 -I/home/bs/R-2.14.0/lib64/R/include -DPACKAGE_NAME=\"\"
+> > -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+> > -DPACKAGE_BUGREPORT=\"\" -I/home/bs/openmpi-1.4.4/include  -DMPI2 -DOPENMPI
+> > -I/usr/local/include    -fpic  -g -O2 -c RegQuery.c -o RegQuery.o
+> > gcc -std=gnu99 -I/home/bs/R-2.14.0/lib64/R/include -DPACKAGE_NAME=\"\"
+> > -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+> > -DPACKAGE_BUGREPORT=\"\" -I/home/bs/openmpi-1.4.4/include  -DMPI2 -DOPENMPI
+> > -I/usr/local/include    -fpic  -g -O2 -c Rmpi.c -o Rmpi.o
+> > gcc -std=gnu99 -I/home/bs/R-2.14.0/lib64/R/include -DPACKAGE_NAME=\"\"
+> > -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+> > -DPACKAGE_BUGREPORT=\"\" -I/home/bs/openmpi-1.4.4/include  -DMPI2 -DOPENMPI
+> > -I/usr/local/include    -fpic  -g -O2 -c conversion.c -o conversion.o
+> > gcc -std=gnu99 -I/home/bs/R-2.14.0/lib64/R/include -DPACKAGE_NAME=\"\"
+> > -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\"
+> > -DPACKAGE_BUGREPORT=\"\" -I/home/bs/openmpi-1.4.4/include  -DMPI2 -DOPENMPI
+> > -I/usr/local/include    -fpic  -g -O2 -c internal.c -o internal.o
+> > gcc -std=gnu99 -shared -L/usr/local/lib64 -o Rmpi.so RegQuery.o Rmpi.o
+> > conversion.o internal.o -L/home/bs/openmpi-1.4.4/lib -lmpi
+> > installing to /home/bs/R/x86_64-unknown-linux-gnu-library/2.14/Rmpi/libs
+> > ** R
+> > ** demo
+> > ** inst
+> > ** preparing package for lazy loading
+> > ** help
+> > *** installing help indices
+> > ** building package indices ...
+> > ** testing if installed package can be loaded
+> >
+> > * DONE (Rmpi)
+> >> library(Rmpi)
+> >>
+> >> mpi.spawn.Rslaves(nslaves=2)
+> >        2 slaves are spawned successfully. 0 failed.
+> > master (rank 0, comm 1) of size 3 is running on: server
+> > slave1 (rank 1, comm 1) of size 3 is running on: server
+> > slave2 (rank 2, comm 1) of size 3 is running on: server
+> >> x <- c(10,20)
+> >> mpi.apply(x,runif)
+> > [[1]]
+> > [1] 0.5279140 0.6070291 0.5367963 0.2028148 0.3930856 0.2121955 0.3994963
+> > [8] 0.4322645 0.6733323 0.4020272
+> >
+> > [[2]]
+> > [1] 0.39267299 0.48316984 0.88169217 0.15594098 0.81789819 0.40163353
+> > [7] 0.25264554 0.52592001 0.72461786 0.16952091 0.52862589 0.05710565
+> > [13] 0.48598241 0.34414770 0.62858189 0.42895010 0.88796806 0.93477003
+> > [19] 0.82415421 0.73289008
+> >
+> >>
+> >
+> >
+> > ############################
+> > ###### MY loadRmpi.R file #####
+> > ############################
+> > library(snow)
+> > library(Rmpi)
+> > print('loaded...')
+> >
+> > ############################
+> > ###### eerror.out file   ##########
+> > ############################
+> >
+> > Error in dyn.load(file, DLLpath = DLLpath, ...) :
+> >  unable to load shared object
+> > '/home/bs/R/x86_64-unknown-linux-gnu-library/2.14/Rmpi/libs/Rmpi.so':
+> >  libmpi.so.0: cannot open shared object file: No such file or directory
+> > Error in dyn.load(file, DLLpath = DLLpath, ...) :
+> >  unable to load shared object
+> > '/home/bs/R/x86_64-unknown-linux-gnu-library/2.14/Rmpi/libs/Rmpi.so':
+> >  libmpi.so.0: cannot open shared object file: No such file or directory
+> > Error: package/namespace load failed for ?Rmpi?
+> > Execution halted
+> >
+> > ##############################
+> > ############# R CMD ldd  Rmpi.so  ######
+> > ##############################
+> >
+> > [bs at server Rmpi]$ R CMD ldd
+> > ~/R/x86_64-unknown-linux-gnu-library/2.14/Rmpi/libs/Rmpi.so
+> >        libmpi.so.0 => /home/bs/openmpi-1.4.4/lib/libmpi.so.0
+> > (0x0000002a95662000)
+> >        libc.so.6 => /lib64/tls/libc.so.6 (0x0000002a9582b000)
+> >        libopen-rte.so.0 => /home/bs/openmpi-1.4.4/lib/libopen-rte.so.0
+> > (0x0000002a95a65000)
+> >        libopen-pal.so.0 => /home/bs/openmpi-1.4.4/lib/libopen-pal.so.0
+> > (0x0000002a95bb0000)
+> >        libdl.so.2 => /lib64/libdl.so.2 (0x0000002a95d03000)
+> >        libnsl.so.1 => /lib64/libnsl.so.1 (0x0000002a95e06000)
+> >        libutil.so.1 => /lib64/libutil.so.1 (0x0000002a95f1f000)
+> >        libm.so.6 => /lib64/tls/libm.so.6 (0x0000002a96022000)
+> >        libpthread.so.0 => /lib64/tls/libpthread.so.0 (0x0000002a961a8000)
+> >        /lib64/ld-linux-x86-64.so.2 (0x000000552aaaa000)
+> > [bs at server Rmpi]$
+> >
+> >
+> >
+> > ########################
+> > ######## added to  .bashrc file #######
+> > #########################
+> >
+> > R_HOME=$HOME/R/x86_64-unknown-linux-gnu-library/2.14/
+> >
+> >       [[alternative HTML version deleted]]
+> >
+> > _______________________________________________
+> > R-sig-hpc mailing list
+> > R-sig-hpc at r-project.org
+> > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+> 
+
+
+From bsmith030465 at gmail.com  Mon Dec  5 15:51:59 2011
+From: bsmith030465 at gmail.com (Brian Smith)
+Date: Mon, 5 Dec 2011 09:51:59 -0500
+Subject: [R-sig-hpc] Rmpi installation with openmpi (on local directory)
+In-Reply-To: <35012BC6-F15B-4214-96F4-918045274959@r-project.org>
+References: <CAEQKoCGUoB5ZY3Jhsjkehb5QB-J98vSUPeB2d8tVZjaUb+W2aw@mail.gmail.com>
+	<1C5B18D5-4521-4B6B-AB78-2F5B0DD367BB@r-project.org>
+	<CAEQKoCHKPK=-454FJokGyuymiQuFgqCCdKTW0oWJZd-fMfhLNQ@mail.gmail.com>
+	<35012BC6-F15B-4214-96F4-918045274959@r-project.org>
+Message-ID: <CAEQKoCGNQmK3gvs64xWHgzsy1Aw-15vD_HN7HBE0pm-d-YgV8w@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20111205/8279f4ef/attachment.pl>
+
+From stephen.b.weston at gmail.com  Mon Dec  5 19:57:07 2011
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Mon, 5 Dec 2011 13:57:07 -0500
+Subject: [R-sig-hpc] multicores, benchmark and windows
+In-Reply-To: <CF82F1A9-8AF7-46F1-A856-047FEE857838@gmail.com>
+References: <CF82F1A9-8AF7-46F1-A856-047FEE857838@gmail.com>
+Message-ID: <CALh21iLqCJXDQQ2oaQJXBYTeTyGkSR5=fuHUJi7TZa8N18OofQ@mail.gmail.com>
+
+You can use functions such as parLapply, clusterApply and clusterApplyLB
+from the parallel package on Windows.  Basically all of the snow-derived
+functions in parallel will work, and they do a fine job on multicore machines.
+It's almost as simple as mclapply:
+
+    library(parallel)
+    cl <- makeCluster(3)
+    parLapply(cl, 1:3, sqrt)
+    stopCluster(cl)
+
+And coming pre-installed with R 2.14.0 is a very nice feature.
+
+- Steve
+
+
+On Sun, Dec 4, 2011 at 4:22 PM, Christophe Dutang <dutangc at gmail.com> wrote:
+> Dear list,
+>
+> I'm trying to find the easiest way to use the multiple cores of my core i7 running windows 7 pro 64bit.
+>
+> With the new R 2.14.0 version, we have the parallel package. Unfortunately mclapply function is not available with multiple cores on windows according to the documentation "It relies on forking and hence is not available on Windows unless mc.cores = 1.".
+>
+> An option on windows seems to be doSMP. Before testing on windows, I did a small test on my macbook (only 2 cores) between parallel and doSMP.
+>
+> With the code below, I observe both packages have similar computation times. So doSMP seems to be a good alternative.
+>
+> Does anyone know other packages supporting multicore on windows?
+>
+> Thanks in advance
+>
+> Christophe
+>
+> --
+> Christophe Dutang
+> Ph.D. student at ISFA, Lyon, France
+> website: http://dutangc.free.fr
+>
+> ______________________________________________________________________
+>
+> options(cores = 2)
+> getOption('cores')
+>
+> #true parallel example
+> sinc <- function(x)
+> {
+> ? ? ? ?r <- sqrt(x[1]^2+x[2]^2)
+> ? ? ? ?10*sin(r)/r
+> }
+>
+> x <- seq(-10, 10, length.out=100)
+> g <- expand.grid(x=x, y=x)
+>
+> glist <- split(g, g[,'y'] > 0)
+>
+> n <- 10
+>
+> #sequential lapply
+>
+> #n=10 -> 0.2795
+> system.time( replicate(n, lapply(glist, apply, 1, sinc) ), gcFirst=TRUE) / n
+>
+>
+> #parallel's lapply
+> library(parallel)
+>
+> #n=10 -> 0.2158
+> system.time( replicate(n, mclapply(glist, apply, 1, sinc) ), gcFirst=TRUE) / n
+>
+>
+> library(doSMP)
+> w <- startWorkers()
+>
+> registerDoSMP(w)
+>
+> #sequential foreach
+>
+> #n=10 -> 0.2883
+> system.time( replicate(n, foreach(i = 1:2) %do% apply(glist[[i]], 1, sinc) ), gcFirst=TRUE)[3] / n
+>
+> #parallel foreach
+>
+> #n=10 -> doesn't work!!
+> system.time( replicate(n, foreach(i = 1:2) %dopar% apply(glist[[i]], 1, FUN= sinc) ), gcFirst=TRUE)[3] / n
+>
+>
+> t1 <- c(0, 0, 0, 0, 0)
+> for(j in 1:10)
+> ? ? ? ?t1 <- t1 + system.time(foreach(i = 1:2) %dopar% apply(glist[[i]], 1, FUN= sinc) )
+>
+> #n=10 -> 0.2027
+> t1/n
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From dutangc at gmail.com  Mon Dec  5 22:28:46 2011
+From: dutangc at gmail.com (Christophe Dutang)
+Date: Mon, 5 Dec 2011 22:28:46 +0100
+Subject: [R-sig-hpc] multicores, benchmark and windows
+In-Reply-To: <CALh21iLqCJXDQQ2oaQJXBYTeTyGkSR5=fuHUJi7TZa8N18OofQ@mail.gmail.com>
+References: <CF82F1A9-8AF7-46F1-A856-047FEE857838@gmail.com>
+	<CALh21iLqCJXDQQ2oaQJXBYTeTyGkSR5=fuHUJi7TZa8N18OofQ@mail.gmail.com>
+Message-ID: <CAN3CnTbXDGfqq34j4A=EFHkusg_+5YuenD7HoZQ1APcAGC7pGQ@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20111205/dbba522a/attachment.pl>
+
+From chrisbee at uw.edu  Tue Dec 13 20:16:30 2011
+From: chrisbee at uw.edu (Chris Berthiaume)
+Date: Tue, 13 Dec 2011 11:16:30 -0800
+Subject: [R-sig-hpc] snow errors: cannot run slavehostinfo on slaves
+Message-ID: <CANJFj8Q5kpsvu-78iQPUVj+8pgHQFPBRFBKBCzbrcOGr6Ptg5w@mail.gmail.com>
+
+I'm getting an error when I try to create an MPI cluster with more
+than 1 slave node using snow.  Hopefully somebody on the list has
+encountered this before.
+
+> cl <- makeMPIcluster(2)
+        2 slaves are spawned successfully. 0 failed.
+Error in slave.hostinfo(1) : cannot run slavehostinfo on slaves
+[compute-0-0.local:22932] [[48203,0],0]-[[48203,2],0]
+mca_oob_tcp_msg_recv: readv failed: Connection reset by peer (104)
+[compute-0-0.local:22930] [[48203,1],0] routed:binomial: Connection to
+lifeline [[48203,0],0] lost
+
+At this point R exits.  The server this was run on is
+compute-0-0.local.  If I run makeMPIcluster(1) the single slave node
+is created successfully and can be used, for example clusterCall
+works.  I've also tried using mpirun to start the master and worker
+process, but this doesn't get me much farther.
+
+$ mpirun RMPISNOW  # <-- mpirun gets processor count of 2 from torque
+master (rank 0, comm 1) of size 2 is running on: compute-0-0
+slave1 (rank 1, comm 1) of size 2 is running on: compute-0-0
+> library(snow)
+library(snow)
+> cl <- getMPIcluster()
+cl <- getMPIcluster()
+> cl
+cl
+NULL
+> cl <- makeCluster()
+cl <- makeCluster()
+> clusterCall(cl, function() Sys.info()[c("nodename")])
+clusterCall(cl, function() Sys.info()[c("nodename")])
+...hangs...
+
+So getMPIcluster() returns a null object, and using the object
+returned by makeCluster causes R to hang.
+
+Other maybe helpful information:
+
+- I can run MPI C code OK across multiple nodes
+- I can use Rmpi to create and use slave nodes OK
+- Using Centos 5 x86_4
+- Using Rmpi 0.5-9
+- Using snow 0.3-8
+- Using R 2.12.1
+- Using OpenMPI 1.4.4
+
+Thanks for any help with this error,
+-Chris
+
+
+From romunov at gmail.com  Tue Dec 13 20:38:46 2011
+From: romunov at gmail.com (romunov)
+Date: Tue, 13 Dec 2011 20:38:46 +0100
+Subject: [R-sig-hpc] snowfall::sfSetMaxCPUs incorrectly capping number of
+	CPUs?
+Message-ID: <CAHT1vpj4z-L73ykyvbw9aqVvbJ86Hysi+3WpsTVZ8mAAWE90rQ@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20111213/fbcf4632/attachment.pl>
+
+From stephen.b.weston at gmail.com  Tue Dec 13 21:48:05 2011
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Tue, 13 Dec 2011 15:48:05 -0500
+Subject: [R-sig-hpc] snow errors: cannot run slavehostinfo on slaves
+In-Reply-To: <CANJFj8Q5kpsvu-78iQPUVj+8pgHQFPBRFBKBCzbrcOGr6Ptg5w@mail.gmail.com>
+References: <CANJFj8Q5kpsvu-78iQPUVj+8pgHQFPBRFBKBCzbrcOGr6Ptg5w@mail.gmail.com>
+Message-ID: <CALh21iL9i-bNCcm5NVe7QTC2U2=BvR8B0-UVZt8T82DDYDKjmw@mail.gmail.com>
+
+Hi Chris,
+
+I'm not an MPI expert, but I've seen some problems running
+snow/Rmpi scripts interactively from R.  I suggest that you work
+to get the non-interactive case working using mpirun.
+
+> I've also tried using mpirun to start the master and worker
+> process, but this doesn't get me much farther.
+>
+> $ mpirun RMPISNOW  # <-- mpirun gets processor count of 2 from torque
+
+I suggest trying to run a simple snow/Rmpi script, such as
+the following, which I'll call mpi.R:
+
+  library(snow)
+  library(Rmpi)
+  cl <- makeMPIcluster(mpi.universe.size() - 1)
+  r <- clusterEvalQ(cl, R.version.string)
+  print(unlist(r))
+  stopCluster(cl)
+  mpi.quit()
+
+Note that you have to specify the number of workers to
+makeMPIcluster when spawning the workers.  This uses the
+mpi.universe.size() function, which will return four in this
+case, resulting in three spawned workers (since I subtracted
+one from it).
+
+Now run the script using mpirun:
+
+  $ mpirun -n 1 R --slave -f mpi.R
+
+Notice that I used '-n 1' because I only want mpirun to start
+one process, which will be the master.  The rest of the
+processes (the cluster workers) will be spawned by MPI
+when the master calls makeMPIcluster.
+
+If that doesn't work, it's possible that there's a problem with
+spawning workers in your MPI installation.  Instead, use the
+following script which doesn't use spawning.  All of the
+processes are started by mpirun.  I'll call it mpi2.R:
+
+  library(snow)
+  library(Rmpi)
+  if (mpi.comm.rank(0) > 0) {
+    sink(file="/dev/null")
+    slaveLoop(makeMPImaster())
+    mpi.quit()
+  }
+  cl <- makeMPIcluster()
+  r <- clusterEvalQ(cl, R.version.string)
+  print(unlist(r))
+  stopCluster(cl)
+  mpi.quit()
+
+Some extra code is used to make everyone but rank 0 execute the
+slaveLoop() function.  Only rank 0, which we call the master,
+actually calls makeMPIcluster(), and it should call
+makeMPIcluster() without a worker count.
+
+This time, you don't use the mpirun -n option, so that mpirun
+will start four processes in this case.  Rank 0 will become the
+master and the rest will be workers:
+
+  $ mpirun R --slave -f mpi2.R
+
+Hopefully one of these two approaches will work for you.
+
+Good luck,
+
+- Steve
+
+On Tue, Dec 13, 2011 at 2:16 PM, Chris Berthiaume <chrisbee at uw.edu> wrote:
+> I'm getting an error when I try to create an MPI cluster with more
+> than 1 slave node using snow. ?Hopefully somebody on the list has
+> encountered this before.
+>
+>> cl <- makeMPIcluster(2)
+> ? ? ? ?2 slaves are spawned successfully. 0 failed.
+> Error in slave.hostinfo(1) : cannot run slavehostinfo on slaves
+> [compute-0-0.local:22932] [[48203,0],0]-[[48203,2],0]
+> mca_oob_tcp_msg_recv: readv failed: Connection reset by peer (104)
+> [compute-0-0.local:22930] [[48203,1],0] routed:binomial: Connection to
+> lifeline [[48203,0],0] lost
+>
+> At this point R exits. ?The server this was run on is
+> compute-0-0.local. ?If I run makeMPIcluster(1) the single slave node
+> is created successfully and can be used, for example clusterCall
+> works. ?I've also tried using mpirun to start the master and worker
+> process, but this doesn't get me much farther.
+>
+> $ mpirun RMPISNOW ?# <-- mpirun gets processor count of 2 from torque
+> master (rank 0, comm 1) of size 2 is running on: compute-0-0
+> slave1 (rank 1, comm 1) of size 2 is running on: compute-0-0
+>> library(snow)
+> library(snow)
+>> cl <- getMPIcluster()
+> cl <- getMPIcluster()
+>> cl
+> cl
+> NULL
+>> cl <- makeCluster()
+> cl <- makeCluster()
+>> clusterCall(cl, function() Sys.info()[c("nodename")])
+> clusterCall(cl, function() Sys.info()[c("nodename")])
+> ...hangs...
+>
+> So getMPIcluster() returns a null object, and using the object
+> returned by makeCluster causes R to hang.
+>
+> Other maybe helpful information:
+>
+> - I can run MPI C code OK across multiple nodes
+> - I can use Rmpi to create and use slave nodes OK
+> - Using Centos 5 x86_4
+> - Using Rmpi 0.5-9
+> - Using snow 0.3-8
+> - Using R 2.12.1
+> - Using OpenMPI 1.4.4
+>
+> Thanks for any help with this error,
+> -Chris
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From stephen.b.weston at gmail.com  Tue Dec 13 22:00:24 2011
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Tue, 13 Dec 2011 16:00:24 -0500
+Subject: [R-sig-hpc] snow errors: cannot run slavehostinfo on slaves
+In-Reply-To: <CALh21iL9i-bNCcm5NVe7QTC2U2=BvR8B0-UVZt8T82DDYDKjmw@mail.gmail.com>
+References: <CANJFj8Q5kpsvu-78iQPUVj+8pgHQFPBRFBKBCzbrcOGr6Ptg5w@mail.gmail.com>
+	<CALh21iL9i-bNCcm5NVe7QTC2U2=BvR8B0-UVZt8T82DDYDKjmw@mail.gmail.com>
+Message-ID: <CALh21iLrrG-O74JFpK7ihX2ndf9onitwAgE7KzKcNh7ppaPGcA@mail.gmail.com>
+
+I had meant to say that these examples assume that you're
+working from an interactive Torque job, which seemed to
+be your situation.  If you started the job with a command
+such as:
+
+  $ qsub -I -l nodes=4 -q devel
+
+then you should get four slots allocated, and mpirun
+will default to starting four processes.  That's why you
+need to use '-n 1' for the spawn case, but don't need
+to use -n for the non-spawn case.
+
+Sorry for any confusion,
+
+- Steve
+
+
+On Tue, Dec 13, 2011 at 3:48 PM, Stephen Weston
+<stephen.b.weston at gmail.com> wrote:
+> Hi Chris,
+>
+> I'm not an MPI expert, but I've seen some problems running
+> snow/Rmpi scripts interactively from R. ?I suggest that you work
+> to get the non-interactive case working using mpirun.
+>
+>> I've also tried using mpirun to start the master and worker
+>> process, but this doesn't get me much farther.
+>>
+>> $ mpirun RMPISNOW ?# <-- mpirun gets processor count of 2 from torque
+>
+> I suggest trying to run a simple snow/Rmpi script, such as
+> the following, which I'll call mpi.R:
+>
+> ?library(snow)
+> ?library(Rmpi)
+> ?cl <- makeMPIcluster(mpi.universe.size() - 1)
+> ?r <- clusterEvalQ(cl, R.version.string)
+> ?print(unlist(r))
+> ?stopCluster(cl)
+> ?mpi.quit()
+>
+> Note that you have to specify the number of workers to
+> makeMPIcluster when spawning the workers. ?This uses the
+> mpi.universe.size() function, which will return four in this
+> case, resulting in three spawned workers (since I subtracted
+> one from it).
+>
+> Now run the script using mpirun:
+>
+> ?$ mpirun -n 1 R --slave -f mpi.R
+>
+> Notice that I used '-n 1' because I only want mpirun to start
+> one process, which will be the master. ?The rest of the
+> processes (the cluster workers) will be spawned by MPI
+> when the master calls makeMPIcluster.
+>
+> If that doesn't work, it's possible that there's a problem with
+> spawning workers in your MPI installation. ?Instead, use the
+> following script which doesn't use spawning. ?All of the
+> processes are started by mpirun. ?I'll call it mpi2.R:
+>
+> ?library(snow)
+> ?library(Rmpi)
+> ?if (mpi.comm.rank(0) > 0) {
+> ? ?sink(file="/dev/null")
+> ? ?slaveLoop(makeMPImaster())
+> ? ?mpi.quit()
+> ?}
+> ?cl <- makeMPIcluster()
+> ?r <- clusterEvalQ(cl, R.version.string)
+> ?print(unlist(r))
+> ?stopCluster(cl)
+> ?mpi.quit()
+>
+> Some extra code is used to make everyone but rank 0 execute the
+> slaveLoop() function. ?Only rank 0, which we call the master,
+> actually calls makeMPIcluster(), and it should call
+> makeMPIcluster() without a worker count.
+>
+> This time, you don't use the mpirun -n option, so that mpirun
+> will start four processes in this case. ?Rank 0 will become the
+> master and the rest will be workers:
+>
+> ?$ mpirun R --slave -f mpi2.R
+>
+> Hopefully one of these two approaches will work for you.
+>
+> Good luck,
+>
+> - Steve
+>
+> On Tue, Dec 13, 2011 at 2:16 PM, Chris Berthiaume <chrisbee at uw.edu> wrote:
+>> I'm getting an error when I try to create an MPI cluster with more
+>> than 1 slave node using snow. ?Hopefully somebody on the list has
+>> encountered this before.
+>>
+>>> cl <- makeMPIcluster(2)
+>> ? ? ? ?2 slaves are spawned successfully. 0 failed.
+>> Error in slave.hostinfo(1) : cannot run slavehostinfo on slaves
+>> [compute-0-0.local:22932] [[48203,0],0]-[[48203,2],0]
+>> mca_oob_tcp_msg_recv: readv failed: Connection reset by peer (104)
+>> [compute-0-0.local:22930] [[48203,1],0] routed:binomial: Connection to
+>> lifeline [[48203,0],0] lost
+>>
+>> At this point R exits. ?The server this was run on is
+>> compute-0-0.local. ?If I run makeMPIcluster(1) the single slave node
+>> is created successfully and can be used, for example clusterCall
+>> works. ?I've also tried using mpirun to start the master and worker
+>> process, but this doesn't get me much farther.
+>>
+>> $ mpirun RMPISNOW ?# <-- mpirun gets processor count of 2 from torque
+>> master (rank 0, comm 1) of size 2 is running on: compute-0-0
+>> slave1 (rank 1, comm 1) of size 2 is running on: compute-0-0
+>>> library(snow)
+>> library(snow)
+>>> cl <- getMPIcluster()
+>> cl <- getMPIcluster()
+>>> cl
+>> cl
+>> NULL
+>>> cl <- makeCluster()
+>> cl <- makeCluster()
+>>> clusterCall(cl, function() Sys.info()[c("nodename")])
+>> clusterCall(cl, function() Sys.info()[c("nodename")])
+>> ...hangs...
+>>
+>> So getMPIcluster() returns a null object, and using the object
+>> returned by makeCluster causes R to hang.
+>>
+>> Other maybe helpful information:
+>>
+>> - I can run MPI C code OK across multiple nodes
+>> - I can use Rmpi to create and use slave nodes OK
+>> - Using Centos 5 x86_4
+>> - Using Rmpi 0.5-9
+>> - Using snow 0.3-8
+>> - Using R 2.12.1
+>> - Using OpenMPI 1.4.4
+>>
+>> Thanks for any help with this error,
+>> -Chris
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From chrisbee at uw.edu  Tue Dec 13 22:41:06 2011
+From: chrisbee at uw.edu (Chris Berthiaume)
+Date: Tue, 13 Dec 2011 13:41:06 -0800
+Subject: [R-sig-hpc] snow errors: cannot run slavehostinfo on slaves
+In-Reply-To: <CALh21iLrrG-O74JFpK7ihX2ndf9onitwAgE7KzKcNh7ppaPGcA@mail.gmail.com>
+References: <CANJFj8Q5kpsvu-78iQPUVj+8pgHQFPBRFBKBCzbrcOGr6Ptg5w@mail.gmail.com>
+	<CALh21iL9i-bNCcm5NVe7QTC2U2=BvR8B0-UVZt8T82DDYDKjmw@mail.gmail.com>
+	<CALh21iLrrG-O74JFpK7ihX2ndf9onitwAgE7KzKcNh7ppaPGcA@mail.gmail.com>
+Message-ID: <CANJFj8QTTOt=44aJHEnesUNJXS6z3V3eFANi2nkq4RQFz47_Zg@mail.gmail.com>
+
+Yes, I should have mentioned that I was running an interactive torque
+job but looks like you sussed that out from my mpirun comment.
+
+$ qsub -lwalltime=01:00:00,nodes=2:ppn=2 -I
+
+I'll try running the non-interactive mpirun examples you suggested and
+see what I get.  Thanks for your help.
+
+-Chris
+
+On Tue, Dec 13, 2011 at 1:00 PM, Stephen Weston
+<stephen.b.weston at gmail.com> wrote:
+> I had meant to say that these examples assume that you're
+> working from an interactive Torque job, which seemed to
+> be your situation. ?If you started the job with a command
+> such as:
+>
+> ?$ qsub -I -l nodes=4 -q devel
+>
+> then you should get four slots allocated, and mpirun
+> will default to starting four processes. ?That's why you
+> need to use '-n 1' for the spawn case, but don't need
+> to use -n for the non-spawn case.
+>
+> Sorry for any confusion,
+>
+> - Steve
+>
+>
+> On Tue, Dec 13, 2011 at 3:48 PM, Stephen Weston
+> <stephen.b.weston at gmail.com> wrote:
+>> Hi Chris,
+>>
+>> I'm not an MPI expert, but I've seen some problems running
+>> snow/Rmpi scripts interactively from R. ?I suggest that you work
+>> to get the non-interactive case working using mpirun.
+>>
+>>> I've also tried using mpirun to start the master and worker
+>>> process, but this doesn't get me much farther.
+>>>
+>>> $ mpirun RMPISNOW ?# <-- mpirun gets processor count of 2 from torque
+>>
+>> I suggest trying to run a simple snow/Rmpi script, such as
+>> the following, which I'll call mpi.R:
+>>
+>> ?library(snow)
+>> ?library(Rmpi)
+>> ?cl <- makeMPIcluster(mpi.universe.size() - 1)
+>> ?r <- clusterEvalQ(cl, R.version.string)
+>> ?print(unlist(r))
+>> ?stopCluster(cl)
+>> ?mpi.quit()
+>>
+>> Note that you have to specify the number of workers to
+>> makeMPIcluster when spawning the workers. ?This uses the
+>> mpi.universe.size() function, which will return four in this
+>> case, resulting in three spawned workers (since I subtracted
+>> one from it).
+>>
+>> Now run the script using mpirun:
+>>
+>> ?$ mpirun -n 1 R --slave -f mpi.R
+>>
+>> Notice that I used '-n 1' because I only want mpirun to start
+>> one process, which will be the master. ?The rest of the
+>> processes (the cluster workers) will be spawned by MPI
+>> when the master calls makeMPIcluster.
+>>
+>> If that doesn't work, it's possible that there's a problem with
+>> spawning workers in your MPI installation. ?Instead, use the
+>> following script which doesn't use spawning. ?All of the
+>> processes are started by mpirun. ?I'll call it mpi2.R:
+>>
+>> ?library(snow)
+>> ?library(Rmpi)
+>> ?if (mpi.comm.rank(0) > 0) {
+>> ? ?sink(file="/dev/null")
+>> ? ?slaveLoop(makeMPImaster())
+>> ? ?mpi.quit()
+>> ?}
+>> ?cl <- makeMPIcluster()
+>> ?r <- clusterEvalQ(cl, R.version.string)
+>> ?print(unlist(r))
+>> ?stopCluster(cl)
+>> ?mpi.quit()
+>>
+>> Some extra code is used to make everyone but rank 0 execute the
+>> slaveLoop() function. ?Only rank 0, which we call the master,
+>> actually calls makeMPIcluster(), and it should call
+>> makeMPIcluster() without a worker count.
+>>
+>> This time, you don't use the mpirun -n option, so that mpirun
+>> will start four processes in this case. ?Rank 0 will become the
+>> master and the rest will be workers:
+>>
+>> ?$ mpirun R --slave -f mpi2.R
+>>
+>> Hopefully one of these two approaches will work for you.
+>>
+>> Good luck,
+>>
+>> - Steve
+>>
+>> On Tue, Dec 13, 2011 at 2:16 PM, Chris Berthiaume <chrisbee at uw.edu> wrote:
+>>> I'm getting an error when I try to create an MPI cluster with more
+>>> than 1 slave node using snow. ?Hopefully somebody on the list has
+>>> encountered this before.
+>>>
+>>>> cl <- makeMPIcluster(2)
+>>> ? ? ? ?2 slaves are spawned successfully. 0 failed.
+>>> Error in slave.hostinfo(1) : cannot run slavehostinfo on slaves
+>>> [compute-0-0.local:22932] [[48203,0],0]-[[48203,2],0]
+>>> mca_oob_tcp_msg_recv: readv failed: Connection reset by peer (104)
+>>> [compute-0-0.local:22930] [[48203,1],0] routed:binomial: Connection to
+>>> lifeline [[48203,0],0] lost
+>>>
+>>> At this point R exits. ?The server this was run on is
+>>> compute-0-0.local. ?If I run makeMPIcluster(1) the single slave node
+>>> is created successfully and can be used, for example clusterCall
+>>> works. ?I've also tried using mpirun to start the master and worker
+>>> process, but this doesn't get me much farther.
+>>>
+>>> $ mpirun RMPISNOW ?# <-- mpirun gets processor count of 2 from torque
+>>> master (rank 0, comm 1) of size 2 is running on: compute-0-0
+>>> slave1 (rank 1, comm 1) of size 2 is running on: compute-0-0
+>>>> library(snow)
+>>> library(snow)
+>>>> cl <- getMPIcluster()
+>>> cl <- getMPIcluster()
+>>>> cl
+>>> cl
+>>> NULL
+>>>> cl <- makeCluster()
+>>> cl <- makeCluster()
+>>>> clusterCall(cl, function() Sys.info()[c("nodename")])
+>>> clusterCall(cl, function() Sys.info()[c("nodename")])
+>>> ...hangs...
+>>>
+>>> So getMPIcluster() returns a null object, and using the object
+>>> returned by makeCluster causes R to hang.
+>>>
+>>> Other maybe helpful information:
+>>>
+>>> - I can run MPI C code OK across multiple nodes
+>>> - I can use Rmpi to create and use slave nodes OK
+>>> - Using Centos 5 x86_4
+>>> - Using Rmpi 0.5-9
+>>> - Using snow 0.3-8
+>>> - Using R 2.12.1
+>>> - Using OpenMPI 1.4.4
+>>>
+>>> Thanks for any help with this error,
+>>> -Chris
+>>>
+>>> _______________________________________________
+>>> R-sig-hpc mailing list
+>>> R-sig-hpc at r-project.org
+>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From bw at norbl.com  Thu Dec 15 07:11:56 2011
+From: bw at norbl.com (Barnet Wagman)
+Date: Thu, 15 Dec 2011 00:11:56 -0600
+Subject: [R-sig-hpc] npRmpi mpi.spawn.Rslaves -> Connection to lifeline ...
+	lost
+Message-ID: <4EE98FAC.80201@norbl.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20111215/82bae9b7/attachment.pl>
+

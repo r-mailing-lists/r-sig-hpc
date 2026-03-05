@@ -1,0 +1,684 @@
+From schmidb at ibe.med.uni-muenchen.de  Wed Oct 15 21:44:23 2008
+From: schmidb at ibe.med.uni-muenchen.de (Markus Schmidberger)
+Date: Wed, 15 Oct 2008 12:44:23 -0700
+Subject: [R-sig-hpc] using snow and Rmpi
+Message-ID: <48F64817.3060609@ibe.med.uni-muenchen.de>
+
+Hi,
+
+great to have this new mailing list.
+
+I am using snow with MPI (Rmpi). Now I thought it would be great to use
+snow and Rmpi code together. E.g. to use the mpi.bcast command.
+(I do not want to reimplement my whole snow code to Rmpi)
+
+Some example code:
+
+library(snow)
+c1<-makeCluster(4)
+clusterEvalQ(c1, Sys.info()["nodename"])
+mpi.remote.exec(paste("I am
+node",mpi.comm.rank(),"of",mpi.comm.size(),"on",Sys.info()["nodename"]))
+stopCluster(c1)
+
+Snow uses Rmpi, so I thought this could be working. But this seems to be
+not working. Probably snow and Rmpi slaves are waiting for different tags.
+Anyone already tried this?
+
+Thanks
+Markus
+
+-- 
+Dipl.-Tech. Math. Markus Schmidberger
+
+Ludwig-Maximilians-Universit?t M?nchen
+IBE - Institut f?r medizinische Informationsverarbeitung,
+Biometrie und Epidemiologie
+Marchioninistr. 15, D-81377 Muenchen
+URL: http://www.ibe.med.uni-muenchen.de
+Mail: Markus.Schmidberger [at] ibe.med.uni-muenchen.de
+Tel: +49 (089) 7095 - 4599
+
+
+From schmidb at ibe.med.uni-muenchen.de  Thu Oct 16 22:41:26 2008
+From: schmidb at ibe.med.uni-muenchen.de (Markus Schmidberger)
+Date: Thu, 16 Oct 2008 13:41:26 -0700
+Subject: [R-sig-hpc] [BioC] multicore processor
+In-Reply-To: <EA09C4B2B0F16E44B8F3311629493C0D02EDB15C@DJFPOST01.djf.agrsci.dk>
+References: <004401c92fc3$e868f2d0$b93ad870$@wayne.edu>
+	<EA09C4B2B0F16E44B8F3311629493C0D02EDB15C@DJFPOST01.djf.agrsci.dk>
+Message-ID: <48F7A6F6.2090209@ibe.med.uni-muenchen.de>
+
+You also should have a look to Luke Tierney's website and his pnmath
+code (using openMP):
+http://www.cs.uiowa.edu/~luke/R/experimental/
+
+And there is a new mailing list for HPC: R SIG on High-Performance
+computing: r-sig-hpc at r-project.org.
+
+And there is a lot of other stuff for parallelization in R and managing
+big datasets: snow, Rmpi, affyPara, aroma.affymetrix, ...
+
+And have a look to Dirks tutorial at the UseR2008. This should be a good
+starting point for optimization in R:
+http://www.statistik.uni-dortmund.de/useR-2008/tutorials/eddelbuettel.html
+
+Best
+Markus
+
+
+Jo?o Fadista wrote:
+> Check out this paper about R in parallel:
+> http://www.biomedcentral.com/1471-2105/9/390
+>  
+> Regards,
+> Jo?o
+> 
+> ________________________________
+> 
+> De: bioconductor-bounces at stat.math.ethz.ch em nome de Senthil Kumar Sundaram
+> Enviada: qui 16-10-2008 21:17
+> Para: bioconductor at stat.math.ethz.ch
+> Assunto: [BioC] multicore processor
+> 
+> 
+> 
+> Hi,
+> 
+>    I am new to using bioconductor. We have more than 200 CEL files to
+> analyze and would like do it on a Linux(64 bit) system with 2 quadcore Intel
+> Xeon processors and 16GB RAM. We would like to utilize all 8 processors
+> using Oligo package. But currently, it runs only on one processor. Can
+> anyone help us to configure bioconductor to use all 8 processors?
+> 
+> 
+> 
+> Thanks,
+> 
+> 
+> 
+> Senthil Sundaram, MD
+> Assistant Professor of Pediatrics and Neurology
+> 
+> Wayne State University
+> PET Center
+> Children's Hospital of Michigan
+> 3901 Beaubien Street
+> Detroit, MI 48201
+> Ph:  313-993-2870
+> Email: ssundaram at pet.wayne.edu
+> 
+> 
+> 
+> 
+> 
+> 
+>         [[alternative HTML version deleted]]
+> 
+> _______________________________________________
+> Bioconductor mailing list
+> Bioconductor at stat.math.ethz.ch
+> https://stat.ethz.ch/mailman/listinfo/bioconductor
+> Search the archives: http://news.gmane.org/gmane.science.biology.informatics.conductor
+> 
+> _______________________________________________
+> Bioconductor mailing list
+> Bioconductor at stat.math.ethz.ch
+> https://stat.ethz.ch/mailman/listinfo/bioconductor
+> Search the archives: http://news.gmane.org/gmane.science.biology.informatics.conductor
+
+
+-- 
+Dipl.-Tech. Math. Markus Schmidberger
+
+Ludwig-Maximilians-Universit?t M?nchen
+IBE - Institut f?r medizinische Informationsverarbeitung,
+Biometrie und Epidemiologie
+Marchioninistr. 15, D-81377 Muenchen
+URL: http://www.ibe.med.uni-muenchen.de
+Mail: Markus.Schmidberger [at] ibe.med.uni-muenchen.de
+Tel: +49 (089) 7095 - 4599
+
+
+From edd at debian.org  Tue Oct 21 04:47:19 2008
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Mon, 20 Oct 2008 21:47:19 -0500
+Subject: [R-sig-hpc] New mailing list r-sig-hpc
+Message-ID: <18685.17079.362571.73297@ron.nulle.part>
+
+
+As interest in topics that are often grouped under the catch-all umbrella of
+'high performance computing with R' has grown over the last few months, it has
+been suggested to create a dedicated mailing list.  
+
+Now, thanks to Martin Maechler who tirelessly looks after all R mailing
+matters, such a list has been set up as 'r-sig-hpc'.  
+
+Suitable topics for discussion may comprise
+
+ - parallel computing approaches for R with, but not limited to any of
+   Rmpi, rpvm, snow, nws, rsprng, ... 
+
+ - use of batch / queue management system such as Slurm, Condor, Sun Grid
+ - Engine, LSF, ...
+
+ - profiling and debugging R, in particular for compiled 
+
+ - large-scale automation and scripting 
+
+or any other topic you deem suitable for 'high performance computing with R'.
+
+List information, as well as subscription information, is available at
+
+  https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+Regards, Dirk
+
+-- 
+Three out of two people have difficulties with fractions.
+
+
+From schmidb at ibe.med.uni-muenchen.de  Wed Oct 22 17:57:47 2008
+From: schmidb at ibe.med.uni-muenchen.de (Markus Schmidberger)
+Date: Wed, 22 Oct 2008 08:57:47 -0700
+Subject: [R-sig-hpc] [R] torque/psb & snow library
+In-Reply-To: <55650.84.78.222.159.1224673679.squirrel@paleo.ija.csic.es>
+References: <55650.84.78.222.159.1224673679.squirrel@paleo.ija.csic.es>
+Message-ID: <48FF4D7B.7040706@ibe.med.uni-muenchen.de>
+
+Hi Javier,
+
+there is a new mailing list for R and HPC: r-sig-hpc at r-project.org
+This is probably a better list for your question.
+
+I never tried torque with socket. We use torque and mpi or pvm (and R)
+and it is working very well.
+Why do you use socket as communication layer?
+MPI was especially developed for communication between nodes in a
+computer cluster. And there you can specify which nodes and the number
+of processors per node you want use. Therfore I would strongly recommend
+to use MPI. This will be faster in every condition!
+
+Best
+Markus
+
+
+jgarcia at ija.csic.es wrote:
+> Hello all;
+> I'm trying to execute parallel jobs trough library snow on a cluster built
+> through torque/PSB. I'm succesfully obtaining the cluster with:
+> 
+> 
+>> system("cat $PBS_NODEFILE > cluster.txt")
+>> mycluster <- scan(file="cluster.txt",what="character")
+>> cl <- makeSOCKcluster(mycluster)
+> 
+> The only problem, at the moment, is that if I use processors in nodes
+> other that the one in which I'm running R, the communication is extremely
+> slow. If all processor are in the "master" computer there not seems ti be
+> any problem.
+> 
+> Has anyone got any experience with this and any advice? Perhaps snow() s
+> not adequate for this kind of clusters?
+> 
+> Thanks and best regards,
+> Javier
+> 
+> ______________________________________________
+> R-help at r-project.org mailing list
+> https://stat.ethz.ch/mailman/listinfo/r-help
+> PLEASE do read the posting guide http://www.R-project.org/posting-guide.html
+> and provide commented, minimal, self-contained, reproducible code.
+
+
+-- 
+Dipl.-Tech. Math. Markus Schmidberger
+
+Ludwig-Maximilians-Universit?t M?nchen
+IBE - Institut f?r medizinische Informationsverarbeitung,
+Biometrie und Epidemiologie
+Marchioninistr. 15, D-81377 Muenchen
+URL: http://www.ibe.med.uni-muenchen.de
+Mail: Markus.Schmidberger [at] ibe.med.uni-muenchen.de
+Tel: +49 (089) 7095 - 4599
+
+
+From schmidb at ibe.med.uni-muenchen.de  Wed Oct 22 18:05:30 2008
+From: schmidb at ibe.med.uni-muenchen.de (Markus Schmidberger)
+Date: Wed, 22 Oct 2008 09:05:30 -0700
+Subject: [R-sig-hpc] [R]  Problem about spawn nodes with Rmpi
+In-Reply-To: <462af7860810220842s760658f3i9af74985d8cce9f7@mail.gmail.com>
+References: <462af7860810220842s760658f3i9af74985d8cce9f7@mail.gmail.com>
+Message-ID: <48FF4F4A.50603@ibe.med.uni-muenchen.de>
+
+Hi Marce,
+
+there is a new mailing list for R and HPC: r-sig-hpc at r-project.org
+This is probably a better list for your question.
+
+Probably Rmpi does not find the correct Rmpi implementation. Have you
+installed a second mpi implementation (lammpi)?
+How do you have installed Rmpi?
+Did you compiled it to the mpi libraries?
+R CMD INSTALL --configure-args="--with-mpi=MPIPATH" Rmpi
+
+Best
+Markus
+
+
+
+Marce wrote:
+> Hi all,
+> now I'm testing R in a "virtual cluster", made it with VirtualBox. This one
+> has 3 nodes, running CentOS 5 and OpenMPI 1.2.8, and the principal node
+> (called "server") exports the /home to other nodes.
+> I have installed R and OpenMPI in /home, in fact, it seems work OK. Editing
+> the openmpi-default-hostfile and run "mpirun -np 3 hostname" I can see the
+> hostname of all nodes in my cluster.
+> But my problem comes when I want to spawn several nodes in R. I have
+> installed R 2.6.1 and Rmpi 0.5.5. When I run mpi.spawn.Rslaves(nslaves=3)
+> for example, it only spawn 3 processors in the same node, in fact, the local
+> node.
+> How I can tell to Rmpi that there are 2 o more nodes in the cluster? This
+> problem can be solved passing a hostfile like an argument?
+> 
+> Thanks for all
+> 
+> 	[[alternative HTML version deleted]]
+> 
+> ______________________________________________
+> R-help at r-project.org mailing list
+> https://stat.ethz.ch/mailman/listinfo/r-help
+> PLEASE do read the posting guide http://www.R-project.org/posting-guide.html
+> and provide commented, minimal, self-contained, reproducible code.
+
+
+-- 
+Dipl.-Tech. Math. Markus Schmidberger
+
+Ludwig-Maximilians-Universit?t M?nchen
+IBE - Institut f?r medizinische Informationsverarbeitung,
+Biometrie und Epidemiologie
+Marchioninistr. 15, D-81377 Muenchen
+URL: http://www.ibe.med.uni-muenchen.de
+Mail: Markus.Schmidberger [at] ibe.med.uni-muenchen.de
+Tel: +49 (089) 7095 - 4599
+
+
+From luke at stat.uiowa.edu  Wed Oct 22 18:37:37 2008
+From: luke at stat.uiowa.edu (Luke Tierney)
+Date: Wed, 22 Oct 2008 11:37:37 -0500 (CDT)
+Subject: [R-sig-hpc] [R] torque/psb & snow library
+In-Reply-To: <59860.84.78.222.159.1224692293.squirrel@paleo.ija.csic.es>
+References: <55650.84.78.222.159.1224673679.squirrel@paleo.ija.csic.es>
+	<48FF4D7B.7040706@ibe.med.uni-muenchen.de>
+	<59860.84.78.222.159.1224692293.squirrel@paleo.ija.csic.es>
+Message-ID: <alpine.LFD.2.00.0810221132010.9586@nokomis.stat.uiowa.edu>
+
+You may or may not see speed substantial improvements using Rmpi with
+(or without) snow but you might -- depends on how the cluster is
+configured, what version of MPI, etc.
+
+In my experience using snow with sockets, pvm, or LAM/MPI for typical
+computations running an a multi-core machine vs remote machines
+doesn't make much difference.  IF it does then you may have too much
+communicationrelative to computation and that mey need to be resolved
+no matter who you do things if you are to see good speedups.
+
+The development version of snow on my website
+
+     http://www.stat.uiowa.edu/~luke/R/cluster/snow_0.3-4.tar.gz
+
+includes some experimental visualization tools that may help see what
+is going on.  Do
+
+    v <- snow.time(... your computation ...)
+    plot(v)
+
+and you get a Gantt chart of the computation.
+
+Best,
+
+luke
+
+
+On Wed, 22 Oct 2008, jgarcia at ija.csic.es wrote:
+
+> Thanks you! I'll look at this new list!
+> Well, I'm not the system administrator, and my installation of Rmpi and/or
+> pvm libraries for R crashes. As this is the first time I parallelize some
+> jobs, snow appealed as a first approach because 1) it compiled correctly
+> and 2) the use of the library is very easy.
+>
+> As you tell me MPI is faster, I'll retry Rmpi installation.
+> B. Regards,
+> Javier
+> ......
+>
+>> Hi Javier,
+>>
+>> there is a new mailing list for R and HPC: r-sig-hpc at r-project.org
+>> This is probably a better list for your question.
+>>
+>> I never tried torque with socket. We use torque and mpi or pvm (and R)
+>> and it is working very well.
+>> Why do you use socket as communication layer?
+>> MPI was especially developed for communication between nodes in a
+>> computer cluster. And there you can specify which nodes and the number
+>> of processors per node you want use. Therfore I would strongly recommend
+>> to use MPI. This will be faster in every condition!
+>>
+>> Best
+>> Markus
+>>
+>>
+>> jgarcia at ija.csic.es wrote:
+>>> Hello all;
+>>> I'm trying to execute parallel jobs trough library snow on a cluster
+>>> built
+>>> through torque/PSB. I'm succesfully obtaining the cluster with:
+>>>
+>>>
+>>>> system("cat $PBS_NODEFILE > cluster.txt")
+>>>> mycluster <- scan(file="cluster.txt",what="character")
+>>>> cl <- makeSOCKcluster(mycluster)
+>>>
+>>> The only problem, at the moment, is that if I use processors in nodes
+>>> other that the one in which I'm running R, the communication is
+>>> extremely
+>>> slow. If all processor are in the "master" computer there not seems ti
+>>> be
+>>> any problem.
+>>>
+>>> Has anyone got any experience with this and any advice? Perhaps snow() s
+>>> not adequate for this kind of clusters?
+>>>
+>>> Thanks and best regards,
+>>> Javier
+>>>
+>>> ______________________________________________
+>>> R-help at r-project.org mailing list
+>>> https://stat.ethz.ch/mailman/listinfo/r-help
+>>> PLEASE do read the posting guide
+>>> http://www.R-project.org/posting-guide.html
+>>> and provide commented, minimal, self-contained, reproducible code.
+>>
+>>
+>> --
+>> Dipl.-Tech. Math. Markus Schmidberger
+>>
+>> Ludwig-Maximilians-Universit?t M?nchen
+>> IBE - Institut f?r medizinische Informationsverarbeitung,
+>> Biometrie und Epidemiologie
+>> Marchioninistr. 15, D-81377 Muenchen
+>> URL: http://www.ibe.med.uni-muenchen.de
+>> Mail: Markus.Schmidberger [at] ibe.med.uni-muenchen.de
+>> Tel: +49 (089) 7095 - 4599
+>>
+>
+> ______________________________________________
+> R-help at r-project.org mailing list
+> https://stat.ethz.ch/mailman/listinfo/r-help
+> PLEASE do read the posting guide http://www.R-project.org/posting-guide.html
+> and provide commented, minimal, self-contained, reproducible code.
+>
+
+-- 
+Luke Tierney
+Chair, Statistics and Actuarial Science
+Ralph E. Wareham Professor of Mathematical Sciences
+University of Iowa                  Phone:             319-335-3386
+Department of Statistics and        Fax:               319-335-3017
+    Actuarial Science
+241 Schaeffer Hall                  email:      luke at stat.uiowa.edu
+Iowa City, IA 52242                 WWW:  http://www.stat.uiowa.edu
+
+From marcemb at gmail.com  Wed Oct 22 22:16:00 2008
+From: marcemb at gmail.com (Marce)
+Date: Wed, 22 Oct 2008 22:16:00 +0200
+Subject: [R-sig-hpc] [R] Problem about spawn nodes with Rmpi
+In-Reply-To: <48FF4F4A.50603@ibe.med.uni-muenchen.de>
+References: <462af7860810220842s760658f3i9af74985d8cce9f7@mail.gmail.com>
+	<48FF4F4A.50603@ibe.med.uni-muenchen.de>
+Message-ID: <462af7860810221316y491bc07apeeafc04e70eb25b0@mail.gmail.com>
+
+2008/10/22 Markus Schmidberger <schmidb at ibe.med.uni-muenchen.de>
+>
+> Hi Marce,
+>
+> there is a new mailing list for R and HPC: r-sig-hpc at r-project.org
+> This is probably a better list for your question.
+>
+> Probably Rmpi does not find the correct Rmpi implementation. Have you
+> installed a second mpi implementation (lammpi)?
+> How do you have installed Rmpi?
+> Did you compiled it to the mpi libraries?
+> R CMD INSTALL --configure-args="--with-mpi=MPIPATH" Rmpi
+>
+> Best
+> Markus
+>
+> --
+> Dipl.-Tech. Math. Markus Schmidberger
+>
+> Ludwig-Maximilians-Universit?t M?nchen
+> IBE - Institut f?r medizinische Informationsverarbeitung,
+> Biometrie und Epidemiologie
+> Marchioninistr. 15, D-81377 Muenchen
+> URL: http://www.ibe.med.uni-muenchen.de
+> Mail: Markus.Schmidberger [at] ibe.med.uni-muenchen.de
+> Tel: +49 (089) 7095 - 4599
+
+Oh thanks, I don't know the existence of this mail list :p. I have
+just subscribe.
+
+About your answer, I don't have more implementations of MPI, just
+OpenMPI. When I install Rmpi I did like you say: "/home/R/bin/R CMD
+INSTALL Rmpi.... --configure-args--with-mpi=/home/openmpi/.
+I think that installation went OK, after that in logs Rmpi recognize
+MPI directory..all OK.
+Now I'm not in my computer, tomorrow I'll do again to see more logs.
+
+Thanks again for all Markus.
+
+((PD: I will send this post both list, sorry for the duplicated messages)
+
+
+From schmidb at ibe.med.uni-muenchen.de  Wed Oct 22 23:09:18 2008
+From: schmidb at ibe.med.uni-muenchen.de (Markus Schmidberger)
+Date: Wed, 22 Oct 2008 14:09:18 -0700
+Subject: [R-sig-hpc] [R] Problem about spawn nodes with Rmpi
+In-Reply-To: <462af7860810221316y491bc07apeeafc04e70eb25b0@mail.gmail.com>
+References: <462af7860810220842s760658f3i9af74985d8cce9f7@mail.gmail.com>	<48FF4F4A.50603@ibe.med.uni-muenchen.de>
+	<462af7860810221316y491bc07apeeafc04e70eb25b0@mail.gmail.com>
+Message-ID: <48FF967E.1050607@ibe.med.uni-muenchen.de>
+
+Hi Marce,
+
+we have to be a little bit careful with cross postings :-)
+
+You can try the new Rmpi version. To see your used MPI implementation.
+http://www.stats.uwo.ca/faculty/yu/Rmpi/
+Add C level function mpidist. .Call("mpidist",PACKAGE="Rmpi") returns 1
+if it is OpenMPI; 2 if LAM and 3 if MPICH.
+
+I am not a specialist in openMPI. I maily (still) use lammpi. But I
+think there could be problems with your default hostfile.
+
+Try to run R with openMPI like this:
+orterun -n 1 --hostfile XXX R --no-save
+
+Best
+Markus
+
+Marce wrote:
+> 2008/10/22 Markus Schmidberger <schmidb at ibe.med.uni-muenchen.de>
+>> Hi Marce,
+>>
+>> there is a new mailing list for R and HPC: r-sig-hpc at r-project.org
+>> This is probably a better list for your question.
+>>
+>> Probably Rmpi does not find the correct Rmpi implementation. Have you
+>> installed a second mpi implementation (lammpi)?
+>> How do you have installed Rmpi?
+>> Did you compiled it to the mpi libraries?
+>> R CMD INSTALL --configure-args="--with-mpi=MPIPATH" Rmpi
+>>
+>> Best
+>> Markus
+>>
+>> --
+>> Dipl.-Tech. Math. Markus Schmidberger
+>>
+>> Ludwig-Maximilians-Universit?t M?nchen
+>> IBE - Institut f?r medizinische Informationsverarbeitung,
+>> Biometrie und Epidemiologie
+>> Marchioninistr. 15, D-81377 Muenchen
+>> URL: http://www.ibe.med.uni-muenchen.de
+>> Mail: Markus.Schmidberger [at] ibe.med.uni-muenchen.de
+>> Tel: +49 (089) 7095 - 4599
+> 
+> Oh thanks, I don't know the existence of this mail list :p. I have
+> just subscribe.
+> 
+> About your answer, I don't have more implementations of MPI, just
+> OpenMPI. When I install Rmpi I did like you say: "/home/R/bin/R CMD
+> INSTALL Rmpi.... --configure-args--with-mpi=/home/openmpi/.
+> I think that installation went OK, after that in logs Rmpi recognize
+> MPI directory..all OK.
+> Now I'm not in my computer, tomorrow I'll do again to see more logs.
+> 
+> Thanks again for all Markus.
+> 
+> ((PD: I will send this post both list, sorry for the duplicated messages)
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+-- 
+Dipl.-Tech. Math. Markus Schmidberger
+
+Ludwig-Maximilians-Universit?t M?nchen
+IBE - Institut f?r medizinische Informationsverarbeitung,
+Biometrie und Epidemiologie
+Marchioninistr. 15, D-81377 Muenchen
+URL: http://www.ibe.med.uni-muenchen.de
+Mail: Markus.Schmidberger [at] ibe.med.uni-muenchen.de
+Tel: +49 (089) 7095 - 4599
+
+
+From schmidb at ibe.med.uni-muenchen.de  Wed Oct 22 23:11:26 2008
+From: schmidb at ibe.med.uni-muenchen.de (Markus Schmidberger)
+Date: Wed, 22 Oct 2008 14:11:26 -0700
+Subject: [R-sig-hpc] [R] Problem about spawn nodes with Rmpi
+In-Reply-To: <462af7860810221316y491bc07apeeafc04e70eb25b0@mail.gmail.com>
+References: <462af7860810220842s760658f3i9af74985d8cce9f7@mail.gmail.com>	<48FF4F4A.50603@ibe.med.uni-muenchen.de>
+	<462af7860810221316y491bc07apeeafc04e70eb25b0@mail.gmail.com>
+Message-ID: <48FF96FE.2010300@ibe.med.uni-muenchen.de>
+
+For more details and suggestions have a look to Dirks Tutorial at the UseR:
+http://www.statistik.uni-dortmund.de/useR-2008/tutorials/useR2008introhighperfR.pdf
+
+Best
+Markus
+
+Marce wrote:
+> 2008/10/22 Markus Schmidberger <schmidb at ibe.med.uni-muenchen.de>
+>> Hi Marce,
+>>
+>> there is a new mailing list for R and HPC: r-sig-hpc at r-project.org
+>> This is probably a better list for your question.
+>>
+>> Probably Rmpi does not find the correct Rmpi implementation. Have you
+>> installed a second mpi implementation (lammpi)?
+>> How do you have installed Rmpi?
+>> Did you compiled it to the mpi libraries?
+>> R CMD INSTALL --configure-args="--with-mpi=MPIPATH" Rmpi
+>>
+>> Best
+>> Markus
+>>
+>> --
+>> Dipl.-Tech. Math. Markus Schmidberger
+>>
+>> Ludwig-Maximilians-Universit?t M?nchen
+>> IBE - Institut f?r medizinische Informationsverarbeitung,
+>> Biometrie und Epidemiologie
+>> Marchioninistr. 15, D-81377 Muenchen
+>> URL: http://www.ibe.med.uni-muenchen.de
+>> Mail: Markus.Schmidberger [at] ibe.med.uni-muenchen.de
+>> Tel: +49 (089) 7095 - 4599
+> 
+> Oh thanks, I don't know the existence of this mail list :p. I have
+> just subscribe.
+> 
+> About your answer, I don't have more implementations of MPI, just
+> OpenMPI. When I install Rmpi I did like you say: "/home/R/bin/R CMD
+> INSTALL Rmpi.... --configure-args--with-mpi=/home/openmpi/.
+> I think that installation went OK, after that in logs Rmpi recognize
+> MPI directory..all OK.
+> Now I'm not in my computer, tomorrow I'll do again to see more logs.
+> 
+> Thanks again for all Markus.
+> 
+> ((PD: I will send this post both list, sorry for the duplicated messages)
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+-- 
+Dipl.-Tech. Math. Markus Schmidberger
+
+Ludwig-Maximilians-Universit?t M?nchen
+IBE - Institut f?r medizinische Informationsverarbeitung,
+Biometrie und Epidemiologie
+Marchioninistr. 15, D-81377 Muenchen
+URL: http://www.ibe.med.uni-muenchen.de
+Mail: Markus.Schmidberger [at] ibe.med.uni-muenchen.de
+Tel: +49 (089) 7095 - 4599
+
+
+From nakama at ki.rim.or.jp  Thu Oct 23 07:59:31 2008
+From: nakama at ki.rim.or.jp (Ei-ji Nakama)
+Date: Thu, 23 Oct 2008 14:59:31 +0900
+Subject: [R-sig-hpc] [R] torque/psb & snow library
+In-Reply-To: <alpine.LFD.2.00.0810221132010.9586@nokomis.stat.uiowa.edu>
+References: <55650.84.78.222.159.1224673679.squirrel@paleo.ija.csic.es>
+	<48FF4D7B.7040706@ibe.med.uni-muenchen.de>
+	<59860.84.78.222.159.1224692293.squirrel@paleo.ija.csic.es>
+	<alpine.LFD.2.00.0810221132010.9586@nokomis.stat.uiowa.edu>
+Message-ID: <dc41e1260810222259v7203433as4690d610a7d2c66e@mail.gmail.com>
+
+Hi,
+
+We built a small cluster in Debian and Torque and lam.
+It is 8cpu per the node in two node.
+
+<OT>
+Because it was troublesome to write as LoadLevelor,OpenPBS,LFS and
+Torque, we made I/F of Web.
+However, I understood that I said that it was more difficult to write
+a document.
+It is written to be called an ``nakama language'' doing not Japanese now.
+</OT>
+
+2008/10/23 Luke Tierney <luke at stat.uiowa.edu>:
+> includes some experimental visualization tools that may help see what
+> is going on.  Do
+
+I put parallel practice result SOCK and MPI.
+
+http://prs.ism.ac.jp/~nakama/Rdweb/useRdweb/
+
+In our experience, the processing speed of MPI of each MPI library varies.
+-- 
+EI-JI Nakama  <nakama (a) ki.rim.or.jp>
+"\u4e2d\u9593\u6804\u6cbb"  <nakama (a) ki.rim.or.jp>
+
+

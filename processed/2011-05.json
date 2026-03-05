@@ -1,0 +1,432 @@
+{
+  "list": "r-sig-hpc",
+  "description": "",
+  "month": "2011-05",
+  "messages": [
+    {
+      "id": "msg-53244293f402",
+      "message_id": "<BANLkTi=Lmh1Dynj2TmkpJ=r0TZt12PXBZg@mail.gmail.com>",
+      "from_name": "María del Carmen Romero",
+      "from_email_hash": "a939e99068ed04ffbf0bbe512f22c80f0ef0be012e661cb37d66a08895561b50",
+      "date": "2011-05-07T08:05:05-03:00",
+      "subject": "[R-sig-hpc] Problems with package SNOW",
+      "subject_clean": "Problems with package SNOW",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110507/b1ab12bc/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110507/b1ab12bc/attachment.pl>",
+      "thread_id": "thread-53244293f402",
+      "thread_depth": 0,
+      "month": "2011-05"
+    },
+    {
+      "id": "msg-5826b4fbec94",
+      "message_id": "<BANLkTi=G1CENT=g3Qa_CHQFgpsarbOgPhg@mail.gmail.com>",
+      "from_name": "Stephen Weston",
+      "from_email_hash": "507fe1aedccd9cb1c2bba1715ac24f959abe255adeeb866f82b6c8a1896cbd15",
+      "date": "2011-05-07T11:28:53-04:00",
+      "subject": "[R-sig-hpc] Problems with package SNOW",
+      "subject_clean": "Problems with package SNOW",
+      "in_reply_to": "<BANLkTi=Lmh1Dynj2TmkpJ=r0TZt12PXBZg@mail.gmail.com>",
+      "references": [
+        "<BANLkTi=Lmh1Dynj2TmkpJ=r0TZt12PXBZg@mail.gmail.com>"
+      ],
+      "body_plain": "2011/5/7 Mar?a del Carmen Romero <mariadelc.romero at gmail.com>:\n> Hi,\n>\n> My name is Maria del Carmen Romero and I was working with package snow until\n> December, 2010 without problems. Now, when I try to create 2 clusters\n> (because I have a dual-core processor) with the instruction:\n>> cl<-makeCluster(2,type=\"SOCK\")\n>\n> I have to different problems:\n>\n> - In earlier versions to 2.13, the error is:\n> Error en socketConnection(host, port, open = \"a+b\", blocking = TRUE) :\n> ?argumento 'port' inv?lido\n> Adem?s: Warning message:\n> In socketConnection(host, port, open = \"a+b\", blocking = TRUE) :\n> ?NAs introducidos por coerci?n\n\nIt looks like a worker is seeing a corrupted port value.\nI can reproduce this type of error with:\n\n    > setDefaultClusterOptions(port=\"frank\")\n    > cl <- makeCluster(2, type=\"SOCK\")\n\nIn this case, the worker tries to convert \"frank\" to an integer,\ngets an NA instead, and then socketConnection complains that\nNA is an invalid port value.\n\nBut I don't see how that would happen accidentally.  snow doesn't\nuse a configuration file that I know of.  You're not executing any\nsnow functions in a Rprofile file, are you?\n\nYou could look at the default value of the port option using:\ncl <- makeCluster(2, type=\"SOCK\", manual=TRUE)\n    > getClusterOption(\"port\")\n\nBy default, it returns 10187.\n\n> - In the version to 2.13, the program hangs and I have to hit Ctrl-C.\n\nThat's rather common when something goes wrong in\nmakeSOCKcluster.  The fact that you're using local workers\nrules out a number of possible problems, but it still doesn't tell\nme much.\n\nIn both cases, I suggest using the manual=TRUE option, and then\nstarting the workers on the local machine using the specified\ncommand lines.  That will tell you how the port value is being set\nin the first case.  And you might see some other error message\nfrom the workers in the second case.\n\nIn your case, use the command:\n\n    > cl <- makeCluster(2, type=\"SOCK\", manual=TRUE, outfile=\"\")\n\nSetting outfile to an empty string will prevent the worker from\nredirecting informational messages.  I think that is useful when\nexecuting workers manually.\n\n- Steve",
+      "body_snippet": "2011/5/7 Mar?a del Carmen Romero <mariadelc.romero at gmail.com>:\n> Hi,\n>\n> My name is Maria del Carmen Romero and I was working with package snow until\n> December, 2010 without problems. Now, when I ",
+      "thread_id": "thread-53244293f402",
+      "thread_depth": 1,
+      "month": "2011-05"
+    },
+    {
+      "id": "msg-d33977828ae9",
+      "message_id": "<BANLkTikZ6wvQO9zw-pVzgDv-3PexxmKi=w@mail.gmail.com>",
+      "from_name": "Stephen Weston",
+      "from_email_hash": "507fe1aedccd9cb1c2bba1715ac24f959abe255adeeb866f82b6c8a1896cbd15",
+      "date": "2011-05-07T11:34:14-04:00",
+      "subject": "[R-sig-hpc] Problems with package SNOW",
+      "subject_clean": "Problems with package SNOW",
+      "in_reply_to": "<BANLkTi=G1CENT=g3Qa_CHQFgpsarbOgPhg@mail.gmail.com>",
+      "references": [
+        "<BANLkTi=Lmh1Dynj2TmkpJ=r0TZt12PXBZg@mail.gmail.com>",
+        "<BANLkTi=G1CENT=g3Qa_CHQFgpsarbOgPhg@mail.gmail.com>"
+      ],
+      "body_plain": "I seem to have garbled my instructions on getting the default\nport value.\n\n2011/5/7 Stephen Weston <stephen.b.weston at gmail.com>:\n\n> You could look at the default value of the port option using:\n> cl <- makeCluster(2, type=\"SOCK\", manual=TRUE)\n> ? ?> getClusterOption(\"port\")\n\nIgnore that extra line.  I meant to say:\n\nYou could look at the default value of the port option using:\n\n    > getClusterOption(\"port\")\n\n- Steve",
+      "body_snippet": "I seem to have garbled my instructions on getting the default\nport value.\n\n2011/5/7 Stephen Weston <stephen.b.weston at gmail.com>:\n\n> You could look at the default value of the port option using:\n> c",
+      "thread_id": "thread-53244293f402",
+      "thread_depth": 2,
+      "month": "2011-05"
+    },
+    {
+      "id": "msg-ea23c0da86bd",
+      "message_id": "<BANLkTinPM8oGCTG-5eLmnuDZLgMDi9U4+Q@mail.gmail.com>",
+      "from_name": "María del Carmen Romero",
+      "from_email_hash": "a939e99068ed04ffbf0bbe512f22c80f0ef0be012e661cb37d66a08895561b50",
+      "date": "2011-05-07T13:42:32-03:00",
+      "subject": "[R-sig-hpc] Problems with package SNOW",
+      "subject_clean": "Problems with package SNOW",
+      "in_reply_to": "<BANLkTikZ6wvQO9zw-pVzgDv-3PexxmKi=w@mail.gmail.com>",
+      "references": [
+        "<BANLkTi=Lmh1Dynj2TmkpJ=r0TZt12PXBZg@mail.gmail.com>",
+        "<BANLkTi=G1CENT=g3Qa_CHQFgpsarbOgPhg@mail.gmail.com>",
+        "<BANLkTikZ6wvQO9zw-pVzgDv-3PexxmKi=w@mail.gmail.com>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110507/79b2669e/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110507/79b2669e/attachment.pl>",
+      "thread_id": "thread-53244293f402",
+      "thread_depth": 3,
+      "month": "2011-05"
+    },
+    {
+      "id": "msg-e7cefb0f0181",
+      "message_id": "<BANLkTinjDDz9Xqp+P0mPUvFip86ukaEnhg@mail.gmail.com>",
+      "from_name": "Stephen Weston",
+      "from_email_hash": "507fe1aedccd9cb1c2bba1715ac24f959abe255adeeb866f82b6c8a1896cbd15",
+      "date": "2011-05-07T14:40:07-04:00",
+      "subject": "[R-sig-hpc] Problems with package SNOW",
+      "subject_clean": "Problems with package SNOW",
+      "in_reply_to": "<BANLkTinPM8oGCTG-5eLmnuDZLgMDi9U4+Q@mail.gmail.com>",
+      "references": [
+        "<BANLkTi=Lmh1Dynj2TmkpJ=r0TZt12PXBZg@mail.gmail.com>",
+        "<BANLkTi=G1CENT=g3Qa_CHQFgpsarbOgPhg@mail.gmail.com>",
+        "<BANLkTikZ6wvQO9zw-pVzgDv-3PexxmKi=w@mail.gmail.com>",
+        "<BANLkTinPM8oGCTG-5eLmnuDZLgMDi9U4+Q@mail.gmail.com>"
+      ],
+      "body_plain": "It appears to me that in R 2.13.0, the internal function\n.path.package has changed.  Instead of returning the old-\nstyle, short file names, it's returning paths that can contain\nwhite space.  snow uses .path.package(\"snow\") to set the\ndefault values of several options, including \"snowlib\", and\nmakeSOCKcluster uses \"snowlib\" to locate RSOCKnode.R,\nfor example.  Since makeSOCKcluster doesn't quote the\ncommand for starting the workers, it can fail if there are\nblanks in the path of RSOCKnode, for example.\n\nI'm not sure why you didn't see an error message from\nRscript when you tried to start the worker, however.\nAnyway, I would suggest that you specify a value for\nthe \"snowlib\" option to see if it helps.  Here's my guess\nof how to set it:\n\n    > snowlib <- file.path(Sys.getenv(\"R_HOME\"), \"library\")\n    > setDefaultClusterOptions(snowlib=snowlib)\n\nI suggest this because it appears from your output that\nthe R_HOME environment variable still uses the short\nfile name form.\n\nYou can verify that you set it properly with the command:\n\n    > list.files(file.path(getClusterOption(\"snowlib\"), \"snow\"))\n\nwhich should list the contents of the snow installation directory.\n\nNow you can create a socket cluster as before.\n\nGood luck,\n\n- Steve\n\n\n2011/5/7 Mar?a del Carmen Romero <mariadelc.romero at gmail.com>:\n> Steven,\n>\n> Thank you for your answer.\n>\n> I executed the instruction in Version 2.13:\n>\n>> cl <- makeSOCKcluster(2, manual=TRUE, outfile=\"\")\n> Manually start worker on localhost with\n> ???? C:/ARCHIV~1/R/R-213~1.0/bin/Rscript.exe C:/Archivos de\n> programa/R/R-2.13.0/library/snow/RSOCKnode.R MASTER=localhost PORT=10187\n> OUT= SNOWLIB=C:/Archivos de programa/R/R-2.13.0/library\n> in the Version 2.13, and now the program and hangs and I have to hit Ctrl-C.\n>\n> If I open another session (while the other is running), end execute the same\n> instruction, the error is:\n> Manually start worker on localhost with\n> ???? C:/ARCHIV~1/R/R-213~1.0/bin/Rscript.exe C:/Archivos de\n> programa/R/R-2.13.0/library/snow/RSOCKnode.R MASTER=localhost PORT=10187\n> OUT= SNOWLIB=C:/Archivos de programa/R/R-2.13.0/library\n> Error en socketConnection(port = port, server = TRUE, blocking = TRUE,? :\n> ? no se puede abrir la conexi?n\n> Adem?s: Mensajes de aviso perdidos\n> In socketConnection(port = port, server = TRUE, blocking = TRUE,? :\n> ? port 10187 cannot be opened\n>\n> Clearly, the problem is with the connection... but I do not find it...\n>\n> Mar?a\n>\n>\n>\n> El 7 de mayo de 2011 12:34, Stephen Weston <stephen.b.weston at gmail.com>\n> escribi?:\n>>\n>> I seem to have garbled my instructions on getting the default\n>> port value.\n>>\n>> 2011/5/7 Stephen Weston <stephen.b.weston at gmail.com>:\n>>\n>> > You could look at the default value of the port option using:\n>> > cl <- makeCluster(2, type=\"SOCK\", manual=TRUE)\n>> > ? ?> getClusterOption(\"port\")\n>>\n>> Ignore that extra line. ?I meant to say:\n>>\n>> You could look at the default value of the port option using:\n>>\n>> ? ?> getClusterOption(\"port\")\n>>\n>> - Steve\n>\n>",
+      "body_snippet": "It appears to me that in R 2.13.0, the internal function\n.path.package has changed.  Instead of returning the old-\nstyle, short file names, it's returning paths that can contain\nwhite space.  snow use",
+      "thread_id": "thread-53244293f402",
+      "thread_depth": 4,
+      "month": "2011-05"
+    },
+    {
+      "id": "msg-e2d726049ff4",
+      "message_id": "<016d01cc1046$1fc8f300$5f5ad900$@com>",
+      "from_name": "Whit Broach",
+      "from_email_hash": "6e71bc985bd690a3444237f41ff0126bde297ca5893d168acc9711dc67f972a9",
+      "date": "2011-05-11T19:44:23-06:00",
+      "subject": "[R-sig-hpc] snow job",
+      "subject_clean": "snow job",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110511/057de6fb/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110511/057de6fb/attachment.pl>",
+      "thread_id": "thread-e2d726049ff4",
+      "thread_depth": 0,
+      "month": "2011-05"
+    },
+    {
+      "id": "msg-c4314bb69732",
+      "message_id": "<BANLkTi=25A=uKDrYjLsHWnV+AB1151LJ7w@mail.gmail.com>",
+      "from_name": "Stephen Weston",
+      "from_email_hash": "507fe1aedccd9cb1c2bba1715ac24f959abe255adeeb866f82b6c8a1896cbd15",
+      "date": "2011-05-12T11:37:31-04:00",
+      "subject": "[R-sig-hpc] snow job",
+      "subject_clean": "snow job",
+      "in_reply_to": "<016d01cc1046$1fc8f300$5f5ad900$@com>",
+      "references": [
+        "<016d01cc1046$1fc8f300$5f5ad900$@com>"
+      ],
+      "body_plain": "Using \"manual = TRUE\" is particularly useful when the worker\ngets an error before creating the log file.  And using it doesn't take\nany R skills at all, although I guess you do need to know how to\ntype a command into a command window.  I suggest you learn\nhow to use manual mode, because you will probably need it for\ndebugging problems in the future.\n\nYou just need to open a new command window, and paste or\ntype the command that makeSOCKcluster tells you to execute.\nHopefully you'll see an error message.\n\n- Steve\n\n\nOn Wed, May 11, 2011 at 9:44 PM, Whit Broach <whitneybroach at gmail.com> wrote:\n> (First post here and an R newbie. Glad to follow protocol.)\n>\n> A quick Google search of multiple lists, and a local search of downloaded\n> hpc archives, doesn't show a thread focused on the symptom of snow crashing\n> on Win7. I don't know where else to look, though I can tell that other\n> people are finding similar symptoms.\n>\n> SNOW crashes or hangs the Rgui when my script tries to create processes on a\n> Win7x64 box. A colleague has the same script running successfully on Ubuntu\n> and WinXP. Sample line is:\n>\n> clust <- makeCluster( 2, type = \"SOCK\",\n> outfile=\"C:/Windows/Temp/snowlog.txt\" )\n>\n> The malfunction occurs so soon after that line of script is invoked that the\n> outfile does not appear on the disk. In the Performance Monitor the Rgui\n> goes to zero CPU utilization almost immediately.\n>\n> List searches show the most likely root causes that the community has\n> identified, such as an anti-virus or firewall conflict. (No luck.) The\n> community recommends including \"manual = TRUE\" to see how the package calls\n> up subprocesses on the box, but that's where my R skill hits the wall. Even\n> still, the fact that Rgui goes to zero cpu and the log file never appears\n> suggests that user isolation of the problem might not even be feasible.\n>\n> I've also tried: removing all versions of R, deleting the R folder to take\n> out the packages and then installing the latest R. The fresh installation\n> \"works\" as far as it goes, but then the script produces the same symptom.\n>\n> The script has previously worked on this box, so maybe a Win7 patch blew\n> away an undocumented dependency? But I would expect to see that in the\n> community chatter and don't.\n>\n> Again, just looking for a trailhead. And glad to be a responsible list\n> member.\n>\n> Best regards,\n>\n> Whit Broach\n>\n> Denver, CO\n>\n>\n> ? ? ? ?[[alternative HTML version deleted]]\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>",
+      "body_snippet": "Using \"manual = TRUE\" is particularly useful when the worker\ngets an error before creating the log file.  And using it doesn't take\nany R skills at all, although I guess you do need to know how to\ntyp",
+      "thread_id": "thread-e2d726049ff4",
+      "thread_depth": 1,
+      "month": "2011-05"
+    },
+    {
+      "id": "msg-064e660e04a0",
+      "message_id": "<027c01cc10e8$0d3dc1f0$27b945d0$@com>",
+      "from_name": "Whit Broach",
+      "from_email_hash": "6e71bc985bd690a3444237f41ff0126bde297ca5893d168acc9711dc67f972a9",
+      "date": "2011-05-12T15:03:30-06:00",
+      "subject": "[R-sig-hpc] snow job",
+      "subject_clean": "snow job",
+      "in_reply_to": "<BANLkTi=25A=uKDrYjLsHWnV+AB1151LJ7w@mail.gmail.com>",
+      "references": [
+        "<016d01cc1046$1fc8f300$5f5ad900$@com>",
+        "<BANLkTi=25A=uKDrYjLsHWnV+AB1151LJ7w@mail.gmail.com>"
+      ],
+      "body_plain": "Thanks to Steve and everyone else who responded off-list.  Please keep the\nsuggestions coming. <G>\n\nHere is a summary of the suggestions and results so far:\n\n1.  1. Copy your snow folder from C:/user/...  to C:/Program files.\n\n1 Result.  No folder with \"snow\" it its name exists under C:/user.  Such a\nfolder already exists under C:/Program Files.\n\n2.  Before starting R, right-click mouse at R icon and choose (Open as\nadministrator).\n\n2 Result.  No change in behavior.  The user account in all previous tests\nhas Administrator status anyway.\n\n3. Test with doSMP to test the firewall.\n\n3 Result.  Packages installed without obvious errors.  Next step:  I need to\nread about doSMP functions and decide, if necessary, how to change my\nscript.\n\n4.  Steve's suggestion below, using manual = TRUE and typing the command\nindicated.\n\n4 Result.  Log file is created and not accessible until the R Gui is closed.\nThen the log file opens and is empty.\n\n-----Original Message-----\nFrom: Stephen Weston [mailto:stephen.b.weston at gmail.com] \nSent: Thursday, May 12, 2011 9:38 AM\nTo: whitneybroach at gmail.com\nCc: r-sig-hpc at r-project.org\nSubject: Re: [R-sig-hpc] snow job\n\nUsing \"manual = TRUE\" is particularly useful when the worker\ngets an error before creating the log file.  And using it doesn't take\nany R skills at all, although I guess you do need to know how to\ntype a command into a command window.  I suggest you learn\nhow to use manual mode, because you will probably need it for\ndebugging problems in the future.\n\nYou just need to open a new command window, and paste or\ntype the command that makeSOCKcluster tells you to execute.\nHopefully you'll see an error message.\n\n- Steve\n\n\nOn Wed, May 11, 2011 at 9:44 PM, Whit Broach <whitneybroach at gmail.com>\nwrote:\n> (First post here and an R newbie. Glad to follow protocol.)\n>\n> A quick Google search of multiple lists, and a local search of downloaded\n> hpc archives, doesn't show a thread focused on the symptom of snow\ncrashing\n> on Win7. I don't know where else to look, though I can tell that other\n> people are finding similar symptoms.\n>\n> SNOW crashes or hangs the Rgui when my script tries to create processes on\na\n> Win7x64 box. A colleague has the same script running successfully on\nUbuntu\n> and WinXP. Sample line is:\n>\n> clust <- makeCluster( 2, type = \"SOCK\",\n> outfile=\"C:/Windows/Temp/snowlog.txt\" )\n>\n> The malfunction occurs so soon after that line of script is invoked that\nthe\n> outfile does not appear on the disk. In the Performance Monitor the Rgui\n> goes to zero CPU utilization almost immediately.\n>\n> List searches show the most likely root causes that the community has\n> identified, such as an anti-virus or firewall conflict. (No luck.) The\n> community recommends including \"manual = TRUE\" to see how the package\ncalls\n> up subprocesses on the box, but that's where my R skill hits the wall.\nEven\n> still, the fact that Rgui goes to zero cpu and the log file never appears\n> suggests that user isolation of the problem might not even be feasible.\n>\n> I've also tried: removing all versions of R, deleting the R folder to take\n> out the packages and then installing the latest R. The fresh installation\n> \"works\" as far as it goes, but then the script produces the same symptom.\n>\n> The script has previously worked on this box, so maybe a Win7 patch blew\n> away an undocumented dependency? But I would expect to see that in the\n> community chatter and don't.\n>\n> Again, just looking for a trailhead. And glad to be a responsible list\n> member.\n>\n> Best regards,\n>\n> Whit Broach\n>\n> Denver, CO\n>\n>\n> ? ? ? ?[[alternative HTML version deleted]]\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>",
+      "body_snippet": "Thanks to Steve and everyone else who responded off-list.  Please keep the\nsuggestions coming. <G>\n\nHere is a summary of the suggestions and results so far:\n\n1.  1. Copy your snow folder from C:/user/",
+      "thread_id": "thread-e2d726049ff4",
+      "thread_depth": 2,
+      "month": "2011-05"
+    },
+    {
+      "id": "msg-110d86cc323e",
+      "message_id": "<b01845f27020f60bea95f6ddf39740df.squirrel@webmail.jdadesign.net>",
+      "from_name": "lists at jdadesign.net",
+      "from_email_hash": "5a2b40e32427236ecdbb9ac164f377afd1188a64a0c6e9525afa5a9b3c8c345d",
+      "date": "2011-05-13T07:29:36-07:00",
+      "subject": "[R-sig-hpc] Rmpi Setup Troubles",
+      "subject_clean": "Rmpi Setup Troubles",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "All,\n\nI've been searching around on mailing lists for days but still haven't\nbeen able to get Rmpi working on my cluster.\n\nMost recently, I've set the mpi paths using configure.args, but still\ncan't get the package installed correctly. I'm on RedHat 5 64 bit, trying\nto use OpenMPI. Here's the most recent error I've received:\n\n> install.packages(\"Rmpi\",configure.args=c(\"--with-mpi=/opt/openmpi/tcp-intel/\",\n\"--with-mpi-libpath=/opt/openmpi/tcp-intel/lib/\",\n\"--with-mpi-type=OPENMPI\"))\nInstalling package(s) into\n?/home/jalle6/R/x86_64-redhat-linux-gnu-library/2.12?\n(as ?lib? is unspecified)\ntrying URL 'http://cran.sixsigmaonline.org/src/contrib/Rmpi_0.5-9.tar.gz'\nContent type 'application/x-gzip' length 87953 bytes (85 Kb)\nopened URL\n==================================================\ndownloaded 85 Kb\n\n* installing *source* package ?Rmpi? ...\nchecking for gcc... gcc -m64 -std=gnu99\nchecking for C compiler default output file name... a.out\nchecking whether the C compiler works... yes\nchecking whether we are cross compiling... no\nchecking for suffix of executables...\nchecking for suffix of object files... o\nchecking whether we are using the GNU C compiler... yes\nchecking whether gcc -m64 -std=gnu99 accepts -g... yes\nchecking for gcc -m64 -std=gnu99 option to accept ISO C89... none needed\nTrying to find mpi.h ...\nFound in /opt/openmpi/tcp-intel//include\nTrying to find libmpi.so or libmpich.a ...\nchecking for main in -lmpi... yes\nchecking for openpty in -lutil... yes\nchecking for main in -lpthread... yes\nconfigure: creating ./config.status\nconfig.status: creating src/Makevars\n** libs\ngcc -m64 -std=gnu99 -I/usr/include/R -DPACKAGE_NAME=\\\"\\\"\n-DPACKAGE_TARNAME=\\\"\\\" -DPACKAGE_VERSION=\\\"\\\" -DPACKAGE_STRING=\\\"\\\"\n-DPACKAGE_BUGREPORT=\\\"\\\" -I/opt/openmpi/tcp-intel//include  -DMPI2\n-DOPENMPI -I/usr/local/include    -fpic  -O2 -g -pipe -Wall\n-Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector\n--param=ssp-buffer-size=4 -m64 -mtune=generic -c RegQuery.c -o RegQuery.o\ngcc -m64 -std=gnu99 -I/usr/include/R -DPACKAGE_NAME=\\\"\\\"\n-DPACKAGE_TARNAME=\\\"\\\" -DPACKAGE_VERSION=\\\"\\\" -DPACKAGE_STRING=\\\"\\\"\n-DPACKAGE_BUGREPORT=\\\"\\\" -I/opt/openmpi/tcp-intel//include  -DMPI2\n-DOPENMPI -I/usr/local/include    -fpic  -O2 -g -pipe -Wall\n-Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector\n--param=ssp-buffer-size=4 -m64 -mtune=generic -c Rmpi.c -o Rmpi.o\ngcc -m64 -std=gnu99 -I/usr/include/R -DPACKAGE_NAME=\\\"\\\"\n-DPACKAGE_TARNAME=\\\"\\\" -DPACKAGE_VERSION=\\\"\\\" -DPACKAGE_STRING=\\\"\\\"\n-DPACKAGE_BUGREPORT=\\\"\\\" -I/opt/openmpi/tcp-intel//include  -DMPI2\n-DOPENMPI -I/usr/local/include    -fpic  -O2 -g -pipe -Wall\n-Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector\n--param=ssp-buffer-size=4 -m64 -mtune=generic -c conversion.c -o\nconversion.o\ngcc -m64 -std=gnu99 -I/usr/include/R -DPACKAGE_NAME=\\\"\\\"\n-DPACKAGE_TARNAME=\\\"\\\" -DPACKAGE_VERSION=\\\"\\\" -DPACKAGE_STRING=\\\"\\\"\n-DPACKAGE_BUGREPORT=\\\"\\\" -I/opt/openmpi/tcp-intel//include  -DMPI2\n-DOPENMPI -I/usr/local/include    -fpic  -O2 -g -pipe -Wall\n-Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector\n--param=ssp-buffer-size=4 -m64 -mtune=generic -c internal.c -o internal.o\ngcc -m64 -std=gnu99 -shared -L/usr/local/lib64 -o Rmpi.so RegQuery.o\nRmpi.o conversion.o internal.o -L/opt/openmpi/tcp-intel//lib -lmpi -lutil\n-lpthread -L/usr/lib64/R/lib -lR\n/usr/bin/ld: /opt/openmpi/tcp-intel//lib/libmpi.a(comm_init.o): relocation\nR_X86_64_32S against `ompi_mpi_comm_null' can not be used when making a\nshared object; recompile with -fPIC\n/opt/openmpi/tcp-intel//lib/libmpi.a: could not read symbols: Bad value\ncollect2: ld returned 1 exit status\nmake: *** [Rmpi.so] Error 1\nERROR: compilation failed for package ?Rmpi?\n* removing ?/home/jalle6/R/x86_64-redhat-linux-gnu-library/2.12/Rmpi?\n\nThe downloaded packages are in\n        ?/tmp/RtmpbJFYNv/downloaded_packages?\nWarning message:\nIn install.packages(\"Rmpi\", configure.args =\nc(\"--with-mpi=/opt/openmpi/tcp-intel/\",  :\n  installation of package 'Rmpi' had non-zero exit status\n>\n\n\nI'll have to confess that I am brand new to MPI, and not much better in\ndealing with compiling/linking C libraries.\n\nThanks in advance,\nJeff",
+      "body_snippet": "All,\n\nI've been searching around on mailing lists for days but still haven't\nbeen able to get Rmpi working on my cluster.\n\nMost recently, I've set the mpi paths using configure.args, but still\ncan't g",
+      "thread_id": "thread-110d86cc323e",
+      "thread_depth": 0,
+      "month": "2011-05"
+    },
+    {
+      "id": "msg-ece06ca87551",
+      "message_id": "<5afd6770decf127c198b7602ce57e4e6.squirrel@www.stats.uwo.ca>",
+      "from_name": "Hao Yu",
+      "from_email_hash": "f90343116b4a1720ab706b8b458137d0f188602a07689c3a137d7f8799e4a179",
+      "date": "2011-05-13T11:32:11-04:00",
+      "subject": "[R-sig-hpc] Rmpi Setup Troubles",
+      "subject_clean": "Rmpi Setup Troubles",
+      "in_reply_to": "<b01845f27020f60bea95f6ddf39740df.squirrel@webmail.jdadesign.net>",
+      "references": [
+        "<b01845f27020f60bea95f6ddf39740df.squirrel@webmail.jdadesign.net>"
+      ],
+      "body_plain": "Hi. Can you check if libmpi.so is installed at /opt/openmpi/tcp-intel//lib/?\n\nThis line seems indicating libmpi.a is checked instead of libmpi.so. Hao\n\n/usr/bin/ld: /opt/openmpi/tcp-intel//lib/libmpi.a(comm_init.o): relocation\nR_X86_64_32S against `ompi_mpi_comm_null' can not be used when making a\nshared object; recompile with -fPIC\n\n\nlists at jdadesign.net wrote:\n> All,\n>\n> I've been searching around on mailing lists for days but still haven't\n> been able to get Rmpi working on my cluster.\n>\n> Most recently, I've set the mpi paths using configure.args, but still\n> can't get the package installed correctly. I'm on RedHat 5 64 bit, trying\n> to use OpenMPI. Here's the most recent error I've received:\n>\n>> install.packages(\"Rmpi\",configure.args=c(\"--with-mpi=/opt/openmpi/tcp-intel/\",\n> \"--with-mpi-libpath=/opt/openmpi/tcp-intel/lib/\",\n> \"--with-mpi-type=OPENMPI\"))\n> Installing package(s) into\n> ?/home/jalle6/R/x86_64-redhat-linux-gnu-library/2.12?\n> (as ?lib? is unspecified)\n> trying URL 'http://cran.sixsigmaonline.org/src/contrib/Rmpi_0.5-9.tar.gz'\n> Content type 'application/x-gzip' length 87953 bytes (85 Kb)\n> opened URL\n> ==================================================\n> downloaded 85 Kb\n>\n> * installing *source* package ?Rmpi? ...\n> checking for gcc... gcc -m64 -std=gnu99\n> checking for C compiler default output file name... a.out\n> checking whether the C compiler works... yes\n> checking whether we are cross compiling... no\n> checking for suffix of executables...\n> checking for suffix of object files... o\n> checking whether we are using the GNU C compiler... yes\n> checking whether gcc -m64 -std=gnu99 accepts -g... yes\n> checking for gcc -m64 -std=gnu99 option to accept ISO C89... none needed\n> Trying to find mpi.h ...\n> Found in /opt/openmpi/tcp-intel//include\n> Trying to find libmpi.so or libmpich.a ...\n> checking for main in -lmpi... yes\n> checking for openpty in -lutil... yes\n> checking for main in -lpthread... yes\n> configure: creating ./config.status\n> config.status: creating src/Makevars\n> ** libs\n> gcc -m64 -std=gnu99 -I/usr/include/R -DPACKAGE_NAME=\\\"\\\"\n> -DPACKAGE_TARNAME=\\\"\\\" -DPACKAGE_VERSION=\\\"\\\" -DPACKAGE_STRING=\\\"\\\"\n> -DPACKAGE_BUGREPORT=\\\"\\\" -I/opt/openmpi/tcp-intel//include  -DMPI2\n> -DOPENMPI -I/usr/local/include    -fpic  -O2 -g -pipe -Wall\n> -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector\n> --param=ssp-buffer-size=4 -m64 -mtune=generic -c RegQuery.c -o RegQuery.o\n> gcc -m64 -std=gnu99 -I/usr/include/R -DPACKAGE_NAME=\\\"\\\"\n> -DPACKAGE_TARNAME=\\\"\\\" -DPACKAGE_VERSION=\\\"\\\" -DPACKAGE_STRING=\\\"\\\"\n> -DPACKAGE_BUGREPORT=\\\"\\\" -I/opt/openmpi/tcp-intel//include  -DMPI2\n> -DOPENMPI -I/usr/local/include    -fpic  -O2 -g -pipe -Wall\n> -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector\n> --param=ssp-buffer-size=4 -m64 -mtune=generic -c Rmpi.c -o Rmpi.o\n> gcc -m64 -std=gnu99 -I/usr/include/R -DPACKAGE_NAME=\\\"\\\"\n> -DPACKAGE_TARNAME=\\\"\\\" -DPACKAGE_VERSION=\\\"\\\" -DPACKAGE_STRING=\\\"\\\"\n> -DPACKAGE_BUGREPORT=\\\"\\\" -I/opt/openmpi/tcp-intel//include  -DMPI2\n> -DOPENMPI -I/usr/local/include    -fpic  -O2 -g -pipe -Wall\n> -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector\n> --param=ssp-buffer-size=4 -m64 -mtune=generic -c conversion.c -o\n> conversion.o\n> gcc -m64 -std=gnu99 -I/usr/include/R -DPACKAGE_NAME=\\\"\\\"\n> -DPACKAGE_TARNAME=\\\"\\\" -DPACKAGE_VERSION=\\\"\\\" -DPACKAGE_STRING=\\\"\\\"\n> -DPACKAGE_BUGREPORT=\\\"\\\" -I/opt/openmpi/tcp-intel//include  -DMPI2\n> -DOPENMPI -I/usr/local/include    -fpic  -O2 -g -pipe -Wall\n> -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector\n> --param=ssp-buffer-size=4 -m64 -mtune=generic -c internal.c -o internal.o\n> gcc -m64 -std=gnu99 -shared -L/usr/local/lib64 -o Rmpi.so RegQuery.o\n> Rmpi.o conversion.o internal.o -L/opt/openmpi/tcp-intel//lib -lmpi -lutil\n> -lpthread -L/usr/lib64/R/lib -lR\n> /usr/bin/ld: /opt/openmpi/tcp-intel//lib/libmpi.a(comm_init.o): relocation\n> R_X86_64_32S against `ompi_mpi_comm_null' can not be used when making a\n> shared object; recompile with -fPIC\n> /opt/openmpi/tcp-intel//lib/libmpi.a: could not read symbols: Bad value\n> collect2: ld returned 1 exit status\n> make: *** [Rmpi.so] Error 1\n> ERROR: compilation failed for package ?Rmpi?\n> * removing ?/home/jalle6/R/x86_64-redhat-linux-gnu-library/2.12/Rmpi?\n>\n> The downloaded packages are in\n>         ?/tmp/RtmpbJFYNv/downloaded_packages?\n> Warning message:\n> In install.packages(\"Rmpi\", configure.args =\n> c(\"--with-mpi=/opt/openmpi/tcp-intel/\",  :\n>   installation of package 'Rmpi' had non-zero exit status\n>>\n>\n>\n> I'll have to confess that I am brand new to MPI, and not much better in\n> dealing with compiling/linking C libraries.\n>\n> Thanks in advance,\n> Jeff\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>\n\n\n-- \nDepartment of Statistics & Actuarial Sciences\nFax Phone#:(519)-661-3813\nThe University of Western Ontario\nOffice Phone#:(519)-661-3622\nLondon, Ontario N6A 5B7\nhttp://www.stats.uwo.ca/faculty/yu",
+      "body_snippet": "Hi. Can you check if libmpi.so is installed at /opt/openmpi/tcp-intel//lib/?\n\nThis line seems indicating libmpi.a is checked instead of libmpi.so. Hao\n\n/usr/bin/ld: /opt/openmpi/tcp-intel//lib/libmpi.",
+      "thread_id": "thread-110d86cc323e",
+      "thread_depth": 1,
+      "month": "2011-05"
+    },
+    {
+      "id": "msg-ffbe31956b26",
+      "message_id": "<BANLkTikU273qkRaqEk1ZhLmvR_skmJ0CDA@mail.gmail.com>",
+      "from_name": "Stephen Weston",
+      "from_email_hash": "507fe1aedccd9cb1c2bba1715ac24f959abe255adeeb866f82b6c8a1896cbd15",
+      "date": "2011-05-13T11:38:24-04:00",
+      "subject": "[R-sig-hpc] snow job",
+      "subject_clean": "snow job",
+      "in_reply_to": "<027c01cc10e8$0d3dc1f0$27b945d0$@com>",
+      "references": [
+        "<016d01cc1046$1fc8f300$5f5ad900$@com>",
+        "<BANLkTi=25A=uKDrYjLsHWnV+AB1151LJ7w@mail.gmail.com>",
+        "<027c01cc10e8$0d3dc1f0$27b945d0$@com>"
+      ],
+      "body_plain": "On Thu, May 12, 2011 at 5:03 PM, Whit Broach <whitneybroach at gmail.com> wrote:\n\n> 4.  Steve's suggestion below, using manual = TRUE and typing the command\n> indicated.\n>\n> 4 Result.  Log file is created and not accessible until the R Gui is closed.\n> Then the log file opens and is empty.\n\nSo you attempted to create a two-worker cluster, manually started two\nworkers, and then what happened?  Did everyone hang without displaying\nany error message?\n\nSince you're running everything on one machine, I would set outfile to\n\"\" (the empty string).  That causes all messages to go to the console,\nwhich is convenient in manual mode, and prevents the two workers from\nopening and writing to the same file, which could cause problems.\nCreate the cluster like this:\n\n    cl <- makeSOCKcluster(2, outfile=\"\", manual=TRUE)\n\nThen, start the two workers in two separate command windows as before.\n\nIn many cases, makeSOCKcluster will never display the command to start\nthe second worker, because it hangs trying to connect to the first\nworker.  So it's very important to describe exactly what happens.  In\nthis case, it should display one command, wait for you to execute it,\ndisplay a second command, wait again, and then return to the prompt.  If\nmakeSOCKcluster returns to the Rgui prompt without an error, you're\nprobably good to go.  But if it hangs, then knowing precisely when it\nhangs is important for guessing what went wrong.\n\nNote that only the call to makeSOCKcluster in Rgui should return.  The\nworkers should not return until you shutdown the cluster using\nstopCluster in Rgui.  The workers need to keep running so they can\nexecute tasks for the master.  It is a failure for one of the workers\nthat you started to return to the command prompt before the cluster is\nshutdown.\n\n- Steve",
+      "body_snippet": "On Thu, May 12, 2011 at 5:03 PM, Whit Broach <whitneybroach at gmail.com> wrote:\n\n> 4.  Steve's suggestion below, using manual = TRUE and typing the command\n> indicated.\n>\n> 4 Result.  Log file is cre",
+      "thread_id": "thread-e2d726049ff4",
+      "thread_depth": 3,
+      "month": "2011-05"
+    },
+    {
+      "id": "msg-bdd2bac3f489",
+      "message_id": "<b4a1257da3b01983a7da7ddf52e6f905.squirrel@webmail.jdadesign.net>",
+      "from_name": "lists at jdadesign.net",
+      "from_email_hash": "5a2b40e32427236ecdbb9ac164f377afd1188a64a0c6e9525afa5a9b3c8c345d",
+      "date": "2011-05-13T09:15:12-07:00",
+      "subject": "[R-sig-hpc] Rmpi Setup Troubles",
+      "subject_clean": "Rmpi Setup Troubles",
+      "in_reply_to": "<5afd6770decf127c198b7602ce57e4e6.squirrel@www.stats.uwo.ca>",
+      "references": [
+        "<b01845f27020f60bea95f6ddf39740df.squirrel@webmail.jdadesign.net>",
+        "<5afd6770decf127c198b7602ce57e4e6.squirrel@www.stats.uwo.ca>"
+      ],
+      "body_plain": "You are correct -- there is no libmpi.so in that directory, only libmpi.a.\n\nSo I need to recompile openMPI to produce shared, rather than a static\nlibraries?\n\nJeff\n\n> Hi. Can you check if libmpi.so is installed at\n> /opt/openmpi/tcp-intel//lib/?\n>\n> This line seems indicating libmpi.a is checked instead of libmpi.so. Hao\n>\n> /usr/bin/ld: /opt/openmpi/tcp-intel//lib/libmpi.a(comm_init.o): relocation\n> R_X86_64_32S against `ompi_mpi_comm_null' can not be used when making a\n> shared object; recompile with -fPIC\n>\n>\n> lists at jdadesign.net wrote:\n>> All,\n>>\n>> I've been searching around on mailing lists for days but still haven't\n>> been able to get Rmpi working on my cluster.\n>>\n>> Most recently, I've set the mpi paths using configure.args, but still\n>> can't get the package installed correctly. I'm on RedHat 5 64 bit,\n>> trying\n>> to use OpenMPI. Here's the most recent error I've received:\n>>\n>>> install.packages(\"Rmpi\",configure.args=c(\"--with-mpi=/opt/openmpi/tcp-intel/\",\n>> \"--with-mpi-libpath=/opt/openmpi/tcp-intel/lib/\",\n>> \"--with-mpi-type=OPENMPI\"))\n>> Installing package(s) into\n>> ?/home/jalle6/R/x86_64-redhat-linux-gnu-library/2.12?\n>> (as ?lib? is unspecified)\n>> trying URL\n>> 'http://cran.sixsigmaonline.org/src/contrib/Rmpi_0.5-9.tar.gz'\n>> Content type 'application/x-gzip' length 87953 bytes (85 Kb)\n>> opened URL\n>> ==================================================\n>> downloaded 85 Kb\n>>\n>> * installing *source* package ?Rmpi? ...\n>> checking for gcc... gcc -m64 -std=gnu99\n>> checking for C compiler default output file name... a.out\n>> checking whether the C compiler works... yes\n>> checking whether we are cross compiling... no\n>> checking for suffix of executables...\n>> checking for suffix of object files... o\n>> checking whether we are using the GNU C compiler... yes\n>> checking whether gcc -m64 -std=gnu99 accepts -g... yes\n>> checking for gcc -m64 -std=gnu99 option to accept ISO C89... none needed\n>> Trying to find mpi.h ...\n>> Found in /opt/openmpi/tcp-intel//include\n>> Trying to find libmpi.so or libmpich.a ...\n>> checking for main in -lmpi... yes\n>> checking for openpty in -lutil... yes\n>> checking for main in -lpthread... yes\n>> configure: creating ./config.status\n>> config.status: creating src/Makevars\n>> ** libs\n>> gcc -m64 -std=gnu99 -I/usr/include/R -DPACKAGE_NAME=\\\"\\\"\n>> -DPACKAGE_TARNAME=\\\"\\\" -DPACKAGE_VERSION=\\\"\\\" -DPACKAGE_STRING=\\\"\\\"\n>> -DPACKAGE_BUGREPORT=\\\"\\\" -I/opt/openmpi/tcp-intel//include  -DMPI2\n>> -DOPENMPI -I/usr/local/include    -fpic  -O2 -g -pipe -Wall\n>> -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector\n>> --param=ssp-buffer-size=4 -m64 -mtune=generic -c RegQuery.c -o\n>> RegQuery.o\n>> gcc -m64 -std=gnu99 -I/usr/include/R -DPACKAGE_NAME=\\\"\\\"\n>> -DPACKAGE_TARNAME=\\\"\\\" -DPACKAGE_VERSION=\\\"\\\" -DPACKAGE_STRING=\\\"\\\"\n>> -DPACKAGE_BUGREPORT=\\\"\\\" -I/opt/openmpi/tcp-intel//include  -DMPI2\n>> -DOPENMPI -I/usr/local/include    -fpic  -O2 -g -pipe -Wall\n>> -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector\n>> --param=ssp-buffer-size=4 -m64 -mtune=generic -c Rmpi.c -o Rmpi.o\n>> gcc -m64 -std=gnu99 -I/usr/include/R -DPACKAGE_NAME=\\\"\\\"\n>> -DPACKAGE_TARNAME=\\\"\\\" -DPACKAGE_VERSION=\\\"\\\" -DPACKAGE_STRING=\\\"\\\"\n>> -DPACKAGE_BUGREPORT=\\\"\\\" -I/opt/openmpi/tcp-intel//include  -DMPI2\n>> -DOPENMPI -I/usr/local/include    -fpic  -O2 -g -pipe -Wall\n>> -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector\n>> --param=ssp-buffer-size=4 -m64 -mtune=generic -c conversion.c -o\n>> conversion.o\n>> gcc -m64 -std=gnu99 -I/usr/include/R -DPACKAGE_NAME=\\\"\\\"\n>> -DPACKAGE_TARNAME=\\\"\\\" -DPACKAGE_VERSION=\\\"\\\" -DPACKAGE_STRING=\\\"\\\"\n>> -DPACKAGE_BUGREPORT=\\\"\\\" -I/opt/openmpi/tcp-intel//include  -DMPI2\n>> -DOPENMPI -I/usr/local/include    -fpic  -O2 -g -pipe -Wall\n>> -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector\n>> --param=ssp-buffer-size=4 -m64 -mtune=generic -c internal.c -o\n>> internal.o\n>> gcc -m64 -std=gnu99 -shared -L/usr/local/lib64 -o Rmpi.so RegQuery.o\n>> Rmpi.o conversion.o internal.o -L/opt/openmpi/tcp-intel//lib -lmpi\n>> -lutil\n>> -lpthread -L/usr/lib64/R/lib -lR\n>> /usr/bin/ld: /opt/openmpi/tcp-intel//lib/libmpi.a(comm_init.o):\n>> relocation\n>> R_X86_64_32S against `ompi_mpi_comm_null' can not be used when making a\n>> shared object; recompile with -fPIC\n>> /opt/openmpi/tcp-intel//lib/libmpi.a: could not read symbols: Bad value\n>> collect2: ld returned 1 exit status\n>> make: *** [Rmpi.so] Error 1\n>> ERROR: compilation failed for package ?Rmpi?\n>> * removing ?/home/jalle6/R/x86_64-redhat-linux-gnu-library/2.12/Rmpi?\n>>\n>> The downloaded packages are in\n>>         ?/tmp/RtmpbJFYNv/downloaded_packages?\n>> Warning message:\n>> In install.packages(\"Rmpi\", configure.args =\n>> c(\"--with-mpi=/opt/openmpi/tcp-intel/\",  :\n>>   installation of package 'Rmpi' had non-zero exit status\n>>>\n>>\n>>\n>> I'll have to confess that I am brand new to MPI, and not much better in\n>> dealing with compiling/linking C libraries.\n>>\n>> Thanks in advance,\n>> Jeff\n>>\n>> _______________________________________________\n>> R-sig-hpc mailing list\n>> R-sig-hpc at r-project.org\n>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>>\n>\n>\n> --\n> Department of Statistics & Actuarial Sciences\n> Fax Phone#:(519)-661-3813\n> The University of Western Ontario\n> Office Phone#:(519)-661-3622\n> London, Ontario N6A 5B7\n> http://www.stats.uwo.ca/faculty/yu\n>",
+      "body_snippet": "You are correct -- there is no libmpi.so in that directory, only libmpi.a.\n\nSo I need to recompile openMPI to produce shared, rather than a static\nlibraries?\n\nJeff\n\n> Hi. Can you check if libmpi.so is",
+      "thread_id": "thread-110d86cc323e",
+      "thread_depth": 2,
+      "month": "2011-05"
+    },
+    {
+      "id": "msg-03c17bdfb2ae",
+      "message_id": "<8c992c7ddeb75547ccfc3b4148f3447a.squirrel@webmail.jdadesign.net>",
+      "from_name": "lists at jdadesign.net",
+      "from_email_hash": "5a2b40e32427236ecdbb9ac164f377afd1188a64a0c6e9525afa5a9b3c8c345d",
+      "date": "2011-05-13T15:32:56-07:00",
+      "subject": "[R-sig-hpc] Rmpi Setup Troubles",
+      "subject_clean": "Rmpi Setup Troubles",
+      "in_reply_to": "<b4a1257da3b01983a7da7ddf52e6f905.squirrel@webmail.jdadesign.net>",
+      "references": [
+        "<b01845f27020f60bea95f6ddf39740df.squirrel@webmail.jdadesign.net>",
+        "<5afd6770decf127c198b7602ce57e4e6.squirrel@www.stats.uwo.ca>",
+        "<b4a1257da3b01983a7da7ddf52e6f905.squirrel@webmail.jdadesign.net>"
+      ],
+      "body_plain": "Just an update:\n\nI downloaded the most recent OpenMPI RPMs and followed the default\n\"configure/make install\" installation. It properly produced the .so\nlibraries.\n\nAfter updating using ldconfig, I was able to get Rmpi working with the\ncommand I had tried previously.\n\nThanks for your help!\n\n\n> You are correct -- there is no libmpi.so in that directory, only libmpi.a.\n>\n> So I need to recompile openMPI to produce shared, rather than a static\n> libraries?\n>\n> Jeff\n>\n>> Hi. Can you check if libmpi.so is installed at\n>> /opt/openmpi/tcp-intel//lib/?\n>>\n>> This line seems indicating libmpi.a is checked instead of libmpi.so. Hao\n>>\n>> /usr/bin/ld: /opt/openmpi/tcp-intel//lib/libmpi.a(comm_init.o):\n>> relocation\n>> R_X86_64_32S against `ompi_mpi_comm_null' can not be used when making a\n>> shared object; recompile with -fPIC\n>>\n>>\n>> lists at jdadesign.net wrote:\n>>> All,\n>>>\n>>> I've been searching around on mailing lists for days but still haven't\n>>> been able to get Rmpi working on my cluster.\n>>>\n>>> Most recently, I've set the mpi paths using configure.args, but still\n>>> can't get the package installed correctly. I'm on RedHat 5 64 bit,\n>>> trying\n>>> to use OpenMPI. Here's the most recent error I've received:\n>>>\n>>>> install.packages(\"Rmpi\",configure.args=c(\"--with-mpi=/opt/openmpi/tcp-intel/\",\n>>> \"--with-mpi-libpath=/opt/openmpi/tcp-intel/lib/\",\n>>> \"--with-mpi-type=OPENMPI\"))\n>>> Installing package(s) into\n>>> ?/home/jalle6/R/x86_64-redhat-linux-gnu-library/2.12?\n>>> (as ?lib? is unspecified)\n>>> trying URL\n>>> 'http://cran.sixsigmaonline.org/src/contrib/Rmpi_0.5-9.tar.gz'\n>>> Content type 'application/x-gzip' length 87953 bytes (85 Kb)\n>>> opened URL\n>>> ==================================================\n>>> downloaded 85 Kb\n>>>\n>>> * installing *source* package ?Rmpi? ...\n>>> checking for gcc... gcc -m64 -std=gnu99\n>>> checking for C compiler default output file name... a.out\n>>> checking whether the C compiler works... yes\n>>> checking whether we are cross compiling... no\n>>> checking for suffix of executables...\n>>> checking for suffix of object files... o\n>>> checking whether we are using the GNU C compiler... yes\n>>> checking whether gcc -m64 -std=gnu99 accepts -g... yes\n>>> checking for gcc -m64 -std=gnu99 option to accept ISO C89... none\n>>> needed\n>>> Trying to find mpi.h ...\n>>> Found in /opt/openmpi/tcp-intel//include\n>>> Trying to find libmpi.so or libmpich.a ...\n>>> checking for main in -lmpi... yes\n>>> checking for openpty in -lutil... yes\n>>> checking for main in -lpthread... yes\n>>> configure: creating ./config.status\n>>> config.status: creating src/Makevars\n>>> ** libs\n>>> gcc -m64 -std=gnu99 -I/usr/include/R -DPACKAGE_NAME=\\\"\\\"\n>>> -DPACKAGE_TARNAME=\\\"\\\" -DPACKAGE_VERSION=\\\"\\\" -DPACKAGE_STRING=\\\"\\\"\n>>> -DPACKAGE_BUGREPORT=\\\"\\\" -I/opt/openmpi/tcp-intel//include  -DMPI2\n>>> -DOPENMPI -I/usr/local/include    -fpic  -O2 -g -pipe -Wall\n>>> -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector\n>>> --param=ssp-buffer-size=4 -m64 -mtune=generic -c RegQuery.c -o\n>>> RegQuery.o\n>>> gcc -m64 -std=gnu99 -I/usr/include/R -DPACKAGE_NAME=\\\"\\\"\n>>> -DPACKAGE_TARNAME=\\\"\\\" -DPACKAGE_VERSION=\\\"\\\" -DPACKAGE_STRING=\\\"\\\"\n>>> -DPACKAGE_BUGREPORT=\\\"\\\" -I/opt/openmpi/tcp-intel//include  -DMPI2\n>>> -DOPENMPI -I/usr/local/include    -fpic  -O2 -g -pipe -Wall\n>>> -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector\n>>> --param=ssp-buffer-size=4 -m64 -mtune=generic -c Rmpi.c -o Rmpi.o\n>>> gcc -m64 -std=gnu99 -I/usr/include/R -DPACKAGE_NAME=\\\"\\\"\n>>> -DPACKAGE_TARNAME=\\\"\\\" -DPACKAGE_VERSION=\\\"\\\" -DPACKAGE_STRING=\\\"\\\"\n>>> -DPACKAGE_BUGREPORT=\\\"\\\" -I/opt/openmpi/tcp-intel//include  -DMPI2\n>>> -DOPENMPI -I/usr/local/include    -fpic  -O2 -g -pipe -Wall\n>>> -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector\n>>> --param=ssp-buffer-size=4 -m64 -mtune=generic -c conversion.c -o\n>>> conversion.o\n>>> gcc -m64 -std=gnu99 -I/usr/include/R -DPACKAGE_NAME=\\\"\\\"\n>>> -DPACKAGE_TARNAME=\\\"\\\" -DPACKAGE_VERSION=\\\"\\\" -DPACKAGE_STRING=\\\"\\\"\n>>> -DPACKAGE_BUGREPORT=\\\"\\\" -I/opt/openmpi/tcp-intel//include  -DMPI2\n>>> -DOPENMPI -I/usr/local/include    -fpic  -O2 -g -pipe -Wall\n>>> -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector\n>>> --param=ssp-buffer-size=4 -m64 -mtune=generic -c internal.c -o\n>>> internal.o\n>>> gcc -m64 -std=gnu99 -shared -L/usr/local/lib64 -o Rmpi.so RegQuery.o\n>>> Rmpi.o conversion.o internal.o -L/opt/openmpi/tcp-intel//lib -lmpi\n>>> -lutil\n>>> -lpthread -L/usr/lib64/R/lib -lR\n>>> /usr/bin/ld: /opt/openmpi/tcp-intel//lib/libmpi.a(comm_init.o):\n>>> relocation\n>>> R_X86_64_32S against `ompi_mpi_comm_null' can not be used when making a\n>>> shared object; recompile with -fPIC\n>>> /opt/openmpi/tcp-intel//lib/libmpi.a: could not read symbols: Bad value\n>>> collect2: ld returned 1 exit status\n>>> make: *** [Rmpi.so] Error 1\n>>> ERROR: compilation failed for package ?Rmpi?\n>>> * removing ?/home/jalle6/R/x86_64-redhat-linux-gnu-library/2.12/Rmpi?\n>>>\n>>> The downloaded packages are in\n>>>         ?/tmp/RtmpbJFYNv/downloaded_packages?\n>>> Warning message:\n>>> In install.packages(\"Rmpi\", configure.args =\n>>> c(\"--with-mpi=/opt/openmpi/tcp-intel/\",  :\n>>>   installation of package 'Rmpi' had non-zero exit status\n>>>>\n>>>\n>>>\n>>> I'll have to confess that I am brand new to MPI, and not much better in\n>>> dealing with compiling/linking C libraries.\n>>>\n>>> Thanks in advance,\n>>> Jeff\n>>>\n>>> _______________________________________________\n>>> R-sig-hpc mailing list\n>>> R-sig-hpc at r-project.org\n>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>>>\n>>\n>>\n>> --\n>> Department of Statistics & Actuarial Sciences\n>> Fax Phone#:(519)-661-3813\n>> The University of Western Ontario\n>> Office Phone#:(519)-661-3622\n>> London, Ontario N6A 5B7\n>> http://www.stats.uwo.ca/faculty/yu\n>>\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>",
+      "body_snippet": "Just an update:\n\nI downloaded the most recent OpenMPI RPMs and followed the default\n\"configure/make install\" installation. It properly produced the .so\nlibraries.\n\nAfter updating using ldconfig, I was",
+      "thread_id": "thread-110d86cc323e",
+      "thread_depth": 3,
+      "month": "2011-05"
+    },
+    {
+      "id": "msg-dc6500c45785",
+      "message_id": "<001201cc12b0$e1149bb0$a33dd310$@com>",
+      "from_name": "Whit Broach",
+      "from_email_hash": "6e71bc985bd690a3444237f41ff0126bde297ca5893d168acc9711dc67f972a9",
+      "date": "2011-05-14T21:33:37-06:00",
+      "subject": "[R-sig-hpc] snow job",
+      "subject_clean": "snow job",
+      "in_reply_to": "<BANLkTikU273qkRaqEk1ZhLmvR_skmJ0CDA@mail.gmail.com>",
+      "references": [
+        "<016d01cc1046$1fc8f300$5f5ad900$@com>",
+        "<BANLkTi=25A=uKDrYjLsHWnV+AB1151LJ7w@mail.gmail.com>",
+        "<027c01cc10e8$0d3dc1f0$27b945d0$@com>",
+        "<BANLkTikU273qkRaqEk1ZhLmvR_skmJ0CDA@mail.gmail.com>"
+      ],
+      "body_plain": "Problem successfully addressed!\n\nTo summarize what happened off-list, I used Stephen's suggestions to isolate\nthe problem.  The space in the folder name \"Program Files\" prevented snow\nfrom working correctly. \n\nRemoving R, then installing under C:/R solved the problem.\n\nUseful in problem isolation was this script code from Stephen:\n\n     > snowlib <- file.path(R.home(), \"library\")\n     > cl <- makeSOCKcluster(2, snowlib=snowlib, outfile=\"\")\n\nIf makeSOCKcluster returns, try:\n\n     > clusterApply(cl, 1:4, sqrt)\n\nAnd this code was also helpful:\n\n    > library(snow)\n    > .path.package('snow')\n    > .libPaths()\n    > cl <- makeSOCKcluster(2, outfile=\"\", manual=TRUE)\n\nThanks to everyone who responded.\n\nBest regards,\nWhit\n\n-----Original Message-----\nFrom: Stephen Weston [mailto:stephen.b.weston at gmail.com] \nSent: Friday, May 13, 2011 9:38 AM\nTo: whitneybroach at gmail.com\nCc: r-sig-hpc at r-project.org\nSubject: Re: [R-sig-hpc] snow job\n\nOn Thu, May 12, 2011 at 5:03 PM, Whit Broach <whitneybroach at gmail.com>\nwrote:\n\n> 4.  Steve's suggestion below, using manual = TRUE and typing the command\n> indicated.\n>\n> 4 Result.  Log file is created and not accessible until the R Gui is\nclosed.\n> Then the log file opens and is empty.\n\nSo you attempted to create a two-worker cluster, manually started two\nworkers, and then what happened?  Did everyone hang without displaying\nany error message?\n\nSince you're running everything on one machine, I would set outfile to\n\"\" (the empty string).  That causes all messages to go to the console,\nwhich is convenient in manual mode, and prevents the two workers from\nopening and writing to the same file, which could cause problems.\nCreate the cluster like this:\n\n    cl <- makeSOCKcluster(2, outfile=\"\", manual=TRUE)\n\nThen, start the two workers in two separate command windows as before.\n\nIn many cases, makeSOCKcluster will never display the command to start\nthe second worker, because it hangs trying to connect to the first\nworker.  So it's very important to describe exactly what happens.  In\nthis case, it should display one command, wait for you to execute it,\ndisplay a second command, wait again, and then return to the prompt.  If\nmakeSOCKcluster returns to the Rgui prompt without an error, you're\nprobably good to go.  But if it hangs, then knowing precisely when it\nhangs is important for guessing what went wrong.\n\nNote that only the call to makeSOCKcluster in Rgui should return.  The\nworkers should not return until you shutdown the cluster using\nstopCluster in Rgui.  The workers need to keep running so they can\nexecute tasks for the master.  It is a failure for one of the workers\nthat you started to return to the command prompt before the cluster is\nshutdown.\n\n- Steve",
+      "body_snippet": "Problem successfully addressed!\n\nTo summarize what happened off-list, I used Stephen's suggestions to isolate\nthe problem.  The space in the folder name \"Program Files\" prevented snow\nfrom working cor",
+      "thread_id": "thread-e2d726049ff4",
+      "thread_depth": 4,
+      "month": "2011-05"
+    },
+    {
+      "id": "msg-cee5689d5d27",
+      "message_id": "<458842.4252.qm@web57513.mail.re1.yahoo.com>",
+      "from_name": "Tim Smith",
+      "from_email_hash": "ad612747dc632ec77964c5f25e6276b2144744ac2a5837f315a4f9c29b1468b4",
+      "date": "2011-05-16T05:19:37-07:00",
+      "subject": "[R-sig-hpc] Installing Rmpi on hpc",
+      "subject_clean": "Installing Rmpi on hpc",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110516/3eca9e34/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110516/3eca9e34/attachment.pl>",
+      "thread_id": "thread-cee5689d5d27",
+      "thread_depth": 0,
+      "month": "2011-05"
+    },
+    {
+      "id": "msg-079fd00a40db",
+      "message_id": "<BANLkTinb3=RKXW9EfJDa5mCh1RiedUW48w@mail.gmail.com>",
+      "from_name": "Stephen Weston",
+      "from_email_hash": "507fe1aedccd9cb1c2bba1715ac24f959abe255adeeb866f82b6c8a1896cbd15",
+      "date": "2011-05-17T14:24:51-04:00",
+      "subject": "[R-sig-hpc] snow job",
+      "subject_clean": "snow job",
+      "in_reply_to": "<001201cc12b0$e1149bb0$a33dd310$@com>",
+      "references": [
+        "<016d01cc1046$1fc8f300$5f5ad900$@com>",
+        "<BANLkTi=25A=uKDrYjLsHWnV+AB1151LJ7w@mail.gmail.com>",
+        "<027c01cc10e8$0d3dc1f0$27b945d0$@com>",
+        "<BANLkTikU273qkRaqEk1ZhLmvR_skmJ0CDA@mail.gmail.com>",
+        "<001201cc12b0$e1149bb0$a33dd310$@com>"
+      ],
+      "body_plain": "Luke Tierney just released snow 0.3-5 to CRAN which should fix this\nproblem.  If you're using snow on Windows, I recommend that you\nupgrade to this new version to avoid problems with R 2.13.0.\n\n- Steve\n\n\nOn Sat, May 14, 2011 at 11:33 PM, Whit Broach <whitneybroach at gmail.com> wrote:\n> Problem successfully addressed!\n>\n> To summarize what happened off-list, I used Stephen's suggestions to isolate\n> the problem. ?The space in the folder name \"Program Files\" prevented snow\n> from working correctly.\n>\n> Removing R, then installing under C:/R solved the problem.\n>\n> Useful in problem isolation was this script code from Stephen:\n>\n> ? ? > snowlib <- file.path(R.home(), \"library\")\n> ? ? > cl <- makeSOCKcluster(2, snowlib=snowlib, outfile=\"\")\n>\n> If makeSOCKcluster returns, try:\n>\n> ? ? > clusterApply(cl, 1:4, sqrt)\n>\n> And this code was also helpful:\n>\n> ? ?> library(snow)\n> ? ?> .path.package('snow')\n> ? ?> .libPaths()\n> ? ?> cl <- makeSOCKcluster(2, outfile=\"\", manual=TRUE)\n>\n> Thanks to everyone who responded.\n>\n> Best regards,\n> Whit\n>\n> -----Original Message-----\n> From: Stephen Weston [mailto:stephen.b.weston at gmail.com]\n> Sent: Friday, May 13, 2011 9:38 AM\n> To: whitneybroach at gmail.com\n> Cc: r-sig-hpc at r-project.org\n> Subject: Re: [R-sig-hpc] snow job\n>\n> On Thu, May 12, 2011 at 5:03 PM, Whit Broach <whitneybroach at gmail.com>\n> wrote:\n>\n>> 4. ?Steve's suggestion below, using manual = TRUE and typing the command\n>> indicated.\n>>\n>> 4 Result. ?Log file is created and not accessible until the R Gui is\n> closed.\n>> Then the log file opens and is empty.\n>\n> So you attempted to create a two-worker cluster, manually started two\n> workers, and then what happened? ?Did everyone hang without displaying\n> any error message?\n>\n> Since you're running everything on one machine, I would set outfile to\n> \"\" (the empty string). ?That causes all messages to go to the console,\n> which is convenient in manual mode, and prevents the two workers from\n> opening and writing to the same file, which could cause problems.\n> Create the cluster like this:\n>\n> ? ?cl <- makeSOCKcluster(2, outfile=\"\", manual=TRUE)\n>\n> Then, start the two workers in two separate command windows as before.\n>\n> In many cases, makeSOCKcluster will never display the command to start\n> the second worker, because it hangs trying to connect to the first\n> worker. ?So it's very important to describe exactly what happens. ?In\n> this case, it should display one command, wait for you to execute it,\n> display a second command, wait again, and then return to the prompt. ?If\n> makeSOCKcluster returns to the Rgui prompt without an error, you're\n> probably good to go. ?But if it hangs, then knowing precisely when it\n> hangs is important for guessing what went wrong.\n>\n> Note that only the call to makeSOCKcluster in Rgui should return. ?The\n> workers should not return until you shutdown the cluster using\n> stopCluster in Rgui. ?The workers need to keep running so they can\n> execute tasks for the master. ?It is a failure for one of the workers\n> that you started to return to the command prompt before the cluster is\n> shutdown.\n>\n> - Steve\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>",
+      "body_snippet": "Luke Tierney just released snow 0.3-5 to CRAN which should fix this\nproblem.  If you're using snow on Windows, I recommend that you\nupgrade to this new version to avoid problems with R 2.13.0.\n\n- Stev",
+      "thread_id": "thread-e2d726049ff4",
+      "thread_depth": 5,
+      "month": "2011-05"
+    },
+    {
+      "id": "msg-f7eb24aca31a",
+      "message_id": "<022901cc14cd$0fb6ef40$2f24cdc0$@com>",
+      "from_name": "Whit Broach",
+      "from_email_hash": "6e71bc985bd690a3444237f41ff0126bde297ca5893d168acc9711dc67f972a9",
+      "date": "2011-05-17T14:00:23-06:00",
+      "subject": "[R-sig-hpc] snow job",
+      "subject_clean": "snow job",
+      "in_reply_to": "<BANLkTinb3=RKXW9EfJDa5mCh1RiedUW48w@mail.gmail.com>",
+      "references": [
+        "<016d01cc1046$1fc8f300$5f5ad900$@com>",
+        "<BANLkTi=25A=uKDrYjLsHWnV+AB1151LJ7w@mail.gmail.com>",
+        "<027c01cc10e8$0d3dc1f0$27b945d0$@com>",
+        "<BANLkTikU273qkRaqEk1ZhLmvR_skmJ0CDA@mail.gmail.com>",
+        "<001201cc12b0$e1149bb0$a33dd310$@com>",
+        "<BANLkTinb3=RKXW9EfJDa5mCh1RiedUW48w@mail.gmail.com>"
+      ],
+      "body_plain": "Thanks to Stephen and Luke!\n\n-----Original Message-----\nFrom: Stephen Weston [mailto:stephen.b.weston at gmail.com] \nSent: Tuesday, May 17, 2011 12:25 PM\nTo: r-sig-hpc at r-project.org\nCc: whitneybroach at gmail.com\nSubject: Re: [R-sig-hpc] snow job\n\nLuke Tierney just released snow 0.3-5 to CRAN which should fix this\nproblem.  If you're using snow on Windows, I recommend that you\nupgrade to this new version to avoid problems with R 2.13.0.\n\n- Steve\n\n\nOn Sat, May 14, 2011 at 11:33 PM, Whit Broach <whitneybroach at gmail.com>\nwrote:\n> Problem successfully addressed!\n>\n> To summarize what happened off-list, I used Stephen's suggestions to\nisolate\n> the problem. ?The space in the folder name \"Program Files\" prevented snow\n> from working correctly.\n>\n> Removing R, then installing under C:/R solved the problem.\n>\n> Useful in problem isolation was this script code from Stephen:\n>\n> ? ? > snowlib <- file.path(R.home(), \"library\")\n> ? ? > cl <- makeSOCKcluster(2, snowlib=snowlib, outfile=\"\")\n>\n> If makeSOCKcluster returns, try:\n>\n> ? ? > clusterApply(cl, 1:4, sqrt)\n>\n> And this code was also helpful:\n>\n> ? ?> library(snow)\n> ? ?> .path.package('snow')\n> ? ?> .libPaths()\n> ? ?> cl <- makeSOCKcluster(2, outfile=\"\", manual=TRUE)\n>\n> Thanks to everyone who responded.\n>\n> Best regards,\n> Whit\n>\n> -----Original Message-----\n> From: Stephen Weston [mailto:stephen.b.weston at gmail.com]\n> Sent: Friday, May 13, 2011 9:38 AM\n> To: whitneybroach at gmail.com\n> Cc: r-sig-hpc at r-project.org\n> Subject: Re: [R-sig-hpc] snow job\n>\n> On Thu, May 12, 2011 at 5:03 PM, Whit Broach <whitneybroach at gmail.com>\n> wrote:\n>\n>> 4. ?Steve's suggestion below, using manual = TRUE and typing the command\n>> indicated.\n>>\n>> 4 Result. ?Log file is created and not accessible until the R Gui is\n> closed.\n>> Then the log file opens and is empty.\n>\n> So you attempted to create a two-worker cluster, manually started two\n> workers, and then what happened? ?Did everyone hang without displaying\n> any error message?\n>\n> Since you're running everything on one machine, I would set outfile to\n> \"\" (the empty string). ?That causes all messages to go to the console,\n> which is convenient in manual mode, and prevents the two workers from\n> opening and writing to the same file, which could cause problems.\n> Create the cluster like this:\n>\n> ? ?cl <- makeSOCKcluster(2, outfile=\"\", manual=TRUE)\n>\n> Then, start the two workers in two separate command windows as before.\n>\n> In many cases, makeSOCKcluster will never display the command to start\n> the second worker, because it hangs trying to connect to the first\n> worker. ?So it's very important to describe exactly what happens. ?In\n> this case, it should display one command, wait for you to execute it,\n> display a second command, wait again, and then return to the prompt. ?If\n> makeSOCKcluster returns to the Rgui prompt without an error, you're\n> probably good to go. ?But if it hangs, then knowing precisely when it\n> hangs is important for guessing what went wrong.\n>\n> Note that only the call to makeSOCKcluster in Rgui should return. ?The\n> workers should not return until you shutdown the cluster using\n> stopCluster in Rgui. ?The workers need to keep running so they can\n> execute tasks for the master. ?It is a failure for one of the workers\n> that you started to return to the command prompt before the cluster is\n> shutdown.\n>\n> - Steve\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>",
+      "body_snippet": "Thanks to Stephen and Luke!\n\n-----Original Message-----\nFrom: Stephen Weston [mailto:stephen.b.weston at gmail.com] \nSent: Tuesday, May 17, 2011 12:25 PM\nTo: r-sig-hpc at r-project.org\nCc: whitneybroa",
+      "thread_id": "thread-e2d726049ff4",
+      "thread_depth": 6,
+      "month": "2011-05"
+    },
+    {
+      "id": "msg-bd2f3fe8f98b",
+      "message_id": "<514884631.36828.1306428785347.JavaMail.fmail@mwmweb031>",
+      "from_name": "Jens Oehlschlägel",
+      "from_email_hash": "f073adaa565bb1d2ee057e84a39a987c70da1df4938e3d4d5a72e0cc3cffbdc1",
+      "date": "2011-05-26T18:53:05+02:00",
+      "subject": "[R-sig-hpc] ff() sometimes gets wrong length when reading from disk",
+      "subject_clean": "ff() sometimes gets wrong length when reading from disk",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Andrew,\n\nEverything is fine!\n\n# look at this small example\nlibrary(ff)\nx <- ff(1:3, filename=\"c:/temp/x.ff\")\ny <- ff(c(F,F,T), filename=\"c:/temp/y.ff\")\nd <- ffdf(x,y)\n\n# reading this gives length 3 as expected\nx2 <- ff(vmode=\"integer\", filename=\"c:/temp/x.ff\")\n# reading this gives length 16 because logicals are stored compressed to 2bits per element rounded up to full integers (the file has 4 bytes = 32 bits = 16 logicals)\ny2 <- ff(vmode=\"logical\", filename=\"c:/temp/y.ff\")\n# and since ffdf expects equal lengths you get that error\nffdf(x2,y2)\n# you could theoretically fix that by explicitely specifying the length on reading the file\ny2 <- ff(vmode=\"logical\", filename=\"c:/temp/y.ff\", length=3)\nffdf(x2,y2)\n# but it is much easier to save the R-side metadata of your ffdf\nsave(d, file=\"c:/temp/d.RData\")\n# close R\n# open R\n# and after\nlibrary(ff)\nload(file=\"c:/temp/d.RData\")\nopen(d)\n# you can continue working with that ffdf as if R was never closed\n\nCheers\nJens\n\n\n-----Urspr?ngliche Nachricht-----\nVon: \"Andrew Piskorski\" <atp at piskorski.com>\nGesendet: 25.05.2011 23:07:41\nAn: \"Dr. Jens Oehlschlaegel\" <Jens.Oehlschlaegel at truecluster.com>\nBetreff: ff() sometimes gets wrong length when reading from disk\n\n>ff package authors, hello! I'm using f_2.2-2.tar.gz from CRAN.\n>\n>I've writeten my data to disk using ffdf() and as.ff(). The ffdf\n>object returned when I write out the files seems correct. However,\n>when I try to read the ff data files on in a fresh R session,\n>sometimes my ffdf() fails with this error:\n>\n> number of rows don't match, recycling not yet implemented\n>\n>The problem there is that my \"pit.p\" column is somehow ending up as\n>length 258460 rather than 258458. However, when I wrote this data to\n>disk, ffdf() definitely believed that all columns had length 258458.\n>\n>Could you give me advice please on what the problem might be and how I\n>should fix it? Thanks in advance for your help!\n>\n>------------------------------------------------------------\n>\n># Attempt to read ffdf from disk, this sometimes fails\n>ffdf( \"date.time\" = ff(filename=col.files[\"date.time\"] ,vmode=\"double\" ,ramclass=\"POSIXct\")\n> ,\"price\" = ff(filename=col.files[\"price\" ] ,vmode=\"double\" )\n> ,\"volume\" = ff(filename=col.files[\"volume\" ] ,vmode=\"double\" )\n> ,\"pit.p\" = ff(filename=col.files[\"pit.p\" ] ,vmode=\"logical\") )\n>\n># This is how I write my ffdf files:\n>if (is.null(td.ff)) {\n> # Insert the first 1 days worth of rows:\n> td.ff <-\n> ffdf( \"date.time\" = as.ff(index(td.xts) ,filename=col.files[\"date.time\"] ,vmode=\"double\" ,ramclass=\"POSIXct\")\n> ,\"price\" = as.ff(as.vector(td.xts[,\"price\" ]) ,filename=col.files[\"price\" ] ,vmode=\"double\")\n> ,\"volume\" = as.ff(as.vector(td.xts[,\"volume\"]) ,filename=col.files[\"volume\" ] ,vmode=\"double\")\n> ,\"pit.p\" = as.ff(as.vector(td.xts[,\"pit.p\" ]) ,filename=col.files[\"pit.p\" ] ,vmode=\"logical\") )\n>} else {\n> # Append rows for day 2 and later:\n> # Look in read.table.ffdf() for an example of how to append rows to an ffdf object.\n> nr.old <- nrow(td.ff) ; nr.add <- nrow(td.xts)\n> nrow(td.ff) <- nr.old + nr.add\n> pos <- hi((nr.old +1L) ,(nr.old + nr.add))\n> td.ff[pos ,\"date.time\"] <- index(td.xts)\n> td.ff[pos ,\"price\" ] <- as.vector(td.xts[,\"price\" ])\n> td.ff[pos ,\"volume\" ] <- as.vector(td.xts[,\"volume\"])\n> td.ff[pos ,\"pit.p\" ] <- as.vector(td.xts[,\"pit.p\" ])\n>}\n>\n># File sizes of each column on disk:\n>$ du -b ff_XG.201012*\n>2067664 ff_XG.201012_date.time\n>64615 ff_XG.201012_pit.p\n>2067664 ff_XG.201012_price\n>2067664 ff_XG.201012_volume\n>\n># Truncated result of running str() on the ff object:\n># Bad object, read from scratch:\n> $ pit.p : list()\n> ..- attr(*, \"physical\")=Class 'ff_pointer' <externalptr>\n> .. ..- attr(*, \"vmode\")= chr \"logical\"\n> .. ..- attr(*, \"maxlength\")= int 258460\n> .. ..- attr(*, \"pattern\")= chr \"/data1/nobackup/andy/ff/\"\n> .. ..- attr(*, \"filename\")= chr \"/data1/nobackup/andy/ff/ff_XG.201012_pit.p\"\n> .. ..- attr(*, \"pagesize\")= int 65536\n> .. ..- attr(*, \"finalizer\")= chr \"close\"\n> .. ..- attr(*, \"finonexit\")= logi TRUE\n> .. ..- attr(*, \"readonly\")= logi FALSE\n> .. ..- attr(*, \"caching\")= chr \"mmnoflush\"\n> ..- attr(*, \"virtual\")= list()\n> .. ..- attr(*, \"Length\")= int 258460\n> .. ..- attr(*, \"Symmetric\")= logi FALSE\n> .. - attr(*, \"class\") = chr [1:2] \"ff_vector\" \"ff\"\n>\n># Good object, returned when initially writing to disk:\n> .. $ pit.p : list()\n> .. ..- attr(*, \"physical\")=Class 'ff_pointer' <externalptr>\n> .. .. ..- attr(*, \"vmode\")= chr \"logical\"\n> .. .. ..- attr(*, \"maxlength\")= int 258458\n> .. .. ..- attr(*, \"pattern\")= chr \"clone\"\n> .. .. ..- attr(*, \"filename\")= chr \"/data1/nobackup/andy/ff/ff_XG.201012_pit.p\"\n> .. .. ..- attr(*, \"pagesize\")= int 65536\n> .. .. ..- attr(*, \"finalizer\")= chr \"close\"\n> .. .. ..- attr(*, \"finonexit\")= logi TRUE\n> .. .. ..- attr(*, \"readonly\")= logi FALSE\n> .. .. ..- attr(*, \"caching\")= chr \"mmnoflush\"\n> .. ..- attr(*, \"virtual\")= list()\n> .. .. ..- attr(*, \"Length\")= int 258458\n> .. .. ..- attr(*, \"Symmetric\")= logi FALSE\n> .. .. ..- attr(*, \"class\")= chr \"virtual\"\n> .. .. - attr(*, \"class\") = chr [1:2] \"ff_vector\" \"ff\"\n>\n>--\n>Andrew Piskorski <atp at piskorski.com>\n>http://www.piskorski.com/",
+      "body_snippet": "Andrew,\n\nEverything is fine!\n\n# look at this small example\nlibrary(ff)\nx <- ff(1:3, filename=\"c:/temp/x.ff\")\ny <- ff(c(F,F,T), filename=\"c:/temp/y.ff\")\nd <- ffdf(x,y)\n\n# reading this gives length 3 as",
+      "thread_id": "thread-bd2f3fe8f98b",
+      "thread_depth": 0,
+      "month": "2011-05"
+    },
+    {
+      "id": "msg-238938c595fb",
+      "message_id": "<BANLkTi=DsuCm8di8ABomZ-94R5Du16OKoA@mail.gmail.com>",
+      "from_name": "Brian Smith",
+      "from_email_hash": "0b3e36ef370264229d0d4654e426129b6065396afeac4e552497050c34724b13",
+      "date": "2011-05-28T12:02:41-04:00",
+      "subject": "[R-sig-hpc] Basic Rsge test...",
+      "subject_clean": "Basic Rsge test...",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110528/9db31497/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110528/9db31497/attachment.pl>",
+      "thread_id": "thread-238938c595fb",
+      "thread_depth": 0,
+      "month": "2011-05"
+    }
+  ],
+  "threads": [
+    {
+      "id": "thread-53244293f402",
+      "subject": "Problems with package SNOW",
+      "message_count": 5,
+      "participants": [
+        "María del Carmen Romero",
+        "Stephen Weston"
+      ],
+      "started": "2011-05-07T08:05:05-03:00",
+      "last_reply": "2011-05-07T14:40:07-04:00",
+      "root_message_id": "msg-53244293f402"
+    },
+    {
+      "id": "thread-e2d726049ff4",
+      "subject": "snow job",
+      "message_count": 7,
+      "participants": [
+        "Stephen Weston",
+        "Whit Broach"
+      ],
+      "started": "2011-05-11T19:44:23-06:00",
+      "last_reply": "2011-05-17T14:00:23-06:00",
+      "root_message_id": "msg-e2d726049ff4"
+    },
+    {
+      "id": "thread-110d86cc323e",
+      "subject": "Rmpi Setup Troubles",
+      "message_count": 4,
+      "participants": [
+        "Hao Yu",
+        "lists at jdadesign.net"
+      ],
+      "started": "2011-05-13T07:29:36-07:00",
+      "last_reply": "2011-05-13T15:32:56-07:00",
+      "root_message_id": "msg-110d86cc323e"
+    },
+    {
+      "id": "thread-cee5689d5d27",
+      "subject": "Installing Rmpi on hpc",
+      "message_count": 1,
+      "participants": [
+        "Tim Smith"
+      ],
+      "started": "2011-05-16T05:19:37-07:00",
+      "last_reply": "2011-05-16T05:19:37-07:00",
+      "root_message_id": "msg-cee5689d5d27"
+    },
+    {
+      "id": "thread-bd2f3fe8f98b",
+      "subject": "ff() sometimes gets wrong length when reading from disk",
+      "message_count": 1,
+      "participants": [
+        "Jens Oehlschlägel"
+      ],
+      "started": "2011-05-26T18:53:05+02:00",
+      "last_reply": "2011-05-26T18:53:05+02:00",
+      "root_message_id": "msg-bd2f3fe8f98b"
+    },
+    {
+      "id": "thread-238938c595fb",
+      "subject": "Basic Rsge test...",
+      "message_count": 1,
+      "participants": [
+        "Brian Smith"
+      ],
+      "started": "2011-05-28T12:02:41-04:00",
+      "last_reply": "2011-05-28T12:02:41-04:00",
+      "root_message_id": "msg-238938c595fb"
+    }
+  ]
+}

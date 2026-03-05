@@ -1,0 +1,2229 @@
+From claudia.beleites at ipht-jena.de  Mon Jul  2 18:39:37 2012
+From: claudia.beleites at ipht-jena.de (Claudia Beleites)
+Date: Mon, 2 Jul 2012 18:39:37 +0200
+Subject: [R-sig-hpc] Trying to change OPENBLAS_NUM_THREADS from within R
+In-Reply-To: <C436A1F9-5978-4135-9C1C-FB9BCD3E2296@r-project.org>
+References: <CAFpt1=JmgZvsvbAYk5QxdV-txJsRVYVnnt8Ju6cHNpoyjdXXVw@mail.gmail.com>
+	<CAFpt1=JkDXs1O4b-fxqfKXEGNxf9TvuVF=bwDWu16zuSziPgkA@mail.gmail.com>
+	<C436A1F9-5978-4135-9C1C-FB9BCD3E2296@r-project.org>
+Message-ID: <4FF1CEC9.30805@ipht-jena.de>
+
+Dear Simons,
+
+I gave it a quick try, moving the random matrix generation outside the
+benchmarked code (i.e. looking at crossprod only).
+
+I have R 2.15.0 on 2 different OSs (one Ubuntu 12.04, one CentOS 5). On
+both I don't seem to be able to  change the number of used threads with
+the environment variables.
+
+The Ubuntu is stuck to using 2 cores, the CentOS uses 6. So I think
+there's more going on here.
+
+here's the code, it can be called rather conveniently with R CMD batch:
+
+qq <- matrix(rnorm(25e6),5e3,5e3)
+
+li<-list()
+for(i in 1:12){
+   li[[i]] <- matrix(rnorm(25e6),5e3)
+}
+library (microbenchmark)
+system(sprintf('taskset -p 0xffffffff %d', Sys.getpid()))
+
+timing <- microbenchmark(lapply(li,crossprod, qq),times=10)
+
+cat (file = "timings.txt", timing$time, "\n", append = TRUE)
+
+Best,
+
+Claudia
+
+Am 30.06.2012 17:19, schrieb Simon Urbanek:
+> Simon,
+> 
+> what are you trying to do? In your example using func2 you're measuring the time it takes to generate the random matrix, so obviously you can't parallelize that and it won't be affected by OPENBLAS_NUM_THREADS...
+> 
+> Cheers,
+> Simon
+> 
+> 
+> 
+> On Jun 30, 2012, at 9:37 AM, Simon Fuller wrote:
+> 
+>> Hello,
+>>
+>> I posted a couple of weeks ago about trying to change
+>> OPENBLAS_NUM_THREADS from within R. I was on holidays since and have
+>> not made much progress.
+>>
+>> To clarify my problem, I am aware that many people have had issues
+>> combining implicit and explicit parallelization, and that there are
+>> useful discussions on this issue already posted on the mailing list;
+>> however I am experiencing performance problems with OPENBLAS for
+>> functions that make no use of explicit parallelization.
+>>
+>> The problem arises for me in cases where a function that uses BLAS is
+>> called in an apply statement.
+>>
+>> While any one such operation speeds up with an increase in
+>> OPENBLAS_NUM_THREADS, this is not the case over all when e.g. under
+>> lapply.
+>>
+>> I have some basic results for a crossprod below - individual
+>> operations improve with added threads, but under lapply it flattens
+>> out, and htop shows a lot of red bars at work on the processors
+>> (indicating heavy system usage?). With other more complex functions
+>> the performance deteriorates further and it is positively undesirable
+>> to use more than 1 thread for OPENBLAS, but the results below should
+>> be sufficient to illustrate the issue.
+>>
+>> It is because of this specific problem that I want to be able to
+>> control the number of threads at runtime, and hence other previously
+>> explained approaches are not applicable, at least as far as I can
+>> tell. But any other suggestions on how to overcome the problem would
+>> be very welcome.
+>>
+>> I intend to test on different systems and BLAS, but I was wondering
+>> whether anyone had encountered this kind of problem before and if
+>> there is a workaround, whether it is OPENBLAS specific, or indeed
+>> whether it is specific to my system or processor (i7-2630QM).
+>>
+>> Thank you in advance. A basic illustration of the issue follows.
+>>
+>> Simon
+>>
+>> CS Dept
+>> NUIM
+>>
+>> func2 <- function(x){
+>>   qq <- matrix(rnorm(250000),500,500)
+>>   return( crossprod(x,qq) )
+>> }
+>>
+>> li<-list()
+>> for(i in 1:500){
+>>   li[[i]] <- matrix(rnorm(250000),500,500)
+>> }
+>>
+>> #OPENBLAS_NUM_THREADS=1
+>> microbenchmark(lapply(li,func2),times=10)
+>> Unit: seconds
+>>              expr      min       lq   median       uq     max
+>> 1 lapply(li, func2) 23.04498 23.05062 23.07796 23.39843 32.7897
+>>
+>> microbenchmark(crossprod(li[[1]],li[[2]]))
+>> Unit: milliseconds
+>>                        expr      min       lq   median       uq      max
+>> 1 crossprod(li[[1]], li[[2]]) 22.87143 23.32093 23.45628 24.34411 26.13419
+>>
+>>
+>> #OPENBLAS_NUM_THREADS=2
+>>
+>> microbenchmark(lapply(li,func2),times=10)
+>> Unit: seconds
+>>              expr      min       lq  median       uq      max
+>> 1 lapply(li, func2) 20.95075 22.29843 23.2581 23.71557 24.21765
+>>
+>> ## Clearly BLAS improves performance, but not with lapply
+>>
+>> microbenchmark(crossprod(li[[1]],li[[2]]))
+>> Unit: milliseconds
+>>                        expr      min       lq   median       uq      max
+>> 1 crossprod(li[[1]], li[[2]]) 12.23434 13.25925 14.12305 14.54331 19.47039
+>>
+>>
+>>
+>> #OPENBLAS_NUM_THREADS=4
+>>
+>> microbenchmark(lapply(li,func2),times=10)
+>> Unit: seconds
+>>              expr     min       lq   median       uq      max
+>> 1 lapply(li, func2) 19.0154 20.17587 22.27971 23.56876 24.40342
+>>
+>>
+>> microbenchmark(crossprod(li[[1]],li[[2]]))
+>> Unit: milliseconds
+>>                        expr      min       lq   median       uq      max
+>> 1 crossprod(li[[1]], li[[2]]) 7.301697 8.105116 8.346089 8.670551 10.41987
+>>
+>>
+>>
+>>
+>>
+>> On Mon, Jun 11, 2012 at 4:17 PM, Simon Fuller <simonfuller9 at gmail.com> wrote:
+>>> Hello,
+>>>
+>>> I hope this is the relevant mailing list for my enquiry.
+>>>
+>>> I have googled the above point but have not been able to find a
+>>> solution which works. I would be very grateful if anyone had any
+>>> suggestions based on their own knowledge and experience.
+>>>
+>>> I have installed openblas and have it linked as my shared BLAS to R.
+>>>
+>>> So I can do "export OPENBLAS_NUM_THREADS = x" and then when I start R,
+>>> I can run with x threads, no problem - the extra threads are visible
+>>> in htop and there is speed improvement for crossprod etc.
+>>>
+>>> However, for some operations I find that the increased threads have a
+>>> negative effect on my code.
+>>>
+>>> Therefore I would like to be able to change the number of threads from
+>>> within the R session - the idea being that I can parcel certain
+>>> functions along with an appropriate thread setting.
+>>>
+>>> However, e.g. Sys.setenv() does not work, probably not least because
+>>> Sys.getenv() does not include the relevant variable(s) e.g.
+>>> OPENBLAS_NUM_THREADS.
+>>>
+>>> I have also tried running a C function with getenv / setenv. Here,
+>>> getenv can access the value of OPENBLAS_NUM_THREADS set before R was
+>>> called, but setenv's changes have no effect on the operation of the
+>>> BLAS, and they are lost when R is closed. I thought this might have to
+>>> do with the way UNIX's child processes receive only copies of the
+>>> parent's variables, and that the BLAS must be called at a level where
+>>> the parent's variables inform the operation. However I do not know
+>>> enough about Unix and the way that R works on it to know where to go
+>>> from here.
+>>>
+>>> I can see a few possibilities, all or none of which might work.
+>>>
+>>> 1) A different install of R explicitly using openblas.
+>>>
+>>> 2) The number of threads might be manipulable through another value or
+>>> function (e.g. another environment variable - although I could not
+>>> find a likely candidate.) There could be something elemental here I am
+>>> missing.
+>>>
+>>> 3) Use some kind of hack to send system() calls from a C function -
+>>> but this seems messy if at all possible.
+>>>
+>>> 4) Start R with different options.
+>>>
+>>> 5) There is an openblas_set_numthreads function in the source for
+>>> openblas, but it was not clear to me how or indeed whether this can be
+>>> used to alter the threads, and I could find no instances of people
+>>> using it or similar functions. If anyone has managed to link some the
+>>> openblas code into a project in a way to implement this function I
+>>> would be very glad to hear about it.
+>>>
+>>> My apologies if this question has been covered before.
+>>>
+>>> Any help is much appreciated.
+>>>
+>>> Best wishes,
+>>>
+>>> Simon
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>>
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+
+
+-- 
+Claudia Beleites
+Spectroscopy/Imaging
+Institute of Photonic Technology
+Albert-Einstein-Str. 9
+07745 Jena
+Germany
+
+email: claudia.beleites at ipht-jena.de
+phone: +49 3641 206-133
+fax:   +49 2641 206-399
+
+
+From libosun at rams.colostate.edu  Mon Jul  2 19:23:55 2012
+From: libosun at rams.colostate.edu (Libo Sun)
+Date: Mon, 2 Jul 2012 11:23:55 -0600
+Subject: [R-sig-hpc] Wired problem in using 'snow' on HPC
+Message-ID: <CAAjXVjqchQgdQvV1rF3nt7Gkn+dPi6T7JfmgLB_YfV4z8oB_HA@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120702/1f4d3e29/attachment.pl>
+
+From M.Seilmayer at hzdr.de  Tue Jul  3 11:31:30 2012
+From: M.Seilmayer at hzdr.de (Martin Seilmayer)
+Date: Tue, 03 Jul 2012 11:31:30 +0200
+Subject: [R-sig-hpc] SNOW Hybrid Cluster in R, Network problems
+Message-ID: <4FF2BBF2.1080303@hzdr.de>
+
+Hi all of you,
+
+I successfully created a hybrid cluster of several Windows and Linux 
+machines using snow and MPICH2. Basically I setup a SOCK - Cluster. To 
+start the Rscript processes on each machine MPICH2 comes in the game. 
+Because it is Platform independent one can start processes on both OS, 
+Win and Linux more or less remote. I know SSH is possible on Linux, but 
+I'd like to have a clean solution for Windows too.
+
+The first problem I have now is the following. With starting programming 
+scripts running parallel code I noticed, that parLapply and all the 
+others used to distribute many data to the nodes, IF these functions are 
+called in a subroutine of a Script. Calling them from "Console" the 
+Networkload is minimal, calling a function witch then calls parLapply 
+causes big load on the Network. Now I have an big array to calculate an 
+all the traffic slowing it down. I tried to read the R-Code in parApply 
+and deeper, but can't find a useful hint.
+
+The secound Problem is connected to the first. Two of four Windows 
+mashines starting at 100 Mbit/s and collapses to 2.8 Mbit/s after 1 s. 
+Now imagine snow tries to transfer many data... this slowes down the 
+hole process enormous. So why the data transfer breaks down? I checked 
+the cables, switches, firewalls and all what is related to physical 
+networking. Nothing, everything is fine. One could transfer Files via 
+FTP on the communication ports of R (10187) without any restriction. 100 
+Mbit/s is absolutely possible. So my opinion is, that this must be an 
+other software problem, maybe in R itsself?!
+
+
+Many thanks for any idea!
+
+Cu
+Martin
+
+-- 
+Dipl.-Ing. Martin Seilmayer
+
+Helmholtz-Zentrum Dresden-Rossendorf e. V.
+
+Institut fuer Fluiddynamik
+Abteilung Magnetohydrodynamik
+Bautzner Landstra?e 400
+01328 Dresden, Germany
+
+@fon: +49 351 260  3165
+@fax: +49 351 260 12969
+@web: www.hzdr.de
+
+
+From stephen.b.weston at gmail.com  Tue Jul  3 16:44:53 2012
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Tue, 3 Jul 2012 10:44:53 -0400
+Subject: [R-sig-hpc] SNOW Hybrid Cluster in R, Network problems
+In-Reply-To: <4FF2BBF2.1080303@hzdr.de>
+References: <4FF2BBF2.1080303@hzdr.de>
+Message-ID: <CALh21iL1MrheZU95Lo+ivw0PfGKBi+2Eh9e9vmLV+B8DzcE_+A@mail.gmail.com>
+
+On Tue, Jul 3, 2012 at 5:31 AM, Martin Seilmayer <M.Seilmayer at hzdr.de> wrote:
+> Hi all of you,
+>
+> I successfully created a hybrid cluster of several Windows and Linux
+> machines using snow and MPICH2. Basically I setup a SOCK - Cluster. To start
+> the Rscript processes on each machine MPICH2 comes in the game. Because it
+
+Are you saying that you're using MPICH2 to start your workers on the
+remote machines when creating a SOCK cluster?  How are you doing that?
+Are you setting the rshcmd option in some way?  Does MPICH2 include a
+remote execution command that is ssh-like?
+
+- Steve Weston
+
+
+From M.Seilmayer at hzdr.de  Tue Jul  3 17:09:09 2012
+From: M.Seilmayer at hzdr.de (Martin Seilmayer)
+Date: Tue, 03 Jul 2012 17:09:09 +0200
+Subject: [R-sig-hpc] SNOW Hybrid Cluster in R, Network problems
+In-Reply-To: <CALh21iL1MrheZU95Lo+ivw0PfGKBi+2Eh9e9vmLV+B8DzcE_+A@mail.gmail.com>
+References: <4FF2BBF2.1080303@hzdr.de>
+	<CALh21iL1MrheZU95Lo+ivw0PfGKBi+2Eh9e9vmLV+B8DzcE_+A@mail.gmail.com>
+Message-ID: <4FF30B15.4090507@hzdr.de>
+
+Hi Steve,
+
+:) so you pointed out the most interesting problem in this challenge: 
+"How to start (fast) a remote process on Windows from a console"
+
+The aim was to find a clean solution without mixing up Windows with 
+Linux staff like ssh or PsTools or rsh or  vis versa. With MPICH2, smpd 
+service/daemon running, it is possible so start processes on each worker.
+I am working on a Windows machine, so the R command to start a 
+Windows-worker is as follows:
+     system(paste("mpiexec -hosts ",length(nodestostart)," 
+",paste(nodestostart,collapse=" ")," C:\\MPI_R_Start.bat 
+",hostname,sep=""),wait=F)
+"wait = F" important, because the next command should be 
+makeCluster(listofnodes,type=SOCK)
+So I wrote a batch-file for windows and a shell script for Linux, which 
+sets up each machine individually and which is started remote form 
+MPICH2. This config script starts as many Rscripts as I had configured 
+before. The Master on the other side knows how many workers are 
+available an each machine.
+
+Important! It takes no configuration like rshcmd (because ssh is not 
+available on Win). One must guarantee that "makeCluster()" comes after 
+"starting Workers" thats the "trick". This works fine, because 
+makeCluster() makes the master waiting for each worker calling back. If 
+the master is not responding, the worker shuts down, so far in the Linux 
+world.
+
+And finally: Yes Mpich2 is able to start every program / command on a 
+remote machine. Thats a bit of a security problem, if you were very 
+strong and restrictive to me.
+
+I hope I answered in your sense!
+
+Martin
+
+
+Dipl.-Ing. Martin Seilmayer
+
+Helmholtz-Zentrum Dresden-Rossendorf e. V.
+
+Institut fuer Fluiddynamik
+Abteilung Magnetohydrodynamik
+Bautzner Landstra?e 400
+01328 Dresden, Germany
+
+@fon: +49 351 260  3165
+@fax: +49 351 260 12969
+@web: www.hzdr.de
+
+Am 03.07.2012 16:44, schrieb Stephen Weston:
+> On Tue, Jul 3, 2012 at 5:31 AM, Martin Seilmayer <M.Seilmayer at hzdr.de> wrote:
+>> Hi all of you,
+>>
+>> I successfully created a hybrid cluster of several Windows and Linux
+>> machines using snow and MPICH2. Basically I setup a SOCK - Cluster. To start
+>> the Rscript processes on each machine MPICH2 comes in the game. Because it
+> Are you saying that you're using MPICH2 to start your workers on the
+> remote machines when creating a SOCK cluster?  How are you doing that?
+> Are you setting the rshcmd option in some way?  Does MPICH2 include a
+> remote execution command that is ssh-like?
+>
+> - Steve Weston
+
+
+From stephen.b.weston at gmail.com  Tue Jul  3 20:03:43 2012
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Tue, 3 Jul 2012 14:03:43 -0400
+Subject: [R-sig-hpc] SNOW Hybrid Cluster in R, Network problems
+In-Reply-To: <4FF30B15.4090507@hzdr.de>
+References: <4FF2BBF2.1080303@hzdr.de>
+	<CALh21iL1MrheZU95Lo+ivw0PfGKBi+2Eh9e9vmLV+B8DzcE_+A@mail.gmail.com>
+	<4FF30B15.4090507@hzdr.de>
+Message-ID: <CALh21iL1Wci3bb64wcEqttO7V2+LS6MOsF29KF23tZm+NQpzgQ@mail.gmail.com>
+
+Hi Martin,
+
+So if mpiexec works on your machines, why aren't you creating
+a snow MPI cluster?
+
+- Steve
+
+
+On Tue, Jul 3, 2012 at 11:09 AM, Martin Seilmayer <M.Seilmayer at hzdr.de> wrote:
+> Hi Steve,
+>
+> :) so you pointed out the most interesting problem in this challenge: "How
+> to start (fast) a remote process on Windows from a console"
+>
+> The aim was to find a clean solution without mixing up Windows with Linux
+> staff like ssh or PsTools or rsh or  vis versa. With MPICH2, smpd
+> service/daemon running, it is possible so start processes on each worker.
+> I am working on a Windows machine, so the R command to start a
+> Windows-worker is as follows:
+>     system(paste("mpiexec -hosts ",length(nodestostart),"
+> ",paste(nodestostart,collapse=" ")," C:\\MPI_R_Start.bat
+> ",hostname,sep=""),wait=F)
+> "wait = F" important, because the next command should be
+> makeCluster(listofnodes,type=SOCK)
+> So I wrote a batch-file for windows and a shell script for Linux, which sets
+> up each machine individually and which is started remote form MPICH2. This
+> config script starts as many Rscripts as I had configured before. The Master
+> on the other side knows how many workers are available an each machine.
+>
+> Important! It takes no configuration like rshcmd (because ssh is not
+> available on Win). One must guarantee that "makeCluster()" comes after
+> "starting Workers" thats the "trick". This works fine, because makeCluster()
+> makes the master waiting for each worker calling back. If the master is not
+> responding, the worker shuts down, so far in the Linux world.
+>
+> And finally: Yes Mpich2 is able to start every program / command on a remote
+> machine. Thats a bit of a security problem, if you were very strong and
+> restrictive to me.
+>
+> I hope I answered in your sense!
+>
+> Martin
+>
+>
+>
+> Dipl.-Ing. Martin Seilmayer
+>
+> Helmholtz-Zentrum Dresden-Rossendorf e. V.
+>
+> Institut fuer Fluiddynamik
+> Abteilung Magnetohydrodynamik
+> Bautzner Landstra?e 400
+> 01328 Dresden, Germany
+>
+> @fon: +49 351 260 3165
+> @fax: +49 351 260 12969
+> @web: www.hzdr.de
+>
+> Am 03.07.2012 16:44, schrieb Stephen Weston:
+>
+>> On Tue, Jul 3, 2012 at 5:31 AM, Martin Seilmayer <M.Seilmayer at hzdr.de>
+>> wrote:
+>>>
+>>> Hi all of you,
+>>>
+>>> I successfully created a hybrid cluster of several Windows and Linux
+>>> machines using snow and MPICH2. Basically I setup a SOCK - Cluster. To
+>>> start
+>>> the Rscript processes on each machine MPICH2 comes in the game. Because
+>>> it
+>>
+>> Are you saying that you're using MPICH2 to start your workers on the
+>> remote machines when creating a SOCK cluster?  How are you doing that?
+>> Are you setting the rshcmd option in some way?  Does MPICH2 include a
+>> remote execution command that is ssh-like?
+>>
+>> - Steve Weston
+>
+>
+>
+
+
+From pauljohn32 at gmail.com  Tue Jul  3 22:10:05 2012
+From: pauljohn32 at gmail.com (Paul Johnson)
+Date: Tue, 3 Jul 2012 15:10:05 -0500
+Subject: [R-sig-hpc] Wired problem in using 'snow' on HPC
+In-Reply-To: <CAAjXVjqchQgdQvV1rF3nt7Gkn+dPi6T7JfmgLB_YfV4z8oB_HA@mail.gmail.com>
+References: <CAAjXVjqchQgdQvV1rF3nt7Gkn+dPi6T7JfmgLB_YfV4z8oB_HA@mail.gmail.com>
+Message-ID: <CAErODj99nHGiw47G_aS5-2tYT0oY4szJ7edr6D7YhNahdnHg9Q@mail.gmail.com>
+
+On Mon, Jul 2, 2012 at 12:23 PM, Libo Sun <libosun at rams.colostate.edu> wrote:
+> Hello,
+>
+> I have a wired problem in using 'snow' on HPC. I try to use 256 or more
+> cores, but it stops immediately just right after starting. However, it
+> works fine if I use the exactly the same R code for 96 cores. There is no
+> core count limit.
+>
+> I would appreciate any ideas!
+
+Please remember to post questions that are detailed enough to answer.
+A good start here would be for you to upload your submission script
+and R file on some file server and announce links in here with a
+description of the problem. Also post the output files.
+
+Possible reasons why your job might die?
+
+1. your cluster administrator has blocked you from using more than 255 cores
+2. your cluster only has 97 cores
+3. there's a typographical error in your submission script
+4. your submission script asks for impossible-to-fulfill memory allocations.
+5. your R code has a mistake
+
+pj
+
+>
+> Libo
+>
+>         [[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+
+-- 
+Paul E. Johnson
+Professor, Political Science    Assoc. Director
+1541 Lilac Lane, Room 504     Center for Research Methods
+University of Kansas               University of Kansas
+http://pj.freefaculty.org            http://quant.ku.edu
+
+
+From M.Seilmayer at hzdr.de  Wed Jul  4 09:23:14 2012
+From: M.Seilmayer at hzdr.de (Martin Seilmayer)
+Date: Wed, 04 Jul 2012 09:23:14 +0200
+Subject: [R-sig-hpc] SNOW Hybrid Cluster in R, Network problems
+In-Reply-To: <CALh21iL1Wci3bb64wcEqttO7V2+LS6MOsF29KF23tZm+NQpzgQ@mail.gmail.com>
+References: <4FF2BBF2.1080303@hzdr.de>
+	<CALh21iL1MrheZU95Lo+ivw0PfGKBi+2Eh9e9vmLV+B8DzcE_+A@mail.gmail.com>
+	<4FF30B15.4090507@hzdr.de>
+	<CALh21iL1Wci3bb64wcEqttO7V2+LS6MOsF29KF23tZm+NQpzgQ@mail.gmail.com>
+Message-ID: <4FF3EF62.9080709@hzdr.de>
+
+Hi Steve,
+
+as far as I know rmpi is only available for Unix. So I would say I am a 
+Windows enthusiast, may be this is not optimal, but in the end MPI is 
+ending with the missing package support in R. Please correct me, if I 
+were wrong. And the final question is, if it is possible to build a 
+hybrid cluster with MPI and R. For Socket clusters the answer is "yes".
+
+
+Cu
+Martin
+
+Dipl.-Ing. Martin Seilmayer
+
+Helmholtz-Zentrum Dresden-Rossendorf e. V.
+
+Institut fuer Fluiddynamik
+Abteilung Magnetohydrodynamik
+Bautzner Landstra?e 400
+01328 Dresden, Germany
+
+@fon: +49 351 260  3165
+@fax: +49 351 260 12969
+@web: www.hzdr.de
+
+Am 03.07.2012 20:03, schrieb Stephen Weston:
+> Hi Martin,
+>
+> So if mpiexec works on your machines, why aren't you creating
+> a snow MPI cluster?
+>
+> - Steve
+>
+>
+> On Tue, Jul 3, 2012 at 11:09 AM, Martin Seilmayer <M.Seilmayer at hzdr.de> wrote:
+>> Hi Steve,
+>>
+>> :) so you pointed out the most interesting problem in this challenge: "How
+>> to start (fast) a remote process on Windows from a console"
+>>
+>> The aim was to find a clean solution without mixing up Windows with Linux
+>> staff like ssh or PsTools or rsh or  vis versa. With MPICH2, smpd
+>> service/daemon running, it is possible so start processes on each worker.
+>> I am working on a Windows machine, so the R command to start a
+>> Windows-worker is as follows:
+>>      system(paste("mpiexec -hosts ",length(nodestostart),"
+>> ",paste(nodestostart,collapse=" ")," C:\\MPI_R_Start.bat
+>> ",hostname,sep=""),wait=F)
+>> "wait = F" important, because the next command should be
+>> makeCluster(listofnodes,type=SOCK)
+>> So I wrote a batch-file for windows and a shell script for Linux, which sets
+>> up each machine individually and which is started remote form MPICH2. This
+>> config script starts as many Rscripts as I had configured before. The Master
+>> on the other side knows how many workers are available an each machine.
+>>
+>> Important! It takes no configuration like rshcmd (because ssh is not
+>> available on Win). One must guarantee that "makeCluster()" comes after
+>> "starting Workers" thats the "trick". This works fine, because makeCluster()
+>> makes the master waiting for each worker calling back. If the master is not
+>> responding, the worker shuts down, so far in the Linux world.
+>>
+>> And finally: Yes Mpich2 is able to start every program / command on a remote
+>> machine. Thats a bit of a security problem, if you were very strong and
+>> restrictive to me.
+>>
+>> I hope I answered in your sense!
+>>
+>> Martin
+>>
+>>
+>>
+>> Dipl.-Ing. Martin Seilmayer
+>>
+>> Helmholtz-Zentrum Dresden-Rossendorf e. V.
+>>
+>> Institut fuer Fluiddynamik
+>> Abteilung Magnetohydrodynamik
+>> Bautzner Landstra?e 400
+>> 01328 Dresden, Germany
+>>
+>> @fon: +49 351 260 3165
+>> @fax: +49 351 260 12969
+>> @web: www.hzdr.de
+>>
+>> Am 03.07.2012 16:44, schrieb Stephen Weston:
+>>
+>>> On Tue, Jul 3, 2012 at 5:31 AM, Martin Seilmayer <M.Seilmayer at hzdr.de>
+>>> wrote:
+>>>> Hi all of you,
+>>>>
+>>>> I successfully created a hybrid cluster of several Windows and Linux
+>>>> machines using snow and MPICH2. Basically I setup a SOCK - Cluster. To
+>>>> start
+>>>> the Rscript processes on each machine MPICH2 comes in the game. Because
+>>>> it
+>>> Are you saying that you're using MPICH2 to start your workers on the
+>>> remote machines when creating a SOCK cluster?  How are you doing that?
+>>> Are you setting the rshcmd option in some way?  Does MPICH2 include a
+>>> remote execution command that is ssh-like?
+>>>
+>>> - Steve Weston
+>>
+>>
+
+
+From M.Seilmayer at hzdr.de  Wed Jul  4 10:20:42 2012
+From: M.Seilmayer at hzdr.de (Martin Seilmayer)
+Date: Wed, 04 Jul 2012 10:20:42 +0200
+Subject: [R-sig-hpc] SNOW Hybrid Cluster in R, Network problems
+In-Reply-To: <CALh21iL1Wci3bb64wcEqttO7V2+LS6MOsF29KF23tZm+NQpzgQ@mail.gmail.com>
+References: <4FF2BBF2.1080303@hzdr.de>
+	<CALh21iL1MrheZU95Lo+ivw0PfGKBi+2Eh9e9vmLV+B8DzcE_+A@mail.gmail.com>
+	<4FF30B15.4090507@hzdr.de>
+	<CALh21iL1Wci3bb64wcEqttO7V2+LS6MOsF29KF23tZm+NQpzgQ@mail.gmail.com>
+Message-ID: <4FF3FCDA.9020607@hzdr.de>
+
+Hi Steve,
+
+I was a little bit wrong! Rmpi is available for windows R, but it seems 
+to be not compatible with MPICH2!
+
+So whats next... I have the Network / Software problem!!
+
+Cu
+Martin
+
+Dipl.-Ing. Martin Seilmayer
+
+Helmholtz-Zentrum Dresden-Rossendorf e. V.
+
+Institut fuer Fluiddynamik
+Abteilung Magnetohydrodynamik
+Bautzner Landstra?e 400
+01328 Dresden, Germany
+
+@fon: +49 351 260  3165
+@fax: +49 351 260 12969
+@web: www.hzdr.de
+
+Am 03.07.2012 20:03, schrieb Stephen Weston:
+> Hi Martin,
+>
+> So if mpiexec works on your machines, why aren't you creating
+> a snow MPI cluster?
+>
+> - Steve
+>
+>
+> On Tue, Jul 3, 2012 at 11:09 AM, Martin Seilmayer <M.Seilmayer at hzdr.de> wrote:
+>> Hi Steve,
+>>
+>> :) so you pointed out the most interesting problem in this challenge: "How
+>> to start (fast) a remote process on Windows from a console"
+>>
+>> The aim was to find a clean solution without mixing up Windows with Linux
+>> staff like ssh or PsTools or rsh or  vis versa. With MPICH2, smpd
+>> service/daemon running, it is possible so start processes on each worker.
+>> I am working on a Windows machine, so the R command to start a
+>> Windows-worker is as follows:
+>>      system(paste("mpiexec -hosts ",length(nodestostart),"
+>> ",paste(nodestostart,collapse=" ")," C:\\MPI_R_Start.bat
+>> ",hostname,sep=""),wait=F)
+>> "wait = F" important, because the next command should be
+>> makeCluster(listofnodes,type=SOCK)
+>> So I wrote a batch-file for windows and a shell script for Linux, which sets
+>> up each machine individually and which is started remote form MPICH2. This
+>> config script starts as many Rscripts as I had configured before. The Master
+>> on the other side knows how many workers are available an each machine.
+>>
+>> Important! It takes no configuration like rshcmd (because ssh is not
+>> available on Win). One must guarantee that "makeCluster()" comes after
+>> "starting Workers" thats the "trick". This works fine, because makeCluster()
+>> makes the master waiting for each worker calling back. If the master is not
+>> responding, the worker shuts down, so far in the Linux world.
+>>
+>> And finally: Yes Mpich2 is able to start every program / command on a remote
+>> machine. Thats a bit of a security problem, if you were very strong and
+>> restrictive to me.
+>>
+>> I hope I answered in your sense!
+>>
+>> Martin
+>>
+>>
+>>
+>> Dipl.-Ing. Martin Seilmayer
+>>
+>> Helmholtz-Zentrum Dresden-Rossendorf e. V.
+>>
+>> Institut fuer Fluiddynamik
+>> Abteilung Magnetohydrodynamik
+>> Bautzner Landstra?e 400
+>> 01328 Dresden, Germany
+>>
+>> @fon: +49 351 260 3165
+>> @fax: +49 351 260 12969
+>> @web: www.hzdr.de
+>>
+>> Am 03.07.2012 16:44, schrieb Stephen Weston:
+>>
+>>> On Tue, Jul 3, 2012 at 5:31 AM, Martin Seilmayer <M.Seilmayer at hzdr.de>
+>>> wrote:
+>>>> Hi all of you,
+>>>>
+>>>> I successfully created a hybrid cluster of several Windows and Linux
+>>>> machines using snow and MPICH2. Basically I setup a SOCK - Cluster. To
+>>>> start
+>>>> the Rscript processes on each machine MPICH2 comes in the game. Because
+>>>> it
+>>> Are you saying that you're using MPICH2 to start your workers on the
+>>> remote machines when creating a SOCK cluster?  How are you doing that?
+>>> Are you setting the rshcmd option in some way?  Does MPICH2 include a
+>>> remote execution command that is ssh-like?
+>>>
+>>> - Steve Weston
+>>
+>>
+
+
+From M.Seilmayer at hzdr.de  Wed Jul  4 12:06:05 2012
+From: M.Seilmayer at hzdr.de (Martin Seilmayer)
+Date: Wed, 04 Jul 2012 12:06:05 +0200
+Subject: [R-sig-hpc] SNOW Hybrid Cluster in R, Network problems
+In-Reply-To: <CALh21iL1Wci3bb64wcEqttO7V2+LS6MOsF29KF23tZm+NQpzgQ@mail.gmail.com>
+References: <4FF2BBF2.1080303@hzdr.de>
+	<CALh21iL1MrheZU95Lo+ivw0PfGKBi+2Eh9e9vmLV+B8DzcE_+A@mail.gmail.com>
+	<4FF30B15.4090507@hzdr.de>
+	<CALh21iL1Wci3bb64wcEqttO7V2+LS6MOsF29KF23tZm+NQpzgQ@mail.gmail.com>
+Message-ID: <4FF4158D.5060704@hzdr.de>
+
+Hi,
+
+I solved the problem of big networkload using parLapply!!
+
+I will explain it in short with a similar example:
+
+cl<-makeCluster(4,type="SOCK")
+
+spectrum.lomb<-function(x,y) { ....}    x... space vector e.g. time, or 
+location
+y... measured data
+
+spectrum.lomb calculates a periodogram (frequency analysis) depending on 
+x and y
+
+we have many data in y with the same space vector on x. So a data list 
+can be created
+
+dat<-list(all_y)        dat[[1]]=y1; dat[[2]]=y2; .... and so on
+
+If youy want to use lapply, one have to ensure that the first argument 
+in the function FUN is a listelement of 'dat'. So in case of our 
+function we need to change the order of variables, because x is always 
+the same!!!
+
+fun2<-function()
+{
+      clusterExport(cl,ls.str(mode="function",envir=.GlobalEnv )) # 
+export ONLY the functions not the DATA to each node
+
+     result<-parLapply(cl,dat,function(a,b) spectrum.lomb(b,a), b<-x)    
+# change of variables order!!
+     return(result)
+}
+fun2()    producing much networkload
+
+Now take into account that parallel computing needs to distribute all 
+relevant data to each node. In this case it should be the data list and 
+the constant x vector. But this call end up in heavy network load and 
+malfunction of network on 2 of my windows workers. Of some reason the 
+indirect call of spectrum.lomb(x,y) causes R to distribute all the 
+environment to each node. In my case sensor data is to be calculated and 
+the environment ist about 500MB large. The result is, that n times 500MB 
+changing the place and acquiring many Memory on the machines.
+!!! Now if you try to call 'clusterExport' and 'parLapply' from console, 
+every thing is fine, and network load is as low as possible. !!!
+
+# changing the variables order in the definition of the function
+
+spectrum.lomb<-function(y,x) { ....}    x... space vector e.g. time, or 
+location
+y... measured data
+fun3<-function()
+{
+      clusterExport(cl,ls.str(mode="function",envir=.GlobalEnv )) # 
+export ONLY the functions not the DATA to each node
+
+     result<-parLapply(cl,dat, spectrum.lomb, x<-constant_vector)    
+change of variables order!!
+     return(result)
+}
+fun3()    causing minimal network load
+
+So in the end I rewrote my definition and the problem is gone. But could 
+anybody explain that to me?! Is see the point with the environments, but 
+I don't understand this.
+
+
+Cu and many thanks!
+
+Martin
+
+
+
+
+
+Dipl.-Ing. Martin Seilmayer
+
+Helmholtz-Zentrum Dresden-Rossendorf e. V.
+
+Institut fuer Fluiddynamik
+Abteilung Magnetohydrodynamik
+Bautzner Landstra?e 400
+01328 Dresden, Germany
+
+@fon: +49 351 260  3165
+@fax: +49 351 260 12969
+@web: www.hzdr.de
+
+Am 03.07.2012 20:03, schrieb Stephen Weston:
+> Hi Martin,
+>
+> So if mpiexec works on your machines, why aren't you creating
+> a snow MPI cluster?
+>
+> - Steve
+>
+>
+> On Tue, Jul 3, 2012 at 11:09 AM, Martin Seilmayer <M.Seilmayer at hzdr.de> wrote:
+>> Hi Steve,
+>>
+>> :) so you pointed out the most interesting problem in this challenge: "How
+>> to start (fast) a remote process on Windows from a console"
+>>
+>> The aim was to find a clean solution without mixing up Windows with Linux
+>> staff like ssh or PsTools or rsh or  vis versa. With MPICH2, smpd
+>> service/daemon running, it is possible so start processes on each worker.
+>> I am working on a Windows machine, so the R command to start a
+>> Windows-worker is as follows:
+>>      system(paste("mpiexec -hosts ",length(nodestostart),"
+>> ",paste(nodestostart,collapse=" ")," C:\\MPI_R_Start.bat
+>> ",hostname,sep=""),wait=F)
+>> "wait = F" important, because the next command should be
+>> makeCluster(listofnodes,type=SOCK)
+>> So I wrote a batch-file for windows and a shell script for Linux, which sets
+>> up each machine individually and which is started remote form MPICH2. This
+>> config script starts as many Rscripts as I had configured before. The Master
+>> on the other side knows how many workers are available an each machine.
+>>
+>> Important! It takes no configuration like rshcmd (because ssh is not
+>> available on Win). One must guarantee that "makeCluster()" comes after
+>> "starting Workers" thats the "trick". This works fine, because makeCluster()
+>> makes the master waiting for each worker calling back. If the master is not
+>> responding, the worker shuts down, so far in the Linux world.
+>>
+>> And finally: Yes Mpich2 is able to start every program / command on a remote
+>> machine. Thats a bit of a security problem, if you were very strong and
+>> restrictive to me.
+>>
+>> I hope I answered in your sense!
+>>
+>> Martin
+>>
+>>
+>>
+>> Dipl.-Ing. Martin Seilmayer
+>>
+>> Helmholtz-Zentrum Dresden-Rossendorf e. V.
+>>
+>> Institut fuer Fluiddynamik
+>> Abteilung Magnetohydrodynamik
+>> Bautzner Landstra?e 400
+>> 01328 Dresden, Germany
+>>
+>> @fon: +49 351 260 3165
+>> @fax: +49 351 260 12969
+>> @web: www.hzdr.de
+>>
+>> Am 03.07.2012 16:44, schrieb Stephen Weston:
+>>
+>>> On Tue, Jul 3, 2012 at 5:31 AM, Martin Seilmayer <M.Seilmayer at hzdr.de>
+>>> wrote:
+>>>> Hi all of you,
+>>>>
+>>>> I successfully created a hybrid cluster of several Windows and Linux
+>>>> machines using snow and MPICH2. Basically I setup a SOCK - Cluster. To
+>>>> start
+>>>> the Rscript processes on each machine MPICH2 comes in the game. Because
+>>>> it
+>>> Are you saying that you're using MPICH2 to start your workers on the
+>>> remote machines when creating a SOCK cluster?  How are you doing that?
+>>> Are you setting the rshcmd option in some way?  Does MPICH2 include a
+>>> remote execution command that is ssh-like?
+>>>
+>>> - Steve Weston
+>>
+>>
+
+
+From mauricio.zambrano at jrc.ec.europa.eu  Mon Jul  9 10:49:54 2012
+From: mauricio.zambrano at jrc.ec.europa.eu (Mauricio Zambrano-Bigiarini)
+Date: Mon, 09 Jul 2012 10:49:54 +0200
+Subject: [R-sig-hpc] multicore performance question
+Message-ID: <4FFA9B32.7060304@jrc.ec.europa.eu>
+
+Dear list,
+
+I need to evaluate a vectorial function (~30 dimensions), and I would 
+like to know if it is possible to take advantage of a multicore machine.
+
+So far, I'm using the multicore package, and I'm not getting any time 
+saving. I guess the larger the computation time the larger the gain in 
+performance, and probably that is the reason why I'm not speeding up my 
+computations by using multicore.
+
+However, I would like to ask you if the reason for not getting any time 
+saving by using 'multicore' is the short time of my computations OR  the 
+way in which I defined the function to be run (fn and fn1):
+
+----------- START --------------
+library(multicore)
+
+  fn <- function(x) {
+     n <- length(x)
+     return(1 + (1/4000) * sum(x^2) - prod(cos(x/sqrt(seq(1:n)))))
+  }
+
+  fn1 <- function(i, x) fn(x[i,])
+
+  nr <- 500
+  X <- matrix(rnorm(1000), ncol=30, nrow=nr)
+
+  # No multicore
+  set.seed(100)
+  system.time(
+    unlist(lapply(1:nr, FUN=fn1, x=X))
+  )
+
+  # multicore
+  set.seed(100)
+  system.time(
+    unlist(mclapply(1:nr, FUN=fn1, x=X, mc.cores=6))
+  )
+
+sessionInfo()
+R version 2.15.0 (2012-03-30)
+Platform: x86_64-redhat-linux-gnu (64-bit)
+
+locale:
+  [1] LC_CTYPE=en_GB.utf8       LC_NUMERIC=C
+  [3] LC_TIME=en_GB.utf8        LC_COLLATE=en_GB.utf8
+  [5] LC_MONETARY=en_GB.utf8    LC_MESSAGES=en_GB.utf8
+  [7] LC_PAPER=C                LC_NAME=C
+  [9] LC_ADDRESS=C              LC_TELEPHONE=C
+[11] LC_MEASUREMENT=en_GB.utf8 LC_IDENTIFICATION=C
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base
+
+other attached packages:
+[1] multicore_0.1-7  hydroPSO_0.1-57  hydroTSM_0.3-5-2 xts_0.8-6
+[5] zoo_1.7-7        sp_0.9-99
+
+loaded via a namespace (and not attached):
+[1] automap_1.0-12 class_7.3-4    cluster_1.14.2 e1071_1.6 
+grid_2.15.0
+[6] gstat_1.0-12   Hmisc_3.9-3    lattice_0.20-6 tools_2.15.0
+
+----------- END --------------
+
+
+any comment will be very much appreciated.
+
+
+Thanks in advance,
+
+
+Mauricio Zambrano-Bigiarini
+
+-- 
+====================================================
+Water Resources Unit
+Institute for Environment and Sustainability (IES)
+Joint Research Centre (JRC), European Commission
+webinfo    : http://floods.jrc.ec.europa.eu/
+====================================================
+DISCLAIMER:\ "The views expressed are purely those of th...{{dropped:10}}
+
+
+From R.M.Krug at gmail.com  Mon Jul  9 12:03:28 2012
+From: R.M.Krug at gmail.com (Rainer M Krug)
+Date: Mon, 09 Jul 2012 12:03:28 +0200
+Subject: [R-sig-hpc] multicore performance question
+In-Reply-To: <4FFA9B32.7060304@jrc.ec.europa.eu>
+References: <4FFA9B32.7060304@jrc.ec.europa.eu>
+Message-ID: <4FFAAC70.6040402@gmail.com>
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+On 09/07/12 10:49, Mauricio Zambrano-Bigiarini wrote:
+> Dear list,
+> 
+> I need to evaluate a vectorial function (~30 dimensions), and I would like to know if it is
+> possible to take advantage of a multicore machine.
+> 
+> So far, I'm using the multicore package, and I'm not getting any time saving. I guess the
+> larger the computation time the larger the gain in performance, and probably that is the reason
+> why I'm not speeding up my computations by using multicore.
+> 
+> However, I would like to ask you if the reason for not getting any time saving by using
+> 'multicore'
+
+
+Well - I see a difference:
+
+Without multicore:
+  user  system elapsed
+  0.020   0.000   0.023
+
+With multicore:
+  user  system elapsed
+  0.012   0.024   0.048
+
+Approximately the same for a few tries, and the two times factor one would expect (I use a dual core).
+
+Or even more pronounced:
+
+> nr <- 5000; X <- matrix(rnorm(1000), ncol=30, nrow=nr) set.seed(100);
+> system.time(unlist(lapply(1:nr, FUN=fn1, x=X)))
+   user  system elapsed
+  0.224   0.004   0.229
+> set.seed(100); system.time(unlist(mclapply(1:nr, FUN=fn1, x=X)))
+   user  system elapsed
+  0.120   0.044   0.174
+> 
+
+Cheers,
+
+Rainer
+
+
+> is the short time of my computations OR  the way in which I defined the function to be run (fn
+> and fn1):
+> 
+> ----------- START -------------- library(multicore)
+> 
+> fn <- function(x) { n <- length(x) return(1 + (1/4000) * sum(x^2) -
+> prod(cos(x/sqrt(seq(1:n))))) }
+> 
+> fn1 <- function(i, x) fn(x[i,])
+> 
+> nr <- 500 X <- matrix(rnorm(1000), ncol=30, nrow=nr)
+> 
+> # No multicore set.seed(100) system.time( unlist(lapply(1:nr, FUN=fn1, x=X)) )
+> 
+> # multicore set.seed(100) system.time( unlist(mclapply(1:nr, FUN=fn1, x=X, mc.cores=6)) )
+> 
+> sessionInfo() R version 2.15.0 (2012-03-30) Platform: x86_64-redhat-linux-gnu (64-bit)
+> 
+> locale: [1] LC_CTYPE=en_GB.utf8       LC_NUMERIC=C [3] LC_TIME=en_GB.utf8
+> LC_COLLATE=en_GB.utf8 [5] LC_MONETARY=en_GB.utf8    LC_MESSAGES=en_GB.utf8 [7] LC_PAPER=C
+> LC_NAME=C [9] LC_ADDRESS=C              LC_TELEPHONE=C [11] LC_MEASUREMENT=en_GB.utf8
+> LC_IDENTIFICATION=C
+> 
+> attached base packages: [1] stats     graphics  grDevices utils     datasets  methods   base
+> 
+> other attached packages: [1] multicore_0.1-7  hydroPSO_0.1-57  hydroTSM_0.3-5-2 xts_0.8-6 [5]
+> zoo_1.7-7        sp_0.9-99
+> 
+> loaded via a namespace (and not attached): [1] automap_1.0-12 class_7.3-4    cluster_1.14.2
+> e1071_1.6 grid_2.15.0 [6] gstat_1.0-12   Hmisc_3.9-3    lattice_0.20-6 tools_2.15.0
+> 
+> ----------- END --------------
+> 
+> 
+> any comment will be very much appreciated.
+> 
+> 
+> Thanks in advance,
+> 
+> 
+> Mauricio Zambrano-Bigiarini
+> 
+
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.11 (GNU/Linux)
+Comment: Using GnuPG with Mozilla - http://enigmail.mozdev.org/
+
+iEYEARECAAYFAk/6rHAACgkQoYgNqgF2egqIbwCfWrRiqXkJU8HaNbeDBjVcEYvp
+cD8An0vfecXhlB4BKElZFQvzg5gaHMUh
+=Vvy2
+-----END PGP SIGNATURE-----
+
+
+From mauricio.zambrano at jrc.ec.europa.eu  Mon Jul  9 12:18:31 2012
+From: mauricio.zambrano at jrc.ec.europa.eu (Mauricio Zambrano-Bigiarini)
+Date: Mon, 09 Jul 2012 12:18:31 +0200
+Subject: [R-sig-hpc] multicore performance question
+In-Reply-To: <4FFA9B32.7060304@jrc.ec.europa.eu>
+References: <4FFA9B32.7060304@jrc.ec.europa.eu>
+Message-ID: <4FFAAFF7.70204@jrc.ec.europa.eu>
+
+I apologise. In my previous e-mail I did not write the time spent in 
+each function:
+
+# No multicore
+nr <- 500 ; X <- matrix(rnorm(1000), ncol=30, nrow=nr)
+set.seed(100)
+system.time(
+    unlist(lapply(1:nr, FUN=fn1, x=X))
+)
+#   user  system elapsed
+#  0.013   0.000   0.013
+
+# multicore
+nr <- 500 ; X <- matrix(rnorm(1000), ncol=30, nrow=nr)
+set.seed(100)
+system.time(
+   unlist(mclapply(1:nr, FUN=fn1, x=X, mc.cores=6))
+)
+#   user  system elapsed
+#  0.030   0.380   0.125
+
+Running on RHEL6 (64) with 8 cores.
+
+Thanks in advance,
+
+Mauricio
+
+-- 
+====================================================
+Water Resources Unit
+Institute for Environment and Sustainability (IES)
+Joint Research Centre (JRC), European Commission
+webinfo    : http://floods.jrc.ec.europa.eu/
+====================================================
+DISCLAIMER:
+"The views expressed are purely those of the writer
+and may not in any circumstances be regarded as sta-
+ting an official position of the European Commission"
+====================================================
+Linux user #454569 -- Ubuntu user #17469
+====================================================
+"If you torture any data set long enough,
+it will confess anything!" (Murray Lark)
+
+On 09/07/12 10:49, Mauricio Zambrano-Bigiarini wrote:
+> Dear list,
+>
+> I need to evaluate a vectorial function (~30 dimensions), and I would
+> like to know if it is possible to take advantage of a multicore machine.
+>
+> So far, I'm using the multicore package, and I'm not getting any time
+> saving. I guess the larger the computation time the larger the gain in
+> performance, and probably that is the reason why I'm not speeding up my
+> computations by using multicore.
+>
+> However, I would like to ask you if the reason for not getting any time
+> saving by using 'multicore' is the short time of my computations OR the
+> way in which I defined the function to be run (fn and fn1):
+>
+> ----------- START --------------
+> library(multicore)
+>
+> fn <- function(x) {
+> n <- length(x)
+> return(1 + (1/4000) * sum(x^2) - prod(cos(x/sqrt(seq(1:n)))))
+> }
+>
+> fn1 <- function(i, x) fn(x[i,])
+>
+> nr <- 500
+> X <- matrix(rnorm(1000), ncol=30, nrow=nr)
+>
+> # No multicore
+> set.seed(100)
+> system.time(
+> unlist(lapply(1:nr, FUN=fn1, x=X))
+> )
+>
+> # multicore
+> set.seed(100)
+> system.time(
+> unlist(mclapply(1:nr, FUN=fn1, x=X, mc.cores=6))
+> )
+>
+> sessionInfo()
+> R version 2.15.0 (2012-03-30)
+> Platform: x86_64-redhat-linux-gnu (64-bit)
+>
+> locale:
+> [1] LC_CTYPE=en_GB.utf8 LC_NUMERIC=C
+> [3] LC_TIME=en_GB.utf8 LC_COLLATE=en_GB.utf8
+> [5] LC_MONETARY=en_GB.utf8 LC_MESSAGES=en_GB.utf8
+> [7] LC_PAPER=C LC_NAME=C
+> [9] LC_ADDRESS=C LC_TELEPHONE=C
+> [11] LC_MEASUREMENT=en_GB.utf8 LC_IDENTIFICATION=C
+>
+> attached base packages:
+> [1] stats graphics grDevices utils datasets methods base
+>
+> other attached packages:
+> [1] multicore_0.1-7 hydroPSO_0.1-57 hydroTSM_0.3-5-2 xts_0.8-6
+> [5] zoo_1.7-7 sp_0.9-99
+>
+> loaded via a namespace (and not attached):
+> [1] automap_1.0-12 class_7.3-4 cluster_1.14.2 e1071_1.6 grid_2.15.0
+> [6] gstat_1.0-12 Hmisc_3.9-3 lattice_0.20-6 tools_2.15.0
+>
+> ----------- END --------------
+>
+>
+> any comment will be very much appreciated.
+>
+>
+> Thanks in advance,
+>
+>
+> Mauricio Zambrano-Bigiarini
+>
+
+
+From r.m.krug at gmail.com  Mon Jul  9 13:57:58 2012
+From: r.m.krug at gmail.com (Rainer M Krug)
+Date: Mon, 09 Jul 2012 13:57:58 +0200
+Subject: [R-sig-hpc] multicore performance question
+In-Reply-To: <4FFAB1A2.1080209@jrc.ec.europa.eu>
+References: <4FFA9B32.7060304@jrc.ec.europa.eu> <4FFAAC70.6040402@gmail.com>
+	<4FFAB1A2.1080209@jrc.ec.europa.eu>
+Message-ID: <4FFAC746.1060603@gmail.com>
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+On 09/07/12 12:25, Mauricio Zambrano-Bigiarini wrote:
+> Thanks Rainer for your feedback.
+> 
+> What I got for the second case (also almost the same for a few trials):
+> 
+> nr <- 5000; X <- matrix(rnorm(1000), ncol=30, nrow=nr); set.seed(100)
+> 
+> system.time(unlist(lapply(1:nr, FUN=fn1, x=X))) #   user  system elapsed #  0.139   0.000
+> 0.140
+> 
+> 
+> set.seed(100); system.time(unlist(mclapply(1:nr, FUN=fn1, x=X)))
+> 
+> #   user  system elapsed #  0.083   0.091   0.118
+> 
+> 
+> In that case mclapply is slightly faster than lapply. Do you have any idea why?
+
+Please keep this on-list - somebody else might have any ideas.
+
+You have the actual computation time and communication time. If the computation time is small, you
+won't see an increase in speed when using several cores. But if the computations take long, you
+might / will see a speed increase. So in this case I guess, that the computation is fast, and the
+communication between the threads / data transfer takes up the chunk of the time. You can check
+this by running the code on one core, 2 cores, ... up to eight cores and plot the time needed (you
+can set the number of threads in multicore).
+
+
+Cheers,
+
+Rainer
+
+> 
+> I'm running on an 8 cores machine with RHEL6 (64).
+> 
+> Thanks in advance,
+> 
+> Mauricio
+> 
+> 
+> On 09/07/12 12:03, Rainer M Krug wrote:
+>> 
+>> 
+> On 09/07/12 10:49, Mauricio Zambrano-Bigiarini wrote:
+>>>> Dear list,
+>>>> 
+>>>> I need to evaluate a vectorial function (~30 dimensions), and I would like to know if it
+>>>> is possible to take advantage of a multicore machine.
+>>>> 
+>>>> So far, I'm using the multicore package, and I'm not getting any time saving. I guess
+>>>> the larger the computation time the larger the gain in performance, and probably that is
+>>>> the reason why I'm not speeding up my computations by using multicore.
+>>>> 
+>>>> However, I would like to ask you if the reason for not getting any time saving by using 
+>>>> 'multicore'
+> 
+> 
+> Well - I see a difference:
+> 
+> Without multicore: user  system elapsed 0.020   0.000   0.023
+> 
+> With multicore: user  system elapsed 0.012   0.024   0.048
+> 
+> Approximately the same for a few tries, and the two times factor one would expect (I use a
+> dual core).
+> 
+> Or even more pronounced:
+> 
+>>>> nr<- 5000; X<- matrix(rnorm(1000), ncol=30, nrow=nr) set.seed(100); 
+>>>> system.time(unlist(lapply(1:nr, FUN=fn1, x=X)))
+> user  system elapsed 0.224   0.004   0.229
+>>>> set.seed(100); system.time(unlist(mclapply(1:nr, FUN=fn1, x=X)))
+> user  system elapsed 0.120   0.044   0.174
+>>>> 
+> 
+> Cheers,
+> 
+> Rainer
+> 
+> 
+>>>> is the short time of my computations OR  the way in which I defined the function to be
+>>>> run (fn and fn1):
+>>>> 
+>>>> ----------- START -------------- library(multicore)
+>>>> 
+>>>> fn<- function(x) { n<- length(x) return(1 + (1/4000) * sum(x^2) - 
+>>>> prod(cos(x/sqrt(seq(1:n))))) }
+>>>> 
+>>>> fn1<- function(i, x) fn(x[i,])
+>>>> 
+>>>> nr<- 500 X<- matrix(rnorm(1000), ncol=30, nrow=nr)
+>>>> 
+>>>> # No multicore set.seed(100) system.time( unlist(lapply(1:nr, FUN=fn1, x=X)) )
+>>>> 
+>>>> # multicore set.seed(100) system.time( unlist(mclapply(1:nr, FUN=fn1, x=X, mc.cores=6))
+>>>> )
+>>>> 
+>>>> sessionInfo() R version 2.15.0 (2012-03-30) Platform: x86_64-redhat-linux-gnu (64-bit)
+>>>> 
+>>>> locale: [1] LC_CTYPE=en_GB.utf8       LC_NUMERIC=C [3] LC_TIME=en_GB.utf8 
+>>>> LC_COLLATE=en_GB.utf8 [5] LC_MONETARY=en_GB.utf8    LC_MESSAGES=en_GB.utf8 [7]
+>>>> LC_PAPER=C LC_NAME=C [9] LC_ADDRESS=C              LC_TELEPHONE=C [11]
+>>>> LC_MEASUREMENT=en_GB.utf8 LC_IDENTIFICATION=C
+>>>> 
+>>>> attached base packages: [1] stats     graphics  grDevices utils     datasets  methods
+>>>> base
+>>>> 
+>>>> other attached packages: [1] multicore_0.1-7  hydroPSO_0.1-57  hydroTSM_0.3-5-2 xts_0.8-6
+>>>> [5] zoo_1.7-7        sp_0.9-99
+>>>> 
+>>>> loaded via a namespace (and not attached): [1] automap_1.0-12 class_7.3-4
+>>>> cluster_1.14.2 e1071_1.6 grid_2.15.0 [6] gstat_1.0-12   Hmisc_3.9-3    lattice_0.20-6
+>>>> tools_2.15.0
+>>>> 
+>>>> ----------- END --------------
+>>>> 
+>>>> 
+>>>> any comment will be very much appreciated.
+>>>> 
+>>>> 
+>>>> Thanks in advance,
+>>>> 
+>>>> 
+>>>> Mauricio Zambrano-Bigiarini
+>>>> 
+> 
+> 
+>> 
+>> 
+> 
+> 
+> k)
+
+- -- 
+Rainer M. Krug, PhD (Conservation Ecology, SUN), MSc (Conservation Biology, UCT), Dipl. Phys.
+(Germany)
+
+Centre of Excellence for Invasion Biology
+Stellenbosch University
+South Africa
+
+Tel :       +33 - (0)9 53 10 27 44
+Cell:       +33 - (0)6 85 62 59 98
+Fax :       +33 - (0)9 58 10 27 44
+
+Fax (D):    +49 - (0)3 21 21 25 22 44
+
+email:      Rainer at krugs.de
+
+Skype:      RMkrug
+
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.11 (GNU/Linux)
+Comment: Using GnuPG with Mozilla - http://enigmail.mozdev.org/
+
+iEYEARECAAYFAk/6x0UACgkQoYgNqgF2egoaagCeIFbusF1owz8DYqvAjwe/teUb
+YpQAmgP6t3/cbj2/kLZaiXS/LeJaOVhI
+=aTAK
+-----END PGP SIGNATURE-----
+
+
+From R.M.Krug at gmail.com  Mon Jul  9 14:01:37 2012
+From: R.M.Krug at gmail.com (Rainer M Krug)
+Date: Mon, 09 Jul 2012 14:01:37 +0200
+Subject: [R-sig-hpc] multicore performance question
+In-Reply-To: <4FFAAFF7.70204@jrc.ec.europa.eu>
+References: <4FFA9B32.7060304@jrc.ec.europa.eu>
+	<4FFAAFF7.70204@jrc.ec.europa.eu>
+Message-ID: <4FFAC821.5010203@gmail.com>
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+On 09/07/12 12:18, Mauricio Zambrano-Bigiarini wrote:
+> I apologise. In my previous e-mail I did not write the time spent in each function:
+> 
+> # No multicore nr <- 500 ; X <- matrix(rnorm(1000), ncol=30, nrow=nr) set.seed(100) 
+> system.time( unlist(lapply(1:nr, FUN=fn1, x=X)) ) #   user  system elapsed #  0.013   0.000
+> 0.013
+> 
+> # multicore nr <- 500 ; X <- matrix(rnorm(1000), ncol=30, nrow=nr) set.seed(100) system.time( 
+> unlist(mclapply(1:nr, FUN=fn1, x=X, mc.cores=6)) ) #   user  system elapsed #  0.030   0.380
+> 0.125
+> 
+> Running on RHEL6 (64) with 8 cores.
+
+Typical for communication: trying to distribute the job to 8 cores, doing the calculations,
+getting the data back, assemble it -> longer then the calculations on one core.
+
+Cheers,
+
+Rainer
+
+> 
+> Thanks in advance,
+> 
+> Mauricio
+> 
+
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.11 (GNU/Linux)
+Comment: Using GnuPG with Mozilla - http://enigmail.mozdev.org/
+
+iEYEARECAAYFAk/6yCEACgkQoYgNqgF2egrrmQCcDcYv1V1PXlO+oxHQ7wUbgait
+bOoAn0tWYrIVxikHz3a4Ws2eHtJn2ATB
+=4IMK
+-----END PGP SIGNATURE-----
+
+
+From mauricio.zambrano at jrc.ec.europa.eu  Mon Jul  9 14:19:16 2012
+From: mauricio.zambrano at jrc.ec.europa.eu (Mauricio Zambrano-Bigiarini)
+Date: Mon, 09 Jul 2012 14:19:16 +0200
+Subject: [R-sig-hpc] multicore performance question
+In-Reply-To: <4FFAC821.5010203@gmail.com>
+References: <4FFA9B32.7060304@jrc.ec.europa.eu>
+	<4FFAAFF7.70204@jrc.ec.europa.eu> <4FFAC821.5010203@gmail.com>
+Message-ID: <4FFACC44.7070607@jrc.ec.europa.eu>
+
+On 09/07/12 14:01, Rainer M Krug wrote:
+>
+>
+> -----BEGIN PGP SIGNED MESSAGE-----
+> Hash: SHA1
+>
+> On 09/07/12 12:18, Mauricio Zambrano-Bigiarini wrote:
+>> I apologise. In my previous e-mail I did not write the time spent in each function:
+>>
+>> # No multicore nr<- 500 ; X<- matrix(rnorm(1000), ncol=30, nrow=nr) set.seed(100)
+>> system.time( unlist(lapply(1:nr, FUN=fn1, x=X)) ) #   user  system elapsed #  0.013   0.000
+>> 0.013
+>>
+>> # multicore nr<- 500 ; X<- matrix(rnorm(1000), ncol=30, nrow=nr) set.seed(100) system.time(
+>> unlist(mclapply(1:nr, FUN=fn1, x=X, mc.cores=6)) ) #   user  system elapsed #  0.030   0.380
+>> 0.125
+>>
+>> Running on RHEL6 (64) with 8 cores.
+>
+> Typical for communication: trying to distribute the job to 8 cores, doing the calculations,
+> getting the data back, assemble it ->  longer then the calculations on one core.
+
+Thanks for your feedback Rainer.
+
+In fact, after doing the same test for a test function with a much 
+longer computation time, the time saving was 43% by using 6 cores, wrt 
+the time spent without the multicore package.
+
+
+All the best,
+
+Mauricio
+
+-- 
+====================================================
+Water Resources Unit
+Institute for Environment and Sustainability (IES)
+Joint Research Centre (JRC), European Commission
+webinfo    : http://floods.jrc.ec.europa.eu/
+====================================================
+DISCLAIMER:
+"The views expressed are purely those of the writer
+and may not in any circumstances be regarded as sta-
+ting an official position of the European Commission"
+====================================================
+Linux user #454569 -- Ubuntu user #17469
+====================================================
+"If you torture any data set long enough,
+it will confess anything!" (Murray Lark)
+
+>
+> Cheers,
+>
+> Rainer
+>
+>>
+>> Thanks in advance,
+>>
+>> Mauricio
+>>
+>
+>
+> -----BEGIN PGP SIGNATURE-----
+> Version: GnuPG v1.4.11 (GNU/Linux)
+> Comment: Using GnuPG with Mozilla - http://enigmail.mozdev.org/
+>
+> iEYEARECAAYFAk/6yCEACgkQoYgNqgF2egrrmQCcDcYv1V1PXlO+oxHQ7wUbgait
+> bOoAn0tWYrIVxikHz3a4Ws2eHtJn2ATB
+> =4IMK
+> -----END PGP SIGNATURE-----
+>
+>
+
+
+From mauricio.zambrano at jrc.ec.europa.eu  Tue Jul 10 15:28:01 2012
+From: mauricio.zambrano at jrc.ec.europa.eu (Mauricio Zambrano-Bigiarini)
+Date: Tue, 10 Jul 2012 15:28:01 +0200
+Subject: [R-sig-hpc] mclapply: problem writing into a texfile within a loop
+Message-ID: <4FFC2DE1.4080003@jrc.ec.europa.eu>
+
+Dear list,
+
+While using the mclapply function provided by the multicore package, I 
+notice that more lines are written than expected when writing the 
+outputs of the simulations into a textfile, AFTER the call to 'mclapply'.
+
+At the other hand, by using the 'parallel' package I do not have any 
+"additional" outputs.
+
+Below you can find a reproducible example:
+
+--------START--------
+   fn <- function(x) {
+     n <- length(x)
+     return(1 + (1/4000) * sum(x^2) - prod(cos(x/sqrt(seq(1:n)))))
+  }
+  fn1 <- function(i, x) fn(x[i,])
+
+  nr <- 50 ;  X <- matrix(rnorm(1000), ncol=50, nrow=nr)
+
+  #######################
+  # multicore: mclapply #
+  fname <- paste("~/logfile_multicore.txt", sep="")
+  TextFile  <- file(fname , "w+")
+
+  for (iter in 1:3) {
+    library(multicore)
+    set.seed(100)
+    unlist(multicore::mclapply(1:nr, FUN=fn1, x=X, mc.cores=6))
+    for (i in 1:2) {
+     writeLines(c("iter:", as.character(iter), "   ;    i:", 
+as.character(i) ), TextFile, sep="  ")
+     writeLines("", TextFile)
+    } # FOR i end
+   } # FOR iter end
+   close(TextFile)
+
+#  output:
+#iter:  1     ;    i:  1  # it should not be here
+#iter:  1     ;    i:  2  # it should not be here
+#iter:  1     ;    i:  1  # it should not be here
+#iter:  1     ;    i:  2  # it should not be here
+#iter:  1     ;    i:  1  # it should not be here
+#iter:  1     ;    i:  2  # it should not be here
+#iter:  2     ;    i:  1  # it should not be here
+#iter:  2     ;    i:  2  # it should not be here
+#iter:  1     ;    i:  1
+#iter:  1     ;    i:  2
+#iter:  2     ;    i:  1
+#iter:  2     ;    i:  2
+#iter:  3     ;    i:  1
+#iter:  3     ;    i:  2
+
+  ############
+  # parallel #
+  fname <- paste("~/logfile_parallel.txt", sep="")
+  TextFile  <- file(fname , "w+")
+
+  for (iter in 1:3) {
+    cl <- parallel:::makeCluster(6)
+    set.seed(100)
+    parApply(cl=cl,X,1,fn)
+    stopCluster(cl)
+    for (i in 1:2) {
+      writeLines(c("iter:", as.character(iter), "   ;    i:", 
+as.character(i) ), TextFile, sep="  ")
+      writeLines("", TextFile)
+    } # FOR i end
+   } # FOR iter end
+   close(TextFile)
+
+#  output:
+#iter:  1     ;    i:  1
+#iter:  1     ;    i:  2
+#iter:  2     ;    i:  1
+#iter:  2     ;    i:  2
+#iter:  3     ;    i:  1
+#iter:  3     ;    i:  2
+
+-----------END-----------------
+
+
+The same results are obtained if the call to 'multicore::mclapply' is 
+replaced by 'parallel::mclapply'.
+
+
+ > sessionInfo()
+R version 2.15.0 (2012-03-30)
+Platform: x86_64-redhat-linux-gnu (64-bit)
+
+locale:
+  [1] LC_CTYPE=en_GB.utf8       LC_NUMERIC=C
+  [3] LC_TIME=en_GB.utf8        LC_COLLATE=en_GB.utf8
+  [5] LC_MONETARY=en_GB.utf8    LC_MESSAGES=en_GB.utf8
+  [7] LC_PAPER=C                LC_NAME=C
+  [9] LC_ADDRESS=C              LC_TELEPHONE=C
+[11] LC_MEASUREMENT=en_GB.utf8 LC_IDENTIFICATION=C
+
+attached base packages:
+[1] parallel  splines   stats     graphics  grDevices utils     datasets
+[8] methods   base
+
+other attached packages:
+  [1] multicore_0.1-7
+
+
+
+Do you know if is it any way of avoiding the writing of additional lines 
+after calling mclapply ?
+
+Thanks in advance,
+
+Mauricio Zambrano-Bigiarini
+
+-- 
+====================================================
+Water Resources Unit
+Institute for Environment and Sustainability (IES)
+Joint Research Centre (JRC), European Commission
+webinfo    : http://floods.jrc.ec.europa.eu/
+====================================================
+DISCLAIMER:\ "The views expressed are purely those of th...{{dropped:10}}
+
+
+From simon.urbanek at r-project.org  Wed Jul 11 04:53:43 2012
+From: simon.urbanek at r-project.org (Simon Urbanek)
+Date: Tue, 10 Jul 2012 22:53:43 -0400
+Subject: [R-sig-hpc] mclapply: problem writing into a texfile within a
+	loop
+In-Reply-To: <4FFC2DE1.4080003@jrc.ec.europa.eu>
+References: <4FFC2DE1.4080003@jrc.ec.europa.eu>
+Message-ID: <52CBB6C4-1B3A-4404-8678-591264530124@r-project.org>
+
+
+On Jul 10, 2012, at 9:28 AM, Mauricio Zambrano-Bigiarini wrote:
+
+> Dear list,
+> 
+> While using the mclapply function provided by the multicore package, I notice that more lines are written than expected when writing the outputs of the simulations into a textfile, AFTER the call to 'mclapply'.
+> 
+> At the other hand, by using the 'parallel' package I do not have any "additional" outputs.
+> 
+> Below you can find a reproducible example:
+> 
+> --------START--------
+>  fn <- function(x) {
+>    n <- length(x)
+>    return(1 + (1/4000) * sum(x^2) - prod(cos(x/sqrt(seq(1:n)))))
+> }
+> fn1 <- function(i, x) fn(x[i,])
+> 
+> nr <- 50 ;  X <- matrix(rnorm(1000), ncol=50, nrow=nr)
+> 
+> #######################
+> # multicore: mclapply #
+> fname <- paste("~/logfile_multicore.txt", sep="")
+> TextFile  <- file(fname , "w+")
+> 
+> for (iter in 1:3) {
+>   library(multicore)
+>   set.seed(100)
+>   unlist(multicore::mclapply(1:nr, FUN=fn1, x=X, mc.cores=6))
+>   for (i in 1:2) {
+>    writeLines(c("iter:", as.character(iter), "   ;    i:", as.character(i) ), TextFile, sep="  ")
+>    writeLines("", TextFile)
+>   } # FOR i end
+>  } # FOR iter end
+>  close(TextFile)
+> 
+> #  output:
+> #iter:  1     ;    i:  1  # it should not be here
+> #iter:  1     ;    i:  2  # it should not be here
+> #iter:  1     ;    i:  1  # it should not be here
+> #iter:  1     ;    i:  2  # it should not be here
+> #iter:  1     ;    i:  1  # it should not be here
+> #iter:  1     ;    i:  2  # it should not be here
+> #iter:  2     ;    i:  1  # it should not be here
+> #iter:  2     ;    i:  2  # it should not be here
+> #iter:  1     ;    i:  1
+> #iter:  1     ;    i:  2
+> #iter:  2     ;    i:  1
+> #iter:  2     ;    i:  2
+> #iter:  3     ;    i:  1
+> #iter:  3     ;    i:  2
+> 
+> ############
+> # parallel #
+> fname <- paste("~/logfile_parallel.txt", sep="")
+> TextFile  <- file(fname , "w+")
+> 
+> for (iter in 1:3) {
+>   cl <- parallel:::makeCluster(6)
+>   set.seed(100)
+>   parApply(cl=cl,X,1,fn)
+>   stopCluster(cl)
+>   for (i in 1:2) {
+>     writeLines(c("iter:", as.character(iter), "   ;    i:", as.character(i) ), TextFile, sep="  ")
+>     writeLines("", TextFile)
+>   } # FOR i end
+>  } # FOR iter end
+>  close(TextFile)
+> 
+> #  output:
+> #iter:  1     ;    i:  1
+> #iter:  1     ;    i:  2
+> #iter:  2     ;    i:  1
+> #iter:  2     ;    i:  2
+> #iter:  3     ;    i:  1
+> #iter:  3     ;    i:  2
+> 
+> -----------END-----------------
+> 
+> 
+> The same results are obtained if the call to 'multicore::mclapply' is replaced by 'parallel::mclapply'.
+> 
+> 
+> > sessionInfo()
+> R version 2.15.0 (2012-03-30)
+> Platform: x86_64-redhat-linux-gnu (64-bit)
+> 
+> locale:
+> [1] LC_CTYPE=en_GB.utf8       LC_NUMERIC=C
+> [3] LC_TIME=en_GB.utf8        LC_COLLATE=en_GB.utf8
+> [5] LC_MONETARY=en_GB.utf8    LC_MESSAGES=en_GB.utf8
+> [7] LC_PAPER=C                LC_NAME=C
+> [9] LC_ADDRESS=C              LC_TELEPHONE=C
+> [11] LC_MEASUREMENT=en_GB.utf8 LC_IDENTIFICATION=C
+> 
+> attached base packages:
+> [1] parallel  splines   stats     graphics  grDevices utils     datasets
+> [8] methods   base
+> 
+> other attached packages:
+> [1] multicore_0.1-7
+> 
+> 
+> 
+> Do you know if is it any way of avoiding the writing of additional lines after calling mclapply ?
+> 
+
+Simply add
+flush(TextFile)
+after the second writeLines(). Since you're forking the processes without flushing the buffers, the buffers get flushed as the processes exit and thus creating each one copy of the unflushed output for each process. Obviously, using makeCluster() does't have that effect since it creates new, independent processes.
+
+Cheers,
+Simon
+
+
+> Thanks in advance,
+> 
+> Mauricio Zambrano-Bigiarini
+> 
+> -- 
+> ====================================================
+> Water Resources Unit
+> Institute for Environment and Sustainability (IES)
+> Joint Research Centre (JRC), European Commission
+> webinfo    : http://floods.jrc.ec.europa.eu/
+> ====================================================
+> DISCLAIMER:\ "The views expressed are purely those of th...{{dropped:10}}
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+> 
+
+
+From mauricio.zambrano at jrc.ec.europa.eu  Wed Jul 11 09:07:34 2012
+From: mauricio.zambrano at jrc.ec.europa.eu (Mauricio Zambrano-Bigiarini)
+Date: Wed, 11 Jul 2012 09:07:34 +0200
+Subject: [R-sig-hpc] mclapply: problem writing into a texfile within a
+	loop
+In-Reply-To: <52CBB6C4-1B3A-4404-8678-591264530124@r-project.org>
+References: <4FFC2DE1.4080003@jrc.ec.europa.eu>
+	<52CBB6C4-1B3A-4404-8678-591264530124@r-project.org>
+Message-ID: <4FFD2636.7080105@jrc.ec.europa.eu>
+
+On 11/07/12 04:53, Simon Urbanek wrote:
+>
+> On Jul 10, 2012, at 9:28 AM, Mauricio Zambrano-Bigiarini wrote:
+>
+>> Dear list,
+>>
+>> While using the mclapply function provided by the multicore package, I notice that more lines are written than expected when writing the outputs of the simulations into a textfile, AFTER the call to 'mclapply'.
+>>
+>> At the other hand, by using the 'parallel' package I do not have any "additional" outputs.
+>>
+>> Below you can find a reproducible example:
+>>
+>> --------START--------
+>>   fn<- function(x) {
+>>     n<- length(x)
+>>     return(1 + (1/4000) * sum(x^2) - prod(cos(x/sqrt(seq(1:n)))))
+>> }
+>> fn1<- function(i, x) fn(x[i,])
+>>
+>> nr<- 50 ;  X<- matrix(rnorm(1000), ncol=50, nrow=nr)
+>>
+>> #######################
+>> # multicore: mclapply #
+>> fname<- paste("~/logfile_multicore.txt", sep="")
+>> TextFile<- file(fname , "w+")
+>>
+>> for (iter in 1:3) {
+>>    library(multicore)
+>>    set.seed(100)
+>>    unlist(multicore::mclapply(1:nr, FUN=fn1, x=X, mc.cores=6))
+>>    for (i in 1:2) {
+>>     writeLines(c("iter:", as.character(iter), "   ;    i:", as.character(i) ), TextFile, sep="  ")
+>>     writeLines("", TextFile)
+>>    } # FOR i end
+>>   } # FOR iter end
+>>   close(TextFile)
+>>
+>> #  output:
+>> #iter:  1     ;    i:  1  # it should not be here
+>> #iter:  1     ;    i:  2  # it should not be here
+>> #iter:  1     ;    i:  1  # it should not be here
+>> #iter:  1     ;    i:  2  # it should not be here
+>> #iter:  1     ;    i:  1  # it should not be here
+>> #iter:  1     ;    i:  2  # it should not be here
+>> #iter:  2     ;    i:  1  # it should not be here
+>> #iter:  2     ;    i:  2  # it should not be here
+>> #iter:  1     ;    i:  1
+>> #iter:  1     ;    i:  2
+>> #iter:  2     ;    i:  1
+>> #iter:  2     ;    i:  2
+>> #iter:  3     ;    i:  1
+>> #iter:  3     ;    i:  2
+>>
+>> ############
+>> # parallel #
+>> fname<- paste("~/logfile_parallel.txt", sep="")
+>> TextFile<- file(fname , "w+")
+>>
+>> for (iter in 1:3) {
+>>    cl<- parallel:::makeCluster(6)
+>>    set.seed(100)
+>>    parApply(cl=cl,X,1,fn)
+>>    stopCluster(cl)
+>>    for (i in 1:2) {
+>>      writeLines(c("iter:", as.character(iter), "   ;    i:", as.character(i) ), TextFile, sep="  ")
+>>      writeLines("", TextFile)
+>>    } # FOR i end
+>>   } # FOR iter end
+>>   close(TextFile)
+>>
+>> #  output:
+>> #iter:  1     ;    i:  1
+>> #iter:  1     ;    i:  2
+>> #iter:  2     ;    i:  1
+>> #iter:  2     ;    i:  2
+>> #iter:  3     ;    i:  1
+>> #iter:  3     ;    i:  2
+>>
+>> -----------END-----------------
+>>
+>>
+>> The same results are obtained if the call to 'multicore::mclapply' is replaced by 'parallel::mclapply'.
+>>
+>>
+>>> sessionInfo()
+>> R version 2.15.0 (2012-03-30)
+>> Platform: x86_64-redhat-linux-gnu (64-bit)
+>>
+>> locale:
+>> [1] LC_CTYPE=en_GB.utf8       LC_NUMERIC=C
+>> [3] LC_TIME=en_GB.utf8        LC_COLLATE=en_GB.utf8
+>> [5] LC_MONETARY=en_GB.utf8    LC_MESSAGES=en_GB.utf8
+>> [7] LC_PAPER=C                LC_NAME=C
+>> [9] LC_ADDRESS=C              LC_TELEPHONE=C
+>> [11] LC_MEASUREMENT=en_GB.utf8 LC_IDENTIFICATION=C
+>>
+>> attached base packages:
+>> [1] parallel  splines   stats     graphics  grDevices utils     datasets
+>> [8] methods   base
+>>
+>> other attached packages:
+>> [1] multicore_0.1-7
+>>
+>>
+>>
+>> Do you know if is it any way of avoiding the writing of additional lines after calling mclapply ?
+>>
+>
+> Simply add
+> flush(TextFile)
+> after the second writeLines(). Since you're forking the processes without flushing the buffers, the buffers get flushed as the processes exit and thus creating each one copy of the unflushed output for each process. Obviously, using makeCluster() does't have that effect since it creates new, independent processes.
+
+I didn't know I had to flush the buffers when using forking.
+
+Thank you very much Simon.
+
+All the best,
+
+Mauricio
+
+-- 
+====================================================
+Water Resources Unit
+Institute for Environment and Sustainability (IES)
+Joint Research Centre (JRC), European Commission
+webinfo    : http://floods.jrc.ec.europa.eu/
+====================================================
+DISCLAIMER:
+"The views expressed are purely those of the writer
+and may not in any circumstances be regarded as sta-
+ting an official position of the European Commission"
+====================================================
+Linux user #454569 -- Ubuntu user #17469
+====================================================
+"If you torture any data set long enough,
+it will confess anything!" (Murray Lark)
+
+>
+> Cheers,
+> Simon
+>
+>
+>> Thanks in advance,
+>>
+>> Mauricio Zambrano-Bigiarini
+>>
+>> --
+>> ====================================================
+>> Water Resources Unit
+>> Institute for Environment and Sustainability (IES)
+>> Joint Research Centre (JRC), European Commission
+>> webinfo    : http://floods.jrc.ec.europa.eu/
+>> ====================================================
+>> DISCLAIMER:\ "The views expressed are purely those of th...{{dropped:10}}
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>>
+>
+>
+
+
+From matloff at cs.ucdavis.edu  Sun Jul 22 23:41:32 2012
+From: matloff at cs.ucdavis.edu (Norm Matloff)
+Date: Sun, 22 Jul 2012 14:41:32 -0700
+Subject: [R-sig-hpc] Use GPU in R with .Call
+Message-ID: <20120722214132.GA16923@laura>
+
+I'm not exactly sure what you are asking, Raymond, but this may answer
+your question.
+
+Say you have a file x.cu.  After compiling with nvcc -c as you did, then
+do something like this:
+
+setenv PKG_LIBS "-L/usr/local/cuda/lib -lcudart"
+R CMD SHLIB x.o -o x.so
+
+PKG_LIBS is an environment variable used by R CMD SHLIB.
+
+Of course, you need to translate the setting of the environment variable
+from Linux C shell to Windows, and substitute your location of the CUDA
+library.
+
+Norm
+
+
+From simon.urbanek at r-project.org  Mon Jul 23 03:00:06 2012
+From: simon.urbanek at r-project.org (Simon Urbanek)
+Date: Sun, 22 Jul 2012 21:00:06 -0400
+Subject: [R-sig-hpc] Use GPU in R with .Call
+In-Reply-To: <20120722214132.GA16923@laura>
+References: <20120722214132.GA16923@laura>
+Message-ID: <FD3E7CF8-277B-4B0C-B124-E77306DE9CA7@r-project.org>
+
+On Jul 22, 2012, at 5:41 PM, Norm Matloff wrote:
+
+> I'm not exactly sure what you are asking, Raymond, but this may answer
+> your question.
+> 
+> Say you have a file x.cu.  After compiling with nvcc -c as you did, then
+> do something like this:
+> 
+> setenv PKG_LIBS "-L/usr/local/cuda/lib -lcudart"
+> R CMD SHLIB x.o -o x.so
+> 
+> PKG_LIBS is an environment variable used by R CMD SHLIB.
+> 
+
+FWIW the above will only work in csh (this is after many years that I see someone positing advice based on csh - I thought it died out ;)) and Rtools don't have csh (unsurprisingly).
+
+It's much easier and more portable to simply pass the flags directly to SHLIB - it's not a package after all. In Raymond's case something like
+
+R CMD SHLIB VecAdd_cuda.c  VecAdd_kernel.o -lcudart
+
+Add -L if needed, but on Windows it's typically easiest to have DLLs in the same directory. I don't use CUDA so if in doubt, ask nvidia specialists for the exact flags.
+
+Cheers,
+Simon
+
+
+> Of course, you need to translate the setting of the environment variable
+> from Linux C shell to Windows, and substitute your location of the CUDA
+> library.
+> 
+> Norm
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+> 
+
+
+From matloff at cs.ucdavis.edu  Mon Jul 23 03:15:31 2012
+From: matloff at cs.ucdavis.edu (Norm Matloff)
+Date: Sun, 22 Jul 2012 18:15:31 -0700
+Subject: [R-sig-hpc] Use GPU in R with .Call
+In-Reply-To: <FD3E7CF8-277B-4B0C-B124-E77306DE9CA7@r-project.org>
+References: <20120722214132.GA16923@laura>
+	<FD3E7CF8-277B-4B0C-B124-E77306DE9CA7@r-project.org>
+Message-ID: <20120723011531.GA17795@laura>
+
+I just tried it in bash and it worked fine, Simon:
+
+bash-4.2$ export PKG_LIBS="-L/usr/local/cuda/lib -lcudart"
+bash-4.2$ R CMD SHLIB rthhist.o -o rthhistgpu.so
+gcc -m32 -std=gnu99 -shared -L/usr/local/lib -o rthhistgpu.so rthhist.o
+-L/usr/local/cuda/lib -lcudart -L/usr/lib/R/lib -lR
+bash-4.2$ R CMD SHLIB rthhist.o -o rthhistgpu.s^
+
+Am I misunderstanding your posting?
+
+Agree that in a nonpackage situation it's easier to keep the dynamic
+link files in the same directory.
+
+Norm (csh holdout)
+
+On Sun, Jul 22, 2012 at 09:00:06PM -0400, Simon Urbanek wrote:
+> On Jul 22, 2012, at 5:41 PM, Norm Matloff wrote:
+> 
+> > I'm not exactly sure what you are asking, Raymond, but this may answer
+> > your question.
+> > 
+> > Say you have a file x.cu.  After compiling with nvcc -c as you did, then
+> > do something like this:
+> > 
+> > setenv PKG_LIBS "-L/usr/local/cuda/lib -lcudart"
+> > R CMD SHLIB x.o -o x.so
+> > 
+> > PKG_LIBS is an environment variable used by R CMD SHLIB.
+> > 
+> 
+> FWIW the above will only work in csh (this is after many years that I see someone positing advice based on csh - I thought it died out ;)) and Rtools don't have csh (unsurprisingly).
+> 
+> It's much easier and more portable to simply pass the flags directly to SHLIB - it's not a package after all. In Raymond's case something like
+> 
+> R CMD SHLIB VecAdd_cuda.c  VecAdd_kernel.o -lcudart
+> 
+> Add -L if needed, but on Windows it's typically easiest to have DLLs in the same directory. I don't use CUDA so if in doubt, ask nvidia specialists for the exact flags.
+> 
+> Cheers,
+> Simon
+> 
+> 
+> > Of course, you need to translate the setting of the environment variable
+> > from Linux C shell to Windows, and substitute your location of the CUDA
+> > library.
+> > 
+> > Norm
+> > 
+> > _______________________________________________
+> > R-sig-hpc mailing list
+> > R-sig-hpc at r-project.org
+> > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> > 
+> > 
+>
+
+
+From Claudia.Beleites at ipht-jena.de  Fri Jul 27 16:34:57 2012
+From: Claudia.Beleites at ipht-jena.de (Claudia Beleites)
+Date: Fri, 27 Jul 2012 16:34:57 +0200
+Subject: [R-sig-hpc] Solved: changing number of OpenBLAS threads from inside
+	R
+Message-ID: <5012A711.7070809@ipht-jena.de>
+
+Dear all,
+
+Simon has been making great progress on our attempts to trade off
+implicit (by BLAS) and explicit (e.g. SNOW) parallelization.
+
+One important missing point was the ability to change the number of
+threads used by the BLAS during an R session. This gap is filled now for
+OpenBLAS by package OpenBlasThreads (on
+https://github.com/simonfullernuim/OpenBlasThreads; basically just one
+line of C code).
+
+He wrote a blog post about it:
+http://hyperspec.wordpress.com/2012/07/26/altering-openblas-threads/
+where he also gives alternative code that can be used with inline, so no
+package installation is needed.
+
+Note that OpenBLAS does not yet have this functionality implemented for
+Windows, so obviously changing number of threads doesn't work there.
+
+So far, we've been testing it on Ubuntu 64bit with manually installed
+OpenBLAS as well as with installation from the Ubuntu sources, and we'd
+be grateful if you could test it on different linux distros and let us
+know whether it works.
+
+Have a nice weekend,
+
+Claudia and Simon
+
+-- 
+Claudia Beleites
+Spectroscopy/Imaging
+Institute of Photonic Technology
+Albert-Einstein-Str. 9
+07745 Jena
+Germany
+
+email: claudia.beleites at ipht-jena.de
+phone: +49 3641 206-133
+fax:   +49 2641 206-399
+
+

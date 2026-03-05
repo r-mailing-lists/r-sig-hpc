@@ -1,0 +1,299 @@
+From Jens.Oehlschlaegel at truecluster.com  Thu Nov  1 18:24:23 2012
+From: Jens.Oehlschlaegel at truecluster.com (=?UTF-8?B?SmVucyBPZWhsc2NobMOkZ2Vs?=)
+Date: Thu, 01 Nov 2012 18:24:23 +0100
+Subject: [R-sig-hpc] How to manage the .ff files made by using the ff
+	package
+Message-ID: <5092B047.6090400@truecluster.com>
+
+Matthew,
+
+You asked how to autmatically re-use a 'pattern' when modifying a ffdf 
+object. To start with, help(read.table.ffdf) has an example how to 
+create a ffdf in a specific directory with a specific file name 
+'pattern'. If we put the pattern in a variable, this looks like
+
+     mypattern <- "c:/tmp/csv"
+     ffy <- read.csv.ffdf(file=csvfile, header=TRUE, 
+colClasses=c(ord="ordered", dct="POSIXct", dat="Date")
+     , asffdf_args=list(
+         vmode = c(log="boolean", int="byte", dbl="single", 
+fac="nibble", ord="nibble", dct="single", dat="single")
+       , col_args=list(pattern = mypattern)  # create in getwd() with 
+prefix csv
+       )
+     )
+
+As long as you modify existing columns, you operate 'by reference', thus 
+no need to create new ffs.
+For adding new columns, there are two little challenges in using the 
+pattern from the fdff instead of using the variable mypattern
+
+1. There is no 'pattern' stored at the ffdf level, 'pattern' is stored 
+with each single ff column.
+2. ffdfs are created from ffs, that need to exist *before* actually 
+executing the code that creates the ffdf.
+
+The following code shows how to query the old pattern and apply it for 
+creating a new column:
+
+     namedcolindexes <- 1:ncol(ffy)
+     names(namedcolindexes) <- colnames(ffy)
+     ffx <- do.call("ffdf", c(lapply(namedcolindexes, 
+function(i)ffy[[i]]), list(newcol=ff(1:nrow(ffy), 
+pattern=pattern(ffy[[1]])))))
+     filename(ffx)
+
+If you need to do this very often, you can create you own function, to 
+save you some typing.
+
+Kind regards
+
+Jens Oehlschl?gel
+
+
+*Gesendet:* Freitag, 26. Oktober 2012 um 03:48 Uhr
+*Von:* "Matthew Dubins" <matt.dubins at gmail.com>
+*An:* Jens_Oehlschlaegel at truecluster.com
+*Betreff:* Re: How to manage the .ff files made by using the ff package
+Hi Jens,
+
+If I set a pattern for my ffdf once, then will it continue to use the 
+same pattern even when I modify that ffdf?  I do a lot of data 
+processing and I just notice that every time I made a new column, it 
+would make a 'clone' ff file that wouldn't conform to the pattern I set.
+
+Basically, I compile the data outside of R, read it into R using 
+read.csv.ffdf, but what options do I use to make sure the data i've 
+imported persists without getting that filename access error?
+
+All that being said, once I wasn't having any issues accessing the data 
+that I saved in my new tempdir, I found the ff package to be great for 
+reducing RAM usage :) :)  When will it be updated next?
+
+Cheers,
+Matthew Dubins
+
+On Tue, Oct 23, 2012 at 12:56 PM, <Jens_Oehlschlaegel at truecluster.com> 
+wrote:
+
+    Dear Matthew,
+
+    I'd rather keep fftempdir where it is and give a different pattern
+    or filename for those ffs that you want to keep.
+
+    HTH
+
+    Jens
+
+
+    *Gesendet:* Freitag, 19. Oktober 2012 um 02:05 Uhr
+    *Von:* "Matthew Dubins" <matt.dubins at gmail.com>
+    *An:* Jens_Oehlschlaegel at truecluster.com
+    *Betreff:* How to manage the .ff files made by using the ff package
+    Dear Jens,
+
+    I'm now near completion of an analysis project wherein I almost
+    exclusively used the ff package to manage, process, and analyze my
+    data.  I kept noticing that it was saving .ff files in a temp
+    directory on my windows machine as I was saving and loading my
+    project.  I learned that it's better to set the fftempdir to another
+    location so that the .ff files don't get deleted and the package
+    doesn't complain that you can't load a vector because
+    "file./access/(/filename/, /0/) == /0/ is not TRUE".
+
+    Now that I have a custom fftempdir, I don't seem to have any more
+    problems loading up individual vectors but these .ff files keep
+    piling on.  What's a good way of making sure that I keep only the
+    .ff files that I need for analysis?  Do I need to keep them in the
+    fftempdir that I set or does the data persist on the hard drive in
+    the .RData and .ffData files in the project directory?
+
+    Thanks,
+    Matthew Dubins
+
+
+From jgrn at illinois.edu  Fri Nov  2 15:36:33 2012
+From: jgrn at illinois.edu (Jonathan Greenberg)
+Date: Fri, 2 Nov 2012 09:36:33 -0500
+Subject: [R-sig-hpc] Querying the numbers of CPUs on a Windows box
+Message-ID: <CABG0rft1VbEArNt8XxTPkCcLp5x466J0gOQxpVk8fCU3n6zXgA@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121102/1e515d19/attachment.pl>
+
+From simon.urbanek at r-project.org  Fri Nov  2 16:05:11 2012
+From: simon.urbanek at r-project.org (Simon Urbanek)
+Date: Fri, 2 Nov 2012 11:05:11 -0400
+Subject: [R-sig-hpc] Querying the numbers of CPUs on a Windows box
+In-Reply-To: <CABG0rft1VbEArNt8XxTPkCcLp5x466J0gOQxpVk8fCU3n6zXgA@mail.gmail.com>
+References: <CABG0rft1VbEArNt8XxTPkCcLp5x466J0gOQxpVk8fCU3n6zXgA@mail.gmail.com>
+Message-ID: <EAA83E2B-CBBF-4DB3-9568-53306C646995@r-project.org>
+
+
+On Nov 2, 2012, at 10:36 AM, Jonathan Greenberg wrote:
+
+> r-sig-hpc'ers:
+> 
+> Is there any way to query the number of CPUs on a single-node Windows box?
+
+parallel::detectCores()
+
+Cheers,
+Simon
+
+
+> I'm trying to write some code using snowfall and it defaults to 1 CPU even
+> with sfInit(parallel=TRUE).  Of course I can manually set the number of
+> cpus to use but I'd like to have a way to dynamically query the system and
+> determine the available number of cpus/cores.  Thanks!
+> 
+> --j
+> 
+> -- 
+> Jonathan A. Greenberg, PhD
+> Assistant Professor
+> Department of Geography and Geographic Information Science
+> University of Illinois at Urbana-Champaign
+> 607 South Mathews Avenue, MC 150
+> Urbana, IL 61801
+> Phone: 217-300-1924
+> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+> 
+> 	[[alternative HTML version deleted]]
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+>
+
+
+From jefferis at gmail.com  Fri Nov 16 21:55:10 2012
+From: jefferis at gmail.com (Gregory Jefferis)
+Date: Fri, 16 Nov 2012 20:55:10 +0000
+Subject: [R-sig-hpc] lazy load (and unload?) elements of large list
+Message-ID: <1E779990-8A2B-435A-AC2F-92828B1720F8@gmail.com>
+
+Hello,
+
+Short version:
+==========
+
+Can anyone recommend a method to load dynamically the elements of a large (multi-gigabyte) list on demand, where each list element is a complex list (S3 object) in its own right?
+
+With many thanks,
+
+Greg Jefferis.
+
+Long version:
+==========
+I often use a data structure which is basically a list of lists. The sublists are in fact 3d reconstructions of fly neurons[1]. For one of my active projects the whole list is ~2Gb, divided into 16,000 sublists (ie neurons). I am getting to the stage where I need to figure out how to page this kind of data from disk when necessary, both for interactive data exploration and batch processing.
+
+I know of ways to handle large file-backed matrices  e.g. big.matrix/ff packages.  I could potentially make a special backing matrix object that aggregated most of my list data into a huge matrix, cache that and then write intermediate code to fetch the right rows of the big matrix). I know that big.matrix file backed data seems to be cached pretty efficiently by the OS in the face of multiple reads. However this sounds quite fiddly and I would be keen to find a solution that
+
+1) could handle lists natively (ie not just matrices)
+2) offers the choice to read from disk OR lazy loads data into memory
+3) could potentially unload individual sublists (and then reload when necessary) in order to keep memory usage reasonable (below some threshold?)
+4) fast (within the limits imposed by OS etc)
+
+I have looked at the filehash package but do not see a way to lazy load list elements (though I can put lots of elements into an environment after mangling their names) and then overload e.g. "[[" to  fetch them.
+
+I have also looked at lazyLoad in base R (but that only works with individual objects so same issue as above) and has no option to load from disk only.
+
+Could anyone advise strategies/packages to take a look at? There's so much stuff on and off CRAN these days that I feel there must be something relevant that I have missed.
+
+[1] example rgl/webgl export for the curious. 
+
+http://flybrain.mrc-lmb.cam.ac.uk/vfb/fc/clusters/FruMARCM-M002099_seg001/
+
+this set is 31/16000 neurons and the raw data occupy 4335320 bytes in memory.
+
+--
+Gregory Jefferis, PhD                      
+Division of Neurobiology                   
+MRC Laboratory of Molecular Biology,       
+Hills Road,                                
+Cambridge, CB2 0QH, UK.                    
+
+http://www2.mrc-lmb.cam.ac.uk/group-leaders/h-to-m/g-jefferis
+http://www.neuroscience.cam.ac.uk/directory/profile.php?gsxej2
+http://flybrain.stanford.edu
+
+
+From saptarshi.guha at gmail.com  Sat Nov 17 06:42:38 2012
+From: saptarshi.guha at gmail.com (Saptarshi Guha)
+Date: Fri, 16 Nov 2012 21:42:38 -0800
+Subject: [R-sig-hpc] lazy load (and unload?) elements of large list
+In-Reply-To: <1E779990-8A2B-435A-AC2F-92828B1720F8@gmail.com>
+References: <1E779990-8A2B-435A-AC2F-92828B1720F8@gmail.com>
+Message-ID: <CAJDot1pGe-dYxCfSO+kQuzj0OdotGboaZ3i4e+nMVRh=u7psRg@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121116/c4766952/attachment.pl>
+
+From jefferis at gmail.com  Mon Nov 19 08:57:35 2012
+From: jefferis at gmail.com (Gregory Jefferis)
+Date: Mon, 19 Nov 2012 07:57:35 +0000
+Subject: [R-sig-hpc] lazy load (and unload?) elements of large list
+In-Reply-To: <CAJDot1pGe-dYxCfSO+kQuzj0OdotGboaZ3i4e+nMVRh=u7psRg@mail.gmail.com>
+References: <1E779990-8A2B-435A-AC2F-92828B1720F8@gmail.com>
+	<CAJDot1pGe-dYxCfSO+kQuzj0OdotGboaZ3i4e+nMVRh=u7psRg@mail.gmail.com>
+Message-ID: <F023612C-3AEA-44D1-A8E4-7B0D671B8C86@gmail.com>
+
+Dear Saptarshi,
+
+Thanks for your response.
+
+On 17 Nov 2012, at 05:42, Saptarshi Guha wrote:
+
+> One question: how large is each list element? < 256MB?
+
+fairly small (<5Mb)
+
+> One approach: store your data in Hbase (or Hadoop MapFiles), with key
+> as the list index.
+
+Can Hbase cope with arbitrary format data (like a list) rather than just tables?
+> 
+> The define an object O of class C. Redefine "[[".C as a function that
+> reads HBase/HDFS queries for the list index i (e.g. as in x[[i]]) and
+> retrieve the i'th list element.
+
+Yes, that was the sort of thing I had in mind.
+
+> Cache this, so the second x[[i]] is
+> called, it will retreive it from the cache. To prevent the cache from
+> expanding to 2GB, you can keep last K cache entries (some MRU/LRU type
+> cache retention scheme).
+
+I was hoping someone might have done some work on this type of strategy that could be reused!
+
+> Not sure how you intend to use this list, the application above
+> handles the query of some subset of keys (indices 1...16K). 
+> Do you want to run some function F across all/large subset of keys?
+> This is a good case for R and Hadoop.
+
+I have 2 use cases ? one batch processing on a cluster where all elements will be processed, typically in a function that takes a pair of elements as inputs and computes scores for all 16k^2 combinations; this is much faster when. For the time being simple approaches seem to work here, but Hadoop is something I have been meaning to investigate for the longer term.  The second main use case, interactive use on single user machine, where I am more concerned about saturating memory, is what I am trying to address currently.
+
+Best wishes,
+
+Greg.
+
+From jefferis at gmail.com  Thu Nov 22 00:17:22 2012
+From: jefferis at gmail.com (Gregory Jefferis)
+Date: Wed, 21 Nov 2012 23:17:22 +0000
+Subject: [R-sig-hpc] lazy load (and unload?) elements of large list
+In-Reply-To: <CAFnYW9mVxrc4S0eLxv+iAXMQZMsKyLc-HDuFPa4D5mDGX1LF+Q@mail.gmail.com>
+References: <1E779990-8A2B-435A-AC2F-92828B1720F8@gmail.com>
+	<CAJDot1pGe-dYxCfSO+kQuzj0OdotGboaZ3i4e+nMVRh=u7psRg@mail.gmail.com>
+	<F023612C-3AEA-44D1-A8E4-7B0D671B8C86@gmail.com>
+	<CAFnYW9mVxrc4S0eLxv+iAXMQZMsKyLc-HDuFPa4D5mDGX1LF+Q@mail.gmail.com>
+Message-ID: <DFD8DB0E-D560-427D-B69B-26A5B2D74DEA@gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121121/59118aff/attachment.pl>
+

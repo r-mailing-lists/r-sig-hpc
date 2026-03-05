@@ -1,0 +1,501 @@
+From wccsnow at gmail.com  Sun Jan  5 07:12:22 2014
+From: wccsnow at gmail.com (Wei-Chen Chen)
+Date: Sun, 5 Jan 2014 01:12:22 -0500
+Subject: [R-sig-hpc] Comparison of RNG streams in pbdMPI and parallel
+In-Reply-To: <52B45B07.6000602@ifg.uni-tuebingen.de>
+References: <52B45B07.6000602@ifg.uni-tuebingen.de>
+Message-ID: <CAB2Dcauw_04mg1AW8R0gRcK_3_hW9FuxSG7FYJFbzS_kBA9PqA@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20140105/485a6894/attachment.pl>
+
+From cubranic at stat.ubc.ca  Fri Jan 10 01:50:19 2014
+From: cubranic at stat.ubc.ca (Davor Cubranic)
+Date: Thu, 9 Jan 2014 16:50:19 -0800
+Subject: [R-sig-hpc] How to debug code that uses `doMC`?
+Message-ID: <ADAFFE36-BCB9-4EAB-BDBB-98904F326D7C@stat.ubc.ca>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20140109/372bec13/attachment.pl>
+
+From ross at biostat.ucsf.edu  Fri Jan 10 03:32:17 2014
+From: ross at biostat.ucsf.edu (Ross Boylan)
+Date: Thu, 09 Jan 2014 18:32:17 -0800
+Subject: [R-sig-hpc] distributed performance monitoring
+Message-ID: <52CF5BB1.6070202@biostat.ucsf.edu>
+
+I'm doing a distributed MIMD computation on a cluster, and would like to 
+be able to tell where it is bottlenecking.  For example, there are many 
+simulator processes, but only a few coefficient server processes.  If 
+the coefficient servers are saturated I can add more, but I need to know 
+if they are saturated.
+
+This is using Rmpi on a Debian cluster.
+
+My first thought was that each process could record logs of the time it 
+entered various states, and I could then look at these 2 see if they 
+were idle.  E.g., I could log the message tag and source or destination 
+for each message send, along with a timestamp.  2 concerns are what an 
+efficient data structure for a log is (my understanding is that rbind 
+can be both slow and memory intensive) and whether getting the timestamp 
+could itself be an expensive operation.
+
+My second thought was that this is probably already a solved problem, 
+but I'm not sure where to look.  Some of R parallel libraries (the 
+example I saw might have been snow) can produce basic graphs showing 
+when processes were active.  And there are probably MPI level facilities 
+for this sort of thing too (we're using openmpi).
+
+Any pointers or suggestions?
+
+Thanks.
+Ross Boylan
+
+
+From c_b_dvs at yahoo.com  Wed Jan 15 23:13:15 2014
+From: c_b_dvs at yahoo.com (Chris Davis)
+Date: Wed, 15 Jan 2014 14:13:15 -0800 (PST)
+Subject: [R-sig-hpc] Excessive network traffic and slow code execution when
+	running R via qsub on an HPC
+Message-ID: <1389823995.54612.YahooMailNeo@web141102.mail.bf1.yahoo.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20140115/2abf0499/attachment.pl>
+
+From Rainer at krugs.de  Thu Jan 16 10:15:54 2014
+From: Rainer at krugs.de (Rainer M Krug)
+Date: Thu, 16 Jan 2014 10:15:54 +0100
+Subject: [R-sig-hpc] Excessive network traffic and slow code execution
+ when running R via qsub on an HPC
+In-Reply-To: <1389823995.54612.YahooMailNeo@web141102.mail.bf1.yahoo.com>
+References: <1389823995.54612.YahooMailNeo@web141102.mail.bf1.yahoo.com>
+Message-ID: <52D7A34A.8070308@krugs.de>
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+
+
+On 01/15/14, 23:13 , Chris Davis wrote:
+> I'm trying to debug a problem where jobs running R code that I
+> submit via qsub are running very slow and causing significant
+> traffic between the head node and the nodes that the jobs are
+> running on. The more instances of R I run, the more they
+> collectively slow down.
+> 
+> Much of the documentation I've found on running R on an HPC 
+> recommends using "module load R".  Trying this led to the same 
+> problem as the R install referred to in the module is on the head 
+> node.  When I did "lsof -u MyUserName" on the head node, I could
+> see that there were open files related to the R executable and the 
+> libraries.  These files were open multiple times, based on the
+> number of running instances of R.
+> 
+> I then installed a new version of R in the /tmp directory of the
+> head node, zipped it all up, and then tried running jobs that would
+> copy this all to the /tmp directory of the nodes, unzip it, and run
+> a version of R locally.  The same symptoms occurred.  This time, 
+> running lsof on the head node didn't show any files directly
+> related to the R install, but I do see a reference to my
+> $PBS_O_WORKDIR, and there's a mention of several *.so libraries
+> located in lib directories like /.rootfs/el6.4-1/lib64/.  As I
+> understand, these libraries are on the head node.  The output of
+> lsof also shows that the R code isn't spending its time
+> reading/writing to user-defined files on the head node.
+> 
+> The bash scripts I'm using to submit the jobs via qsub are
+> slightly modified from ones that I used in the past to run java
+> programs. Instead of "java -jar...", I'm now doing
+> "/tmp/R-3.0.2/bin/Rscript --vanilla MyCode.R $JOB_NUMBER".  The R
+> code loads the necessary libraries on startup, and only reads and
+> writes from the local node. Processing time when things are working
+> ok (tested on a single computer) are around several hours, and the
+> code runs on a single CPU, so no parallel processing is involved.
+> In terms of libraries, I'm just using sqldf aside from the default
+> R libraries, and as I understand from the sqldf documentation, the
+> database is stored in memory, so there should be no network traffic
+> associated with queries that are running.
+> 
+> Does anyone have ideas of how I can further debug this?  I'm not
+> sure what else to check for and haven't been able to find a mention
+> on mailing lists of people running into the same problems with
+> network traffic slowing down running instances of R.
+
+I did substantial number of simulations on R via qsub, and did not
+experience slowdowns caused by network traffic, although I tried to
+minimise it by doing exactly what you were trying to do: copying (in
+my case) data to the nodes.I copied the data to $TMPDIR which is
+*local* on the node and not linked.
+
+I assume, that the directory you are copying to is actiually only
+linked to the nodes (make sure with the HPC admin which folders are
+linked and which are local).
+
+On the other hand, My R installation was always in my home directory,
+i.e. not on the nodes, but only linked. So I really don't think that
+the network traffic is because of the R instalation or something else.
+
+
+Cheers,
+
+Rainer
+
+> 
+> Regards,
+> 
+> Chris
+> 
+> [[alternative HTML version deleted]]
+> 
+> 
+> 
+> _______________________________________________ R-sig-hpc mailing 
+> list R-sig-hpc at r-project.org 
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+
+- -- 
+Rainer M. Krug, PhD (Conservation Ecology, SUN), MSc (Conservation
+Biology, UCT), Dipl. Phys. (Germany)
+
+Centre of Excellence for Invasion Biology
+Stellenbosch University
+South Africa
+
+Tel :       +33 - (0)9 53 10 27 44
+Cell:       +33 - (0)6 85 62 59 98
+Fax :       +33 - (0)9 58 10 27 44
+
+Fax (D):    +49 - (0)3 21 21 25 22 44
+
+email:      Rainer at krugs.de
+
+Skype:      RMkrug
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG/MacGPG2 v2.0.22 (Darwin)
+Comment: Using GnuPG with Thunderbird - http://www.enigmail.net/
+
+iQEcBAEBAgAGBQJS16NKAAoJENvXNx4PUvmC/1EIANAaHIvy4X808LLTEi0K/X9a
+pTOEib9hVzMyd5kmqhz6Ekp8uzhk0z4kfSkrB7Y/SR2sTsgHbU69hJ3vG7P1ehg4
+I39/EgqyDYW/Kt2QQ7KhpJ9JcTztVD4HFiI/1AGv/zcdYDSHBsF2I35emHe8tSMp
+BxnDYFg4a9TAyhUbzt3FEgU9RMOUEQcsW/6O5hjaYLGJLRUw2l+ivluzrwjHhPWZ
+Pr0Le6fvG5rFaT63XPN80HrX/mm6F5G2OELbeKwC1V1IsVmyA7lMo1JV+fVVlpP6
+kmYcp7V3WUtonreWnzJYAnLWkJDP32+dopAb901iQ1rPAmoItrgd8mOe13W7lQg=
+=p2uA
+-----END PGP SIGNATURE-----
+
+
+From c_b_dvs at yahoo.com  Thu Jan 16 10:49:29 2014
+From: c_b_dvs at yahoo.com (Chris Davis)
+Date: Thu, 16 Jan 2014 01:49:29 -0800 (PST)
+Subject: [R-sig-hpc] Excessive network traffic and slow code execution
+	when running R via qsub on an HPC
+In-Reply-To: <52D7A34A.8070308@krugs.de>
+References: <1389823995.54612.YahooMailNeo@web141102.mail.bf1.yahoo.com>
+	<52D7A34A.8070308@krugs.de>
+Message-ID: <1389865769.32280.YahooMailNeo@web141102.mail.bf1.yahoo.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20140116/e0e818cf/attachment.pl>
+
+From Rainer at krugs.de  Thu Jan 16 11:05:58 2014
+From: Rainer at krugs.de (Rainer M Krug)
+Date: Thu, 16 Jan 2014 11:05:58 +0100
+Subject: [R-sig-hpc] Excessive network traffic and slow code execution
+ when running R via qsub on an HPC
+In-Reply-To: <1389865769.32280.YahooMailNeo@web141102.mail.bf1.yahoo.com>
+References: <1389823995.54612.YahooMailNeo@web141102.mail.bf1.yahoo.com>
+	<52D7A34A.8070308@krugs.de>
+	<1389865769.32280.YahooMailNeo@web141102.mail.bf1.yahoo.com>
+Message-ID: <52D7AF06.5020208@krugs.de>
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+
+
+On 01/16/14, 10:49 , Chris Davis wrote:
+> Hi Rainer,
+> 
+> Thanks for the response.  The folder I copy to is indeed local to
+> the compute node and is not shared with the head node.  I've been
+> looking into this further and think sqldf might be part of the
+> problem.
+
+Sounds likely to me. Contact the mpackage maintainers or ask at their
+mailing list.
+
+Cheers,
+
+Rainer
+
+> I'm able to run a simple R program (repeated
+> multiplication/division) with the program maxing out the CPU, and
+> no noticeable network traffic.
+> 
+> Chris
+> 
+> 
+> On Thursday, January 16, 2014 10:16 AM, Rainer M Krug
+> <Rainer at krugs.de> wrote:
+> 
+> 
+> On 01/15/14, 23:13 , Chris Davis wrote:
+>> I'm trying to debug a problem where jobs running R code that I 
+>> submit via qsub are running very slow and causing significant 
+>> traffic between the head node and the nodes that the jobs are 
+>> running on. The more instances of R I run, the more they 
+>> collectively slow down.
+> 
+>> Much of the documentation I've found on running R on an HPC 
+>> recommends using "module load R".  Trying this led to the same 
+>> problem as the R install referred to in the module is on the
+>> head node.  When I did "lsof -u MyUserName" on the head node, I
+>> could see that there were open files related to the R executable
+>> and the libraries.  These files were open multiple times, based
+>> on the number of running instances of R.
+> 
+>> I then installed a new version of R in the /tmp directory of the 
+>> head node, zipped it all up, and then tried running jobs that
+>> would copy this all to the /tmp directory of the nodes, unzip it,
+>> and run a version of R locally.  The same symptoms occurred.
+>> This time, running lsof on the head node didn't show any files
+>> directly related to the R install, but I do see a reference to
+>> my $PBS_O_WORKDIR, and there's a mention of several *.so
+>> libraries located in lib directories like
+>> /.rootfs/el6.4-1/lib64/.  As I understand, these libraries are on
+>> the head node.  The output of lsof also shows that the R code
+>> isn't spending its time reading/writing to user-defined files on
+>> the head node.
+> 
+>> The bash scripts I'm using to submit the jobs via qsub are 
+>> slightly modified from ones that I used in the past to run java 
+>> programs. Instead of "java -jar...", I'm now doing 
+>> "/tmp/R-3.0.2/bin/Rscript --vanilla MyCode.R $JOB_NUMBER".  The
+>> R code loads the necessary libraries on startup, and only reads
+>> and writes from the local node. Processing time when things are
+>> working ok (tested on a single computer) are around several
+>> hours, and the code runs on a single CPU, so no parallel
+>> processing is involved. In terms of libraries, I'm just using
+>> sqldf aside from the default R libraries, and as I understand
+>> from the sqldf documentation, the database is stored in memory,
+>> so there should be no network traffic associated with queries
+>> that are running.
+> 
+>> Does anyone have ideas of how I can further debug this?  I'm not 
+>> sure what else to check for and haven't been able to find a
+>> mention on mailing lists of people running into the same problems
+>> with network traffic slowing down running instances of R.
+> 
+> I did substantial number of simulations on R via qsub, and did not 
+> experience slowdowns caused by network traffic, although I tried
+> to minimise it by doing exactly what you were trying to do: copying
+> (in my case) data to the nodes.I copied the data to $TMPDIR which
+> is *local* on the node and not linked.
+> 
+> I assume, that the directory you are copying to is actiually only 
+> linked to the nodes (make sure with the HPC admin which folders
+> are linked and which are local).
+> 
+> On the other hand, My R installation was always in my home
+> directory, i.e. not on the nodes, but only linked. So I really
+> don't think that the network traffic is because of the R
+> instalation or something else.
+> 
+> 
+> Cheers,
+> 
+> Rainer
+> 
+> 
+> 
+>> Regards,
+> 
+>> Chris
+> 
+>> [[alternative HTML version deleted]]
+> 
+> 
+> 
+>> _______________________________________________ R-sig-hpc
+>> mailing list R-sig-hpc at r-project.org
+>> <mailto:R-sig-hpc at r-project.org> 
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+> 
+> 
+> 
+> 
+> 
+
+- -- 
+Rainer M. Krug, PhD (Conservation Ecology, SUN), MSc (Conservation
+Biology, UCT), Dipl. Phys. (Germany)
+
+Centre of Excellence for Invasion Biology
+Stellenbosch University
+South Africa
+
+Tel :       +33 - (0)9 53 10 27 44
+Cell:       +33 - (0)6 85 62 59 98
+Fax :       +33 - (0)9 58 10 27 44
+
+Fax (D):    +49 - (0)3 21 21 25 22 44
+
+email:      Rainer at krugs.de
+
+Skype:      RMkrug
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG/MacGPG2 v2.0.22 (Darwin)
+Comment: Using GnuPG with Thunderbird - http://www.enigmail.net/
+
+iQEcBAEBAgAGBQJS168GAAoJENvXNx4PUvmCvwEH/3VSkQ+Gqk92+laoykpJhTP7
+2W9aFy0jvykG9+85W1JuKCAG786g7dHTYM7axcNpOayvqV8XlHtRTrHlQ54rZE0u
+ww60cpYTobNTC46J99ytJMrUeJ65T5CfsKSz5JHUoYJEucFZjS4dR2b4xaJP1KsK
+Wl6VRzttyGV6mkvCeKc9Fw1Ydq+JzLotdKvPADoKpA1gTWBBCoxQW0OG4BYDUpjQ
+tghTbp8/rbJYD53xAp6H7DIca+glFRVH+QHUAZofDI841UIs8rYY+AGydVigOHEr
+6x/adcJjKAP0iK92Cf4su8Ajabkuaw1jN7+Zf8I2LrCV7ad5u30qZ4It172ok74=
+=rORb
+-----END PGP SIGNATURE-----
+
+
+From c_b_dvs at yahoo.com  Thu Jan 16 11:11:11 2014
+From: c_b_dvs at yahoo.com (Chris Davis)
+Date: Thu, 16 Jan 2014 02:11:11 -0800 (PST)
+Subject: [R-sig-hpc] Excessive network traffic and slow code
+	execution	when running R via qsub on an HPC
+In-Reply-To: <1389865769.32280.YahooMailNeo@web141102.mail.bf1.yahoo.com>
+References: <1389823995.54612.YahooMailNeo@web141102.mail.bf1.yahoo.com>	<52D7A34A.8070308@krugs.de>
+	<1389865769.32280.YahooMailNeo@web141102.mail.bf1.yahoo.com>
+Message-ID: <1389867071.12324.YahooMailNeo@web141102.mail.bf1.yahoo.com>
+
+I think I managed to solve it using the code below.? With sqldf the queries were done directly on data frames without any code that initialized a connection to a sqlite database.? Somehow this led the code constantly talking to the head node.? The R code itself does repetitions of a job that are independent of each other, so the code below is run before each repetition begins.
+
+
+??? # close an old connection if it exists
+??? if (!is.null(getOption("sqldf.connection"))){
+??????? sqldf()
+??? }
+??? # create a new connection
+??? sqldf()
+
+
+Chris
+
+
+
+From ross at biostat.ucsf.edu  Wed Jan 29 04:37:56 2014
+From: ross at biostat.ucsf.edu (Ross Boylan)
+Date: Tue, 28 Jan 2014 19:37:56 -0800
+Subject: [R-sig-hpc] problems with parallel launch under Rmpi/OpenMPI
+Message-ID: <1390966676.8132.63.camel@localhost>
+
+I was able to launch parallel R only as long as all the nodes are on the
+same machine.  This is a report of the problem and the fix!  (I was
+going to ask why it wasn't working, but now I'm just sharing
+information.)  
+
+GOAL: Have an interactive master session controlling slaves, so that I
+can debug.  I want the slaves running Rmpi's standard command loop,
+hence the use of Rmpi's Rprofile, in modified form, below.
+
+WORKS IF ALL ON ONE HOST
+
+The following works:
+-----------------------------
+ross at n10:~/KHC/sunbelt$ ./rmpilaunch
+master (rank 0, comm 1) of size 7 is running on: n10
+slave1 (rank 1, comm 1) of size 7 is running on: n10
+slave2 (rank 2, comm 1) of size 7 is running on: n10
+slave3 (rank 3, comm 1) of size 7 is running on: n10
+# ... etc
+---------------------------------
+
+rmpilaunch is
+---------------------------
+#! /bin/sh
+R_PROFILE_USER=~/KHC/sunbelt/Rmpiprofile orterun -np 7 R --no-save -q 
+---------------------------
+
+Rmpiprofile is a slightly modified version of the file distributed with
+Rmpi.  It adds the following lines at the start:
+----------------------------------
+# This file was copied from ~/Rlib/Rmpi/Rprofile
+# I do not take the advice to name it .Rprofile since I need to keep the
+# existing file.  Set the R_PROFILE_USER to this file name to use it.
+# First we invoke the existing startup file.  This is essential to get
+# the paths for libraries, including Rmpi.
+setwd("~/KHC/sunbelt")
+source("~/.Rprofile")
+
+## Standard code below here.
+--------------------------------
+
+~/.Rprofile sets some local options, in particular putting my personal R
+directory at the front of .libPaths().  Without this R will not find a
+loadable Rmpi.
+
+FAILS WITH MULTIPLE HOSTS
+
+However, if I add -hostfile <full path to hostfile> to the orterun line,
+I never get any messages about master or slaves starting, and I don't
+get the command line back.
+
+----------------------------------------
+ross at n10:~/KHC/sunbelt$ cat rmpilaunch
+#! /bin/sh
+R_PROFILE_USER=~/KHC/sunbelt/Rmpiprofile orterun -hostfile ~/KHC/sunbelt/hosts -np 7 R --no-save -q
+ross at n10:~/KHC/sunbelt$ # note use of -hostfile.  expected to fail.
+ross at n10:~/KHC/sunbelt$ ./rmpilaunch
+>
+>
+>
+>
+-------------------------------------------------
+
+
+SOLUTION
+
+Tell mpi to export R_PROFILE_USER:
+----------------------------------------------------------------------
+ross at n10:~/KHC/sunbelt$ cat rmpilaunch
+#! /bin/sh
+R_PROFILE_USER=~/KHC/sunbelt/Rmpiprofile orterun -x R_PROFILE_USER -hostfile ~/KHC/sunbelt/hosts -np 7 R --no-save -q
+ross at n10:~/KHC/sunbelt$ # exported the env variable
+ross at n10:~/KHC/sunbelt$ ./rmpilaunch
+master (rank 0, comm 1) of size 7 is running on: n10
+slave1 (rank 1, comm 1) of size 7 is running on: n10
+slave2 (rank 2, comm 1) of size 7 is running on: n10
+slave3 (rank 3, comm 1) of size 7 is running on: n11
+slave4 (rank 4, comm 1) of size 7 is running on: n11
+slave5 (rank 5, comm 1) of size 7 is running on: n11
+slave6 (rank 6, comm 1) of size 7 is running on: n11
+----------------------------------------------------------------------
+
+ANALYSIS
+
+Apparently orterun does not export R_PROFILE_USER (maybe it would have
+if I had export'ed it?).  So the remote slaves didn't get the right
+startup file and so never even attempted to load Rmpi.
+
+This explanation seems plausible, but it's possible it's wrong :)
+
+
+ENVIRONMENT
+
+Environment: Debian squeeze, openmpi 1.4.2-4, R 3.0.1-3~squeezecran3.0,
+Rmpi 0.6.3 installed from source on CRAN (not Debian package) to my
+local directory.  There is no batch queing system.  I am invoking
+rmpilaunch from a shell running under emacs, and using ESS's ess-remote
+to get into R mode when launch is successful.
+
+This is quite similar to this thread
+https://stat.ethz.ch/pipermail/r-sig-hpc/2009-February/000104.html.
+
+Ross Boylan
+
+

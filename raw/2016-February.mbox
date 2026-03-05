@@ -1,0 +1,608 @@
+From cgf at isep.ipp.pt  Mon Feb  1 12:15:45 2016
+From: cgf at isep.ipp.pt (Carlos Ferreira)
+Date: Mon, 1 Feb 2016 11:15:45 +0000
+Subject: [R-sig-hpc] FINAL CFP: VECPAR 2016 - High Performance Computing for
+ Computational Science
+Message-ID: <VI1PR04MB11839C0E3B0293B7F04C8308FADE0@VI1PR04MB1183.eurprd04.prod.outlook.com>
+
+------------------------------------------------------------------------------------------
+                             CALL FOR PAPERS
+12th International Meeting on High-Performance Computing
+         for Computational Science (VECPAR 2016)
+
+                 University of Porto, Porto, Portugal
+                            June 27 - 30, 2016
+                       http://vecpar.fe.up.pt/2016/
+-------------------------------------------------------------------------------------------
+
+IMPORTANT DATES: (EXTENDED DEADLINES!)
+
+Deadline for submission:      *** February 5th, 2016 ***
+Notification of acceptance:   March 20th, 2016
+Camera? ready version:         May 2nd, 2016
+
+
+The International Meeting on High? Performance Computing for Computational Science (VECPAR) is
+the premier venue for presenting and discussing the latest research and practice in high? end
+computer modeling and complex systems. VECPAR encourages submission of research contributions
+from academia, research laboratories and industry to address pressing issues in computational
+science resulting from applications of interest to society and hardware innovations. VECPAR'16,
+the 12th edition of the VECPAR series of conferences is organized by the University of Porto,
+Portugal, and will be held at the Department of Computer Science, School of Sciences.
+
+An award is planned for best student papers.
+
+Contributions are solicited in all areas of computational science and engineering (CS&E),
+including (but not limited to) the following topics:
+
+* Large? scale Simulations in CS&E
+* Parallel and Distributed Computing
+* Parallel Algorithms
+* Numerical Algorithms on Multicore, GPUs and Emerging Architectures
+* Symbolic algorithms on Multicore, GPUs and Emerging Architectures
+* Support Tools and Environments
+* Scheduling and Load Balancing
+* Performance Analysis, Evaluation and Tuning
+
+You should make your submissions through EasyChair at:
+https://www.easychair.org/conferences/?conf=vecpar2016
+
+Submitted papers must be formatted according to  the rules of the Springer Series Lecture Notes in
+Computer Science (LNCS):
+http://www.springer.com/computer/lncs?SGWID=0-164-6-793341-0
+
+Please note that papers (for conference presentation) must not exceed 8 pages in length, using the
+LNCS format. Accepted papers will be distributed in electronic format to participants of VECPAR'16.
+Printed versions of the invited talks and a set of selected papers will be published by Springer in
+the series entitled Lecture Notes in Computer Science. Selected papers will be limited to 14 pages
+and will be judged based on relevance, significance, originality, correctness and clarity. More
+information about this process will be sent to interested authors after the conference.
+
+
+Carlos Ferreira
+
+
+[http://www2.isep.ipp.pt/assinatura_email/EMAIL_ISEP.png]
+ISEP | Instituto Superior de Engenharia do Porto
+Rua Dr. Ant?nio Bernardino de Almeida, 431
+4249-015 Porto - PORTUGAL
+tel. +351 228 340 500 | fax +351 228 321 159
+mail at isep.ipp.pt | www.isep.ipp.pt<http://www.isep.ipp.pt>
+
+	[[alternative HTML version deleted]]
+
+
+From aisha at mun.ca  Thu Feb  4 16:12:25 2016
+From: aisha at mun.ca (aisha at mun.ca)
+Date: Thu,  4 Feb 2016 11:42:25 -0330
+Subject: [R-sig-hpc] nested foreach loop
+Message-ID: <1454598745.56b36a5996b14@webmail.mun.ca>
+
+Hello,
+
+When I run this simple example of nested foreach loop:
+
+ foreach(i=1:3, .packages="foreach") %dopar% {
++ foreach(j=1:3) %dopar% {
++ y=sqrt(i+j)
++ }
++ }
+I get
+
+[[1]]
+[[1]][[1]]
+[1] 1.414214
+
+[[1]][[2]]
+[1] 1.732051
+
+[[1]][[3]]
+[1] 2
+
+
+[[2]]
+[[2]][[1]]
+[1] 1.732051
+
+[[2]][[2]]
+[1] 2
+
+[[2]][[3]]
+[1] 2.236068
+
+[[3]]
+[[3]][[1]]
+[1] 2
+
+[[3]][[2]]
+[1] 2.236068
+
+[[3]][[3]]
+[1] 2.44949
+
+
+> y
+[1] 1.000000 1.414214 1.732051
+
+Why y gives [1] 1.000000 1.414214 1.732051
+1.000000 is not even a correct value for y=sqrt(i+j)
+and why y is a vector in the first place? 
+Thanks,
+
+Ibrahim
+
+
+From simon.urbanek at r-project.org  Thu Feb  4 20:13:27 2016
+From: simon.urbanek at r-project.org (Simon Urbanek)
+Date: Thu, 4 Feb 2016 14:13:27 -0500
+Subject: [R-sig-hpc] nested foreach loop
+In-Reply-To: <1454598745.56b36a5996b14@webmail.mun.ca>
+References: <1454598745.56b36a5996b14@webmail.mun.ca>
+Message-ID: <C8C5D60B-91B5-48FE-9024-42BE89E15B59@r-project.org>
+
+
+On Feb 4, 2016, at 10:12 AM, aisha at mun.ca wrote:
+
+> Hello,
+> 
+> When I run this simple example of nested foreach loop:
+> 
+> foreach(i=1:3, .packages="foreach") %dopar% {
+> + foreach(j=1:3) %dopar% {
+> + y=sqrt(i+j)
+> + }
+> + }
+> I get
+> 
+> [[1]]
+> [[1]][[1]]
+> [1] 1.414214
+> 
+> [[1]][[2]]
+> [1] 1.732051
+> 
+> [[1]][[3]]
+> [1] 2
+> 
+> 
+> [[2]]
+> [[2]][[1]]
+> [1] 1.732051
+> 
+> [[2]][[2]]
+> [1] 2
+> 
+> [[2]][[3]]
+> [1] 2.236068
+> 
+> [[3]]
+> [[3]][[1]]
+> [1] 2
+> 
+> [[3]][[2]]
+> [1] 2.236068
+> 
+> [[3]][[3]]
+> [1] 2.44949
+> 
+> 
+>> y
+> [1] 1.000000 1.414214 1.732051
+> 
+> Why y gives [1] 1.000000 1.414214 1.732051
+> 1.000000 is not even a correct value for y=sqrt(i+j)
+> and why y is a vector in the first place? 
+> 
+
+You cannot have side-effects (like y=...) in parallel code, obviously, so the above doesn't make sense. You can only return values from parallel code since, by definition, it is called independently in parallel. In fact the above doesn't even touch y, so you're printing whatever you set y to in your global environment before.
+
+Cheers,
+Simon
+
+
+
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+
+
+From cdetermanjr at gmail.com  Tue Feb  9 19:20:19 2016
+From: cdetermanjr at gmail.com (Charles Determan)
+Date: Tue, 9 Feb 2016 12:20:19 -0600
+Subject: [R-sig-hpc] GPU package crowd-source testing
+Message-ID: <CAKxd1KMgAkcArNYQzwxBAvnewsz33hMEuaz5bb_z_B0C7nqD=g@mail.gmail.com>
+
+Greetings R users,
+
+I would like to request any users who would be willing to test one of my
+packages.  Normally I would be content using testthat and continuous
+integration services but this particular package is used for GPU computing
+(hence the cross-posting).  It is intended to be as general as possible for
+available devices but I only have access to so much hardware.  I can't
+possibly test it against every GPU available.
+
+As such, I would sincerely appreciate any user that has at least one GPU
+device (Intel, AMD, or NVIDIA) and is willing to experiment with the
+package to try it out.  Note, this will require installing an OpenCL SDK of
+some form.  Installation instructions for the package are found here (
+https://github.com/cdeterman/gpuR/wiki).
+
+At the very least, if you have a valid device, you would only need to
+download the 'development' version of the package and experiment with the
+functions such as a matrix multiplication.
+
+devtools::install_github("cdeterman/gpuR", ref = "develop")
+
+library(gpuR)
+A <- gpuMatrix(rnorm(10000), 100, 100)
+A %*% A
+
+You could also clone my github repo and run all the unit tests I have
+included
+
+git clone -b develop https://github.com/cdeterman/gpuR.git
+
+If using RStudio, just open the package in a new project and press
+'Ctrl-Shift-T' or more directly run  `devtools::test()`
+
+If using command-line R, switch to the gpuR directory, start R and run
+`devtools::test()`.
+
+If you find any errors or bugs, please report them in my github issues (
+https://github.com/cdeterman/gpuR/issues).  Naturally any recommendations
+on additional features are welcome.
+
+Thank you in advance for any support you can provide.  I want to continue
+improving this package but I am beginning to reach the end of what I can
+accomplish from a hardware perspective.
+
+Best Regards,
+Charles
+
+	[[alternative HTML version deleted]]
+
+
+From cgf at isep.ipp.pt  Wed Feb 10 16:33:03 2016
+From: cgf at isep.ipp.pt (Carlos Ferreira)
+Date: Wed, 10 Feb 2016 15:33:03 +0000
+Subject: [R-sig-hpc] FINAL CALL FOR WORKSHOP PROPOSALS: VECPAR 2016 - High
+ Performance Computing for Computational Science
+Message-ID: <AM3PR04MB117222C6FE4E3E2A909BC1A0FAD70@AM3PR04MB1172.eurprd04.prod.outlook.com>
+
+------------------------------------------------------------------------------------------
+                             CALL FOR WORKSHOP PROPOSALS
+          12th International Meeting on High-Performance Computing
+               for Computational Science (VECPAR 2016)
+
+                 University of Porto, Porto, Portugal
+                            June 27 - 30, 2016
+                       http://vecpar.fe.up.pt/2016/
+-------------------------------------------------------------------------------------------
+
+As part of the 12th VECPAR International Meeting on High Performance Computing for Computational
+Science, we are seeking proposals for affiliated workshops.
+
+The workshops should be focused in fresh topics related to parallel and distributed computational
+science, from theory to practice, where new ideas, subjects, open problems and works on progress
+can be discussed and explored.
+
+The accepted workshops will be held on 1st of July 2016 and may be organized as half- or full-day.
+
+
+IMPORTANT DATES
+Deadline for workshop proposals: February 15th, 2016
+Notification of acceptance: February 19th, 2016
+Deadline for paper submission: To be defined by the chairs
+Author notification: To be defined by the chairs
+Camera-ready version of papers: May 15th, 2016
+
+
+PROPOSALS GUIDELINES
+Workshop title and acronym;
+Workshop description (150-200 words) to be included in the VECPAR website;
+Name and short bio of the workshop proponents;
+A list of the tentative program committee.
+
+Responsibilities of the Workshop Chairs:
+Prepare a dedicated call for papers;
+Maintain the workshop website;
+Define the workshop program committee;
+Select the papers by a peer review process.
+
+PROCEEDINGS
+The papers of the workshops will be published under the Springer LNCS series. The authors may
+be asked to revise the paper after the conference in order to meet the series requirements.
+
+BUDGET
+VECPAR 2016 will not pay for travel or other arrangements for workshop organizers or any of
+their invited guests.
+
+HOW TO SUBMIT
+The workshop proposals should be sent by email to the Workshops Chair:
+Jo?o Manuel R. S. Tavares
+Faculty of Engineering of the University of Porto, Portugal
+tavares at fe.up.pt
+
+
+Carlos Ferreira
+
+
+[http://www2.isep.ipp.pt/assinatura_email/EMAIL_ISEP.png]
+ISEP | Instituto Superior de Engenharia do Porto
+Rua Dr. Ant?nio Bernardino de Almeida, 431
+4249-015 Porto - PORTUGAL
+tel. +351 228 340 500 | fax +351 228 321 159
+mail at isep.ipp.pt | www.isep.ipp.pt<http://www.isep.ipp.pt>
+
+	[[alternative HTML version deleted]]
+
+
+From cdetermanjr at gmail.com  Thu Feb 11 16:36:12 2016
+From: cdetermanjr at gmail.com (Charles Determan)
+Date: Thu, 11 Feb 2016 09:36:12 -0600
+Subject: [R-sig-hpc] GPU package crowd-source testing
+In-Reply-To: <CAKxd1KMgAkcArNYQzwxBAvnewsz33hMEuaz5bb_z_B0C7nqD=g@mail.gmail.com>
+References: <CAKxd1KMgAkcArNYQzwxBAvnewsz33hMEuaz5bb_z_B0C7nqD=g@mail.gmail.com>
+Message-ID: <CAKxd1KMiOSQ7=z_51=aDfv1veKdNFDCo6Bj2MXhWpqan=VSmXQ@mail.gmail.com>
+
+R Users,
+
+My sincere thanks to all those who have been coming forward to test my GPU
+package and provide bug reports.  I want to followup on my initial request
+with a few qualifiers.
+
+1. I neglected to tell users to also use my github version of 'RViennaCL'
+instead of the CRAN version.  I have made some updates that I was
+postponing release of until I can solve the multiple device issues with
+'gpuR'.
+
+devtools::install_github("cdeterman/RViennaCL")
+
+2. When reporting bugs, either directly to me or ideally in my github
+issues (https://github.com/cdeterman/gpuR/issues), please provide your
+Operating System, OpenCL version (e.g. 1.0, 1.2, 2.0), OpenCL SDK (e.g.
+AMD, CUDA toolkit, etc.) and GPU device.  If you don't know these things
+you can get them from Sys.info() for the OS, platformInfo() for the OpenCL
+SDK, gpuInfo() for the GPU information, and check your OpenCL header (cl.h)
+for the /* OpenCL Version */ section for the highest version number.
+
+3. If you have installed 'gpuR' and it is running without problems I would
+still like to know this.  It would be good to begin generating a list of
+'tested' devices and associated platform.  I have just created a gitter
+account.  I am relatively new to it but I'm hoping it can be used to try
+and consolidate responses.  In this case, you can simply reply on the
+Tested_GPUs thread (https://gitter.im/cdeterman/gpuR/Tested_GPUs) with your
+device and platform backend.
+
+Again, thanks to all for taking the time to try out this package.
+
+Regards,
+Charles
+
+
+
+On Tue, Feb 9, 2016 at 12:20 PM, Charles Determan <cdetermanjr at gmail.com>
+wrote:
+
+> Greetings R users,
+>
+> I would like to request any users who would be willing to test one of my
+> packages.  Normally I would be content using testthat and continuous
+> integration services but this particular package is used for GPU computing
+> (hence the cross-posting).  It is intended to be as general as possible for
+> available devices but I only have access to so much hardware.  I can't
+> possibly test it against every GPU available.
+>
+> As such, I would sincerely appreciate any user that has at least one GPU
+> device (Intel, AMD, or NVIDIA) and is willing to experiment with the
+> package to try it out.  Note, this will require installing an OpenCL SDK of
+> some form.  Installation instructions for the package are found here (
+> https://github.com/cdeterman/gpuR/wiki).
+>
+> At the very least, if you have a valid device, you would only need to
+> download the 'development' version of the package and experiment with the
+> functions such as a matrix multiplication.
+>
+> devtools::install_github("cdeterman/gpuR", ref = "develop")
+>
+> library(gpuR)
+> A <- gpuMatrix(rnorm(10000), 100, 100)
+> A %*% A
+>
+> You could also clone my github repo and run all the unit tests I have
+> included
+>
+> git clone -b develop https://github.com/cdeterman/gpuR.git
+>
+> If using RStudio, just open the package in a new project and press
+> 'Ctrl-Shift-T' or more directly run  `devtools::test()`
+>
+> If using command-line R, switch to the gpuR directory, start R and run
+> `devtools::test()`.
+>
+> If you find any errors or bugs, please report them in my github issues (
+> https://github.com/cdeterman/gpuR/issues).  Naturally any recommendations
+> on additional features are welcome.
+>
+> Thank you in advance for any support you can provide.  I want to continue
+> improving this package but I am beginning to reach the end of what I can
+> accomplish from a hardware perspective.
+>
+> Best Regards,
+> Charles
+>
+>
+>
+
+	[[alternative HTML version deleted]]
+
+
+From seija.sirkia at csc.fi  Fri Feb 26 16:03:09 2016
+From: seija.sirkia at csc.fi (Seija =?iso-8859-1?Q?Sirki=E4?=)
+Date: Fri, 26 Feb 2016 17:03:09 +0200 (EET)
+Subject: [R-sig-hpc] MPI clusters for dummies
+Message-ID: <1062194742.1542389.1456498989915.JavaMail.zimbra@csc.fi>
+
+Hi all,
+
+I guess I'm missing something really obvious here, but that's how it is, and I need help (and you've helped me before!) :)
+
+I have a tiny test script like this:
+
+##################
+library(doMPI,quietly = TRUE)
+cl<-startMPIcluster()
+registerDoMPI(cl)
+
+system.time(a<-foreach(i=1:4) %do% system.time(sort(runif(1e8))))
+a
+system.time(a<-foreach(i=1:4) %dopar% system.time(sort(runif(1e8))))
+a
+##################
+
+I send it to SLURM using a script that asks for 4 cores and ends with
+srun R --slave --no-save -f foreachtest.R
+
+This works, both in the sense that I get no errors and in the sense that it clearly actually does the thing in parallel, judging by the time used.
+
+Now suppose I want to do the same with, say, clusterApply from parallel/snow instead, what should I do? I won't flood you with all the ways I've attempted this and the ways they've failed, just that it's makeMPIcluster or getMPIcluster or something like that, right? But for the life of me I can't make it work.
+
+Thank you in advance!
+
+BR,
+Seija S.
+
+
+From HodgessE at uhd.edu  Sat Feb 27 21:39:43 2016
+From: HodgessE at uhd.edu (Hodgess, Erin)
+Date: Sat, 27 Feb 2016 20:39:43 +0000
+Subject: [R-sig-hpc] Fortran, MPI, and calling R functions via RInside
+Message-ID: <FF9DB805FC41CC4E95825A50F6806302B49B4F36@columbia.uhd.campus>
+
+Hello!
+
+I hope this is the correct forum.  I did post it to the main R help, was told it was the wrong place.
+
+I have been experimenting with Fortran and C++ and calling R functions from Fortran via RInside.  I finally got that to work.
+
+Now I want to have a Fortran program that uses MPI.  And calls R functions.
+
+Here are the Fortran and C++ codes:
+
+program buzzy
+   use iso_c_binding
+  implicit none
+  include '/opt/openmpi/include/mpif.h'
+
+
+
+
+  integer :: rank,size,ierror,tag,status(
+MPI_STATUS_SIZE), i,np
+  integer :: argc = 1000000
+  real :: x,tot1
+  character(len=32) :: argv
+
+
+      INTERFACE
+         SUBROUTINE R_FUN(argc,argv) bind(C, name="buzzyC")
+           use iso_c_binding
+        character(kind=c_char), INTENT(INOUT) :: argv
+        INTEGER(kind=c_int), INTENT(IN) :: argc
+
+      END SUBROUTINE R_FUN
+    END INTERFACE
+
+      call MPI_INIT(ierror)
+      call MPI_COMM_SIZE(MPI_COMM_WORLD,size,ierror)
+      call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierror)
+
+
+
+
+        print *, "Fortran Calling RInside",rank
+    CALL R_FUN (argc,argv)
+    print *,rank
+
+    call MPI_FINALIZE(ierror)
+
+  end program buzzy
+
+and
+
+#include <iostream>
+#include <RInside.h>
+
+void buzzyC_(int argc,char *argv[]);
+
+extern "C" void buzzyC(int argc,char *argv[]) {
+
+    // create an embedded R instance
+  RInside R(argc,argv);
+
+    // convert to string for RInside assignment
+
+
+    // eval the string, give R notice
+  R.parseEvalQ("cat(mean(rnorm(
+argc))");
+}
+
+Now my steps for compiling and linking are the following:
+
+erin at erin-Bonobo-Extreme:~$ mpif90 -c buzzy.f90
+erin at erin-Bonobo-Extreme:~$ mpic++ buzzyC.cpp -c -I/home/erin/R/x86_64-pc-
+linux-gnu-library/3.2/RInside/include -I/home/erin/R/x86_64-pc-linux-gnu-library/3.2/Rcpp/include -I/usr/share/R/include -libstdc++
+erin at erin-Bonobo-Extreme:~$ mpifort -o fcra buzzy.o buzzyC.o -L/usr/lib/R/lib -lR -L /home/erin/R/x86_64-pc-linux-gnu-library/3.2/RInside/lib -lRInside -L/home/erin/R/x86_64-pc-linux-gnu-library/3.2/Rcpp/libs/ -Wl,-rpath,/home/erin/R/x86_64-pc-linux-gnu-library/3.2/RInside/lib/ -lRInside -Wl,-rpath,/home/erin/R/x86_64-pc-linux-gnu-library/3.2/Rcpp/libs/ -lstdc++ /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+
+So far so good
+But when I run this, disaster strikes:
+
+erin at erin-Bonobo-Extreme:~$ mpirun -np 4 ./fcra
+ Fortran Calling RInside           0
+ Fortran Calling RInside           1
+ Fortran Calling RInside           3
+ Fortran Calling RInside           2
+
+Program received signal SIGSEGV: Segmentation fault - invalid memory reference.
+
+Backtrace for this error:
+
+Program received signal SIGSEGV: Segmentation fault - invalid memory reference.
+
+Backtrace for this error:
+#0  0x7FC59706CE48
+#1  0x7FC59706BFD0
+#2  0x7FC596AA52EF
+#3  0x7FC596AFB69A
+#4  0x7FC597C5E8E8
+#5  0x7FC5979671E8
+#6  0x7FC5979677A1
+#7  0x402A55 in buzzyC
+#8  0x402891 in MAIN__ at buzzy.f90:?
+#0  0x7F2482294E48
+#1  0x7F2482293FD0
+#2  0x7F2481CCD2EF
+#3  0x7F2481D2369A
+#4  0x7F2482E868E8
+#5  0x7F2482B8F1E8
+#6  0x7F2482B8F7A1
+#7  0x402A55 in buzzyC
+#8  0x402891 in MAIN__ at buzzy.f90:?
+------------------------------
+--------------------------------------------
+mpirun noticed that process rank 1 with PID 2188 on node erin-Bonobo-Extreme exited on signal 11 (Segmentation fault).
+--------------------------------------------------------------------------
+erin at erin-Bonobo-Extreme:~$
+
+Maybe I should be asking:  is this even possible, please?
+
+Thanks,
+Erin
+[https://ssl.gstatic.com/ui/v1/icons/mail/images/cleardot.gif]
+
+	[[alternative HTML version deleted]]
+
+

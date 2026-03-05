@@ -1,0 +1,497 @@
+{
+  "list": "r-sig-hpc",
+  "description": "",
+  "month": "2014-08",
+  "messages": [
+    {
+      "id": "msg-696b72922be1",
+      "message_id": "<FE3E2BD2-C12F-4F87-A62A-A7539BEB825C@illinois.edu>",
+      "from_name": "Roger Koenker",
+      "from_email_hash": "359868c91f72f8b2eefe60027d20f064ed111f9c2fbc00e33a1d837cc16d6732",
+      "date": "2014-08-05T13:56:08-05:00",
+      "subject": "[R-sig-hpc] R Batch proc.time doMPI",
+      "subject_clean": "R Batch proc.time doMPI",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "I've been running doMPI jobs on a slurm cluster with R BATCH foo.R  and I'm used to getting a final line\nin foo.Rout with the output of proc.time() as promised by ?BATCH.  At least this was the way things worked\nwith R BATCH on my multicore desktop.  But I don't get any proc.time() output from the cluster runs\nand wondered why not, or whether I should be doing something other than \n\nsave.image()\ncloseCluster(cl)\nmpi.quit()\n\n\nas the job finishes.  Thanks in advance.\n\nRoger",
+      "body_snippet": "I've been running doMPI jobs on a slurm cluster with R BATCH foo.R  and I'm used to getting a final line\nin foo.Rout with the output of proc.time() as promised by ?BATCH.  At least this was the way th",
+      "thread_id": "thread-696b72922be1",
+      "thread_depth": 0,
+      "month": "2014-08"
+    },
+    {
+      "id": "msg-c1b41a6eb455",
+      "message_id": "<CALh21iJubE3EtzQk5-5UwwzbtFSADrisqUtTZfHy+fMpb+cYmQ@mail.gmail.com>",
+      "from_name": "Stephen Weston",
+      "from_email_hash": "507fe1aedccd9cb1c2bba1715ac24f959abe255adeeb866f82b6c8a1896cbd15",
+      "date": "2014-08-06T12:03:58-04:00",
+      "subject": "[R-sig-hpc] R Batch proc.time doMPI",
+      "subject_clean": "R Batch proc.time doMPI",
+      "in_reply_to": "<FE3E2BD2-C12F-4F87-A62A-A7539BEB825C@illinois.edu>",
+      "references": [
+        "<FE3E2BD2-C12F-4F87-A62A-A7539BEB825C@illinois.edu>"
+      ],
+      "body_plain": "I believe this behavior is due to mpi.quit() calling quit() with the\n\"runLast=FALSE\" option. If you call mpi.finalize() in your script\nrather than mpi.quit(), then you should see the output from\nproc.time() again.\n\n- Steve\n\nOn Tue, Aug 5, 2014 at 2:56 PM, Roger Koenker <rkoenker at illinois.edu> wrote:\n> I've been running doMPI jobs on a slurm cluster with R BATCH foo.R  and I'm used to getting a final line\n> in foo.Rout with the output of proc.time() as promised by ?BATCH.  At least this was the way things worked\n> with R BATCH on my multicore desktop.  But I don't get any proc.time() output from the cluster runs\n> and wondered why not, or whether I should be doing something other than\n>\n> save.image()\n> closeCluster(cl)\n> mpi.quit()\n>\n>\n> as the job finishes.  Thanks in advance.\n>\n> Roger\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc",
+      "body_snippet": "I believe this behavior is due to mpi.quit() calling quit() with the\n\"runLast=FALSE\" option. If you call mpi.finalize() in your script\nrather than mpi.quit(), then you should see the output from\nproc.",
+      "thread_id": "thread-696b72922be1",
+      "thread_depth": 1,
+      "month": "2014-08"
+    },
+    {
+      "id": "msg-b754740193f7",
+      "message_id": "<4B81BB31-E612-4B1B-BF77-0873CEEB2AAE@psychol.uni-giessen.de>",
+      "from_name": "André Ziervogel",
+      "from_email_hash": "0d1ddcf3e11ff4ef17f097f2a5b1b4004189432e2ee9666806dd701928a45d97",
+      "date": "2014-08-07T12:21:51+02:00",
+      "subject": "[R-sig-hpc] Some hpc problems with doMPI and runmpi",
+      "subject_clean": "Some hpc problems with doMPI and runmpi",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Dear R people,\n\nI?ve been doing some hpc using R and openmpi. Unfortunately I?ve encoutred a major problem and it?s nature is hard to pin down:\n\nEssentially I call mpirun Rscipt ? as soon as the script reaches a foreach()%dopar% it halts indefinitely. I?ve attached the qsub script:\n\n#!/bin/bash\n#$ -S /bin/bash\n#$ -N test_14\n#$ -cwd\n    \n#$ -V  \n#$ -o \"/fhgfs/g61570/Spectral Databases/log/test_14_\"$JOB_ID             \n#$ -j y\n#$ -q regular\n#$ -pe openmpi 8\n#$ -l h_rt=00:15:00\n#$ -l h_vmem=1.9G  \n#$ -m eas          \n#$ -M andre.ziervogel at psychol.uni-giessen.de\n\nmodule add gcc     \nmodule add openmpi/gcc/64/1.6.5\nmodule add R/gcc/3.0.1\n\ndate                       #log start time\n\necho \"Number of slots \" . $NSLOTS\n\nmpirun Rscript /fhgfs/g61570/Spectral\\ Databases/test_10.r > /fhgfs/g61570/Spectral\\ Databases/log/test_14.Rout\n\ndate\n\nexit\n\nand the R file:\n\nsuppressMessages(library('doMPI'))\n\nskylla.cluster <- startMPIcluster()\nregisterDoMPI(skylla.cluster)\n\ncat(paste(\"COMM SIZE: \", mpi.comm.size(0), \" cluster size: \", clusterSize(skylla.cluster), \"\\n\",sep = \"\"))\n\ntmp.time <- proc.time()\nsample <- foreach(i=seq(from=0, to=1000, by =1),.combine='c',.inorder=TRUE) %do%\n{\n\tr <- sqrt(i^2 + i^2) + .Machine$double.eps  * factorial(i)\n  \tsin(r) / r\n}\ncat(paste(\"Processing seriell time: \", \"\\n\", sep = \"  \"))\nprint(proc.time() - tmp.time)\n#print(sample)\n\ntmp.time <- proc.time()\nsample <- foreach(i=seq(from=0, to=1000, by =1),.combine='c',.inorder=TRUE) %dopar%\n{\n\tr <- sqrt(i^2 + i^2) + .Machine$double.eps  * factorial(i)\n  \tsin(r) / r\n}\ncat(paste(\"Processing parallel time: \", \"\\n\", sep = \"  \"))\nprint(proc.time() - tmp.time)\n#print(sample)\n\ncloseCluster(skylla.cluster)\n# mpi.close.Rslaves()\n# mpi.exit()\nmpi.quit(save='no?) \n\nAny suggestions would be highly appreciated! Thanks!\n\nBest\n\nAndr?\n\n------------------------------------------------------\nDipl. Psych Andr? Ziervogel\nandre.ziervogel at psychol.uni-giessen.de\n------------------------------------------------------\n\n-------------- next part --------------\nA non-text attachment was scrubbed...\nName: signature.asc\nType: application/pgp-signature\nSize: 842 bytes\nDesc: Message signed with OpenPGP using GPGMail\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20140807/90d4b356/attachment.bin>",
+      "body_snippet": "Dear R people,\n\nI?ve been doing some hpc using R and openmpi. Unfortunately I?ve encoutred a major problem and it?s nature is hard to pin down:\n\nEssentially I call mpirun Rscipt ? as soon as the scrip",
+      "thread_id": "thread-b754740193f7",
+      "thread_depth": 0,
+      "month": "2014-08"
+    },
+    {
+      "id": "msg-deeb8692ae41",
+      "message_id": "<CAJo-E3W55VGP-R-iPRp2NM9O8CbYSBcOaOs33v1mc6XRJmYdSg@mail.gmail.com>",
+      "from_name": "Rajendra Kumar",
+      "from_email_hash": "7079b02d5aa27725905840fe74d26cf804a19462709d32e8681db64ab92a77a3",
+      "date": "2014-08-08T10:43:31+05:30",
+      "subject": "[R-sig-hpc] error: object '.doSnowGlobals' not found?",
+      "subject_clean": "error: object '.doSnowGlobals' not found?",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20140808/a0379f8d/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20140808/a0379f8d/attachment.pl>",
+      "thread_id": "thread-deeb8692ae41",
+      "thread_depth": 0,
+      "month": "2014-08"
+    },
+    {
+      "id": "msg-abbc44e60850",
+      "message_id": "<53E46BD0.5050509@informatik.uni-hamburg.de>",
+      "from_name": "Stefan Thomas",
+      "from_email_hash": "15245e86ffb0fa1ce642d81624b6b39d08df55c910613a74e7f45ea9886842d3",
+      "date": "2014-08-08T08:18:56+02:00",
+      "subject": "[R-sig-hpc] error: object '.doSnowGlobals' not found?",
+      "subject_clean": "error: object '.doSnowGlobals' not found?",
+      "in_reply_to": "<CAJo-E3W55VGP-R-iPRp2NM9O8CbYSBcOaOs33v1mc6XRJmYdSg@mail.gmail.com>",
+      "references": [
+        "<CAJo-E3W55VGP-R-iPRp2NM9O8CbYSBcOaOs33v1mc6XRJmYdSg@mail.gmail.com>"
+      ],
+      "body_plain": "Hi Rajendra Kumar,\n\nI think you are trying to start a SOCKS cluster (same machine) in a MPI \nenvironment (distributed machines).\nHave you tried\n\ncl<-makeCluster(type=\"MPI\",4)\n\nafter creating and setting the orte-hostfile?\n\nbest\nstef\n\nAm 08.08.2014 um 07:13 schrieb Rajendra Kumar:\n> Dear R HPC Users,\n>\n> I'm trying to parallelize a code on 4 nodes(type = \"SOCK\"). Here is my code.\n>\n>\n>      library(itertools)\n>      library(foreach)\n>      library(doParallel)\n>      library(parallel)\n>\n>      workers <- ip address of 4 nodes\n>      cl = makePSOCKcluster(workers, master=\"ip address of master\")\n>      registerDoParallel(cl)\n>\n>      z <- read.csv(\"ProcessedData.csv\", header=TRUE, as.is=TRUE)\n>      z <- as.matrix(z)\n>\n>\n>      system.time({\n>        chunks <- getDoParWorkers()\n>        b <- foreach (these = isplitIndices(nrow(z),\n>                                            chunks=chunks),\n>                      .combine = c) %dopar% {\n>                        a <- rep(0, length(these))\n>                        for (i in 1:length(these)) {\n>                          a[i] <- mean(z[these[i],])\n>                        }\n>                        a\n>                      }\n>      })\n>\n>\n>\n>\n>\n> I get this error..4 nodes produced errors; first error: object\n> '.doSnowGlobals' not found. This code runs fine if I'm using doMC i.e using\n> the same machine's cores. But when I try to use other computers for\n> parallel computing I get the above error. When I change it to\n> registerDoSNOW the error persists.\n>\n> Does snow and DoSNOW work in a cluster? I could create nodes on the\n> localhost using snow but not on the cluster. Anyone out there using snow?\n>\n> Thanks in advance.\n>\n> With Warm Regards,\n> Rajendra Kumar M\n> Graduate Student.\n>\n> School of Medical Science & Technology,\n> IIT Kharagpur,\n> West Bengal-721302.\n>\n> \t[[alternative HTML version deleted]]\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc",
+      "body_snippet": "Hi Rajendra Kumar,\n\nI think you are trying to start a SOCKS cluster (same machine) in a MPI \nenvironment (distributed machines).\nHave you tried\n\ncl<-makeCluster(type=\"MPI\",4)\n\nafter creating and setti",
+      "thread_id": "thread-deeb8692ae41",
+      "thread_depth": 1,
+      "month": "2014-08"
+    },
+    {
+      "id": "msg-024411e685d3",
+      "message_id": "<CAJo-E3UZHKUuuLgC-pYsrnRci68rH7M3u-qmGVLPSiKp0q94zQ@mail.gmail.com>",
+      "from_name": "Rajendra Kumar",
+      "from_email_hash": "7079b02d5aa27725905840fe74d26cf804a19462709d32e8681db64ab92a77a3",
+      "date": "2014-08-08T16:28:19+05:30",
+      "subject": "[R-sig-hpc] error: object '.doSnowGlobals' not found?",
+      "subject_clean": "error: object '.doSnowGlobals' not found?",
+      "in_reply_to": "<53E46BD0.5050509@informatik.uni-hamburg.de>",
+      "references": [
+        "<CAJo-E3W55VGP-R-iPRp2NM9O8CbYSBcOaOs33v1mc6XRJmYdSg@mail.gmail.com>",
+        "<53E46BD0.5050509@informatik.uni-hamburg.de>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20140808/e8c93975/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20140808/e8c93975/attachment.pl>",
+      "thread_id": "thread-deeb8692ae41",
+      "thread_depth": 2,
+      "month": "2014-08"
+    },
+    {
+      "id": "msg-6ae6c0f40cbc",
+      "message_id": "<53E4B14A.5030100@informatik.uni-hamburg.de>",
+      "from_name": "Stefan Thomas",
+      "from_email_hash": "15245e86ffb0fa1ce642d81624b6b39d08df55c910613a74e7f45ea9886842d3",
+      "date": "2014-08-08T13:15:22+02:00",
+      "subject": "[R-sig-hpc] error: object '.doSnowGlobals' not found?",
+      "subject_clean": "error: object '.doSnowGlobals' not found?",
+      "in_reply_to": "<CAJo-E3UZHKUuuLgC-pYsrnRci68rH7M3u-qmGVLPSiKp0q94zQ@mail.gmail.com>",
+      "references": [
+        "<CAJo-E3W55VGP-R-iPRp2NM9O8CbYSBcOaOs33v1mc6XRJmYdSg@mail.gmail.com>",
+        "<53E46BD0.5050509@informatik.uni-hamburg.de>",
+        "<CAJo-E3UZHKUuuLgC-pYsrnRci68rH7M3u-qmGVLPSiKp0q94zQ@mail.gmail.com>"
+      ],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20140808/34f27822/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20140808/34f27822/attachment.pl>",
+      "thread_id": "thread-deeb8692ae41",
+      "thread_depth": 3,
+      "month": "2014-08"
+    },
+    {
+      "id": "msg-0ae86ab9fb38",
+      "message_id": "<AF27C4812DD6D242A420A3796258800530D8F801@server8.delta.deltacompsys.com>",
+      "from_name": "Reuben Bellika",
+      "from_email_hash": "b67fe824ba488dd79d8b3cfbadfd5fa519fbe126dc5ba88fa2895428713fc07e",
+      "date": "2014-08-08T17:11:38Z",
+      "subject": "[R-sig-hpc] error: object '.doSnowGlobals' not found?",
+      "subject_clean": "error: object '.doSnowGlobals' not found?",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20140808/9b48771e/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20140808/9b48771e/attachment.pl>",
+      "thread_id": "thread-0ae86ab9fb38",
+      "thread_depth": 0,
+      "month": "2014-08"
+    },
+    {
+      "id": "msg-966c3d9de507",
+      "message_id": "<CAGc3NFutBNyND0yxvo8NHMT30JMGH+HZRmo_ZcMkOuQQw3Dx=A@mail.gmail.com>",
+      "from_name": "patric zhao",
+      "from_email_hash": "34d6e8d1591a3260ae4cc20b6157d81ab52dbb4a2e2fc6db3a2571758de8b198",
+      "date": "2014-08-11T15:19:59+08:00",
+      "subject": "[R-sig-hpc] Blog: How to accelerate R applications by CUDA",
+      "subject_clean": "Blog: How to accelerate R applications by CUDA",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "HI guys,\n\nI have written up a blog talking about how to accelerate R by CUDA.\n\nhttp://devblogs.nvidia.com/parallelforall/accelerate-r-applications-cuda/\n\nWelcome your comments :)   If other topics about GPUs and R you want\nto know, leave a message and we will consider to offer further posts.\n\n\nBR,\n\nThanks,\n\n-Patric",
+      "body_snippet": "HI guys,\n\nI have written up a blog talking about how to accelerate R by CUDA.\n\nhttp://devblogs.nvidia.com/parallelforall/accelerate-r-applications-cuda/\n\nWelcome your comments :)   If other topics abo",
+      "thread_id": "thread-966c3d9de507",
+      "thread_depth": 0,
+      "month": "2014-08"
+    },
+    {
+      "id": "msg-15df0e4f8b12",
+      "message_id": "<8CF6FE2C677EA94F94FA6285289BAE682C8D50CC@BENMAIL01.ben.pri>",
+      "from_name": "Novack-Gottshall, Philip M.",
+      "from_email_hash": "f0987a6b116d71c93d5a21cc2e88fb3da36870a92929ebce3edc04d106ecd5b1",
+      "date": "2014-08-11T20:59:55Z",
+      "subject": "[R-sig-hpc] Creating different working directories for each node?",
+      "subject_clean": "Creating different working directories for each node?",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Greetings,\n\nI'm trying to run some code on a cluster in which an internal qhull\nconvex-hull function repeatedly writes then scans a dummy file. (Very\ninefficient, I know, but c'est la vie.) The problem is that all nodes\nshare the same default working directory, and get confused because they\nare all trying to read/write the same dummy file. (So far as I know,\nthere is no way to specify unique file names for the dummy files in the\ninternal .C function, especially with my lack of C prowess.)\n\nI've been playing around with having my function (called using\nsnowfall's 'sfClusterApply') specify unique working directories (using\n'setwd'), say one wd for each CPU, so that the individual dummy files\nare set within unique directories. This seems a plausible wrap-around so\nlong as I confirm that I'm matching up the wd with the correct CPU process.\n\nI wanted to check whether anyone has any other recommendations before I\nwaste my time on further troubleshooting.\n\nIf it's relevant, I'm running my code using management package snowfall\non a CentOS/OpenMPI Intel cluster with 2 hyperthreaded 6-cores in each\nof 16 nodes (allowing 382 functional CPUs/unique working directories for\nthe job).\n\nThanks,\nPhil\n\n-- \n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n Phil Novack-Gottshall\n Associate Professor\n Department of Biological Sciences\n Benedictine University\n 5700 College Road \n Lisle, IL 60532\n\n pnovack-gottshall at ben.edu\n Phone: 630-829-6514\n Fax: 630-829-6547\n Office: 332 Birck Hall\n Lab: 107 Birck Hall\n http://www1.ben.edu/faculty/pnovack-gottshall\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
+      "body_snippet": "Greetings,\n\nI'm trying to run some code on a cluster in which an internal qhull\nconvex-hull function repeatedly writes then scans a dummy file. (Very\ninefficient, I know, but c'est la vie.) The proble",
+      "thread_id": "thread-15df0e4f8b12",
+      "thread_depth": 0,
+      "month": "2014-08"
+    },
+    {
+      "id": "msg-989847820486",
+      "message_id": "<53E9315A.2090700@braverock.com>",
+      "from_name": "Brian G. Peterson",
+      "from_email_hash": "2d44e89a02cb2a9eb2f2113de72098dcb74d077b13b61958f1336c3292aa0254",
+      "date": "2014-08-11T16:10:50-05:00",
+      "subject": "[R-sig-hpc] Creating different working directories for each node?",
+      "subject_clean": "Creating different working directories for each node?",
+      "in_reply_to": "<8CF6FE2C677EA94F94FA6285289BAE682C8D50CC@BENMAIL01.ben.pri>",
+      "references": [
+        "<8CF6FE2C677EA94F94FA6285289BAE682C8D50CC@BENMAIL01.ben.pri>"
+      ],
+      "body_plain": "You didn't tell us which clusterning mechanism you're using, but most \nwill allow you to retrieve a unique node id or node number, which you \ncould use to create a subdirectory.\n\nAlso, 'tempfile' in R will create a vector of unique temporary file \nnames, which you could pass to the nodes, or append with a node id.\n\nBrian\n\nOn 08/11/2014 03:59 PM, Novack-Gottshall, Philip M. wrote:\n> Greetings,\n>\n> I'm trying to run some code on a cluster in which an internal qhull\n> convex-hull function repeatedly writes then scans a dummy file. (Very\n> inefficient, I know, but c'est la vie.) The problem is that all nodes\n> share the same default working directory, and get confused because they\n> are all trying to read/write the same dummy file. (So far as I know,\n> there is no way to specify unique file names for the dummy files in the\n> internal .C function, especially with my lack of C prowess.)\n>\n> I've been playing around with having my function (called using\n> snowfall's 'sfClusterApply') specify unique working directories (using\n> 'setwd'), say one wd for each CPU, so that the individual dummy files\n> are set within unique directories. This seems a plausible wrap-around so\n> long as I confirm that I'm matching up the wd with the correct CPU process.\n>\n> I wanted to check whether anyone has any other recommendations before I\n> waste my time on further troubleshooting.\n>\n> If it's relevant, I'm running my code using management package snowfall\n> on a CentOS/OpenMPI Intel cluster with 2 hyperthreaded 6-cores in each\n> of 16 nodes (allowing 382 functional CPUs/unique working directories for\n> the job).\n>\n> Thanks,\n> Phil\n>",
+      "body_snippet": "You didn't tell us which clusterning mechanism you're using, but most \nwill allow you to retrieve a unique node id or node number, which you \ncould use to create a subdirectory.\n\nAlso, 'tempfile' in R",
+      "thread_id": "thread-15df0e4f8b12",
+      "thread_depth": 1,
+      "month": "2014-08"
+    },
+    {
+      "id": "msg-91a3c4d58b8e",
+      "message_id": "<8CF6FE2C677EA94F94FA6285289BAE682C8D52AB@BENMAIL01.ben.pri>",
+      "from_name": "Novack-Gottshall, Philip M.",
+      "from_email_hash": "f0987a6b116d71c93d5a21cc2e88fb3da36870a92929ebce3edc04d106ecd5b1",
+      "date": "2014-08-12T14:56:55Z",
+      "subject": "[R-sig-hpc] Creating different working directories for each\tnode?",
+      "subject_clean": "Creating different working directories for each\tnode?",
+      "in_reply_to": null,
+      "references": [
+        "<8CF6FE2C677EA94F94FA6285289BAE682C8D50CC@BENMAIL01.ben.pri>",
+        "<53E9315A.2090700@braverock.com>"
+      ],
+      "body_plain": "The tempfile option might work, as might using Sys.info()[\"nodename\"] to\nspecify individual subdirectories.\n\nAre you aware of any functions that can be used to identify which CPU a\nprocess has been spawned to? The package 'snowfall' has sfGetCluster(),\nbut that doesn't seem to be able to be called *within* a cluster function.\n\nThanks again,\nPhil\n\n\nOn 8/11/2014 4:10 PM, Brian G. Peterson wrote:\n> You didn't tell us which clusterning mechanism you're using, but most \n> will allow you to retrieve a unique node id or node number, which you \n> could use to create a subdirectory.\n>\n> Also, 'tempfile' in R will create a vector of unique temporary file \n> names, which you could pass to the nodes, or append with a node id.\n>\n> Brian\n>\n> On 08/11/2014 03:59 PM, Novack-Gottshall, Philip M. wrote:\n>> Greetings,\n>>\n>> I'm trying to run some code on a cluster in which an internal qhull\n>> convex-hull function repeatedly writes then scans a dummy file. (Very\n>> inefficient, I know, but c'est la vie.) The problem is that all nodes\n>> share the same default working directory, and get confused because they\n>> are all trying to read/write the same dummy file. (So far as I know,\n>> there is no way to specify unique file names for the dummy files in the\n>> internal .C function, especially with my lack of C prowess.)\n>>\n>> I've been playing around with having my function (called using\n>> snowfall's 'sfClusterApply') specify unique working directories (using\n>> 'setwd'), say one wd for each CPU, so that the individual dummy files\n>> are set within unique directories. This seems a plausible wrap-around so\n>> long as I confirm that I'm matching up the wd with the correct CPU process.\n>>\n>> I wanted to check whether anyone has any other recommendations before I\n>> waste my time on further troubleshooting.\n>>\n>> If it's relevant, I'm running my code using management package snowfall\n>> on a CentOS/OpenMPI Intel cluster with 2 hyperthreaded 6-cores in each\n>> of 16 nodes (allowing 382 functional CPUs/unique working directories for\n>> the job).\n>>\n>> Thanks,\n>> Phil\n>>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>\n>\n\n-- \n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n Phil Novack-Gottshall\n Associate Professor\n Department of Biological Sciences\n Benedictine University\n 5700 College Road \n Lisle, IL 60532\n\n pnovack-gottshall at ben.edu\n Phone: 630-829-6514\n Fax: 630-829-6547\n Office: 332 Birck Hall\n Lab: 107 Birck Hall\n http://www1.ben.edu/faculty/pnovack-gottshall\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
+      "body_snippet": "The tempfile option might work, as might using Sys.info()[\"nodename\"] to\nspecify individual subdirectories.\n\nAre you aware of any functions that can be used to identify which CPU a\nprocess has been sp",
+      "thread_id": "thread-15df0e4f8b12",
+      "thread_depth": 2,
+      "month": "2014-08"
+    },
+    {
+      "id": "msg-5f84b0c222fc",
+      "message_id": "<8CF6FE2C677EA94F94FA6285289BAE682C8D5468@BENMAIL01.ben.pri>",
+      "from_name": "Novack-Gottshall, Philip M.",
+      "from_email_hash": "f0987a6b116d71c93d5a21cc2e88fb3da36870a92929ebce3edc04d106ecd5b1",
+      "date": "2014-08-12T19:35:00Z",
+      "subject": "[R-sig-hpc] Creating different working directories for\teach\tnode?",
+      "subject_clean": "Creating different working directories for\teach\tnode?",
+      "in_reply_to": null,
+      "references": [
+        "<8CF6FE2C677EA94F94FA6285289BAE682C8D50CC@BENMAIL01.ben.pri>",
+        "<53E9315A.2090700@braverock.com>",
+        "<8CF6FE2C677EA94F94FA6285289BAE682C8D52AB@BENMAIL01.ben.pri>"
+      ],
+      "body_plain": "To Brian and anyone else following along on this thread:\n\nI wanted to reply with a solution. (Thanks also to Luke Tierney for\nfeedback.)\n\nThe simplest solution seems to be to take advantage of the temporary\ndirectories automatically populated by R / snow / snowfall when the\ncluster is initialized and then use these directories to store the\ntemporary files. Because each tempdir is unique to each process, each\nworker by definition is assigned its own tempdir.\n\nIn my case, I just needed to add the following into my function:\n\ntestfun <- function(...) {\n     # run normal code [snipped out here]\n\n     # switch to temporary directory for function that writes/scans temp\nfile\n     wd <- getwd()\n     td <- tempdir()\n     setwd(td)\n     out <- filemakingfunction(...)\n\n     # return to normal working directory\n     setwd(wd)\n\n     return(out)\n     }\n\nThis seems to work without any errors when called within clusterApply()\nand clusterApplyLB().\n\nThe fix is confirmed by the following: If 'td' above is assigned the\nshared 'wd' instead of 'tempdir()', I get nonsensical results for the\nportions of the analyses using the temp file.\n\nThanks again to everyone who provided help!\n\nPhil\n\n\n\n\nOn 8/12/2014 9:57 AM, Novack-Gottshall, Philip M. wrote:\n> The tempfile option might work, as might using Sys.info()[\"nodename\"] to\n> specify individual subdirectories.\n>\n> Are you aware of any functions that can be used to identify which CPU a\n> process has been spawned to? The package 'snowfall' has sfGetCluster(),\n> but that doesn't seem to be able to be called *within* a cluster function.\n>\n> Thanks again,\n> Phil\n>\n>\n> On 8/11/2014 4:10 PM, Brian G. Peterson wrote:\n>> You didn't tell us which clusterning mechanism you're using, but most \n>> will allow you to retrieve a unique node id or node number, which you \n>> could use to create a subdirectory.\n>>\n>> Also, 'tempfile' in R will create a vector of unique temporary file \n>> names, which you could pass to the nodes, or append with a node id.\n>>\n>> Brian\n>>\n>> On 08/11/2014 03:59 PM, Novack-Gottshall, Philip M. wrote:\n>>> Greetings,\n>>>\n>>> I'm trying to run some code on a cluster in which an internal qhull\n>>> convex-hull function repeatedly writes then scans a dummy file. (Very\n>>> inefficient, I know, but c'est la vie.) The problem is that all nodes\n>>> share the same default working directory, and get confused because they\n>>> are all trying to read/write the same dummy file. (So far as I know,\n>>> there is no way to specify unique file names for the dummy files in the\n>>> internal .C function, especially with my lack of C prowess.)\n>>>\n>>> I've been playing around with having my function (called using\n>>> snowfall's 'sfClusterApply') specify unique working directories (using\n>>> 'setwd'), say one wd for each CPU, so that the individual dummy files\n>>> are set within unique directories. This seems a plausible wrap-around so\n>>> long as I confirm that I'm matching up the wd with the correct CPU process.\n>>>\n>>> I wanted to check whether anyone has any other recommendations before I\n>>> waste my time on further troubleshooting.\n>>>\n>>> If it's relevant, I'm running my code using management package snowfall\n>>> on a CentOS/OpenMPI Intel cluster with 2 hyperthreaded 6-cores in each\n>>> of 16 nodes (allowing 382 functional CPUs/unique working directories for\n>>> the job).\n>>>\n>>> Thanks,\n>>> Phil\n>>>\n>> _______________________________________________\n>> R-sig-hpc mailing list\n>> R-sig-hpc at r-project.org\n>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>>\n>>\n\n-- \n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n Phil Novack-Gottshall\n Associate Professor\n Department of Biological Sciences\n Benedictine University\n 5700 College Road \n Lisle, IL 60532\n\n pnovack-gottshall at ben.edu\n Phone: 630-829-6514\n Fax: 630-829-6547\n Office: 332 Birck Hall\n Lab: 107 Birck Hall\n http://www1.ben.edu/faculty/pnovack-gottshall\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
+      "body_snippet": "To Brian and anyone else following along on this thread:\n\nI wanted to reply with a solution. (Thanks also to Luke Tierney for\nfeedback.)\n\nThe simplest solution seems to be to take advantage of the tem",
+      "thread_id": "thread-15df0e4f8b12",
+      "thread_depth": 3,
+      "month": "2014-08"
+    },
+    {
+      "id": "msg-2988efbcd956",
+      "message_id": "<CAO1VBV1U4vPt2syBFKusyUZpsL8atoRuAjLP_XLrj2Y4=U84Bw@mail.gmail.com>",
+      "from_name": "Scott Ritchie",
+      "from_email_hash": "06d396e0a1fe76748e5506c6209725381e2b3c2323784a57cbc661db37c34a1d",
+      "date": "2014-08-13T14:40:14+10:00",
+      "subject": "[R-sig-hpc] Disabling implicit parallelism of multithreaded BLAS from an R package",
+      "subject_clean": "Disabling implicit parallelism of multithreaded BLAS from an R package",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Hi all,\n\nI'm developing a package in which I explicitly handle parallelism, and in\neach parallel R session, running some SVD calculations through Rcpp +\nArmadillo.\n\nOn one of my test machines, R 3.1.0 has been compiled against OpenBLAS, so\nthe calls to SVD are implicitly parallel.\n\nI can disable this by exporting the appropriate environment variable before\ncalling R (OPENBLAS_NUM_THREADS=1), but I would ideally like to abstract\nthat detail away from the user (as some of my intended target audience may\nbe biologists without a strong computational background, but nevertheless\noperating on a cluster someone else has set up).\n\nI've tried a couple of things to disable the implicit parallelism without\nany success:\n - Sys.setenv doesn't have any effect, even on the new R sessions spawned\nthrough `foreach` with the `doMC` parallel backend (this surprises me, is\nmy mental model of parallelism in R correct?)\n - exporting the environment variables using `cstdlib::putenv` in the C++\ncode directly before the call to `svd`.\n - The solution I found through the r-sig-hpc archives:\nhttps://stat.ethz.ch/pipermail/r-sig-hpc/2012-July/001432.html. Directly\ncalling openblas_set_num_threads(1); in the C++ code has no effect.\n\nI've also tried explicitly disabling BLAS in the hope that Armadillo will\ncall the LAPACK routines directly (although I may have done this\nincorrectly) by doing the following:\n - removing the $(BLAS_LIBS) from the PKG_LIBS variable in the\nMakevars/Makevars.win files\n - Setting #define ARMA_DONT_USE_BLAS and #define ARMA_DONT_USE_WRAPPER\nbefore including the <RcppArmadillo.h> header file in my source code.\n\nIdeally I'm looking for a solution that allows me to set the maximum number\nof threads to 1 for all the multithreaded BLAS libraries in my package to\nprevent conflicts between the implicit and explicit parallelism. Is this\npossible?\n\nRegards,\n\nScott Ritchie\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "Hi all,\n\nI'm developing a package in which I explicitly handle parallelism, and in\neach parallel R session, running some SVD calculations through Rcpp +\nArmadillo.\n\nOn one of my test machines, R 3.1.0",
+      "thread_id": "thread-2988efbcd956",
+      "thread_depth": 0,
+      "month": "2014-08"
+    },
+    {
+      "id": "msg-03e0efb7627e",
+      "message_id": "<82C93A6A208F9841B5F8CA090C68CA5B8D1FD2C0@iphtexch04.ipht-jena.de>",
+      "from_name": "beleites,claudia",
+      "from_email_hash": "84f31892209c320dec87048b9b592f8173550a086b18936bcc901dd57f61bcf0",
+      "date": "2014-08-13T08:21:42Z",
+      "subject": "[R-sig-hpc] Disabling implicit parallelism of multithreaded BLAS\tfrom an R package",
+      "subject_clean": "Disabling implicit parallelism of multithreaded BLAS\tfrom an R package",
+      "in_reply_to": "<CAO1VBV1U4vPt2syBFKusyUZpsL8atoRuAjLP_XLrj2Y4=U84Bw@mail.gmail.com>",
+      "references": [
+        "<CAO1VBV1U4vPt2syBFKusyUZpsL8atoRuAjLP_XLrj2Y4=U84Bw@mail.gmail.com>"
+      ],
+      "body_plain": "Hi Scott\n\nYou may need to contact the developers of openblas about openblas_set_num_threads. 2yrs ago when Simon was writing that wrapper it was only implemented for Linux. All other is just had a non- working dummy.\n\nHth \n\nClaudia\n  \n--\nClaudia Beleites, Chemist\nSpectroscopy/Imaging\nLeibniz Institute of Photonic Technology\nAlbert-Einstein-Str. 9\n07745 Jena\nGermany\n\nemail: claudia.beleites at ipht-jena.de\nphone: +49 3641 206-133\nfax:   +49 2641 206-399\n\n\n________________________________________\nVon: r-sig-hpc-bounces at r-project.org [r-sig-hpc-bounces at r-project.org]&quot; im Auftrag von &quot;Scott Ritchie [sritchie73 at gmail.com]\nGesendet: Mittwoch, 13. August 2014 06:40\nAn: r-sig-hpc at r-project.org\nBetreff: [R-sig-hpc] Disabling implicit parallelism of multithreaded BLAS       from an R package\n\nHi all,\n\nI'm developing a package in which I explicitly handle parallelism, and in\neach parallel R session, running some SVD calculations through Rcpp +\nArmadillo.\n\nOn one of my test machines, R 3.1.0 has been compiled against OpenBLAS, so\nthe calls to SVD are implicitly parallel.\n\nI can disable this by exporting the appropriate environment variable before\ncalling R (OPENBLAS_NUM_THREADS=1), but I would ideally like to abstract\nthat detail away from the user (as some of my intended target audience may\nbe biologists without a strong computational background, but nevertheless\noperating on a cluster someone else has set up).\n\nI've tried a couple of things to disable the implicit parallelism without\nany success:\n - Sys.setenv doesn't have any effect, even on the new R sessions spawned\nthrough `foreach` with the `doMC` parallel backend (this surprises me, is\nmy mental model of parallelism in R correct?)\n - exporting the environment variables using `cstdlib::putenv` in the C++\ncode directly before the call to `svd`.\n - The solution I found through the r-sig-hpc archives:\nhttps://stat.ethz.ch/pipermail/r-sig-hpc/2012-July/001432.html. Directly\ncalling openblas_set_num_threads(1); in the C++ code has no effect.\n\nI've also tried explicitly disabling BLAS in the hope that Armadillo will\ncall the LAPACK routines directly (although I may have done this\nincorrectly) by doing the following:\n - removing the $(BLAS_LIBS) from the PKG_LIBS variable in the\nMakevars/Makevars.win files\n - Setting #define ARMA_DONT_USE_BLAS and #define ARMA_DONT_USE_WRAPPER\nbefore including the <RcppArmadillo.h> header file in my source code.\n\nIdeally I'm looking for a solution that allows me to set the maximum number\nof threads to 1 for all the multithreaded BLAS libraries in my package to\nprevent conflicts between the implicit and explicit parallelism. Is this\npossible?\n\nRegards,\n\nScott Ritchie\n\n        [[alternative HTML version deleted]]\n\n_______________________________________________\nR-sig-hpc mailing list\nR-sig-hpc at r-project.org\nhttps://stat.ethz.ch/mailman/listinfo/r-sig-hpc",
+      "body_snippet": "Hi Scott\n\nYou may need to contact the developers of openblas about openblas_set_num_threads. 2yrs ago when Simon was writing that wrapper it was only implemented for Linux. All other is just had a non",
+      "thread_id": "thread-2988efbcd956",
+      "thread_depth": 1,
+      "month": "2014-08"
+    },
+    {
+      "id": "msg-7ce75bbc9ed7",
+      "message_id": "<CAO1VBV30F1TNMF9N2s1FLt5N4MuN5P0TLKC+JEu6sOssHTtpcQ@mail.gmail.com>",
+      "from_name": "Scott Ritchie",
+      "from_email_hash": "06d396e0a1fe76748e5506c6209725381e2b3c2323784a57cbc661db37c34a1d",
+      "date": "2014-08-13T20:08:55+10:00",
+      "subject": "[R-sig-hpc] Disabling implicit parallelism of multithreaded BLAS from an R package",
+      "subject_clean": "Disabling implicit parallelism of multithreaded BLAS from an R package",
+      "in_reply_to": "<82C93A6A208F9841B5F8CA090C68CA5B8D1FD2C0@iphtexch04.ipht-jena.de>",
+      "references": [
+        "<CAO1VBV1U4vPt2syBFKusyUZpsL8atoRuAjLP_XLrj2Y4=U84Bw@mail.gmail.com>",
+        "<82C93A6A208F9841B5F8CA090C68CA5B8D1FD2C0@iphtexch04.ipht-jena.de>"
+      ],
+      "body_plain": "Hi Claudia,\n\nThe system I tested it on is running Ubuntu 12.04, so it should\ntheoretically work.\nI'd also like a way of disabling implicit parallelism if R has been\ncompiled with Goto BLAS and MKL, since I assume those users will have the\nsame problem.\n\nRegards,\n\nScott\n\n\nOn 13 August 2014 18:21, beleites,claudia <claudia.beleites at ipht-jena.de>\nwrote:\n\n> Hi Scott\n>\n> You may need to contact the developers of openblas about\n> openblas_set_num_threads. 2yrs ago when Simon was writing that wrapper it\n> was only implemented for Linux. All other is just had a non- working dummy.\n>\n> Hth\n>\n> Claudia\n>\n> --\n> Claudia Beleites, Chemist\n> Spectroscopy/Imaging\n> Leibniz Institute of Photonic Technology\n> Albert-Einstein-Str. 9\n> 07745 Jena\n> Germany\n>\n> email: claudia.beleites at ipht-jena.de\n> phone: +49 3641 206-133\n> fax:   +49 2641 206-399\n>\n>\n> ________________________________________\n> Von: r-sig-hpc-bounces at r-project.org [r-sig-hpc-bounces at r-project.org]&quot;\n> im Auftrag von &quot;Scott Ritchie [sritchie73 at gmail.com]\n> Gesendet: Mittwoch, 13. August 2014 06:40\n> An: r-sig-hpc at r-project.org\n> Betreff: [R-sig-hpc] Disabling implicit parallelism of multithreaded BLAS\n>       from an R package\n>\n> Hi all,\n>\n> I'm developing a package in which I explicitly handle parallelism, and in\n> each parallel R session, running some SVD calculations through Rcpp +\n> Armadillo.\n>\n> On one of my test machines, R 3.1.0 has been compiled against OpenBLAS, so\n> the calls to SVD are implicitly parallel.\n>\n> I can disable this by exporting the appropriate environment variable before\n> calling R (OPENBLAS_NUM_THREADS=1), but I would ideally like to abstract\n> that detail away from the user (as some of my intended target audience may\n> be biologists without a strong computational background, but nevertheless\n> operating on a cluster someone else has set up).\n>\n> I've tried a couple of things to disable the implicit parallelism without\n> any success:\n>  - Sys.setenv doesn't have any effect, even on the new R sessions spawned\n> through `foreach` with the `doMC` parallel backend (this surprises me, is\n> my mental model of parallelism in R correct?)\n>  - exporting the environment variables using `cstdlib::putenv` in the C++\n> code directly before the call to `svd`.\n>  - The solution I found through the r-sig-hpc archives:\n> https://stat.ethz.ch/pipermail/r-sig-hpc/2012-July/001432.html. Directly\n> calling openblas_set_num_threads(1); in the C++ code has no effect.\n>\n> I've also tried explicitly disabling BLAS in the hope that Armadillo will\n> call the LAPACK routines directly (although I may have done this\n> incorrectly) by doing the following:\n>  - removing the $(BLAS_LIBS) from the PKG_LIBS variable in the\n> Makevars/Makevars.win files\n>  - Setting #define ARMA_DONT_USE_BLAS and #define ARMA_DONT_USE_WRAPPER\n> before including the <RcppArmadillo.h> header file in my source code.\n>\n> Ideally I'm looking for a solution that allows me to set the maximum number\n> of threads to 1 for all the multithreaded BLAS libraries in my package to\n> prevent conflicts between the implicit and explicit parallelism. Is this\n> possible?\n>\n> Regards,\n>\n> Scott Ritchie\n>\n>         [[alternative HTML version deleted]]\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "Hi Claudia,\n\nThe system I tested it on is running Ubuntu 12.04, so it should\ntheoretically work.\nI'd also like a way of disabling implicit parallelism if R has been\ncompiled with Goto BLAS and MKL, si",
+      "thread_id": "thread-2988efbcd956",
+      "thread_depth": 2,
+      "month": "2014-08"
+    },
+    {
+      "id": "msg-83dea54bfe75",
+      "message_id": "<21483.19739.582087.437443@max.nulle.part>",
+      "from_name": "Dirk Eddelbuettel",
+      "from_email_hash": "447d8de83a7b9c5d61116890bacb6dc0c76aee31b3011a41fb7d3c62dac9042f",
+      "date": "2014-08-13T06:33:47-05:00",
+      "subject": "[R-sig-hpc] Disabling implicit parallelism of multithreaded BLAS from an R package",
+      "subject_clean": "Disabling implicit parallelism of multithreaded BLAS from an R package",
+      "in_reply_to": "<CAO1VBV30F1TNMF9N2s1FLt5N4MuN5P0TLKC+JEu6sOssHTtpcQ@mail.gmail.com>",
+      "references": [
+        "<CAO1VBV1U4vPt2syBFKusyUZpsL8atoRuAjLP_XLrj2Y4=U84Bw@mail.gmail.com>",
+        "<82C93A6A208F9841B5F8CA090C68CA5B8D1FD2C0@iphtexch04.ipht-jena.de>",
+        "<CAO1VBV30F1TNMF9N2s1FLt5N4MuN5P0TLKC+JEu6sOssHTtpcQ@mail.gmail.com>"
+      ],
+      "body_plain": "Scott, \n\nOn 13 August 2014 at 20:08, Scott Ritchie wrote:\n| Hi Claudia,\n| \n| The system I tested it on is running Ubuntu 12.04, so it should\n| theoretically work.\n\nI keep forgetting you run an outdated OS version.  As I recall, the OpenBLAS\nin that release is older / was lagging.  This may work better on newer ones.\nWorst case, Consider rebuilding the OpenBLAS package from source on your box to create a\nlocal backp. (Been there, done that, need to document the process ...)\n\nDo you have a small / simple testcase?\n\n| I'd also like a way of disabling implicit parallelism if R has been\n| compiled with Goto BLAS and MKL, since I assume those users will have the\n| same problem.\n\nYou may need to change their APIs...  MKL, as I recall, listen to the same\n(Intel-given) variable.  GotoBLAS is a dead project which was succeeded by\nOpenBLAS, so changing Goto may be impossible.\n\nThanks also to Claudia for that reminder. I had forgotten this Linux-only\naspect. \n\nCheers, Dirk\n\n\n \n| On 13 August 2014 18:21, beleites,claudia <claudia.beleites at ipht-jena.de>\n| wrote:\n| \n| > Hi Scott\n| >\n| > You may need to contact the developers of openblas about\n| > openblas_set_num_threads. 2yrs ago when Simon was writing that wrapper it\n| > was only implemented for Linux. All other is just had a non- working dummy.\n| >\n| > Hth\n| >\n| > Claudia\n| >\n| > --\n| > Claudia Beleites, Chemist\n| > Spectroscopy/Imaging\n| > Leibniz Institute of Photonic Technology\n| > Albert-Einstein-Str. 9\n| > 07745 Jena\n| > Germany\n| >\n| > email: claudia.beleites at ipht-jena.de\n| > phone: +49 3641 206-133\n| > fax:   +49 2641 206-399\n| >\n| >\n| > ________________________________________\n| > Von: r-sig-hpc-bounces at r-project.org [r-sig-hpc-bounces at r-project.org]&quot;\n| > im Auftrag von &quot;Scott Ritchie [sritchie73 at gmail.com]\n| > Gesendet: Mittwoch, 13. August 2014 06:40\n| > An: r-sig-hpc at r-project.org\n| > Betreff: [R-sig-hpc] Disabling implicit parallelism of multithreaded BLAS\n| >       from an R package\n| >\n| > Hi all,\n| >\n| > I'm developing a package in which I explicitly handle parallelism, and in\n| > each parallel R session, running some SVD calculations through Rcpp +\n| > Armadillo.\n| >\n| > On one of my test machines, R 3.1.0 has been compiled against OpenBLAS, so\n| > the calls to SVD are implicitly parallel.\n| >\n| > I can disable this by exporting the appropriate environment variable before\n| > calling R (OPENBLAS_NUM_THREADS=1), but I would ideally like to abstract\n| > that detail away from the user (as some of my intended target audience may\n| > be biologists without a strong computational background, but nevertheless\n| > operating on a cluster someone else has set up).\n| >\n| > I've tried a couple of things to disable the implicit parallelism without\n| > any success:\n| >  - Sys.setenv doesn't have any effect, even on the new R sessions spawned\n| > through `foreach` with the `doMC` parallel backend (this surprises me, is\n| > my mental model of parallelism in R correct?)\n| >  - exporting the environment variables using `cstdlib::putenv` in the C++\n| > code directly before the call to `svd`.\n| >  - The solution I found through the r-sig-hpc archives:\n| > https://stat.ethz.ch/pipermail/r-sig-hpc/2012-July/001432.html. Directly\n| > calling openblas_set_num_threads(1); in the C++ code has no effect.\n| >\n| > I've also tried explicitly disabling BLAS in the hope that Armadillo will\n| > call the LAPACK routines directly (although I may have done this\n| > incorrectly) by doing the following:\n| >  - removing the $(BLAS_LIBS) from the PKG_LIBS variable in the\n| > Makevars/Makevars.win files\n| >  - Setting #define ARMA_DONT_USE_BLAS and #define ARMA_DONT_USE_WRAPPER\n| > before including the <RcppArmadillo.h> header file in my source code.\n| >\n| > Ideally I'm looking for a solution that allows me to set the maximum number\n| > of threads to 1 for all the multithreaded BLAS libraries in my package to\n| > prevent conflicts between the implicit and explicit parallelism. Is this\n| > possible?\n| >\n| > Regards,\n| >\n| > Scott Ritchie\n| >\n| >         [[alternative HTML version deleted]]\n| >\n| > _______________________________________________\n| > R-sig-hpc mailing list\n| > R-sig-hpc at r-project.org\n| > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n| \n| \t[[alternative HTML version deleted]]\n| \n| _______________________________________________\n| R-sig-hpc mailing list\n| R-sig-hpc at r-project.org\n| https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n\n-- \nhttp://dirk.eddelbuettel.com | @eddelbuettel | edd at debian.org",
+      "body_snippet": "Scott, \n\nOn 13 August 2014 at 20:08, Scott Ritchie wrote:\n| Hi Claudia,\n| \n| The system I tested it on is running Ubuntu 12.04, so it should\n| theoretically work.\n\nI keep forgetting you run an outdate",
+      "thread_id": "thread-2988efbcd956",
+      "thread_depth": 3,
+      "month": "2014-08"
+    },
+    {
+      "id": "msg-7f1d310c9304",
+      "message_id": "<CAO1VBV2wak3Gvo4zK9_7ZGaCb6k-sjixsPEQcOZsuAkQ3y1=nA@mail.gmail.com>",
+      "from_name": "Scott Ritchie",
+      "from_email_hash": "06d396e0a1fe76748e5506c6209725381e2b3c2323784a57cbc661db37c34a1d",
+      "date": "2014-08-13T22:02:37+10:00",
+      "subject": "[R-sig-hpc] Disabling implicit parallelism of multithreaded BLAS from an R package",
+      "subject_clean": "Disabling implicit parallelism of multithreaded BLAS from an R package",
+      "in_reply_to": "<21483.19739.582087.437443@max.nulle.part>",
+      "references": [
+        "<CAO1VBV1U4vPt2syBFKusyUZpsL8atoRuAjLP_XLrj2Y4=U84Bw@mail.gmail.com>",
+        "<82C93A6A208F9841B5F8CA090C68CA5B8D1FD2C0@iphtexch04.ipht-jena.de>",
+        "<CAO1VBV30F1TNMF9N2s1FLt5N4MuN5P0TLKC+JEu6sOssHTtpcQ@mail.gmail.com>",
+        "<21483.19739.582087.437443@max.nulle.part>"
+      ],
+      "body_plain": "Hi again Dirk,\n\nIf its just an issue with the particular setup I'm using, I'm happy to\nstick `export OPENBLAS_NUM_THREADS=1` in my bash profile.\n\nGood to know about Goto and MKL. I'd just seen them mentioned in the gcbd\nvignette you suggested I read, so assumed they would have the same issue. I\nhad originally hope to just set the relevant environment variables for all\nof them (even if they weren't relevant to the user).\n\nI'll construct a minimal example to use as a test case and send it to the\nmailing list.\n\nCheers,\n\nScott\n\n\nOn 13 August 2014 21:33, Dirk Eddelbuettel <edd at debian.org> wrote:\n\n>\n> Scott,\n>\n> On 13 August 2014 at 20:08, Scott Ritchie wrote:\n> | Hi Claudia,\n> |\n> | The system I tested it on is running Ubuntu 12.04, so it should\n> | theoretically work.\n>\n> I keep forgetting you run an outdated OS version.  As I recall, the\n> OpenBLAS\n> in that release is older / was lagging.  This may work better on newer\n> ones.\n> Worst case, Consider rebuilding the OpenBLAS package from source on your\n> box to create a\n> local backp. (Been there, done that, need to document the process ...)\n>\n> Do you have a small / simple testcase?\n>\n> | I'd also like a way of disabling implicit parallelism if R has been\n> | compiled with Goto BLAS and MKL, since I assume those users will have the\n> | same problem.\n>\n> You may need to change their APIs...  MKL, as I recall, listen to the same\n> (Intel-given) variable.  GotoBLAS is a dead project which was succeeded by\n> OpenBLAS, so changing Goto may be impossible.\n>\n> Thanks also to Claudia for that reminder. I had forgotten this Linux-only\n> aspect.\n>\n> Cheers, Dirk\n>\n>\n>\n> | On 13 August 2014 18:21, beleites,claudia <claudia.beleites at ipht-jena.de\n> >\n> | wrote:\n> |\n> | > Hi Scott\n> | >\n> | > You may need to contact the developers of openblas about\n> | > openblas_set_num_threads. 2yrs ago when Simon was writing that wrapper\n> it\n> | > was only implemented for Linux. All other is just had a non- working\n> dummy.\n> | >\n> | > Hth\n> | >\n> | > Claudia\n> | >\n> | > --\n> | > Claudia Beleites, Chemist\n> | > Spectroscopy/Imaging\n> | > Leibniz Institute of Photonic Technology\n> | > Albert-Einstein-Str. 9\n> | > 07745 Jena\n> | > Germany\n> | >\n> | > email: claudia.beleites at ipht-jena.de\n> | > phone: +49 3641 206-133\n> | > fax:   +49 2641 206-399\n> | >\n> | >\n> | > ________________________________________\n> | > Von: r-sig-hpc-bounces at r-project.org [r-sig-hpc-bounces at r-project.org\n> ]&quot;\n> | > im Auftrag von &quot;Scott Ritchie [sritchie73 at gmail.com]\n> | > Gesendet: Mittwoch, 13. August 2014 06:40\n> | > An: r-sig-hpc at r-project.org\n> | > Betreff: [R-sig-hpc] Disabling implicit parallelism of multithreaded\n> BLAS\n> | >       from an R package\n> | >\n> | > Hi all,\n> | >\n> | > I'm developing a package in which I explicitly handle parallelism, and\n> in\n> | > each parallel R session, running some SVD calculations through Rcpp +\n> | > Armadillo.\n> | >\n> | > On one of my test machines, R 3.1.0 has been compiled against\n> OpenBLAS, so\n> | > the calls to SVD are implicitly parallel.\n> | >\n> | > I can disable this by exporting the appropriate environment variable\n> before\n> | > calling R (OPENBLAS_NUM_THREADS=1), but I would ideally like to\n> abstract\n> | > that detail away from the user (as some of my intended target audience\n> may\n> | > be biologists without a strong computational background, but\n> nevertheless\n> | > operating on a cluster someone else has set up).\n> | >\n> | > I've tried a couple of things to disable the implicit parallelism\n> without\n> | > any success:\n> | >  - Sys.setenv doesn't have any effect, even on the new R sessions\n> spawned\n> | > through `foreach` with the `doMC` parallel backend (this surprises me,\n> is\n> | > my mental model of parallelism in R correct?)\n> | >  - exporting the environment variables using `cstdlib::putenv` in the\n> C++\n> | > code directly before the call to `svd`.\n> | >  - The solution I found through the r-sig-hpc archives:\n> | > https://stat.ethz.ch/pipermail/r-sig-hpc/2012-July/001432.html.\n> Directly\n> | > calling openblas_set_num_threads(1); in the C++ code has no effect.\n> | >\n> | > I've also tried explicitly disabling BLAS in the hope that Armadillo\n> will\n> | > call the LAPACK routines directly (although I may have done this\n> | > incorrectly) by doing the following:\n> | >  - removing the $(BLAS_LIBS) from the PKG_LIBS variable in the\n> | > Makevars/Makevars.win files\n> | >  - Setting #define ARMA_DONT_USE_BLAS and #define ARMA_DONT_USE_WRAPPER\n> | > before including the <RcppArmadillo.h> header file in my source code.\n> | >\n> | > Ideally I'm looking for a solution that allows me to set the maximum\n> number\n> | > of threads to 1 for all the multithreaded BLAS libraries in my package\n> to\n> | > prevent conflicts between the implicit and explicit parallelism. Is\n> this\n> | > possible?\n> | >\n> | > Regards,\n> | >\n> | > Scott Ritchie\n> | >\n> | >         [[alternative HTML version deleted]]\n> | >\n> | > _______________________________________________\n> | > R-sig-hpc mailing list\n> | > R-sig-hpc at r-project.org\n> | > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n> |\n> |       [[alternative HTML version deleted]]\n> |\n> | _______________________________________________\n> | R-sig-hpc mailing list\n> | R-sig-hpc at r-project.org\n> | https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>\n> --\n> http://dirk.eddelbuettel.com | @eddelbuettel | edd at debian.org\n>\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "Hi again Dirk,\n\nIf its just an issue with the particular setup I'm using, I'm happy to\nstick `export OPENBLAS_NUM_THREADS=1` in my bash profile.\n\nGood to know about Goto and MKL. I'd just seen them me",
+      "thread_id": "thread-2988efbcd956",
+      "thread_depth": 4,
+      "month": "2014-08"
+    },
+    {
+      "id": "msg-317f37a18294",
+      "message_id": "<CAJqeyYYoR3x3NoLPoyxzD8eTyMEXE99k+v4QraTHHpeEzKDhxQ@mail.gmail.com>",
+      "from_name": "Ei-ji Nakama",
+      "from_email_hash": "287a261a23e709ca3530a6c601118b8b3e722caf557d2663cc59d766c87e025a",
+      "date": "2014-08-13T23:28:26+09:00",
+      "subject": "[R-sig-hpc] Disabling implicit parallelism of multithreaded BLAS from an R package",
+      "subject_clean": "Disabling implicit parallelism of multithreaded BLAS from an R package",
+      "in_reply_to": "<CAO1VBV2wak3Gvo4zK9_7ZGaCb6k-sjixsPEQcOZsuAkQ3y1=nA@mail.gmail.com>",
+      "references": [
+        "<CAO1VBV1U4vPt2syBFKusyUZpsL8atoRuAjLP_XLrj2Y4=U84Bw@mail.gmail.com>",
+        "<82C93A6A208F9841B5F8CA090C68CA5B8D1FD2C0@iphtexch04.ipht-jena.de>",
+        "<CAO1VBV30F1TNMF9N2s1FLt5N4MuN5P0TLKC+JEu6sOssHTtpcQ@mail.gmail.com>",
+        "<21483.19739.582087.437443@max.nulle.part>",
+        "<CAO1VBV2wak3Gvo4zK9_7ZGaCb6k-sjixsPEQcOZsuAkQ3y1=nA@mail.gmail.com>"
+      ],
+      "body_plain": "hello,\nRhpcBLASctl is a package in the state of having started making it....\n\nExample..\n$ R -q\n> library(RhpcBLASctl)\n> omp_get_max_threads()\n[1] 8\n> omp_set_num_threads(1)\n> omp_get_max_threads()\n[1] 1\n> blas_get_num_procs()\n[1] 4\n> blas_set_num_threads(2)\n> blas_get_num_procs()\n[1] 2\n> blas_set_num_threads(get_num_cores())\n> blas_get_num_procs()\n[1] 4\n\nIts need to think independently because there is no relativity in the\ncontrol of OpenMP and BLAS.\nIf Goto or OpenBLAS is done in the build, the instruction of NO_WARMUP\nand NO_AFFINITY might be gentle to the user.\n\n\n2014-08-13 21:02 GMT+09:00 Scott Ritchie <sritchie73 at gmail.com>:\n> Hi again Dirk,\n>\n> If its just an issue with the particular setup I'm using, I'm happy to\n> stick `export OPENBLAS_NUM_THREADS=1` in my bash profile.\n>\n> Good to know about Goto and MKL. I'd just seen them mentioned in the gcbd\n> vignette you suggested I read, so assumed they would have the same issue. I\n> had originally hope to just set the relevant environment variables for all\n> of them (even if they weren't relevant to the user).\n>\n> I'll construct a minimal example to use as a test case and send it to the\n> mailing list.\n>\n> Cheers,\n>\n> Scott\n>\n>\n> On 13 August 2014 21:33, Dirk Eddelbuettel <edd at debian.org> wrote:\n>\n>>\n>> Scott,\n>>\n>> On 13 August 2014 at 20:08, Scott Ritchie wrote:\n>> | Hi Claudia,\n>> |\n>> | The system I tested it on is running Ubuntu 12.04, so it should\n>> | theoretically work.\n>>\n>> I keep forgetting you run an outdated OS version.  As I recall, the\n>> OpenBLAS\n>> in that release is older / was lagging.  This may work better on newer\n>> ones.\n>> Worst case, Consider rebuilding the OpenBLAS package from source on your\n>> box to create a\n>> local backp. (Been there, done that, need to document the process ...)\n>>\n>> Do you have a small / simple testcase?\n>>\n>> | I'd also like a way of disabling implicit parallelism if R has been\n>> | compiled with Goto BLAS and MKL, since I assume those users will have the\n>> | same problem.\n>>\n>> You may need to change their APIs...  MKL, as I recall, listen to the same\n>> (Intel-given) variable.  GotoBLAS is a dead project which was succeeded by\n>> OpenBLAS, so changing Goto may be impossible.\n>>\n>> Thanks also to Claudia for that reminder. I had forgotten this Linux-only\n>> aspect.\n>>\n>> Cheers, Dirk\n>>\n>>\n>>\n>> | On 13 August 2014 18:21, beleites,claudia <claudia.beleites at ipht-jena.de\n>> >\n>> | wrote:\n>> |\n>> | > Hi Scott\n>> | >\n>> | > You may need to contact the developers of openblas about\n>> | > openblas_set_num_threads. 2yrs ago when Simon was writing that wrapper\n>> it\n>> | > was only implemented for Linux. All other is just had a non- working\n>> dummy.\n>> | >\n>> | > Hth\n>> | >\n>> | > Claudia\n>> | >\n>> | > --\n>> | > Claudia Beleites, Chemist\n>> | > Spectroscopy/Imaging\n>> | > Leibniz Institute of Photonic Technology\n>> | > Albert-Einstein-Str. 9\n>> | > 07745 Jena\n>> | > Germany\n>> | >\n>> | > email: claudia.beleites at ipht-jena.de\n>> | > phone: +49 3641 206-133\n>> | > fax:   +49 2641 206-399\n>> | >\n>> | >\n>> | > ________________________________________\n>> | > Von: r-sig-hpc-bounces at r-project.org [r-sig-hpc-bounces at r-project.org\n>> ]&quot;\n>> | > im Auftrag von &quot;Scott Ritchie [sritchie73 at gmail.com]\n>> | > Gesendet: Mittwoch, 13. August 2014 06:40\n>> | > An: r-sig-hpc at r-project.org\n>> | > Betreff: [R-sig-hpc] Disabling implicit parallelism of multithreaded\n>> BLAS\n>> | >       from an R package\n>> | >\n>> | > Hi all,\n>> | >\n>> | > I'm developing a package in which I explicitly handle parallelism, and\n>> in\n>> | > each parallel R session, running some SVD calculations through Rcpp +\n>> | > Armadillo.\n>> | >\n>> | > On one of my test machines, R 3.1.0 has been compiled against\n>> OpenBLAS, so\n>> | > the calls to SVD are implicitly parallel.\n>> | >\n>> | > I can disable this by exporting the appropriate environment variable\n>> before\n>> | > calling R (OPENBLAS_NUM_THREADS=1), but I would ideally like to\n>> abstract\n>> | > that detail away from the user (as some of my intended target audience\n>> may\n>> | > be biologists without a strong computational background, but\n>> nevertheless\n>> | > operating on a cluster someone else has set up).\n>> | >\n>> | > I've tried a couple of things to disable the implicit parallelism\n>> without\n>> | > any success:\n>> | >  - Sys.setenv doesn't have any effect, even on the new R sessions\n>> spawned\n>> | > through `foreach` with the `doMC` parallel backend (this surprises me,\n>> is\n>> | > my mental model of parallelism in R correct?)\n>> | >  - exporting the environment variables using `cstdlib::putenv` in the\n>> C++\n>> | > code directly before the call to `svd`.\n>> | >  - The solution I found through the r-sig-hpc archives:\n>> | > https://stat.ethz.ch/pipermail/r-sig-hpc/2012-July/001432.html.\n>> Directly\n>> | > calling openblas_set_num_threads(1); in the C++ code has no effect.\n>> | >\n>> | > I've also tried explicitly disabling BLAS in the hope that Armadillo\n>> will\n>> | > call the LAPACK routines directly (although I may have done this\n>> | > incorrectly) by doing the following:\n>> | >  - removing the $(BLAS_LIBS) from the PKG_LIBS variable in the\n>> | > Makevars/Makevars.win files\n>> | >  - Setting #define ARMA_DONT_USE_BLAS and #define ARMA_DONT_USE_WRAPPER\n>> | > before including the <RcppArmadillo.h> header file in my source code.\n>> | >\n>> | > Ideally I'm looking for a solution that allows me to set the maximum\n>> number\n>> | > of threads to 1 for all the multithreaded BLAS libraries in my package\n>> to\n>> | > prevent conflicts between the implicit and explicit parallelism. Is\n>> this\n>> | > possible?\n>> | >\n>> | > Regards,\n>> | >\n>> | > Scott Ritchie\n>> | >\n>> | >         [[alternative HTML version deleted]]\n>> | >\n>> | > _______________________________________________\n>> | > R-sig-hpc mailing list\n>> | > R-sig-hpc at r-project.org\n>> | > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>> |\n>> |       [[alternative HTML version deleted]]\n>> |\n>> | _______________________________________________\n>> | R-sig-hpc mailing list\n>> | R-sig-hpc at r-project.org\n>> | https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>>\n>> --\n>> http://dirk.eddelbuettel.com | @eddelbuettel | edd at debian.org\n>>\n>\n>         [[alternative HTML version deleted]]\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n\n\n\n-- \nBest Regards,\n--\nEI-JI Nakama  <nakama (a) ki.rim.or.jp>\n\"\\u4e2d\\u9593\\u6804\\u6cbb\"  <nakama (a) ki.rim.or.jp>",
+      "body_snippet": "hello,\nRhpcBLASctl is a package in the state of having started making it....\n\nExample..\n$ R -q\n> library(RhpcBLASctl)\n> omp_get_max_threads()\n[1] 8\n> omp_set_num_threads(1)\n> omp_get_max_threads()\n[1]",
+      "thread_id": "thread-2988efbcd956",
+      "thread_depth": 5,
+      "month": "2014-08"
+    },
+    {
+      "id": "msg-22b4182e9bc3",
+      "message_id": "<F69EA227-D273-4896-B0C2-A89CE23799B3@illinois.edu>",
+      "from_name": "Roger Koenker",
+      "from_email_hash": "359868c91f72f8b2eefe60027d20f064ed111f9c2fbc00e33a1d837cc16d6732",
+      "date": "2014-08-13T10:40:40-05:00",
+      "subject": "[R-sig-hpc] Disabling implicit parallelism of multithreaded BLAS from an R package",
+      "subject_clean": "Disabling implicit parallelism of multithreaded BLAS from an R package",
+      "in_reply_to": "<4b33179e25bb447c925542abbaf56742@CITESHT1.ad.uillinois.edu>",
+      "references": [
+        "<CAO1VBV1U4vPt2syBFKusyUZpsL8atoRuAjLP_XLrj2Y4=U84Bw@mail.gmail.com>",
+        "<82C93A6A208F9841B5F8CA090C68CA5B8D1FD2C0@iphtexch04.ipht-jena.de>",
+        "<CAO1VBV30F1TNMF9N2s1FLt5N4MuN5P0TLKC+JEu6sOssHTtpcQ@mail.gmail.com>",
+        "<21483.19739.582087.437443@max.nulle.part>",
+        "<CAO1VBV2wak3Gvo4zK9_7ZGaCb6k-sjixsPEQcOZsuAkQ3y1=nA@mail.gmail.com>",
+        "<4b33179e25bb447c925542abbaf56742@CITESHT1.ad.uillinois.edu>"
+      ],
+      "body_plain": "I hope it won't be viewed as highjacking this thread if I mention that \ndisabling implicit parallelism can be an issue in a variety of other contexts\nas well.  I've recently experienced this on our cluster with simulations that\nused foreach  and doMPI in an embarrassingly parallel way, but use Rmosek/Mosek\nin the innermost loop to solve convex optimization problems.  By default Mosek\ntries to use multicore capabilities of the cluster nodes and this results in rather\npoor performance as different instances of the foreach loop fight with one another\nfor cpu resources.  Fortunately, this can be controlled in Rmosek so the foreach\ninstances are single threaded as illustrated in the new release of my REBayes\npackage.  How common such \"features\" are,  I have no clue, but it can be \nsignificant.  In my application it cut elapsed time of my simulations from about \n14 hours to about 5.\n\n\nurl:    www.econ.uiuc.edu/~roger            Roger Koenker\nemail    rkoenker at uiuc.edu            Department of Economics\nvox:     217-333-4558                University of Illinois\nfax:       217-244-6678                Urbana, IL 61801\n\nOn Aug 13, 2014, at 9:28 AM, Ei-ji Nakama <nakama at ki.rim.or.jp> wrote:\n\n> hello,\n> RhpcBLASctl is a package in the state of having started making it....\n> \n> Example..\n> $ R -q\n>> library(RhpcBLASctl)\n>> omp_get_max_threads()\n> [1] 8\n>> omp_set_num_threads(1)\n>> omp_get_max_threads()\n> [1] 1\n>> blas_get_num_procs()\n> [1] 4\n>> blas_set_num_threads(2)\n>> blas_get_num_procs()\n> [1] 2\n>> blas_set_num_threads(get_num_cores())\n>> blas_get_num_procs()\n> [1] 4\n> \n> Its need to think independently because there is no relativity in the\n> control of OpenMP and BLAS.\n> If Goto or OpenBLAS is done in the build, the instruction of NO_WARMUP\n> and NO_AFFINITY might be gentle to the user.\n> \n> \n> 2014-08-13 21:02 GMT+09:00 Scott Ritchie <sritchie73 at gmail.com>:\n>> Hi again Dirk,\n>> \n>> If its just an issue with the particular setup I'm using, I'm happy to\n>> stick `export OPENBLAS_NUM_THREADS=1` in my bash profile.\n>> \n>> Good to know about Goto and MKL. I'd just seen them mentioned in the gcbd\n>> vignette you suggested I read, so assumed they would have the same issue. I\n>> had originally hope to just set the relevant environment variables for all\n>> of them (even if they weren't relevant to the user).\n>> \n>> I'll construct a minimal example to use as a test case and send it to the\n>> mailing list.\n>> \n>> Cheers,\n>> \n>> Scott\n>> \n>> \n>> On 13 August 2014 21:33, Dirk Eddelbuettel <edd at debian.org> wrote:\n>> \n>>> \n>>> Scott,\n>>> \n>>> On 13 August 2014 at 20:08, Scott Ritchie wrote:\n>>> | Hi Claudia,\n>>> |\n>>> | The system I tested it on is running Ubuntu 12.04, so it should\n>>> | theoretically work.\n>>> \n>>> I keep forgetting you run an outdated OS version.  As I recall, the\n>>> OpenBLAS\n>>> in that release is older / was lagging.  This may work better on newer\n>>> ones.\n>>> Worst case, Consider rebuilding the OpenBLAS package from source on your\n>>> box to create a\n>>> local backp. (Been there, done that, need to document the process ...)\n>>> \n>>> Do you have a small / simple testcase?\n>>> \n>>> | I'd also like a way of disabling implicit parallelism if R has been\n>>> | compiled with Goto BLAS and MKL, since I assume those users will have the\n>>> | same problem.\n>>> \n>>> You may need to change their APIs...  MKL, as I recall, listen to the same\n>>> (Intel-given) variable.  GotoBLAS is a dead project which was succeeded by\n>>> OpenBLAS, so changing Goto may be impossible.\n>>> \n>>> Thanks also to Claudia for that reminder. I had forgotten this Linux-only\n>>> aspect.\n>>> \n>>> Cheers, Dirk\n>>> \n>>> \n>>> \n>>> | On 13 August 2014 18:21, beleites,claudia <claudia.beleites at ipht-jena.de\n>>>> \n>>> | wrote:\n>>> |\n>>> | > Hi Scott\n>>> | >\n>>> | > You may need to contact the developers of openblas about\n>>> | > openblas_set_num_threads. 2yrs ago when Simon was writing that wrapper\n>>> it\n>>> | > was only implemented for Linux. All other is just had a non- working\n>>> dummy.\n>>> | >\n>>> | > Hth\n>>> | >\n>>> | > Claudia\n>>> | >\n>>> | > --\n>>> | > Claudia Beleites, Chemist\n>>> | > Spectroscopy/Imaging\n>>> | > Leibniz Institute of Photonic Technology\n>>> | > Albert-Einstein-Str. 9\n>>> | > 07745 Jena\n>>> | > Germany\n>>> | >\n>>> | > email: claudia.beleites at ipht-jena.de\n>>> | > phone: +49 3641 206-133\n>>> | > fax:   +49 2641 206-399\n>>> | >\n>>> | >\n>>> | > ________________________________________\n>>> | > Von: r-sig-hpc-bounces at r-project.org [r-sig-hpc-bounces at r-project.org\n>>> ]&quot;\n>>> | > im Auftrag von &quot;Scott Ritchie [sritchie73 at gmail.com]\n>>> | > Gesendet: Mittwoch, 13. August 2014 06:40\n>>> | > An: r-sig-hpc at r-project.org\n>>> | > Betreff: [R-sig-hpc] Disabling implicit parallelism of multithreaded\n>>> BLAS\n>>> | >       from an R package\n>>> | >\n>>> | > Hi all,\n>>> | >\n>>> | > I'm developing a package in which I explicitly handle parallelism, and\n>>> in\n>>> | > each parallel R session, running some SVD calculations through Rcpp +\n>>> | > Armadillo.\n>>> | >\n>>> | > On one of my test machines, R 3.1.0 has been compiled against\n>>> OpenBLAS, so\n>>> | > the calls to SVD are implicitly parallel.\n>>> | >\n>>> | > I can disable this by exporting the appropriate environment variable\n>>> before\n>>> | > calling R (OPENBLAS_NUM_THREADS=1), but I would ideally like to\n>>> abstract\n>>> | > that detail away from the user (as some of my intended target audience\n>>> may\n>>> | > be biologists without a strong computational background, but\n>>> nevertheless\n>>> | > operating on a cluster someone else has set up).\n>>> | >\n>>> | > I've tried a couple of things to disable the implicit parallelism\n>>> without\n>>> | > any success:\n>>> | >  - Sys.setenv doesn't have any effect, even on the new R sessions\n>>> spawned\n>>> | > through `foreach` with the `doMC` parallel backend (this surprises me,\n>>> is\n>>> | > my mental model of parallelism in R correct?)\n>>> | >  - exporting the environment variables using `cstdlib::putenv` in the\n>>> C++\n>>> | > code directly before the call to `svd`.\n>>> | >  - The solution I found through the r-sig-hpc archives:\n>>> | > https://stat.ethz.ch/pipermail/r-sig-hpc/2012-July/001432.html.\n>>> Directly\n>>> | > calling openblas_set_num_threads(1); in the C++ code has no effect.\n>>> | >\n>>> | > I've also tried explicitly disabling BLAS in the hope that Armadillo\n>>> will\n>>> | > call the LAPACK routines directly (although I may have done this\n>>> | > incorrectly) by doing the following:\n>>> | >  - removing the $(BLAS_LIBS) from the PKG_LIBS variable in the\n>>> | > Makevars/Makevars.win files\n>>> | >  - Setting #define ARMA_DONT_USE_BLAS and #define ARMA_DONT_USE_WRAPPER\n>>> | > before including the <RcppArmadillo.h> header file in my source code.\n>>> | >\n>>> | > Ideally I'm looking for a solution that allows me to set the maximum\n>>> number\n>>> | > of threads to 1 for all the multithreaded BLAS libraries in my package\n>>> to\n>>> | > prevent conflicts between the implicit and explicit parallelism. Is\n>>> this\n>>> | > possible?\n>>> | >\n>>> | > Regards,\n>>> | >\n>>> | > Scott Ritchie\n>>> | >\n>>> | >         [[alternative HTML version deleted]]\n>>> | >\n>>> | > _______________________________________________\n>>> | > R-sig-hpc mailing list\n>>> | > R-sig-hpc at r-project.org\n>>> | > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>>> |\n>>> |       [[alternative HTML version deleted]]\n>>> |\n>>> | _______________________________________________\n>>> | R-sig-hpc mailing list\n>>> | R-sig-hpc at r-project.org\n>>> | https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>>> \n>>> --\n>>> http://dirk.eddelbuettel.com | @eddelbuettel | edd at debian.org\n>>> \n>> \n>>        [[alternative HTML version deleted]]\n>> \n>> _______________________________________________\n>> R-sig-hpc mailing list\n>> R-sig-hpc at r-project.org\n>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n> \n> \n> \n> -- \n> Best Regards,\n> --\n> EI-JI Nakama  <nakama (a) ki.rim.or.jp>\n> \"\\u4e2d\\u9593\\u6804\\u6cbb\"  <nakama (a) ki.rim.or.jp>\n> \n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc",
+      "body_snippet": "I hope it won't be viewed as highjacking this thread if I mention that \ndisabling implicit parallelism can be an issue in a variety of other contexts\nas well.  I've recently experienced this on our cl",
+      "thread_id": "thread-22b4182e9bc3",
+      "thread_depth": 0,
+      "month": "2014-08"
+    },
+    {
+      "id": "msg-a8b0911f70f8",
+      "message_id": "<CAHruAW=+RdVk_UxrzmwtOwEevOidbuckWp99eptH_FfsuijAMw@mail.gmail.com>",
+      "from_name": "Chibisi Chima-Okereke",
+      "from_email_hash": "fe698b20c0a9d5ea197a23ad5b8ed581b4c8c3e3831990e3c0d5b045c80c3820",
+      "date": "2014-08-28T21:38:31+01:00",
+      "subject": "[R-sig-hpc] New Package: activeH5",
+      "subject_clean": "New Package: activeH5",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Hello R HPC people,\n\nWe have just open sourced our R package for reading/writing very large data\nframes and matrices to disk and memory called activeH5 on GitHub:\nhttps://github.com/ActiveAnalytics/activeH5 we would appreciate feedback on\nusage and potential improvements. Installation instructions are in the\nGitHub repository.\n\nRegards\n\nChibisi\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "Hello R HPC people,\n\nWe have just open sourced our R package for reading/writing very large data\nframes and matrices to disk and memory called activeH5 on GitHub:\nhttps://github.com/ActiveAnalytics/ac",
+      "thread_id": "thread-a8b0911f70f8",
+      "thread_depth": 0,
+      "month": "2014-08"
+    }
+  ],
+  "threads": [
+    {
+      "id": "thread-696b72922be1",
+      "subject": "R Batch proc.time doMPI",
+      "message_count": 2,
+      "participants": [
+        "Roger Koenker",
+        "Stephen Weston"
+      ],
+      "started": "2014-08-05T13:56:08-05:00",
+      "last_reply": "2014-08-06T12:03:58-04:00",
+      "root_message_id": "msg-696b72922be1"
+    },
+    {
+      "id": "thread-b754740193f7",
+      "subject": "Some hpc problems with doMPI and runmpi",
+      "message_count": 1,
+      "participants": [
+        "André Ziervogel"
+      ],
+      "started": "2014-08-07T12:21:51+02:00",
+      "last_reply": "2014-08-07T12:21:51+02:00",
+      "root_message_id": "msg-b754740193f7"
+    },
+    {
+      "id": "thread-deeb8692ae41",
+      "subject": "error: object '.doSnowGlobals' not found?",
+      "message_count": 4,
+      "participants": [
+        "Rajendra Kumar",
+        "Stefan Thomas"
+      ],
+      "started": "2014-08-08T10:43:31+05:30",
+      "last_reply": "2014-08-08T13:15:22+02:00",
+      "root_message_id": "msg-deeb8692ae41"
+    },
+    {
+      "id": "thread-0ae86ab9fb38",
+      "subject": "error: object '.doSnowGlobals' not found?",
+      "message_count": 1,
+      "participants": [
+        "Reuben Bellika"
+      ],
+      "started": "2014-08-08T17:11:38+00:00",
+      "last_reply": "2014-08-08T17:11:38+00:00",
+      "root_message_id": "msg-0ae86ab9fb38"
+    },
+    {
+      "id": "thread-966c3d9de507",
+      "subject": "Blog: How to accelerate R applications by CUDA",
+      "message_count": 1,
+      "participants": [
+        "patric zhao"
+      ],
+      "started": "2014-08-11T15:19:59+08:00",
+      "last_reply": "2014-08-11T15:19:59+08:00",
+      "root_message_id": "msg-966c3d9de507"
+    },
+    {
+      "id": "thread-15df0e4f8b12",
+      "subject": "Creating different working directories for each node?",
+      "message_count": 4,
+      "participants": [
+        "Brian G. Peterson",
+        "Novack-Gottshall, Philip M."
+      ],
+      "started": "2014-08-11T20:59:55+00:00",
+      "last_reply": "2014-08-12T19:35:00+00:00",
+      "root_message_id": "msg-15df0e4f8b12"
+    },
+    {
+      "id": "thread-22b4182e9bc3",
+      "subject": "Disabling implicit parallelism of multithreaded BLAS from an R package",
+      "message_count": 1,
+      "participants": [
+        "Roger Koenker"
+      ],
+      "started": "2014-08-13T10:40:40-05:00",
+      "last_reply": "2014-08-13T10:40:40-05:00",
+      "root_message_id": "msg-22b4182e9bc3"
+    },
+    {
+      "id": "thread-2988efbcd956",
+      "subject": "Disabling implicit parallelism of multithreaded BLAS from an R package",
+      "message_count": 6,
+      "participants": [
+        "Dirk Eddelbuettel",
+        "Ei-ji Nakama",
+        "Scott Ritchie",
+        "beleites,claudia"
+      ],
+      "started": "2014-08-13T14:40:14+10:00",
+      "last_reply": "2014-08-13T23:28:26+09:00",
+      "root_message_id": "msg-2988efbcd956"
+    },
+    {
+      "id": "thread-a8b0911f70f8",
+      "subject": "New Package: activeH5",
+      "message_count": 1,
+      "participants": [
+        "Chibisi Chima-Okereke"
+      ],
+      "started": "2014-08-28T21:38:31+01:00",
+      "last_reply": "2014-08-28T21:38:31+01:00",
+      "root_message_id": "msg-a8b0911f70f8"
+    }
+  ]
+}

@@ -1,0 +1,1344 @@
+From oodonutzoo at hotmail.com  Sun Oct  6 22:51:19 2013
+From: oodonutzoo at hotmail.com (Duncan Wadsworth)
+Date: Sun, 6 Oct 2013 14:51:19 -0600
+Subject: [R-sig-hpc] snowFT with changing arguments
+Message-ID: <COL125-W404664AF7F0EF0FE9279D5D1120@phx.gbl>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20131006/dfa2fb18/attachment.pl>
+
+From hanas at uw.edu  Mon Oct  7 11:55:40 2013
+From: hanas at uw.edu (Hana Sevcikova)
+Date: Mon, 07 Oct 2013 10:55:40 +0100
+Subject: [R-sig-hpc] snowFT with changing arguments
+In-Reply-To: <COL125-W404664AF7F0EF0FE9279D5D1120@phx.gbl>
+References: <COL125-W404664AF7F0EF0FE9279D5D1120@phx.gbl>
+Message-ID: <5252851C.6050803@uw.edu>
+
+Duncan,
+
+What you can do is to pass a number (or character string) that would 
+tell the process which iteration it is. Then the slicing would happen in 
+the child process. I.e.
+
+res <- performParallel(p, 1:r, fun=fun, ...)
+
+fun <- function(i, ...) {
+   n = list(c(1000, 0, 1), c(2000, 1, 1), c(3000, 2, 1))[[i]]
+   ...
+}
+
+or with character strings:
+res <- performParallel(p, c('first', 'second', 'third'), fun=fun, ...)
+
+fun <- function(i, ...) {
+   n = list(first=c(1000, 0, 1), second=c(2000, 1, 1), third=c(3000, 2, 
+1))[[i]]
+   ...
+}
+
+Hana
+
+
+
+On 06/10/2013 21:51, Duncan Wadsworth wrote:
+> Hello,
+> I'm trying to pass different arguments to each of the initiated processes using snowFT.  In the examples for performParallel() we have## Not run:
+> # generates n normally distributed random numbers in r replicates
+> # on p nodes and prints their mean after each r/10 replicate.
+>
+> printfun <- function(res, n, args=NULL) {
+>    res <- unlist(res)
+>    res <- res[!is.null(res)]
+>    print(paste("mean after:", n,"replicates:", mean(res),
+>             "(from",length(res),"RNs)"))
+>    }
+>
+> r<-1000; n<-100; p<-5
+> res <- performParallel(p, rep(n,r), fun=rnorm,
+>    gentype="RNGstream", seed=rep(1,6), printfun=printfun)
+>
+> # Setting p<-0 will run rnorm sequentially and should give
+> # exactly the same resultsbut I'd like to use a matrix or list or ideally a dataframe so I can pass different string arguments with the n.  For example, I'd like to pass different values for n, mean, and sd in rnorm(), i.e. something like:
+> n = list(first = c(1000, 0, 1), second = c(2000, 1, 1), third = c(3000, 2, 1))r = 96
+> It's possible to do:
+> n = c(1, 10, 100, 1000)r = 96
+> but that only allows me to change the first argument to rnorm().
+> Any ideas?
+> Thanks.
+>
+>
+>
+>
+>   		 	   		
+> 	[[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From ostrouchovg at ornl.gov  Tue Oct  8 14:47:08 2013
+From: ostrouchovg at ornl.gov (George Ostrouchov)
+Date: Tue, 08 Oct 2013 08:47:08 -0400
+Subject: [R-sig-hpc] ANNOUNCE: R at Supercomputing 2013 (SC13)
+Message-ID: <5253FECC.3010603@ornl.gov>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20131008/9e7adf5c/attachment.pl>
+
+From ostrouchovg at ornl.gov  Tue Oct  8 15:50:44 2013
+From: ostrouchovg at ornl.gov (George Ostrouchov)
+Date: Tue, 08 Oct 2013 09:50:44 -0400
+Subject: [R-sig-hpc] ANNOUNCE: How to get time on a Supercomputer via the
+ XSEDE and INCITE programs?
+In-Reply-To: <5253822d.8H7CmDphqmK7Rh9u%dlucio@utk.edu>
+References: <5253822d.8H7CmDphqmK7Rh9u%dlucio@utk.edu>
+Message-ID: <52540DB4.80203@ornl.gov>
+
+Today at 2:10 - 3:10 pm ET. See below for way to join via VebEx.
+See http://www.nics.tennessee.edu/hpc-seminar-series for other HPC 
+topics every week.
+
+-------- Original Message --------
+Date:     Mon, 7 Oct 2013 23:55:25 -0400
+
+Hello ,
+
+The National Institute for Computational Sciences invites you to attend 
+the following seminar on HPC.
+
+Topic: How to get time on a Supercomputer via the XSEDE and INCITE programs?
+Presenters: Suzanne Parete-Koon, Scientific Computing Group , ORNL
+             Patti Redd, UA, NICS
+Date: Tuesday, October 8, 2013
+Time: 2:10 pm, Eastern Daylight Time (New York, GMT-04:00)
+Meeting Number: 806 199 716
+Meeting Password: super
+
+For more information, full schedule and to view past seminars go to:
+http://www.nics.tennessee.edu/hpc-seminar-series
+
+-------------------------------------------------------
+To join the seminar in-person
+-------------------------------------------------------
+Go to ICL conference room 233 at the Claxton building.
+
+-------------------------------------------------------
+To join the online meeting (Now from mobile devices!)
+-------------------------------------------------------
+1. Go to https://kraken.webex.com
+2. If requested, enter your name and email address.
+3. If a password is required, enter the meeting password: super
+4. Click "Join".
+
+To view in other time zones or languages, please click the link:
+https://kraken.webex.com/kraken/j.php?ED=235869602&UID=1663114242&PW=NNTgwM2FkYmY3&ORT=MiMxMQ%3D%3D
+
+-------------------------------------------------------
+To join the audio conference only
+-------------------------------------------------------
+Call-in toll number (US/Canada): 1-650-479-3208
+
+Access code:806 199 716
+
+-------------------------------------------------------
+For assistance
+-------------------------------------------------------
+1. Go to https://kraken.webex.com/kraken/mc
+2. On the left navigation bar, click "Support".
+
+To add this meeting to your calendar program (for example Microsoft 
+Outlook), click this link:
+https://kraken.webex.com/kraken/j.php?ED=235869602&UID=1663114242&ICS=MI&LD=1&RD=2&ST=1&SHA2=AAAAAgLuPJl1NgHQ79SMwzOwsLX//lZH5O94xy0FoHq4BB8s&RT=MiMxMQ%3D%3D
+
+The playback of UCF (Universal Communications Format) rich media files 
+requires appropriate players. To view this type of rich media files in 
+the meeting, please check whether you have the players installed on your 
+computer by going to https://kraken.webex.com/kraken/systemdiagnosis.php.
+
+Sign up for a free trial of WebEx
+http://www.webex.com/go/mcemfreetrial
+
+http://www.webex.com
+
+CCP:+16504793208x805138073#
+
+IMPORTANT NOTICE: This WebEx service includes a feature that allows 
+audio and any documents and other materials exchanged or viewed during 
+the session to be recorded. By joining this session, you automatically 
+consent to such recordings. If you do not consent to the recording, 
+discuss your concerns with the meeting host prior to the start of the 
+recording or do not join the session. Please note that any such 
+recordings may be subject to discovery in the event of litigation.
+
+_______________________________________________
+
+
+-- 
+George Ostrouchov, Ph.D.
+Scientific Data Group
+Computer Science and Mathematics Division
+Oak Ridge National Laboratory
+(865) 574-3137  http://www.csm.ornl.gov/~ost
+
+
+From changi.han.wen at gmail.com  Wed Oct  9 09:04:30 2013
+From: changi.han.wen at gmail.com (Changi Han)
+Date: Wed, 9 Oct 2013 15:04:30 +0800
+Subject: [R-sig-hpc] Yeppp! library
+Message-ID: <CAJWf1VDb4=m1DCMbDyq9sTKLHX-+_XavDWjGux7hOPP9m_AYaQ@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20131009/25626273/attachment.pl>
+
+From ostrouchovg at ornl.gov  Wed Oct  9 23:20:37 2013
+From: ostrouchovg at ornl.gov (George Ostrouchov)
+Date: Wed, 09 Oct 2013 17:20:37 -0400
+Subject: [R-sig-hpc] ANNOUNCE: I got an XSEDE/NICS account, now what?
+In-Reply-To: <5255c13b.IGsqCPJvoooVTD/W%dlucio@utk.edu>
+References: <5255c13b.IGsqCPJvoooVTD/W%dlucio@utk.edu>
+Message-ID: <5255C8A5.8010007@ornl.gov>
+
+R is available on XSEDE supercomputers. Tomorrow at 2:10 PM ET is 
+another seminar on access to these resources.
+
+-------- Original Message --------
+Subject:   Seminar Series: I got an XSEDE/NICS account, now what?
+Date:     Wed, 9 Oct 2013 16:48:59 -0400
+From:     dlucio at utk.edu <dlucio at utk.edu>
+To:     staff at nics.utk.edu <staff at nics.utk.edu>
+
+
+Hello ,
+
+The National Institute for Computational Sciences invites you to attend 
+the following seminar on HPC.
+
+Topic: I got an XSEDE/NICS account, now what?
+Presenter: Patti Redd, UA, NICS
+Date: Thursday, October 10, 2013
+Time: 2:10 pm, Eastern Daylight Time (New York, GMT-04:00)
+Meeting Number: 806 575 410
+Meeting Password: super
+
+For more information, full schedule and to view past seminars go to:
+http://www.nics.tennessee.edu/hpc-seminar-series
+
+-------------------------------------------------------
+To join the seminar in-person
+-------------------------------------------------------
+Go to ICL conference room 233 at the Claxton building.
+
+-------------------------------------------------------
+To join the online meeting (Now from mobile devices!)
+-------------------------------------------------------
+1. Go to https://kraken.webex.com
+2. If requested, enter your name and email address.
+3. If a password is required, enter the meeting password: super
+4. Click "Join".
+
+To view in other time zones or languages, please click the link:
+https://kraken.webex.com/kraken/j.php?ED=236159242&UID=1664631622&PW=NYjRiMTk2ZmJi&ORT=MiMxMQ%3D%3D
+
+-------------------------------------------------------
+To join the audio conference only
+-------------------------------------------------------
+Call-in toll number (US/Canada): 1-650-479-3208
+
+Access code:806 575 410
+
+-------------------------------------------------------
+For assistance
+-------------------------------------------------------
+1. Go to https://kraken.webex.com/kraken/mc
+2. On the left navigation bar, click "Support".
+
+You can contact me at:
+dlucio at utk.edu
+
+
+To add this meeting to your calendar program (for example Microsoft 
+Outlook), click this link:
+https://kraken.webex.com/kraken/j.php?ED=235869602&UID=1663114242&ICS=MI&LD=1&RD=2&ST=1&SHA2=AAAAAgLuPJl1NgHQ79SMwzOwsLX//lZH5O94xy0FoHq4BB8s&RT=MiMxMQ%3D%3D
+
+The playback of UCF (Universal Communications Format) rich media files 
+requires appropriate players. To view this type of rich media files in 
+the meeting, please check whether you have the players installed on your 
+computer by going to https://kraken.webex.com/kraken/systemdiagnosis.php.
+
+Sign up for a free trial of WebEx
+http://www.webex.com/go/mcemfreetrial
+
+http://www.webex.com
+
+CCP:+16504793208x805138073#
+
+IMPORTANT NOTICE: This WebEx service includes a feature that allows 
+audio and any documents and other materials exchanged or viewed during 
+the session to be recorded. By joining this session, you automatically 
+consent to such recordings. If you do not consent to the recording, 
+discuss your concerns with the meeting host prior to the start of the 
+recording or do not join the session. Please note that any such 
+recordings may be subject to discovery in the event of litigation.
+
+_______________________________________________
+
+
+
+-- 
+George Ostrouchov, Ph.D.
+Scientific Data Group
+Computer Science and Mathematics Division
+Oak Ridge National Laboratory
+(865) 574-3137  http://www.csm.ornl.gov/~ost
+
+
+From srihari at iastate.edu  Mon Oct 21 15:42:35 2013
+From: srihari at iastate.edu (Srihari Radhakrishnan)
+Date: Mon, 21 Oct 2013 08:42:35 -0500
+Subject: [R-sig-hpc] Help with doMPI on multiple cores on a cluster
+Message-ID: <CACq2iiM0NRo=12JGzquezyrHd7WyDcL9K_O+uSg50itpJ8f9OQ@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20131021/9a5a4daf/attachment.pl>
+
+From stephen.b.weston at gmail.com  Mon Oct 21 15:55:55 2013
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Mon, 21 Oct 2013 09:55:55 -0400
+Subject: [R-sig-hpc] Help with doMPI on multiple cores on a cluster
+In-Reply-To: <CACq2iiM0NRo=12JGzquezyrHd7WyDcL9K_O+uSg50itpJ8f9OQ@mail.gmail.com>
+References: <CACq2iiM0NRo=12JGzquezyrHd7WyDcL9K_O+uSg50itpJ8f9OQ@mail.gmail.com>
+Message-ID: <CALh21iK7Zap9UYstvxYm7sjBLX0=P3KzZUE9OLkDzfdkQjg89w@mail.gmail.com>
+
+Hi Srihari,
+
+I suspect it's an MPI issue.  Are you able to run any other simple MPI
+programs successfully, and specifically, any using R with Rmpi?  From
+the error message, it appears that you're using Intel MPI, which I've
+never used.  I believe Rmpi is primarily tested with Open MPI, which
+is what I've always used with doMPI.  It would be interesting to see
+if you can run successfully using Open MPI, if that is possible for
+you.
+
+You'll probably need to look for help on an Intel MPI forum, although
+you may need to reduce the problem to something that doesn't use R.
+
+Here is a similar issue that I found on an Intel MPI forum:
+
+    http://software.intel.com/en-us/forums/topic/329053
+
+You could also try running without spawning, since that may be a
+problem for Intel MPI.  To do that, change the R script to use:
+
+    cl <- startMPIcluster()
+
+Also change the mpirun command in the PBS script to use '-n 32' or
+don't specify the -n option at all.  In that case, mpirun will start
+all of the workers as well as the master which may work better.
+
+Regards,
+
+Steve Weston
+
+On Mon, Oct 21, 2013 at 9:42 AM, Srihari Radhakrishnan
+<srihari at iastate.edu> wrote:
+> Hi,
+>
+> I've been trying to use the doMPI to run the iterations of a for loop in
+> parallel (using the foreach package) on a cluster. However, I've been
+> running into issues - I think its the way I am running the R script, but I
+> could be wrong. Here's the description of the problem.
+>
+> We use a PBS scheduler to submit jobs; my script uses 2 nodes (32 cores)
+> for now. I run 1 version of the R interpreter which internally calls 31
+> workers using R's mpi libraries. I produce below the PBS script, the R code
+> (the relevant bits) and the error.
+>
+> ***Begin PBS Script***
+> #!/bin/bash
+>
+> #PBS  -o BATCH_OUTPUT
+> #PBS  -e BATCH_ERRORS
+>
+> #PBS -lnodes=2:ppn=16:compute,walltime=12:00:00
+>
+> # Change to directory from which qsub command was issued
+>    cd $PBS_O_WORKDIR
+>
+> cat $PBS_NODEFILE
+> #Call mpirun with 1 copy of the R interpreter. This will spawn 31 workers,
+> inside the R script
+> time mpirun -n 1 R --slave -f ParallelAnalysis.R
+> ***End PBS script***
+>
+> ***Begin R Script***
+>  source("http://bioconductor.org/biocLite.R")
+>  #MPI stuff initialization
+>  library(Rmpi)
+>  library(foreach)
+>  library(doMPI)
+>  cl <- startMPIcluster(count=31) #call 31 clusterworkers/slaves
+>  registerDoMPI(cl)
+>  library(MEDIPS)
+>  library(BSgenome)
+> .
+> .
+> *more R code; variable assignments etc; no mpi stuff here*
+> .
+> .
+> #Following code will run 100 parallel iterations using the doMPI library
+> loaded above and output results to the variable x. x is a table and stores
+> results from iterations as rows.
+> x <-foreach(i=1:100,.combine='rbind') %dopar% {
+> *stuff to do inside loop*
+> }
+> write.table(x, "output.tsv") #write x into file.
+> ***End R script***
+>
+> The execution halts as soon as the libraries are loaded - I get the
+> following error message repeatedly from both nodes (node 203 and node 202)
+>
+> *[2:node203] unexpected disconnect completion event from dynamic process
+> with rank=0 pg*
+> *_id=kvs_17890_0 0x1fce600*
+> *Assertion failed in file ../../dapl_conn_rc.c at line 1128: 0*
+>
+> I am not sure if this is an issue with the compilers or the script itself.
+> The script runs successfully without using mpi (using only 1 node). Any
+> help would be highly appreciated.
+>
+> Thanks in advance,
+> Srihari
+>
+> --
+> Srihari Radhakrishnan
+>
+> Ph.D candidate
+> Valenzuela Lab
+> Iowa State University
+>
+>         [[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From glock at sdsc.edu  Mon Oct 21 17:56:59 2013
+From: glock at sdsc.edu (Lockwood, Glenn)
+Date: Mon, 21 Oct 2013 15:56:59 +0000
+Subject: [R-sig-hpc] Help with doMPI on multiple cores on a cluster
+In-Reply-To: <CALh21iK7Zap9UYstvxYm7sjBLX0=P3KzZUE9OLkDzfdkQjg89w@mail.gmail.com>
+References: <CACq2iiM0NRo=12JGzquezyrHd7WyDcL9K_O+uSg50itpJ8f9OQ@mail.gmail.com>
+	<CALh21iK7Zap9UYstvxYm7sjBLX0=P3KzZUE9OLkDzfdkQjg89w@mail.gmail.com>
+Message-ID: <5D6CCDC1-CBB6-4926-8022-B19EC68CDAC5@sdsc.edu>
+
+I'd like to echo Steve's advice--try using OpenMPI instead.  I've had innumerable problems trying to get mvapich2 (on which IntelMPI is based) and Rmpi to work, and officially, Rmpi only supports openmpi and mpich.  It's an uphill battle.
+
+Also, you should be running mpirun with -n 1 (as you are already doing) if you are calling R directly.  Doing anything else will cause multiple master scripts to run, each spawning its own set of mpi ranks and leaving you with a lot more MPI ranks than you want.  Some libraries provide special wrappers that let you call them directly using mpirun -np 32 (e.g., snow provies the RMPISNOW command), but these are unique to each library whereas using mpirun -n1 is universal.
+
+Glenn
+
+On Oct 21, 2013, at 6:55 AM, Stephen Weston <stephen.b.weston at gmail.com> wrote:
+
+> Hi Srihari,
+> 
+> I suspect it's an MPI issue.  Are you able to run any other simple MPI
+> programs successfully, and specifically, any using R with Rmpi?  From
+> the error message, it appears that you're using Intel MPI, which I've
+> never used.  I believe Rmpi is primarily tested with Open MPI, which
+> is what I've always used with doMPI.  It would be interesting to see
+> if you can run successfully using Open MPI, if that is possible for
+> you.
+> 
+> You'll probably need to look for help on an Intel MPI forum, although
+> you may need to reduce the problem to something that doesn't use R.
+> 
+> Here is a similar issue that I found on an Intel MPI forum:
+> 
+>    http://software.intel.com/en-us/forums/topic/329053
+> 
+> You could also try running without spawning, since that may be a
+> problem for Intel MPI.  To do that, change the R script to use:
+> 
+>    cl <- startMPIcluster()
+> 
+> Also change the mpirun command in the PBS script to use '-n 32' or
+> don't specify the -n option at all.  In that case, mpirun will start
+> all of the workers as well as the master which may work better.
+> 
+> Regards,
+> 
+> Steve Weston
+> 
+> On Mon, Oct 21, 2013 at 9:42 AM, Srihari Radhakrishnan
+> <srihari at iastate.edu> wrote:
+>> Hi,
+>> 
+>> I've been trying to use the doMPI to run the iterations of a for loop in
+>> parallel (using the foreach package) on a cluster. However, I've been
+>> running into issues - I think its the way I am running the R script, but I
+>> could be wrong. Here's the description of the problem.
+>> 
+>> We use a PBS scheduler to submit jobs; my script uses 2 nodes (32 cores)
+>> for now. I run 1 version of the R interpreter which internally calls 31
+>> workers using R's mpi libraries. I produce below the PBS script, the R code
+>> (the relevant bits) and the error.
+>> 
+>> ***Begin PBS Script***
+>> #!/bin/bash
+>> 
+>> #PBS  -o BATCH_OUTPUT
+>> #PBS  -e BATCH_ERRORS
+>> 
+>> #PBS -lnodes=2:ppn=16:compute,walltime=12:00:00
+>> 
+>> # Change to directory from which qsub command was issued
+>>   cd $PBS_O_WORKDIR
+>> 
+>> cat $PBS_NODEFILE
+>> #Call mpirun with 1 copy of the R interpreter. This will spawn 31 workers,
+>> inside the R script
+>> time mpirun -n 1 R --slave -f ParallelAnalysis.R
+>> ***End PBS script***
+>> 
+>> ***Begin R Script***
+>> source("http://bioconductor.org/biocLite.R")
+>> #MPI stuff initialization
+>> library(Rmpi)
+>> library(foreach)
+>> library(doMPI)
+>> cl <- startMPIcluster(count=31) #call 31 clusterworkers/slaves
+>> registerDoMPI(cl)
+>> library(MEDIPS)
+>> library(BSgenome)
+>> .
+>> .
+>> *more R code; variable assignments etc; no mpi stuff here*
+>> .
+>> .
+>> #Following code will run 100 parallel iterations using the doMPI library
+>> loaded above and output results to the variable x. x is a table and stores
+>> results from iterations as rows.
+>> x <-foreach(i=1:100,.combine='rbind') %dopar% {
+>> *stuff to do inside loop*
+>> }
+>> write.table(x, "output.tsv") #write x into file.
+>> ***End R script***
+>> 
+>> The execution halts as soon as the libraries are loaded - I get the
+>> following error message repeatedly from both nodes (node 203 and node 202)
+>> 
+>> *[2:node203] unexpected disconnect completion event from dynamic process
+>> with rank=0 pg*
+>> *_id=kvs_17890_0 0x1fce600*
+>> *Assertion failed in file ../../dapl_conn_rc.c at line 1128: 0*
+>> 
+>> I am not sure if this is an issue with the compilers or the script itself.
+>> The script runs successfully without using mpi (using only 1 node). Any
+>> help would be highly appreciated.
+>> 
+>> Thanks in advance,
+>> Srihari
+>> 
+>> --
+>> Srihari Radhakrishnan
+>> 
+>> Ph.D candidate
+>> Valenzuela Lab
+>> Iowa State University
+>> 
+>>        [[alternative HTML version deleted]]
+>> 
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From srihari at iastate.edu  Tue Oct 22 19:05:21 2013
+From: srihari at iastate.edu (Srihari Radhakrishnan)
+Date: Tue, 22 Oct 2013 12:05:21 -0500
+Subject: [R-sig-hpc] R-sig-hpc Digest, Vol 61, Issue 4
+In-Reply-To: <CACq2iiPmFxGCh3RvCDxsMD53BA0vV9GbmkKwoz+E7a9raK_fdA@mail.gmail.com>
+References: <mailman.25.1382436010.26591.r-sig-hpc@r-project.org>
+	<CACq2iiPmFxGCh3RvCDxsMD53BA0vV9GbmkKwoz+E7a9raK_fdA@mail.gmail.com>
+Message-ID: <CACq2iiMkzqN5M_+FHM4e+2vHTDFGWpTWvoudscBaOgWDGkNVtA@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20131022/ca49504f/attachment.pl>
+
+From benweinstein2010 at gmail.com  Tue Oct 22 19:11:18 2013
+From: benweinstein2010 at gmail.com (Ben Weinstein)
+Date: Tue, 22 Oct 2013 13:11:18 -0400
+Subject: [R-sig-hpc] snow cluster not distributing correct number of
+	processes.
+Message-ID: <CAC28k7RAVjCT2aMs3OFacUNWXZ1bKTranxibWJ4jtLmxwD_NcQ@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20131022/8ea3c968/attachment.pl>
+
+From glock at sdsc.edu  Tue Oct 22 20:46:35 2013
+From: glock at sdsc.edu (Lockwood, Glenn)
+Date: Tue, 22 Oct 2013 18:46:35 +0000
+Subject: [R-sig-hpc] R-sig-hpc Digest, Vol 61, Issue 4
+In-Reply-To: <CACq2iiMkzqN5M_+FHM4e+2vHTDFGWpTWvoudscBaOgWDGkNVtA@mail.gmail.com>
+References: <mailman.25.1382436010.26591.r-sig-hpc@r-project.org>
+	<CACq2iiPmFxGCh3RvCDxsMD53BA0vV9GbmkKwoz+E7a9raK_fdA@mail.gmail.com>
+	<CACq2iiMkzqN5M_+FHM4e+2vHTDFGWpTWvoudscBaOgWDGkNVtA@mail.gmail.com>
+Message-ID: <F7B15E42-6B40-477D-B3F7-733FA4532ECC@sdsc.edu>
+
+Srihari,
+
+mpd is a part of mpich (and mvapich/intel mpi), not OpenMPI, so your application probably isn't running the way you anticipated at all.  This is probably due to your login environment ($PATH, $LD_LIBRARY_PATH, etc) not being set up to use your new OpenMPI installation.
+
+The errors you sent in the previous post sound like system-specific issues that require information specific to your cluster--it may be more effective to work with your local cluster admin (if you have one!) to iron out the issues arising from your MPI stack.  I don't think the problem is with R, but just take a step back and make sure you have the necessary essentials:
+
+1. Your MPI stack needs to be compiled with a specific compiler (it sounds like you have Intel and GCC)
+2. Your R needs to also be compiled with that same compiler
+3. Your Rmpi needs to be compiled against the MPI stack in #1 and the same compiler as #1 and #2 (this may be non-trivial)
+4. All of these need to be accessible from your local environment (either via some "module" command, which is common on most clusters, or by correctly setting $PATH, $LD_LIBRARY_PATH, etc in your .bashrc or .cshrc)
+
+If you are missing (or unsure) of any of these points, your local cluster admin is probably best qualified to sort these out for you.  Good luck!
+
+Glenn
+
+
+On Oct 22, 2013, at 10:05 AM, Srihari Radhakrishnan <srihari at iastate.edu> wrote:
+
+> Update:
+> 
+> I just installed a local version of Open MPI (1.6.5) and reran the job.
+> Here's the output from the log -
+> 
+>> source("http://bioconductor.org/biocLite.R")
+>> #MPI stuff initialization
+>> library(Rmpi)
+>> library(foreach)
+>> library(doMPI)
+>> cl <- startMPIcluster(count=31)
+> mpiexec_node228: cannot connect to local mpd (/tmp/mpd2.console_srihari);
+> possible cau
+> ses:
+>  1. no mpd is running on this host
+>  2. an mpd is running but was started without a "console" (-n option)
+> 
+> I did not realize I had to start mpdboot before running mpirun - so I
+> sandwiched the mpirun command with:
+> 
+> mpdboot -f ${PBS_NODEFILE}  -n 2
+> time mpirun -n 1 R --slave -f ParallelAnalysis.R
+> mpdallexit
+> 
+> When I do that, here's what I run into:
+> 
+> [unset]: Command cmd=put kvsname=singinit_kvs_3676_0 key=P0-businesscard-1
+> value=rdma_
+> port0#3676$rdma_host0#2:0:0:172:16:0:228:0:0:0:0:0:0:0:0$fabrics_list#shm_and_dapl$
+> failed, reason='"'singinit_kvs_3676_0'"'
+> Error in mpi.comm.spawn(slave = rscript, slavearg = args, nslaves = count,
+> :
+>  Other MPI error, error stack:
+> MPI_Comm_spawn(170).............: MPI_Comm_spawn(cmd="/work/srihari/program
+> s/R-3.0.1/lib64/R/bin/Rscript", argv=0x2982680, maxprocs=31, MPI_INFO_NULL,
+> root=0, MP
+> I_COMM_SELF, intercomm=0x25c03f0, errors=0x2e25bd0) failed
+> MPIDI_Comm_spawn_multiple(123)..:
+> MPIDI_CH3_Dynamic_processes(145):
+> MPID_nem_reinit(1363)...........:
+> MPIDI_PG_SetConnInfo_async(780).: PMI_KVS_Put returned -1
+> Calls: startMPIcluster -> mpi.comm.spawn -> .Call
+> Execution halted
+> --------------------------------------------------------------------------
+> mpirun noticed that the job aborted, but has no info as to the process
+> that caused that situation.
+> --------------------------------------------------------------------------
+> 
+> Pretty lost at the moment - any pointers would greatly help me!
+> 
+> Thanks
+> Srihari
+> 
+> On Tue, Oct 22, 2013 at 10:13 AM, Srihari Radhakrishnan <srihari at iastate.edu
+>> wrote:
+> 
+>> Thanks, Glenn and Steve for your input!
+>> 
+>> As you suggested, I switched to the Open MPI implementation of mpirun -
+>> but I get another error this time:
+>> 
+>> *[node205:02122] [[63174,1],3] ORTE_ERROR_LOG: A message is attempting to
+>> be sent to a*
+>> *process whose contact information is unknown in file rml_oob_send.c at
+>> line 104*
+>> *[node205:02122] [[63174,1],3] could not get route to [[INVALID],INVALID]*
+>> 
+>> A little bit of googling told me to set my LD_LIBRARY_PATH variable to
+>> include the openmpi libs - which I added to my ~/.bashrc as follows:
+>> 
+>> LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/shared/openmpi-1.6.4/gcc-4.4.6/lib/
+>> export LD_LIBRARY_PATH
+>> 
+>> I also sourced my ~/.bashrc file in the first line of my PBS script so the
+>> LD_LIBRARY_PATH is reflected in all of the spawned workers as well. No luck
+>> still - I still get the same error listed above.
+>> 
+>> Steve, I also tried running mpirun without the "-n 1" parameter - but like
+>> you said, it spawned off multiple master processes, just like Glenn said
+>> would happen. Running startMPIcluster() without the count=31 argument
+>> didn't change the respective errors with either compiler (intel/openmpi).
+>> 
+>> Now, I am not sure how the cluster admin folks compiled openmpi - if they
+>> did it with intel compilers or gcc is not known to me at the moment. But if
+>> they compiled openmpi with intel compilers, could that be part of the
+>> problem?
+>> 
+>> I sincerely appreciate all the help!
+>> 
+>> 
+>> On Tue, Oct 22, 2013 at 5:00 AM, <r-sig-hpc-request at r-project.org> wrote:
+>> 
+>>> Send R-sig-hpc mailing list submissions to
+>>>        r-sig-hpc at r-project.org
+>>> 
+>>> To subscribe or unsubscribe via the World Wide Web, visit
+>>>        https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>> or, via email, send a message with subject or body 'help' to
+>>>        r-sig-hpc-request at r-project.org
+>>> 
+>>> You can reach the person managing the list at
+>>>        r-sig-hpc-owner at r-project.org
+>>> 
+>>> When replying, please edit your Subject line so it is more specific
+>>> than "Re: Contents of R-sig-hpc digest..."
+>>> 
+>>> 
+>>> Today's Topics:
+>>> 
+>>>   1. Help with doMPI on multiple cores on a cluster
+>>>      (Srihari Radhakrishnan)
+>>>   2. Re: Help with doMPI on multiple cores on a cluster
+>>>      (Stephen Weston)
+>>>   3. Re: Help with doMPI on multiple cores on a cluster
+>>>      (Lockwood, Glenn)
+>>> 
+>>> 
+>>> ----------------------------------------------------------------------
+>>> 
+>>> Message: 1
+>>> Date: Mon, 21 Oct 2013 08:42:35 -0500
+>>> From: Srihari Radhakrishnan <srihari at iastate.edu>
+>>> To: r-sig-hpc at r-project.org
+>>> Subject: [R-sig-hpc] Help with doMPI on multiple cores on a cluster
+>>> Message-ID:
+>>>        <CACq2iiM0NRo=
+>>> 12JGzquezyrHd7WyDcL9K_O+uSg50itpJ8f9OQ at mail.gmail.com>
+>>> Content-Type: text/plain
+>>> 
+>>> Hi,
+>>> 
+>>> I've been trying to use the doMPI to run the iterations of a for loop in
+>>> parallel (using the foreach package) on a cluster. However, I've been
+>>> running into issues - I think its the way I am running the R script, but I
+>>> could be wrong. Here's the description of the problem.
+>>> 
+>>> We use a PBS scheduler to submit jobs; my script uses 2 nodes (32 cores)
+>>> for now. I run 1 version of the R interpreter which internally calls 31
+>>> workers using R's mpi libraries. I produce below the PBS script, the R
+>>> code
+>>> (the relevant bits) and the error.
+>>> 
+>>> ***Begin PBS Script***
+>>> #!/bin/bash
+>>> 
+>>> #PBS  -o BATCH_OUTPUT
+>>> #PBS  -e BATCH_ERRORS
+>>> 
+>>> #PBS -lnodes=2:ppn=16:compute,walltime=12:00:00
+>>> 
+>>> # Change to directory from which qsub command was issued
+>>>   cd $PBS_O_WORKDIR
+>>> 
+>>> cat $PBS_NODEFILE
+>>> #Call mpirun with 1 copy of the R interpreter. This will spawn 31 workers,
+>>> inside the R script
+>>> time mpirun -n 1 R --slave -f ParallelAnalysis.R
+>>> ***End PBS script***
+>>> 
+>>> ***Begin R Script***
+>>> source("http://bioconductor.org/biocLite.R")
+>>> #MPI stuff initialization
+>>> library(Rmpi)
+>>> library(foreach)
+>>> library(doMPI)
+>>> cl <- startMPIcluster(count=31) #call 31 clusterworkers/slaves
+>>> registerDoMPI(cl)
+>>> library(MEDIPS)
+>>> library(BSgenome)
+>>> .
+>>> .
+>>> *more R code; variable assignments etc; no mpi stuff here*
+>>> .
+>>> .
+>>> #Following code will run 100 parallel iterations using the doMPI library
+>>> loaded above and output results to the variable x. x is a table and stores
+>>> results from iterations as rows.
+>>> x <-foreach(i=1:100,.combine='rbind') %dopar% {
+>>> *stuff to do inside loop*
+>>> }
+>>> write.table(x, "output.tsv") #write x into file.
+>>> ***End R script***
+>>> 
+>>> The execution halts as soon as the libraries are loaded - I get the
+>>> following error message repeatedly from both nodes (node 203 and node 202)
+>>> 
+>>> *[2:node203] unexpected disconnect completion event from dynamic process
+>>> with rank=0 pg*
+>>> *_id=kvs_17890_0 0x1fce600*
+>>> *Assertion failed in file ../../dapl_conn_rc.c at line 1128: 0*
+>>> 
+>>> I am not sure if this is an issue with the compilers or the script itself.
+>>> The script runs successfully without using mpi (using only 1 node). Any
+>>> help would be highly appreciated.
+>>> 
+>>> Thanks in advance,
+>>> Srihari
+>>> 
+>>> --
+>>> Srihari Radhakrishnan
+>>> 
+>>> Ph.D candidate
+>>> Valenzuela Lab
+>>> Iowa State University
+>>> 
+>>>        [[alternative HTML version deleted]]
+>>> 
+>>> 
+>>> 
+>>> ------------------------------
+>>> 
+>>> Message: 2
+>>> Date: Mon, 21 Oct 2013 09:55:55 -0400
+>>> From: Stephen Weston <stephen.b.weston at gmail.com>
+>>> To: Srihari Radhakrishnan <srihari at iastate.edu>
+>>> Cc: "R-sig-hpc at r-project.org" <r-sig-hpc at r-project.org>
+>>> Subject: Re: [R-sig-hpc] Help with doMPI on multiple cores on a
+>>>        cluster
+>>> Message-ID:
+>>>        <CALh21iK7Zap9UYstvxYm7sjBLX0=
+>>> P3KzZUE9OLkDzfdkQjg89w at mail.gmail.com>
+>>> Content-Type: text/plain; charset=ISO-8859-1
+>>> 
+>>> Hi Srihari,
+>>> 
+>>> I suspect it's an MPI issue.  Are you able to run any other simple MPI
+>>> programs successfully, and specifically, any using R with Rmpi?  From
+>>> the error message, it appears that you're using Intel MPI, which I've
+>>> never used.  I believe Rmpi is primarily tested with Open MPI, which
+>>> is what I've always used with doMPI.  It would be interesting to see
+>>> if you can run successfully using Open MPI, if that is possible for
+>>> you.
+>>> 
+>>> You'll probably need to look for help on an Intel MPI forum, although
+>>> you may need to reduce the problem to something that doesn't use R.
+>>> 
+>>> Here is a similar issue that I found on an Intel MPI forum:
+>>> 
+>>>    http://software.intel.com/en-us/forums/topic/329053
+>>> 
+>>> You could also try running without spawning, since that may be a
+>>> problem for Intel MPI.  To do that, change the R script to use:
+>>> 
+>>>    cl <- startMPIcluster()
+>>> 
+>>> Also change the mpirun command in the PBS script to use '-n 32' or
+>>> don't specify the -n option at all.  In that case, mpirun will start
+>>> all of the workers as well as the master which may work better.
+>>> 
+>>> Regards,
+>>> 
+>>> Steve Weston
+>>> 
+>>> On Mon, Oct 21, 2013 at 9:42 AM, Srihari Radhakrishnan
+>>> <srihari at iastate.edu> wrote:
+>>>> Hi,
+>>>> 
+>>>> I've been trying to use the doMPI to run the iterations of a for loop in
+>>>> parallel (using the foreach package) on a cluster. However, I've been
+>>>> running into issues - I think its the way I am running the R script,
+>>> but I
+>>>> could be wrong. Here's the description of the problem.
+>>>> 
+>>>> We use a PBS scheduler to submit jobs; my script uses 2 nodes (32 cores)
+>>>> for now. I run 1 version of the R interpreter which internally calls 31
+>>>> workers using R's mpi libraries. I produce below the PBS script, the R
+>>> code
+>>>> (the relevant bits) and the error.
+>>>> 
+>>>> ***Begin PBS Script***
+>>>> #!/bin/bash
+>>>> 
+>>>> #PBS  -o BATCH_OUTPUT
+>>>> #PBS  -e BATCH_ERRORS
+>>>> 
+>>>> #PBS -lnodes=2:ppn=16:compute,walltime=12:00:00
+>>>> 
+>>>> # Change to directory from which qsub command was issued
+>>>>   cd $PBS_O_WORKDIR
+>>>> 
+>>>> cat $PBS_NODEFILE
+>>>> #Call mpirun with 1 copy of the R interpreter. This will spawn 31
+>>> workers,
+>>>> inside the R script
+>>>> time mpirun -n 1 R --slave -f ParallelAnalysis.R
+>>>> ***End PBS script***
+>>>> 
+>>>> ***Begin R Script***
+>>>> source("http://bioconductor.org/biocLite.R")
+>>>> #MPI stuff initialization
+>>>> library(Rmpi)
+>>>> library(foreach)
+>>>> library(doMPI)
+>>>> cl <- startMPIcluster(count=31) #call 31 clusterworkers/slaves
+>>>> registerDoMPI(cl)
+>>>> library(MEDIPS)
+>>>> library(BSgenome)
+>>>> .
+>>>> .
+>>>> *more R code; variable assignments etc; no mpi stuff here*
+>>>> .
+>>>> .
+>>>> #Following code will run 100 parallel iterations using the doMPI library
+>>>> loaded above and output results to the variable x. x is a table and
+>>> stores
+>>>> results from iterations as rows.
+>>>> x <-foreach(i=1:100,.combine='rbind') %dopar% {
+>>>> *stuff to do inside loop*
+>>>> }
+>>>> write.table(x, "output.tsv") #write x into file.
+>>>> ***End R script***
+>>>> 
+>>>> The execution halts as soon as the libraries are loaded - I get the
+>>>> following error message repeatedly from both nodes (node 203 and node
+>>> 202)
+>>>> 
+>>>> *[2:node203] unexpected disconnect completion event from dynamic process
+>>>> with rank=0 pg*
+>>>> *_id=kvs_17890_0 0x1fce600*
+>>>> *Assertion failed in file ../../dapl_conn_rc.c at line 1128: 0*
+>>>> 
+>>>> I am not sure if this is an issue with the compilers or the script
+>>> itself.
+>>>> The script runs successfully without using mpi (using only 1 node). Any
+>>>> help would be highly appreciated.
+>>>> 
+>>>> Thanks in advance,
+>>>> Srihari
+>>>> 
+>>>> --
+>>>> Srihari Radhakrishnan
+>>>> 
+>>>> Ph.D candidate
+>>>> Valenzuela Lab
+>>>> Iowa State University
+>>>> 
+>>>>        [[alternative HTML version deleted]]
+>>>> 
+>>>> _______________________________________________
+>>>> R-sig-hpc mailing list
+>>>> R-sig-hpc at r-project.org
+>>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>> 
+>>> 
+>>> 
+>>> ------------------------------
+>>> 
+>>> Message: 3
+>>> Date: Mon, 21 Oct 2013 15:56:59 +0000
+>>> From: "Lockwood, Glenn" <glock at sdsc.edu>
+>>> To: "r-sig-hpc at r-project.org" <r-sig-hpc at r-project.org>
+>>> Subject: Re: [R-sig-hpc] Help with doMPI on multiple cores on a
+>>>        cluster
+>>> Message-ID: <5D6CCDC1-CBB6-4926-8022-B19EC68CDAC5 at sdsc.edu>
+>>> Content-Type: text/plain; charset="us-ascii"
+>>> 
+>>> I'd like to echo Steve's advice--try using OpenMPI instead.  I've had
+>>> innumerable problems trying to get mvapich2 (on which IntelMPI is based)
+>>> and Rmpi to work, and officially, Rmpi only supports openmpi and mpich.
+>>> It's an uphill battle.
+>>> 
+>>> Also, you should be running mpirun with -n 1 (as you are already doing)
+>>> if you are calling R directly.  Doing anything else will cause multiple
+>>> master scripts to run, each spawning its own set of mpi ranks and leaving
+>>> you with a lot more MPI ranks than you want.  Some libraries provide
+>>> special wrappers that let you call them directly using mpirun -np 32 (e.g.,
+>>> snow provies the RMPISNOW command), but these are unique to each library
+>>> whereas using mpirun -n1 is universal.
+>>> 
+>>> Glenn
+>>> 
+>>> On Oct 21, 2013, at 6:55 AM, Stephen Weston <stephen.b.weston at gmail.com>
+>>> wrote:
+>>> 
+>>>> Hi Srihari,
+>>>> 
+>>>> I suspect it's an MPI issue.  Are you able to run any other simple MPI
+>>>> programs successfully, and specifically, any using R with Rmpi?  From
+>>>> the error message, it appears that you're using Intel MPI, which I've
+>>>> never used.  I believe Rmpi is primarily tested with Open MPI, which
+>>>> is what I've always used with doMPI.  It would be interesting to see
+>>>> if you can run successfully using Open MPI, if that is possible for
+>>>> you.
+>>>> 
+>>>> You'll probably need to look for help on an Intel MPI forum, although
+>>>> you may need to reduce the problem to something that doesn't use R.
+>>>> 
+>>>> Here is a similar issue that I found on an Intel MPI forum:
+>>>> 
+>>>>   http://software.intel.com/en-us/forums/topic/329053
+>>>> 
+>>>> You could also try running without spawning, since that may be a
+>>>> problem for Intel MPI.  To do that, change the R script to use:
+>>>> 
+>>>>   cl <- startMPIcluster()
+>>>> 
+>>>> Also change the mpirun command in the PBS script to use '-n 32' or
+>>>> don't specify the -n option at all.  In that case, mpirun will start
+>>>> all of the workers as well as the master which may work better.
+>>>> 
+>>>> Regards,
+>>>> 
+>>>> Steve Weston
+>>>> 
+>>>> On Mon, Oct 21, 2013 at 9:42 AM, Srihari Radhakrishnan
+>>>> <srihari at iastate.edu> wrote:
+>>>>> Hi,
+>>>>> 
+>>>>> I've been trying to use the doMPI to run the iterations of a for loop
+>>> in
+>>>>> parallel (using the foreach package) on a cluster. However, I've been
+>>>>> running into issues - I think its the way I am running the R script,
+>>> but I
+>>>>> could be wrong. Here's the description of the problem.
+>>>>> 
+>>>>> We use a PBS scheduler to submit jobs; my script uses 2 nodes (32
+>>> cores)
+>>>>> for now. I run 1 version of the R interpreter which internally calls 31
+>>>>> workers using R's mpi libraries. I produce below the PBS script, the R
+>>> code
+>>>>> (the relevant bits) and the error.
+>>>>> 
+>>>>> ***Begin PBS Script***
+>>>>> #!/bin/bash
+>>>>> 
+>>>>> #PBS  -o BATCH_OUTPUT
+>>>>> #PBS  -e BATCH_ERRORS
+>>>>> 
+>>>>> #PBS -lnodes=2:ppn=16:compute,walltime=12:00:00
+>>>>> 
+>>>>> # Change to directory from which qsub command was issued
+>>>>>  cd $PBS_O_WORKDIR
+>>>>> 
+>>>>> cat $PBS_NODEFILE
+>>>>> #Call mpirun with 1 copy of the R interpreter. This will spawn 31
+>>> workers,
+>>>>> inside the R script
+>>>>> time mpirun -n 1 R --slave -f ParallelAnalysis.R
+>>>>> ***End PBS script***
+>>>>> 
+>>>>> ***Begin R Script***
+>>>>> source("http://bioconductor.org/biocLite.R")
+>>>>> #MPI stuff initialization
+>>>>> library(Rmpi)
+>>>>> library(foreach)
+>>>>> library(doMPI)
+>>>>> cl <- startMPIcluster(count=31) #call 31 clusterworkers/slaves
+>>>>> registerDoMPI(cl)
+>>>>> library(MEDIPS)
+>>>>> library(BSgenome)
+>>>>> .
+>>>>> .
+>>>>> *more R code; variable assignments etc; no mpi stuff here*
+>>>>> .
+>>>>> .
+>>>>> #Following code will run 100 parallel iterations using the doMPI
+>>> library
+>>>>> loaded above and output results to the variable x. x is a table and
+>>> stores
+>>>>> results from iterations as rows.
+>>>>> x <-foreach(i=1:100,.combine='rbind') %dopar% {
+>>>>> *stuff to do inside loop*
+>>>>> }
+>>>>> write.table(x, "output.tsv") #write x into file.
+>>>>> ***End R script***
+>>>>> 
+>>>>> The execution halts as soon as the libraries are loaded - I get the
+>>>>> following error message repeatedly from both nodes (node 203 and node
+>>> 202)
+>>>>> 
+>>>>> *[2:node203] unexpected disconnect completion event from dynamic
+>>> process
+>>>>> with rank=0 pg*
+>>>>> *_id=kvs_17890_0 0x1fce600*
+>>>>> *Assertion failed in file ../../dapl_conn_rc.c at line 1128: 0*
+>>>>> 
+>>>>> I am not sure if this is an issue with the compilers or the script
+>>> itself.
+>>>>> The script runs successfully without using mpi (using only 1 node). Any
+>>>>> help would be highly appreciated.
+>>>>> 
+>>>>> Thanks in advance,
+>>>>> Srihari
+>>>>> 
+>>>>> --
+>>>>> Srihari Radhakrishnan
+>>>>> 
+>>>>> Ph.D candidate
+>>>>> Valenzuela Lab
+>>>>> Iowa State University
+>>>>> 
+>>>>>       [[alternative HTML version deleted]]
+>>>>> 
+>>>>> _______________________________________________
+>>>>> R-sig-hpc mailing list
+>>>>> R-sig-hpc at r-project.org
+>>>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>> 
+>>>> _______________________________________________
+>>>> R-sig-hpc mailing list
+>>>> R-sig-hpc at r-project.org
+>>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>> 
+>>> 
+>>> 
+>>> ------------------------------
+>>> 
+>>> _______________________________________________
+>>> R-sig-hpc mailing list
+>>> R-sig-hpc at r-project.org
+>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>> 
+>>> 
+>>> End of R-sig-hpc Digest, Vol 61, Issue 4
+>>> ****************************************
+>>> 
+>> 
+>> 
+>> 
+>> --
+>> Srihari Radhakrishnan
+>> 
+>> Ph.D candidate
+>> Valenzuela Lab
+>> Iowa State University
+>> 
+>> Website: http://www.public.iastate.edu/~srihari/
+>> 
+> 
+> 
+> 
+> -- 
+> Srihari Radhakrishnan
+> 
+> Ph.D candidate
+> Valenzuela Lab
+> Iowa State University
+> 
+> Website: http://www.public.iastate.edu/~srihari/
+> 
+> 	[[alternative HTML version deleted]]
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From srihari at iastate.edu  Tue Oct 22 21:26:48 2013
+From: srihari at iastate.edu (Srihari Radhakrishnan)
+Date: Tue, 22 Oct 2013 14:26:48 -0500
+Subject: [R-sig-hpc] R-sig-hpc Digest, Vol 61, Issue 4
+In-Reply-To: <F7B15E42-6B40-477D-B3F7-733FA4532ECC@sdsc.edu>
+References: <mailman.25.1382436010.26591.r-sig-hpc@r-project.org>
+	<CACq2iiPmFxGCh3RvCDxsMD53BA0vV9GbmkKwoz+E7a9raK_fdA@mail.gmail.com>
+	<CACq2iiMkzqN5M_+FHM4e+2vHTDFGWpTWvoudscBaOgWDGkNVtA@mail.gmail.com>
+	<F7B15E42-6B40-477D-B3F7-733FA4532ECC@sdsc.edu>
+Message-ID: <CACq2iiOKS066hDOWgRGC0iCBU+sJMwW9LCSkc-Ov9i8COQjamA@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20131022/d2763d8b/attachment.pl>
+
+From stephen.b.weston at gmail.com  Tue Oct 22 23:17:23 2013
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Tue, 22 Oct 2013 17:17:23 -0400
+Subject: [R-sig-hpc] Help with doMPI on multiple cores on a cluster
+In-Reply-To: <5D6CCDC1-CBB6-4926-8022-B19EC68CDAC5@sdsc.edu>
+References: <CACq2iiM0NRo=12JGzquezyrHd7WyDcL9K_O+uSg50itpJ8f9OQ@mail.gmail.com>
+	<CALh21iK7Zap9UYstvxYm7sjBLX0=P3KzZUE9OLkDzfdkQjg89w@mail.gmail.com>
+	<5D6CCDC1-CBB6-4926-8022-B19EC68CDAC5@sdsc.edu>
+Message-ID: <CALh21i+9-Tcpz665X8Ep9uO7v0wc6bCbEnEG7fkiGPGTG__HSQ@mail.gmail.com>
+
+As a note, it is safe to start all of the MPI processes using 'mpirun
+-n 32' with the doMPI package because startMPIcluster doesn't spawn
+any workers if mpi.comm.size(0) > 1, at least by default.  In that
+case, startMPIcluster calls the worker loop function if the rank is
+greater than zero so that only rank 0 actually returns from
+startMPIcluster in order to execute the rest of the R script.
+
+I usually let mpirun start all of the MPI processes when using doMPI
+because it appears that broadcasting is more efficient in that case,
+at least when using Open MPI.  It also makes it easy to initialize the
+workers in a SPMD style.
+
+- Steve
+
+On Mon, Oct 21, 2013 at 11:56 AM, Lockwood, Glenn <glock at sdsc.edu> wrote:
+> I'd like to echo Steve's advice--try using OpenMPI instead.  I've had innumerable problems trying to get mvapich2 (on which IntelMPI is based) and Rmpi to work, and officially, Rmpi only supports openmpi and mpich.  It's an uphill battle.
+>
+> Also, you should be running mpirun with -n 1 (as you are already doing) if you are calling R directly.  Doing anything else will cause multiple master scripts to run, each spawning its own set of mpi ranks and leaving you with a lot more MPI ranks than you want.  Some libraries provide special wrappers that let you call them directly using mpirun -np 32 (e.g., snow provies the RMPISNOW command), but these are unique to each library whereas using mpirun -n1 is universal.
+>
+> Glenn
+>
+> On Oct 21, 2013, at 6:55 AM, Stephen Weston <stephen.b.weston at gmail.com> wrote:
+>
+>> Hi Srihari,
+>>
+>> I suspect it's an MPI issue.  Are you able to run any other simple MPI
+>> programs successfully, and specifically, any using R with Rmpi?  From
+>> the error message, it appears that you're using Intel MPI, which I've
+>> never used.  I believe Rmpi is primarily tested with Open MPI, which
+>> is what I've always used with doMPI.  It would be interesting to see
+>> if you can run successfully using Open MPI, if that is possible for
+>> you.
+>>
+>> You'll probably need to look for help on an Intel MPI forum, although
+>> you may need to reduce the problem to something that doesn't use R.
+>>
+>> Here is a similar issue that I found on an Intel MPI forum:
+>>
+>>    http://software.intel.com/en-us/forums/topic/329053
+>>
+>> You could also try running without spawning, since that may be a
+>> problem for Intel MPI.  To do that, change the R script to use:
+>>
+>>    cl <- startMPIcluster()
+>>
+>> Also change the mpirun command in the PBS script to use '-n 32' or
+>> don't specify the -n option at all.  In that case, mpirun will start
+>> all of the workers as well as the master which may work better.
+>>
+>> Regards,
+>>
+>> Steve Weston
+>>
+>> On Mon, Oct 21, 2013 at 9:42 AM, Srihari Radhakrishnan
+>> <srihari at iastate.edu> wrote:
+>>> Hi,
+>>>
+>>> I've been trying to use the doMPI to run the iterations of a for loop in
+>>> parallel (using the foreach package) on a cluster. However, I've been
+>>> running into issues - I think its the way I am running the R script, but I
+>>> could be wrong. Here's the description of the problem.
+>>>
+>>> We use a PBS scheduler to submit jobs; my script uses 2 nodes (32 cores)
+>>> for now. I run 1 version of the R interpreter which internally calls 31
+>>> workers using R's mpi libraries. I produce below the PBS script, the R code
+>>> (the relevant bits) and the error.
+>>>
+>>> ***Begin PBS Script***
+>>> #!/bin/bash
+>>>
+>>> #PBS  -o BATCH_OUTPUT
+>>> #PBS  -e BATCH_ERRORS
+>>>
+>>> #PBS -lnodes=2:ppn=16:compute,walltime=12:00:00
+>>>
+>>> # Change to directory from which qsub command was issued
+>>>   cd $PBS_O_WORKDIR
+>>>
+>>> cat $PBS_NODEFILE
+>>> #Call mpirun with 1 copy of the R interpreter. This will spawn 31 workers,
+>>> inside the R script
+>>> time mpirun -n 1 R --slave -f ParallelAnalysis.R
+>>> ***End PBS script***
+>>>
+>>> ***Begin R Script***
+>>> source("http://bioconductor.org/biocLite.R")
+>>> #MPI stuff initialization
+>>> library(Rmpi)
+>>> library(foreach)
+>>> library(doMPI)
+>>> cl <- startMPIcluster(count=31) #call 31 clusterworkers/slaves
+>>> registerDoMPI(cl)
+>>> library(MEDIPS)
+>>> library(BSgenome)
+>>> .
+>>> .
+>>> *more R code; variable assignments etc; no mpi stuff here*
+>>> .
+>>> .
+>>> #Following code will run 100 parallel iterations using the doMPI library
+>>> loaded above and output results to the variable x. x is a table and stores
+>>> results from iterations as rows.
+>>> x <-foreach(i=1:100,.combine='rbind') %dopar% {
+>>> *stuff to do inside loop*
+>>> }
+>>> write.table(x, "output.tsv") #write x into file.
+>>> ***End R script***
+>>>
+>>> The execution halts as soon as the libraries are loaded - I get the
+>>> following error message repeatedly from both nodes (node 203 and node 202)
+>>>
+>>> *[2:node203] unexpected disconnect completion event from dynamic process
+>>> with rank=0 pg*
+>>> *_id=kvs_17890_0 0x1fce600*
+>>> *Assertion failed in file ../../dapl_conn_rc.c at line 1128: 0*
+>>>
+>>> I am not sure if this is an issue with the compilers or the script itself.
+>>> The script runs successfully without using mpi (using only 1 node). Any
+>>> help would be highly appreciated.
+>>>
+>>> Thanks in advance,
+>>> Srihari
+>>>
+>>> --
+>>> Srihari Radhakrishnan
+>>>
+>>> Ph.D candidate
+>>> Valenzuela Lab
+>>> Iowa State University
+>>>
+>>>        [[alternative HTML version deleted]]
+>>>
+>>> _______________________________________________
+>>> R-sig-hpc mailing list
+>>> R-sig-hpc at r-project.org
+>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+

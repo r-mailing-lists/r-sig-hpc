@@ -1,0 +1,1076 @@
+From mxkuhn at gmail.com  Tue Jan  8 17:40:44 2013
+From: mxkuhn at gmail.com (Max Kuhn)
+Date: Tue, 8 Jan 2013 11:40:44 -0500
+Subject: [R-sig-hpc] programmatically shift between %do% and %dopar% in
+	foreach?
+Message-ID: <CAJ9CoW=OeUrZTJVP-T+U31hpKXkxPeFNp275Tuk_wN3H8CS4Ew@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130108/0804dcf2/attachment.pl>
+
+From simon.urbanek at r-project.org  Tue Jan  8 18:05:02 2013
+From: simon.urbanek at r-project.org (Simon Urbanek)
+Date: Tue, 8 Jan 2013 12:05:02 -0500
+Subject: [R-sig-hpc] programmatically shift between %do% and %dopar% in
+	foreach?
+In-Reply-To: <CAJ9CoW=OeUrZTJVP-T+U31hpKXkxPeFNp275Tuk_wN3H8CS4Ew@mail.gmail.com>
+References: <CAJ9CoW=OeUrZTJVP-T+U31hpKXkxPeFNp275Tuk_wN3H8CS4Ew@mail.gmail.com>
+Message-ID: <C0F19BC1-8838-4D72-BE41-4EA80A2FC7CF@r-project.org>
+
+
+On Jan 8, 2013, at 11:40 AM, Max Kuhn wrote:
+
+> I'd like to have the option of using foreach but be able to restrict
+> processing to be parallel in one of my packages.
+> 
+> I'd rather not have
+> 
+>   x <- if(goParallel) foreach(stuff) %dopar% foo else foreach(stuff) %do%
+> foo
+> 
+> Also, the function is nested within layers that conduct parallel processing
+> (i.e. the foo above might also use dopar inside) and my impression is
+> that registerDoSEQ would shut down parallel processing for both functions.
+> 
+> It looks like %do% and %dopar% are not existing objects:
+> 
+>> str(%do%)
+>   Error: unexpected SPECIAL in "str(%do%"
+> 
+
+They are simply functions - you just forgot to quote it:
+
+> str(`%do%`)
+function (obj, ex)  
+
+%...% are binary infix operators so if you use them as a symbol, you have to quote them.
+
+
+> Otherwise I would add some conditional logic to switch between them such as
+> 
+>   operator <- if(goParallel) %dopar% else %do%
+>    x <- foreach(stuff) operator foo
+> 
+
+It works, but if you want to keep the infix notation you have to use something like
+
+`%op%` <- if (goParallel) `%dopar%` else `%do%`
+
+otherwise for your suggestion you'd have to use the functional form:
+
+operator(foreach(stuff), foo)
+
+Cheers,
+Simon
+
+
+> Thanks,
+> 
+> Max
+> 
+>> sessionInfo()
+> R version 2.15.2 (2012-10-26)
+> Platform: x86_64-apple-darwin9.8.0/x86_64 (64-bit)
+> 
+> locale:
+> [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+> 
+> attached base packages:
+> [1] stats     graphics  grDevices utils     datasets  methods   base
+> 
+> other attached packages:
+> [1] foreach_1.4.0
+> 
+> loaded via a namespace (and not attached):
+> [1] codetools_0.2-8 iterators_1.0.6
+> 
+> 	[[alternative HTML version deleted]]
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+> 
+
+
+From brian at braverock.com  Tue Jan  8 18:10:00 2013
+From: brian at braverock.com (Brian G. Peterson)
+Date: Tue, 08 Jan 2013 11:10:00 -0600
+Subject: [R-sig-hpc] programmatically shift between %do% and %dopar% in
+ foreach?
+In-Reply-To: <CAJ9CoW=OeUrZTJVP-T+U31hpKXkxPeFNp275Tuk_wN3H8CS4Ew@mail.gmail.com>
+References: <CAJ9CoW=OeUrZTJVP-T+U31hpKXkxPeFNp275Tuk_wN3H8CS4Ew@mail.gmail.com>
+Message-ID: <50EC52E8.3000501@braverock.com>
+
+On 01/08/2013 10:40 AM, Max Kuhn wrote:
+> I'd like to have the option of using foreach but be able to restrict
+> processing to be parallel in one of my packages.
+>
+> I'd rather not have
+>
+>     x <- if(goParallel) foreach(stuff) %dopar% foo else foreach(stuff) %do%
+> foo
+>
+> Also, the function is nested within layers that conduct parallel processing
+> (i.e. the foo above might also use dopar inside) and my impression is
+> that registerDoSEQ would shut down parallel processing for both functions.
+>
+> It looks like %do% and %dopar% are not existing objects:
+>
+>     > str(%do%)
+>     Error: unexpected SPECIAL in "str(%do%"
+>
+> Otherwise I would add some conditional logic to switch between them such as
+>
+>     operator <- if(goParallel) %dopar% else %do%
+>      x <- foreach(stuff) operator foo
+
+I always use %dopar%, and if necessary, e.g. in nested foreach loops, 
+turn off parallelization on the nested workers after you're inside the 
+worker loop, using a simple if construct as you describe.
+
+-- 
+Brian
+
+
+From win at comets.de  Thu Jan 10 15:12:57 2013
+From: win at comets.de (Till Francke)
+Date: Thu, 10 Jan 2013 15:12:57 +0100
+Subject: [R-sig-hpc] Rmpi: What tag gets assigned to mpi.bcast.cmd?
+Message-ID: <op.wqo8fvqf60yrq7@mueggelsee.ad.geoecology.uni-potsdam.de>
+
+Dear list,
+when passing messages with Rmpi using mpi.send.Robj(), it is possible to  
+supply argument "tag" to tag the message. mpi.bcast.cmd() does not have  
+this option.
+However, messages issued by mpi.bcast.cmd() still get a value for tag (see  
+example below), which in my case makes the slaves misinterpret the meaning  
+of the message.
+Is there any way of providing a tag to mpi.bcast.cmd() or prevent its  
+tranfer altogether?
+
+Thanks for your advice,
+
+Till
+
+<code>
+library(Rmpi)
+
+slave_func=function() #does nothing but print the received messages into  
+files
+{
+     sink(paste("slave",mpi.comm.rank(),sep="")) #create logfiles for  
+slaves to see their output
+
+     tag <- 1
+     while(tag!=7)   #
+     {
+         slave_message <- mpi.recv.Robj(mpi.any.source(),mpi.any.tag())
+         slave_message_info <- mpi.get.sourcetag()
+         slave_id <- slave_message_info[1]
+         tag      <- slave_message_info[2]
+         print(paste("tag:",tag,"message:",slave_message))
+     }
+     sink()
+}
+
+   mpi.spawn.Rslaves(nslaves=2)
+
+   mpi.bcast.Robj2slave(slave_func)               #send  function to slaves
+   mpi.bcast.cmd(slave_func())
+
+	mpi.send.Robj(obj=1, dest=1, tag=1)      #yields "tag: 1 message: 1"  
+-correct
+	mpi.send.Robj(obj=2, dest=2, tag=2)      #yields "tag: 2 message: 2"  
+-correct
+   mpi.bcast.cmd(slave_func())              #yields "tag: 1 message:  
+slave_func()" on slave 1
+                                            #       "tag: 2 message:  
+slave_func()" on slave 2
+                                            #where does the value for "tag"  
+come from?
+
+	mpi.send.Robj(obj=11, dest=1, tag=11)     #correct
+	mpi.send.Robj(obj=22, dest=2, tag=22)     #correct
+   mpi.bcast.cmd(slave_func())              #yields "tag: 1 message:  
+slave_func()" on slave 1
+                                            #       "tag: 2 message:  
+slave_func()" on slave 2
+                                            #Is the first-ever used tag  
+always used by mpi.bcast.cmd()?
+                                            #I don't think so, but I cannot  
+reproduce an example.
+
+   mpi.send.Robj(obj=1, dest=1, tag=7)      #finish
+   mpi.send.Robj(obj=1, dest=2, tag=7)      #finish
+
+   mpi.close.Rslaves()
+</code>
+
+
+> sessionInfo()
+
+R version 2.15.0 (2012-03-30)
+Platform: x86_64-pc-mingw32/x64 (64-bit)
+
+locale:
+[1] LC_COLLATE=German_Germany.1252  LC_CTYPE=German_Germany.1252
+LC_MONETARY=German_Germany.1252
+[4] LC_NUMERIC=C                    LC_TIME=German_Germany.1252
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base
+
+other attached packages:
+[1] Rmpi_0.6-2
+
+
+From hyu at stats.uwo.ca  Thu Jan 10 15:34:21 2013
+From: hyu at stats.uwo.ca (Hao Yu)
+Date: Thu, 10 Jan 2013 09:34:21 -0500
+Subject: [R-sig-hpc] Rmpi: What tag gets assigned to mpi.bcast.cmd?
+In-Reply-To: <op.wqo8fvqf60yrq7@mueggelsee.ad.geoecology.uni-potsdam.de>
+References: <op.wqo8fvqf60yrq7@mueggelsee.ad.geoecology.uni-potsdam.de>
+Message-ID: <9793c5fa2c6500159259400906babab7.squirrel@www.stats.uwo.ca>
+
+You cannot use mpi.bcast.cmd in the middle of computation unless slaves
+are back into the original state: idle. It is mainly used at the beginning
+so that slaves can carry out their executions until end.
+
+When you are using mpi.spawn.Rslaves(nslaves=2), all slaves are running an
+infinite loop
+
+repeat
+    try(eval(mpi.bcast.cmd(rank=0,comm=.comm, nonblock=.nonblock,
+sleep=.sleep),envir=sys.parent()),TRUE)
+
+mpi.bcast.cmd must be used by both master and slaves at the same time.
+Otherwise there is a deadlock or miscommunication (in your case).
+
+Hao
+
+Till Francke wrote:
+> Dear list,
+> when passing messages with Rmpi using mpi.send.Robj(), it is possible to
+> supply argument "tag" to tag the message. mpi.bcast.cmd() does not have
+> this option.
+> However, messages issued by mpi.bcast.cmd() still get a value for tag (see
+> example below), which in my case makes the slaves misinterpret the meaning
+> of the message.
+> Is there any way of providing a tag to mpi.bcast.cmd() or prevent its
+> tranfer altogether?
+>
+> Thanks for your advice,
+>
+> Till
+>
+> <code>
+> library(Rmpi)
+>
+> slave_func=function() #does nothing but print the received messages into
+> files
+> {
+>      sink(paste("slave",mpi.comm.rank(),sep="")) #create logfiles for
+> slaves to see their output
+>
+>      tag <- 1
+>      while(tag!=7)   #
+>      {
+>          slave_message <- mpi.recv.Robj(mpi.any.source(),mpi.any.tag())
+>          slave_message_info <- mpi.get.sourcetag()
+>          slave_id <- slave_message_info[1]
+>          tag      <- slave_message_info[2]
+>          print(paste("tag:",tag,"message:",slave_message))
+>      }
+>      sink()
+> }
+>
+>    mpi.spawn.Rslaves(nslaves=2)
+>
+>    mpi.bcast.Robj2slave(slave_func)               #send  function to
+> slaves
+>    mpi.bcast.cmd(slave_func())
+>
+> 	mpi.send.Robj(obj=1, dest=1, tag=1)      #yields "tag: 1 message: 1"
+> -correct
+> 	mpi.send.Robj(obj=2, dest=2, tag=2)      #yields "tag: 2 message: 2"
+> -correct
+>    mpi.bcast.cmd(slave_func())              #yields "tag: 1 message:
+> slave_func()" on slave 1
+>                                             #       "tag: 2 message:
+> slave_func()" on slave 2
+>                                             #where does the value for
+> "tag"
+> come from?
+>
+> 	mpi.send.Robj(obj=11, dest=1, tag=11)     #correct
+> 	mpi.send.Robj(obj=22, dest=2, tag=22)     #correct
+>    mpi.bcast.cmd(slave_func())              #yields "tag: 1 message:
+> slave_func()" on slave 1
+>                                             #       "tag: 2 message:
+> slave_func()" on slave 2
+>                                             #Is the first-ever used tag
+> always used by mpi.bcast.cmd()?
+>                                             #I don't think so, but I
+> cannot
+> reproduce an example.
+>
+>    mpi.send.Robj(obj=1, dest=1, tag=7)      #finish
+>    mpi.send.Robj(obj=1, dest=2, tag=7)      #finish
+>
+>    mpi.close.Rslaves()
+> </code>
+>
+>
+>> sessionInfo()
+>
+> R version 2.15.0 (2012-03-30)
+> Platform: x86_64-pc-mingw32/x64 (64-bit)
+>
+> locale:
+> [1] LC_COLLATE=German_Germany.1252  LC_CTYPE=German_Germany.1252
+> LC_MONETARY=German_Germany.1252
+> [4] LC_NUMERIC=C                    LC_TIME=German_Germany.1252
+>
+> attached base packages:
+> [1] stats     graphics  grDevices utils     datasets  methods   base
+>
+> other attached packages:
+> [1] Rmpi_0.6-2
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+-- 
+Department of Statistics & Actuarial Sciences
+Office Phone#:(519)-661-3622
+Fax Phone#:(519)-661-3813
+The University of Western Ontario
+London, Ontario N6A 5B7
+http://www.stats.uwo.ca/yu
+
+
+From dvanness at wisc.edu  Fri Jan 11 18:52:29 2013
+From: dvanness at wisc.edu (David J. Vanness)
+Date: Fri, 11 Jan 2013 11:52:29 -0600
+Subject: [R-sig-hpc] Advice on HPC/R needs for advanced computing oversight
+	committee
+Message-ID: <00be01cdf024$6ca1e2d0$45e5a870$@wisc.edu>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130111/a0e54531/attachment.pl>
+
+From etiennebr at gmail.com  Fri Jan 11 22:41:27 2013
+From: etiennebr at gmail.com (Etienne B. Racine)
+Date: Fri, 11 Jan 2013 16:41:27 -0500
+Subject: [R-sig-hpc] Advice on HPC/R needs for advanced computing
+ oversight committee
+In-Reply-To: <00be01cdf024$6ca1e2d0$45e5a870$@wisc.edu>
+References: <00be01cdf024$6ca1e2d0$45e5a870$@wisc.edu>
+Message-ID: <CALjAYt5BW3nT5FVT_cm967=Kk35f=oj6DtgtFoBeLT6ow_P9-w@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130111/02f3c820/attachment.pl>
+
+From msuzen at gmail.com  Fri Jan 11 23:10:12 2013
+From: msuzen at gmail.com (Suzen, Mehmet)
+Date: Fri, 11 Jan 2013 23:10:12 +0100
+Subject: [R-sig-hpc] Advice on HPC/R needs for advanced computing
+ oversight committee
+In-Reply-To: <CALjAYt5BW3nT5FVT_cm967=Kk35f=oj6DtgtFoBeLT6ow_P9-w@mail.gmail.com>
+References: <00be01cdf024$6ca1e2d0$45e5a870$@wisc.edu>
+	<CALjAYt5BW3nT5FVT_cm967=Kk35f=oj6DtgtFoBeLT6ow_P9-w@mail.gmail.com>
+Message-ID: <CAPtbhHxMyLd8WhXfNr+rp1KGpVmnpD=GWjHOEBk9fPOZ0=ktsA@mail.gmail.com>
+
+Hi David,
+
+Updating packages or the base should not be an issue as long as deployment and
+development platforms are identical. But that is a valid problem for
+any software
+project, it is too generic to be Rs problem only.
+
+>> nascent advanced computing initiative.  What hardware issues do you see as
+>> most critical?  Software?  What kinds of consulting resources would you
+>> want
+>> to have available to facilitate your R-related work?  Any recommendations
+
+Step 0 would be to first start exploring current HPC capabilities.
+There is a very well
+maintained classification in views:
+http://cran.r-project.org/web/views/HighPerformanceComputing.html
+
+Each solution address to different architecture. I would take each sub-title
+there and generate "minimal" hardware requirement for each.
+So It is all depends on your needs and applications.
+
+Concerning consultancy, there are very successful R companies (I don't want to
+advertise names; ask me off the list) that provides off the shelf
+parallel R solutions, optimized
+packages/R-core and support.
+
+>> for introductory material on high performance computing in R that I should
+>> read to get up to speed?  Thanks in advance for any comments/advice.
+
+Probably this book came up  in the list before;  Parallel R  :
+http://shop.oreilly.com/product/0636920021421.do
+
+Also this resource list is pretty good
+
+http://rdatamining.wordpress.com/2012/05/06/online-resources-for-handling-big-data-and-parallel-computing-in-r/
+
+I have noticed that you work with MCMC. The parallel R solutions guru
+on MCMC is Professor Wilkinson of
+Newcastle University. His posts are quite pedagogical:
+
+http://darrenjw.wordpress.com/2011/12/29/parallel-particle-filtering-and-pmcmc-using-r-and-multicore/
+
+
+From znmeb at znmeb.net  Sat Jan 12 00:58:56 2013
+From: znmeb at znmeb.net (M. Edward (Ed) Borasky)
+Date: Fri, 11 Jan 2013 15:58:56 -0800
+Subject: [R-sig-hpc] Advice on HPC/R needs for advanced computing
+ oversight committee
+In-Reply-To: <00be01cdf024$6ca1e2d0$45e5a870$@wisc.edu>
+References: <00be01cdf024$6ca1e2d0$45e5a870$@wisc.edu>
+Message-ID: <CAHkRx6HNknb=NVxpTwXMpPu=K7XSXZbmykrrke3BEnZ5WJZtkQ@mail.gmail.com>
+
+On Fri, Jan 11, 2013 at 9:52 AM, David J. Vanness <dvanness at wisc.edu> wrote:
+> Dear SIG members,
+
+[snip]
+
+>  Any recommendations
+> for introductory material on high performance computing in R that I should
+> read to get up to speed?
+
+I'd start with the O'Reilly book "Paralell R".
+
+-- 
+Twitter: http://twitter.com/znmeb; Computational Journalism Publishers
+Workbench: http://znmeb.github.com/Computational-Journalism-Publishers-Workbench/
+
+How the Hell can the lion sleep with all those people singing "A weem
+oh way!" at the top of their lungs?
+
+
+From armstrong.whit at gmail.com  Sat Jan 12 03:28:04 2013
+From: armstrong.whit at gmail.com (Whit Armstrong)
+Date: Fri, 11 Jan 2013 21:28:04 -0500
+Subject: [R-sig-hpc] Advice on HPC/R needs for advanced computing
+ oversight committee
+In-Reply-To: <CAPtbhHxMyLd8WhXfNr+rp1KGpVmnpD=GWjHOEBk9fPOZ0=ktsA@mail.gmail.com>
+References: <00be01cdf024$6ca1e2d0$45e5a870$@wisc.edu>
+	<CALjAYt5BW3nT5FVT_cm967=Kk35f=oj6DtgtFoBeLT6ow_P9-w@mail.gmail.com>
+	<CAPtbhHxMyLd8WhXfNr+rp1KGpVmnpD=GWjHOEBk9fPOZ0=ktsA@mail.gmail.com>
+Message-ID: <CAMi=pg7KEqsatBdNMTZnzPbe9DvWTk+34ScB8drzjCx1hG0JoQ@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130111/fb24557b/attachment.pl>
+
+From znmeb at znmeb.net  Sat Jan 12 05:12:18 2013
+From: znmeb at znmeb.net (M. Edward (Ed) Borasky)
+Date: Fri, 11 Jan 2013 20:12:18 -0800
+Subject: [R-sig-hpc] Advice on HPC/R needs for advanced computing
+ oversight committee
+In-Reply-To: <CAMi=pg7KEqsatBdNMTZnzPbe9DvWTk+34ScB8drzjCx1hG0JoQ@mail.gmail.com>
+References: <00be01cdf024$6ca1e2d0$45e5a870$@wisc.edu>
+	<CALjAYt5BW3nT5FVT_cm967=Kk35f=oj6DtgtFoBeLT6ow_P9-w@mail.gmail.com>
+	<CAPtbhHxMyLd8WhXfNr+rp1KGpVmnpD=GWjHOEBk9fPOZ0=ktsA@mail.gmail.com>
+	<CAMi=pg7KEqsatBdNMTZnzPbe9DvWTk+34ScB8drzjCx1hG0JoQ@mail.gmail.com>
+Message-ID: <CAHkRx6He7hG3+Oii5oA6txG=+i7cFtVGNHnK5TrfYTOqy8r+gQ@mail.gmail.com>
+
+On Fri, Jan 11, 2013 at 6:28 PM, Whit Armstrong
+<armstrong.whit at gmail.com> wrote:
+> Those are some great links.
+>
+> You can also do parallel computing with zmq.
+>
+> I'll toss out my rzmq tutorial.  Someday I'll even write a foreach wrapper
+> for this...
+>
+> http://www.rinfinance.com/agenda/2012/workshop/WhitArmstrong.pdf
+>
+> -Whit
+
+speaking of foreach, I'm doing some benchmarking on Redis / doRedis.
+I'm not sure how big a test case I'll be able to put up - I have no
+budget.
+
+
+-- 
+Twitter: http://twitter.com/znmeb; Computational Journalism Publishers
+Workbench: http://znmeb.github.com/Computational-Journalism-Publishers-Workbench/
+
+How the Hell can the lion sleep with all those people singing "A weem
+oh way!" at the top of their lungs?
+
+
+From edi_bice at yahoo.com  Thu Jan 17 18:32:21 2013
+From: edi_bice at yahoo.com (Edi Bice)
+Date: Thu, 17 Jan 2013 09:32:21 -0800 (PST)
+Subject: [R-sig-hpc] Rserve, Rserve.cluster, and cluster of local and remote
+Message-ID: <1358443941.1882.YahooMailNeo@web125202.mail.ne1.yahoo.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130117/fbd1bc9e/attachment.pl>
+
+From dvanness at wisc.edu  Thu Jan 17 21:25:33 2013
+From: dvanness at wisc.edu (David J. Vanness)
+Date: Thu, 17 Jan 2013 14:25:33 -0600
+Subject: [R-sig-hpc] Advice on HPC/R needs for advanced computing
+ oversight committee
+In-Reply-To: <CAPtbhHxMyLd8WhXfNr+rp1KGpVmnpD=GWjHOEBk9fPOZ0=ktsA@mail.gmail.com>
+References: <00be01cdf024$6ca1e2d0$45e5a870$@wisc.edu>
+	<CALjAYt5BW3nT5FVT_cm967=Kk35f=oj6DtgtFoBeLT6ow_P9-w@mail.gmail.com>
+	<CAPtbhHxMyLd8WhXfNr+rp1KGpVmnpD=GWjHOEBk9fPOZ0=ktsA@mail.gmail.com>
+Message-ID: <06e901cdf4f0$cda62ac0$68f28040$@wisc.edu>
+
+Dear Suzen,
+
+A belated thank-you for your thoughtful reply and useful links.  I am
+bookmarking your email for what is likely to be repeated future use!
+
+Best regards,
+
+Dave Vanness
+
+-----Original Message-----
+From: mehmet.suzen at gmail.com [mailto:mehmet.suzen at gmail.com] On Behalf Of
+Suzen, Mehmet
+Sent: Friday, January 11, 2013 4:10 PM
+To: Etienne B. Racine
+Cc: David J. Vanness; r-sig-hpc at r-project.org
+Subject: Re: [R-sig-hpc] Advice on HPC/R needs for advanced computing
+oversight committee
+
+Hi David,
+
+Updating packages or the base should not be an issue as long as deployment
+and development platforms are identical. But that is a valid problem for any
+software project, it is too generic to be Rs problem only.
+
+>> nascent advanced computing initiative.  What hardware issues do you 
+>> see as most critical?  Software?  What kinds of consulting resources 
+>> would you want to have available to facilitate your R-related work?  
+>> Any recommendations
+
+Step 0 would be to first start exploring current HPC capabilities.
+There is a very well
+maintained classification in views:
+http://cran.r-project.org/web/views/HighPerformanceComputing.html
+
+Each solution address to different architecture. I would take each sub-title
+there and generate "minimal" hardware requirement for each.
+So It is all depends on your needs and applications.
+
+Concerning consultancy, there are very successful R companies (I don't want
+to advertise names; ask me off the list) that provides off the shelf
+parallel R solutions, optimized packages/R-core and support.
+
+>> for introductory material on high performance computing in R that I 
+>> should read to get up to speed?  Thanks in advance for any
+comments/advice.
+
+Probably this book came up  in the list before;  Parallel R  :
+http://shop.oreilly.com/product/0636920021421.do
+
+Also this resource list is pretty good
+
+http://rdatamining.wordpress.com/2012/05/06/online-resources-for-handling-bi
+g-data-and-parallel-computing-in-r/
+
+I have noticed that you work with MCMC. The parallel R solutions guru on
+MCMC is Professor Wilkinson of Newcastle University. His posts are quite
+pedagogical:
+
+http://darrenjw.wordpress.com/2011/12/29/parallel-particle-filtering-and-pmc
+mc-using-r-and-multicore/
+
+
+From dvanness at wisc.edu  Thu Jan 17 21:27:23 2013
+From: dvanness at wisc.edu (David J. Vanness)
+Date: Thu, 17 Jan 2013 14:27:23 -0600
+Subject: [R-sig-hpc] Advice on HPC/R needs for advanced computing
+ oversight committee
+In-Reply-To: <CAHkRx6He7hG3+Oii5oA6txG=+i7cFtVGNHnK5TrfYTOqy8r+gQ@mail.gmail.com>
+References: <00be01cdf024$6ca1e2d0$45e5a870$@wisc.edu>
+	<CALjAYt5BW3nT5FVT_cm967=Kk35f=oj6DtgtFoBeLT6ow_P9-w@mail.gmail.com>
+	<CAPtbhHxMyLd8WhXfNr+rp1KGpVmnpD=GWjHOEBk9fPOZ0=ktsA@mail.gmail.com>
+	<CAMi=pg7KEqsatBdNMTZnzPbe9DvWTk+34ScB8drzjCx1hG0JoQ@mail.gmail.com>
+	<CAHkRx6He7hG3+Oii5oA6txG=+i7cFtVGNHnK5TrfYTOqy8r+gQ@mail.gmail.com>
+Message-ID: <06eb01cdf4f1$0edfb510$2c9f1f30$@wisc.edu>
+
+Dear Ed -- a belated thank you for taking the time to reply.  I put in a
+request for our library to purchase the Parallel R book.
+
+Best regards,
+
+Dave Vanness
+
+-----Original Message-----
+From: r-sig-hpc-bounces at r-project.org
+[mailto:r-sig-hpc-bounces at r-project.org] On Behalf Of M. Edward (Ed) Borasky
+Sent: Friday, January 11, 2013 10:12 PM
+To: Whit Armstrong
+Cc: r-sig-hpc
+Subject: Re: [R-sig-hpc] Advice on HPC/R needs for advanced computing
+oversight committee
+
+On Fri, Jan 11, 2013 at 6:28 PM, Whit Armstrong <armstrong.whit at gmail.com>
+wrote:
+> Those are some great links.
+>
+> You can also do parallel computing with zmq.
+>
+> I'll toss out my rzmq tutorial.  Someday I'll even write a foreach 
+> wrapper for this...
+>
+> http://www.rinfinance.com/agenda/2012/workshop/WhitArmstrong.pdf
+>
+> -Whit
+
+speaking of foreach, I'm doing some benchmarking on Redis / doRedis.
+I'm not sure how big a test case I'll be able to put up - I have no budget.
+
+
+--
+Twitter: http://twitter.com/znmeb; Computational Journalism Publishers
+Workbench:
+http://znmeb.github.com/Computational-Journalism-Publishers-Workbench/
+
+How the Hell can the lion sleep with all those people singing "A weem oh
+way!" at the top of their lungs?
+
+_______________________________________________
+R-sig-hpc mailing list
+R-sig-hpc at r-project.org
+https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From simon.urbanek at r-project.org  Thu Jan 17 22:30:25 2013
+From: simon.urbanek at r-project.org (Simon Urbanek)
+Date: Thu, 17 Jan 2013 16:30:25 -0500
+Subject: [R-sig-hpc] Rserve, Rserve.cluster,
+	and cluster of local and remote
+In-Reply-To: <1358443941.1882.YahooMailNeo@web125202.mail.ne1.yahoo.com>
+References: <1358443941.1882.YahooMailNeo@web125202.mail.ne1.yahoo.com>
+Message-ID: <B6EFE373-01A4-40F0-BB49-268629E0BADF@r-project.org>
+
+Edi,
+
+On Jan 17, 2013, at 12:32 PM, Edi Bice wrote:
+
+> Hi,
+> 
+> Please help me with the following problem:
+> 
+> Each job worker machine has Rserve installed. Each job worker pulls jobs from a queue etc. This works fine for small jobs. For large jobs I use Rserve.cluster to create a cluster of Rserve(s) on all local job worker machines (including localhost). 
+> 
+> I would like this cluster (rsCluster <- makeRserveCluster) to persist in the local Rserve so when the next job comes it doesn't incur the cluster creation overhead. The only way I know to do that is via "source" in the Rserv.conf file. Problem with launching the cluster in code sourced via Rserv.conf is that Rserve has not daemonized yet and makeRserveCluster fails on localhost. I could exclude localhost but that is not ideal (get the job to then send it across to others).
+> 
+
+This is actually a very good question. There are a few issues here, not just the one you see ;). But let's start with that one -- the easiest way to do that is using "control commands" - you can simply run RS.server.eval() [or the equivalent from your client language] with the command to initiate the cluster.
+
+However, that's not your real problem;). There is a bigger one: you cannot create a cluster in the server and let all clients use it. Because the FDs are shared after a fork() you'll end up with a broken mess the moment you have more than one client. What happens is that since it is the same socket to the cluster nodes for both, they are both talking to the same cluster instance and thus their messages will cross. So the only way to do a pre-emptive cluster allocation is to make sure you close the cluster in the server when a client has taken off with it. You can do that now in Rserve 1.7-0 (as of today ;)) using the .Rserve.served hook - you define a function that stops the the cluster and creates a new one. Now, what this effectively does is to defer the cluster initialization to a time between connections. So this will influence the latency between connections -- if you expect many subsequent connections at once, then you may be better off just starting the cluster on demand. As a side-effect this solves your other problem, too, because you just need to connect once after starting the server to bootstrap the cluster.
+
+But there is more to that, too :). The reason makeRserveCluster() is slow is sort of unnecessary: it has to do with the fact that the connections to the nodes are created sequentially. I'm adding support for asynchronous connect to RSclient right now, so another solution will be to use that in Rserve.cluster instead. There will still be a slight overhead, but it should be smaller.
+
+
+Finally, I have to say that Rserve.cluster is somewhat limited by the fact that it needs to be "wedged" into the snow setup which is not the typical way you'd use Rserve. I'm working on a more comprehensive solution that is more along the lines of scheduling - keeping workers around and re-spawning them as needed. I'll keep you posed on that - it would allow better balancing of workers across multiple connections. It would also allow us to take advantage of the asynchronous send features of Rserve and support data streaming - all this is a very active area on my ToDo list.
+
+Cheers,
+Simon
+
+
+> One more detail is the client to Rserve is a Node.JS module which connects, evaluates R code and disconnects. I suppose that means Rserve cleans up any objects that evaluation created. If there's no better approach I'll look into extending the node.js module with a connection pool keeping connections open and all the objects (including rsCluster) intact. But I'm afraid each connection would create its own cluster.
+> 
+> Thanks,
+> 
+> Edi Bice
+> 	[[alternative HTML version deleted]]
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From edi_bice at yahoo.com  Fri Jan 18 16:05:56 2013
+From: edi_bice at yahoo.com (Edi Bice)
+Date: Fri, 18 Jan 2013 07:05:56 -0800 (PST)
+Subject: [R-sig-hpc] Rserve, Rserve.cluster,
+	and cluster of local and remote
+In-Reply-To: <B6EFE373-01A4-40F0-BB49-268629E0BADF@r-project.org>
+References: <1358443941.1882.YahooMailNeo@web125202.mail.ne1.yahoo.com>
+	<B6EFE373-01A4-40F0-BB49-268629E0BADF@r-project.org>
+Message-ID: <1358521556.37385.YahooMailNeo@web125204.mail.ne1.yahoo.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130118/eca34d05/attachment.pl>
+
+From simon.urbanek at r-project.org  Fri Jan 18 16:33:10 2013
+From: simon.urbanek at r-project.org (Simon Urbanek)
+Date: Fri, 18 Jan 2013 10:33:10 -0500
+Subject: [R-sig-hpc] Rserve, Rserve.cluster,
+	and cluster of local and remote
+In-Reply-To: <1358521556.37385.YahooMailNeo@web125204.mail.ne1.yahoo.com>
+References: <1358443941.1882.YahooMailNeo@web125202.mail.ne1.yahoo.com>
+	<B6EFE373-01A4-40F0-BB49-268629E0BADF@r-project.org>
+	<1358521556.37385.YahooMailNeo@web125204.mail.ne1.yahoo.com>
+Message-ID: <6C898338-C956-406C-8519-07EB1E4B0463@r-project.org>
+
+On Jan 18, 2013, at 10:05 AM, Edi Bice wrote:
+
+> Simon,
+> 
+> Thank you for your helpful response. 
+> 
+> Was glossing over the implementation details of Rserve in the struggle to get the rough plumbing done. Glad it didn't work.
+> 
+> I got the latest from SVN and will explore .Rserve.served/done.
+> 
+> For these large jobs even the current makeRserveCluster latency is ok and given the perils of sharing the cluster that is what I'll do - create and stop for each connection/job. Eventually would keep the connections and clusters around for some time in a pool of sorts.
+> 
+> There's "pressure" to move this to Hadoop but I have a feeling Rserve will eventually be a better way to scale R.
+> 
+
+FWIW we're currently working on a Rserve-based distributed computing solution that should hopefully outperform R/Hadoop solutions and give more flexibility - but that's still in making. I'll keep you posted.
+
+Cheers,
+Simon
+
+
+> I look forward to the improvements to both Rserve itself and the clustering.
+> 
+> Thanks again for a great product.
+> 
+> Edi
+> 
+> From: Simon Urbanek <simon.urbanek at r-project.org>
+> To: Edi Bice <edi_bice at yahoo.com> 
+> Cc: "r-sig-hpc at r-project.org" <r-sig-hpc at r-project.org> 
+> Sent: Thursday, January 17, 2013 4:30 PM
+> Subject: Re: [R-sig-hpc] Rserve, Rserve.cluster, and cluster of local and remote
+> 
+> Edi,
+> 
+> On Jan 17, 2013, at 12:32 PM, Edi Bice wrote:
+> 
+> > Hi,
+> > 
+> > Please help me with the following problem:
+> > 
+> > Each job worker machine has Rserve installed. Each job worker pulls jobs from a queue etc. This works fine for small jobs. For large jobs I use Rserve.cluster to create a cluster of Rserve(s) on all local job worker machines (including localhost). 
+> > 
+> > I would like this cluster (rsCluster <- makeRserveCluster) to persist in the local Rserve so when the next job comes it doesn't incur the cluster creation overhead. The only way I know to do that is via "source" in the Rserv.conf file. Problem with launching the cluster in code sourced via Rserv.conf is that Rserve has not daemonized yet and makeRserveCluster fails on localhost. I could exclude localhost but that is not ideal (get the job to then send it across to others).
+> > 
+> 
+> This is actually a very good question. There are a few issues here, not just the one you see ;). But let's start with that one -- the easiest way to do that is using "control commands" - you can simply run RS.server.eval() [or the equivalent from your client language] with the command to initiate the cluster.
+> 
+> However, that's not your real problem;). There is a bigger one: you cannot create a cluster in the server and let all clients use it. Because the FDs are shared after a fork() you'll end up with a broken mess the moment you have more than one client. What happens is that since it is the same socket to the cluster nodes for both, they are both talking to the same cluster instance and thus their messages will cross. So the only way to do a pre-emptive cluster allocation is to make sure you close the cluster in the server when a client has taken off with it. You can do that now in Rserve 1.7-0 (as of today ;)) using the .Rserve.served hook - you define a function that stops the the cluster and creates a new one. Now, what this effectively does is to defer the cluster initialization to a time between connections. So this will influence the latency between connections -- if you expect many subsequent connections at once, then you may be better off just starting the cluster on demand. As a side-effect this solves your other problem, too, because you just need to connect once after starting the server to bootstrap the cluster.
+> 
+> But there is more to that, too :). The reason makeRserveCluster() is slow is sort of unnecessary: it has to do with the fact that the connections to the nodes are created sequentially. I'm adding support for asynchronous connect to RSclient right now, so another solution will be to use that in Rserve.cluster instead. There will still be a slight overhead, but it should be smaller.
+> 
+> 
+> Finally, I have to say that Rserve.cluster is somewhat limited by the fact that it needs to be "wedged" into the snow setup which is not the typical way you'd use Rserve. I'm working on a more comprehensive solution that is more along the lines of scheduling - keeping workers around and re-spawning them as needed. I'll keep you posed on that - it would allow better balancing of workers across multiple connections. It would also allow us to take advantage of the asynchronous send features of Rserve and support data streaming - all this is a very active area on my ToDo list.
+> 
+> Cheers,
+> Simon
+> 
+> 
+> > One more detail is the client to Rserve is a Node.JS module which connects, evaluates R code and disconnects. I suppose that means Rserve cleans up any objects that evaluation created. If there's no better approach I'll look into extending the node.js module with a connection pool keeping connections open and all the objects (including rsCluster) intact. But I'm afraid each connection would create its own cluster.
+> > 
+> > Thanks,
+> > 
+> > Edi Bice
+> >     [[alternative HTML version deleted]]
+> > 
+> > _______________________________________________
+> > R-sig-hpc mailing list
+> > R-sig-hpc at r-project.org
+> > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+> 
+> 
+
+
+From ostrouchovg at ornl.gov  Fri Jan 18 22:03:08 2013
+From: ostrouchovg at ornl.gov (George Ostrouchov)
+Date: Fri, 18 Jan 2013 16:03:08 -0500
+Subject: [R-sig-hpc] Advice on HPC/R needs for advanced computing
+ oversight committee
+In-Reply-To: <00be01cdf024$6ca1e2d0$45e5a870$@wisc.edu>
+References: <00be01cdf024$6ca1e2d0$45e5a870$@wisc.edu>
+Message-ID: <50F9B88C.8060806@ornl.gov>
+
+Dear David,
+
+We have several R packages that target what is called "single program, 
+multiple data" SPMD style of batch parallel programming on distributed 
+machines (see r-pbd.org). SPMD is how most things are done on 
+supercomputers for the last 20 years. While our target machines are 
+large, the packages work on smaller machines down to multicore laptops.
+
+There are examples in the packages already released and we are close to 
+releasing a package, pbdDEMO, which is a more thorough introduction.
+
+Also, let me mention that NSF's XSEDE resources are available to any 
+researcher or educator at a US-based institution. The resources include 
+clusters, scalable-parallel systems, and shared-memory systems with 
+various CPU, memory, communications, and storage configurations. To get 
+started, see https://www.xsede.org/using-xsede. Let me add that we use 
+the Kraken and Nautilus resources to develop the pbdR set of packages, 
+so these resources will have the most R support.
+
+George
+
+On 1/11/13 12:52 PM, David J. Vanness wrote:
+> Dear SIG members,
+>
+>   
+>
+> I am a health economist at the University of Wisconsin Madison.  In part of
+> my work, I use R and jags to conduct MCMC analysis of clinical and economic
+> data for medical decision-making.  Over the years, I have slowly waded into
+> high throughput techniques for conducting ?pleasantly parallel? aspects of
+> my work.  I have dreams of using HPC to enable more efficient Bayesian
+> analysis of large health care claims datasets ? but at this point they are
+> just dreams.
+>
+>   
+>
+> Recently, I have been asked to join a new committee that is charged with
+> oversight in developing a university-wide advanced computing shared resource
+> (consisting of both hardware and professional consultation).  The committee
+> has good representation from traditional HPC disciplines ? genomics,
+> astronomy, nuclear physics ? most of whom do not rely upon HPC-enabled R for
+> their work.  Somehow, despite my relative naivet? (having just recently
+> moved from manually forking processes and using my own ?collector? scripts
+> to actually using doSNOW), I have found myself a de-facto representative of
+> the R-users on campus.  One of the charges of the committee is to enable
+> users to make at least one ?step increase? in their computing power.
+> Perhaps, since I?m basically at step 0, I also represent a large latent
+> class of R users who could benefit from high throughput/high performance,
+> but don?t know where to begin.
+>
+>   
+>
+> So, I am wondering if any of you have suggestions for me in my committee
+> role to make sure the needs of the HPC R community are well represented in a
+> nascent advanced computing initiative.  What hardware issues do you see as
+> most critical?  Software?  What kinds of consulting resources would you want
+> to have available to facilitate your R-related work?  Any recommendations
+> for introductory material on high performance computing in R that I should
+> read to get up to speed?  Thanks in advance for any comments/advice.
+>
+>   
+>
+> Best regards,
+>
+> Dave
+>
+>   
+>
+> _______________________________________
+>
+> David J. Vanness, PhD, Associate Professor
+>
+> Department of Population Health Sciences
+>
+> UW School of Medicine and Public Health
+>
+> 610 Walnut Street #785
+>
+> Madison, WI 53726
+>
+> Office: 608/265-8600
+>
+>   <mailto:dvanness at wisc.edu> dvanness at wisc.edu
+>
+>
+>
+>
+> 	[[alternative HTML version deleted]]
+>
+
+
+-- 
+George Ostrouchov, Ph.D.
+Scientific Data Group
+Computer Science and Mathematics Division
+Oak Ridge National Laboratory
+(865) 574-3137  http://www.csm.ornl.gov/~ost
+
+and
+
+Remote Data Analysis and Visualization Center
+National Institute for Computational Sciences
+University of Tennessee
+
+(865) 574-3137  http://www.csm.ornl.gov/~ost
+
+
+From toby.hocking at inria.fr  Mon Jan 21 11:12:16 2013
+From: toby.hocking at inria.fr (Toby Hocking)
+Date: Mon, 21 Jan 2013 11:12:16 +0100 (CET)
+Subject: [R-sig-hpc] cluster works with parallel but not foreach
+Message-ID: <1691620326.27937142.1358763136210.JavaMail.root@inria.fr>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130121/d0ae0f1d/attachment.pl>
+
+From richcalaway at revolutionanalytics.com  Mon Jan 21 22:48:44 2013
+From: richcalaway at revolutionanalytics.com (Rich Calaway)
+Date: Mon, 21 Jan 2013 13:48:44 -0800
+Subject: [R-sig-hpc] cluster works with parallel but not foreach
+In-Reply-To: <1691620326.27937142.1358763136210.JavaMail.root@inria.fr>
+References: <1691620326.27937142.1358763136210.JavaMail.root@inria.fr>
+Message-ID: <CA+_ZbMYBWk18k9rxCZBe818sSa02b+R8spFAPi74PJJ+0FN+RA@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130121/626df125/attachment.pl>
+
+From richcalaway at revolutionanalytics.com  Tue Jan 22 00:43:36 2013
+From: richcalaway at revolutionanalytics.com (Rich Calaway)
+Date: Mon, 21 Jan 2013 15:43:36 -0800
+Subject: [R-sig-hpc] cluster works with parallel but not foreach
+In-Reply-To: <CA+_ZbMYBWk18k9rxCZBe818sSa02b+R8spFAPi74PJJ+0FN+RA@mail.gmail.com>
+References: <1691620326.27937142.1358763136210.JavaMail.root@inria.fr>
+	<CA+_ZbMYBWk18k9rxCZBe818sSa02b+R8spFAPi74PJJ+0FN+RA@mail.gmail.com>
+Message-ID: <CA+_ZbMaRpB=M1BOrwmwMZsd8sZc4TD_FnYDAD=6csGmszRftUg@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130121/205a4fbb/attachment.pl>
+
+From toby.hocking at inria.fr  Tue Jan 22 08:54:55 2013
+From: toby.hocking at inria.fr (Toby Hocking)
+Date: Tue, 22 Jan 2013 08:54:55 +0100 (CET)
+Subject: [R-sig-hpc] cluster works with parallel but not foreach
+In-Reply-To: <CA+_ZbMaRpB=M1BOrwmwMZsd8sZc4TD_FnYDAD=6csGmszRftUg@mail.gmail.com>
+Message-ID: <1686380042.28463387.1358841295954.JavaMail.root@inria.fr>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130122/2357f6fc/attachment.pl>
+
+From tobias.kley at ruhr-uni-bochum.de  Tue Jan 22 11:33:06 2013
+From: tobias.kley at ruhr-uni-bochum.de (Tobias Kley)
+Date: 22 Jan 2013 11:33:06 +0100
+Subject: [R-sig-hpc] Getting/Saving the seed when using sfClusterSetupRNG
+Message-ID: <006701cdf88b$dde09d00$99a1d700$@ruhr-uni-bochum.de>
+
+Dear all,
+
+I am doing simulations in several batches and would like to ensure that
+(1) the random numbers I use are independent in each batch, and
+(2) the whole procedure is reproducible.
+
+Until I was using snowfall I proceeded as follows:
+
+----- Example Code 1 -----
+
+# Do the first thing with random numbers
+set.seed(1234)
+X1 <- rnorm(3)
+seed1 <- get(".Random.seed", .GlobalEnv)
+
+# Now do something else
+Y <- runif(3)
+
+# Some otherday go on doing the first thing
+assign(".Random.seed", seed1, .GlobalEnv)
+X2 <- rnorm(3)
+
+# The above calculations are now identically to doing it in one batch:
+set.seed(1234)
+X <- rnorm(6)
+
+# That is: X and c(X1,X2) will be identical.
+X
+c(X1,X2)
+
+----- Ende Example Code 1 -----
+
+I have been trying to find out where the seed that sfClusterSetupRNG and/or
+sfClusterSetupRNGstream are using is stored, but failed to find it so far.
+The following naive way to transfer my code failed:
+
+----- Example Code 2 -----
+
+library(snowfall)
+library(rlecuyer)
+
+sfInit(parallel=TRUE, cpus=2, type="SOCK")
+sfClusterSetupRNG(type="RNGstream", seed = 1234)
+
+X1 <- sfClusterCall(rnorm,n=3)
+
+# seed1 <- get(".Random.seed", .GlobalEnv)
+# --- This won't work!! ---
+
+Y <- sfClusterCall(rnorm,n=3)
+
+# assign(".Random.seed", seed1, .GlobalEnv)
+# --- This won't work!! ---
+
+X2 <- sfClusterCall(rnorm,n=3)
+
+# Or do it in one go
+sfClusterSetupRNG(type="RNGstream", seed = 1234)
+X <- sfClusterCall(rnorm,n=6)
+
+sfStop()
+
+----- Ende Example Code 2 -----
+
+Can someone tell me how to save the seed when doing parallel calculations
+using snowfall?
+
+Thanks in advance and kind regards
+
+
+Tobias.
+
+
+From edi_bice at yahoo.com  Wed Jan 23 17:31:16 2013
+From: edi_bice at yahoo.com (Edi Bice)
+Date: Wed, 23 Jan 2013 08:31:16 -0800 (PST)
+Subject: [R-sig-hpc] Rserve, Rserve.cluster,
+	and cluster of local and remote
+In-Reply-To: <6C898338-C956-406C-8519-07EB1E4B0463@r-project.org>
+References: <1358443941.1882.YahooMailNeo@web125202.mail.ne1.yahoo.com>
+	<B6EFE373-01A4-40F0-BB49-268629E0BADF@r-project.org>
+	<1358521556.37385.YahooMailNeo@web125204.mail.ne1.yahoo.com>
+	<6C898338-C956-406C-8519-07EB1E4B0463@r-project.org>
+Message-ID: <1358958676.4554.YahooMailNeo@web125202.mail.ne1.yahoo.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130123/fa222dc5/attachment.pl>
+
+From thebluebeatle at gmail.com  Mon Jan 28 23:12:21 2013
+From: thebluebeatle at gmail.com (Nick Donald)
+Date: Tue, 29 Jan 2013 11:12:21 +1300
+Subject: [R-sig-hpc] Fwd: Rmpi help
+In-Reply-To: <CADxf2kYdzDA+E=RjR_n4N0Vxz2wTJzTJ34++eQ42MLgFTYoENw@mail.gmail.com>
+References: <CADxf2kYdzDA+E=RjR_n4N0Vxz2wTJzTJ34++eQ42MLgFTYoENw@mail.gmail.com>
+Message-ID: <CADxf2kaQjNcDbMDKymt7W4QqLDNU98rGqjyBeRkd37q=vdvUJg@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130129/b0f2c353/attachment.pl>
+

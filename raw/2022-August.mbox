@@ -1,0 +1,78 @@
+From georgeo@t @end|ng |rom gm@||@com  Sun Aug 14 01:30:51 2022
+From: georgeo@t @end|ng |rom gm@||@com (George Ostrouchov)
+Date: Sat, 13 Aug 2022 19:30:51 -0400
+Subject: [R-sig-hpc] R with FlexiBLAS on Mac and Windows
+In-Reply-To: <7A978666-FC66-42D2-8B40-C00D96A7E0EE@gmail.com>
+References: <2717038B-34A8-4E18-956E-A90C658577BB@gmail.com>
+ <6A20AE39-FF6F-4C0C-AA1E-E229C70971C4@R-project.org>
+ <7A978666-FC66-42D2-8B40-C00D96A7E0EE@gmail.com>
+Message-ID: <31D90182-35D5-4936-8EFC-741FF31C55CB@gmail.com>
+
+After some help from the FlexiBLAS team, it now builds on macOS. Via Inaki?s flexiblas package, it gives run-time switchable OpenBLAS and vecLib, and for OpenBLAS also run-time core use control. The following is the complete recipe
+
+* Install Xcode and command line tools
+* Install Homebrew: https://brew.sh/
+* In a terminal window:
+    * brew install cmake
+    * brew install openblas
+* cmake needs to be told about OpenBLAS: 
+     * export CMAKE_PREFIX_PATH=/usr/local/opt/openblas:$CMAKE_PREFIX_PATH
+* Install FlexiBLAS: https://www.mpi-magdeburg.mpg.de/projects/flexiblas
+    * See the Install section in its README.md
+* After installation, link to R (terminal window):
+    * ln -sf /usr/local/lib/libflexiblas.dylib /Library/Frameworks/R.framework/Resources/lib/libRblas.dylib
+* In R, install.packages("flexiblas") and test if it works:
+    * flexiblas_avail()
+    * flexiblas_list()
+
+vecLib threads can be controlled with VECLIB_MAXIMUM_THREADS at load time but not at run-time via flexiblas yet.
+
+George
+
+
+> On May 30, 2022, at 10:32 AM, George Ostrouchov <georgeost at gmail.com> wrote:
+> 
+> Hi Simon, Hi Dirk,
+> 
+> Thanks for the pointers and checking on the Mac FlexiBLAS compile. I too have not been able to compile it on macOS yet. Let me give a bit more background.
+> 
+> I just finished teaching an R on clusters class on IT4I's Karolina, where I found FlexiBLAS as the R default installed with the EasyBuild foss toolchain: https://docs.easybuild.io/en/latest/Common-toolchains.html#foss-toolchain and I used Inaki?s package to manage cores. I?ll be teaching one in July on ORNL clusters, where we successfully made a spack recipe for the same. So I see this eventually becoming standard for R on clusters.
+> 
+> Having the same interface on a laptop would allow teaching the same thing on a laptop as on a cluster, making the transition much easier.  There are broader reasons (wrt python, Julia, and standardizing the whole data science toolchain) why going with FlexiBLAS is compelling.
+> 
+> Any pointers you may have on compiling FlexiBLAS on a Mac will be helpful. I will continue trying and if successful swapping it in as Simon suggests. A lot of people use Windows in my classes so I?m also looking for a Windows pathway.
+> 
+> Thanks,
+> George
+> 
+> 
+>> On May 30, 2022, at 1:13 AM, Simon Urbanek <simon.urbanek at R-project.org> wrote:
+>> 
+>> George,
+>> 
+>> the macOS R release uses shared BLAS, and provides two umbrellas: one with native BLAS and the other with Apple Accelerate - both of which can be switched at load time. Analogously, it should be in principle trivial to provide one for FlexiBLAS (since you don't even need to re-compile R if the ABI is GNU Fortran-compatible which according to the docs FlexiBLAS is supposed to be). However, based on a quick test it seems current FlexiBLAS doesn't build on macOS so there the users are probably better off using the supplied BLAS options unless someone provides a compatible binary.
+>> 
+>> Cheers,
+>> Simon
+>> 
+>> 
+>> 
+>>> On 30/05/2022, at 8:02 AM, George Ostrouchov <georgeost at gmail.com> wrote:
+>>> 
+>>> Are there good recipes for building R with FlexiBLAS on a Mac and on Windows?
+>>> 
+>>> I have found that R with FlexiBLAS provides an easy way to dynamically switch BLAS backends and have dynamic control over core use from R.  This is now becoming more common on clusters, where I have first seen it on systems that use EasyBuild. We have also now done it with spack. I think this has a future, with plans to tackle GPU backend switching eventually.
+>>> 
+>>> Having the same control on laptops would provide a consistent pathway to core control from laptop to cluster. This would remove one more barrier in a move from a laptop to a cluster. I would like to use it in my tutorials that aim to take R users to clusters and supercomputers.
+>>> 
+>>> Thanks,
+>>> George
+>>> _______________________________________________
+>>> R-sig-hpc mailing list
+>>> R-sig-hpc at r-project.org
+>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>> 
+>> 
+> 
+
+

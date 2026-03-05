@@ -1,0 +1,419 @@
+{
+  "list": "r-sig-hpc",
+  "description": "",
+  "month": "2010-07",
+  "messages": [
+    {
+      "id": "msg-085291b87f91",
+      "message_id": "<AANLkTimiesdoomselEvTscWuu6ec18gCGjzsAc8rbkaa@mail.gmail.com>",
+      "from_name": "Jonathan Greenberg",
+      "from_email_hash": "e3d1f797a67ff50abd0f3272bc96c7dddb9dc310253ac9bc52161554b3ffd93f",
+      "date": "2010-07-06T10:11:55-07:00",
+      "subject": "[R-sig-hpc] snow, open mpi and \"Connection to lifeline [[62364, 0], 0] lost\"",
+      "subject_clean": "snow, open mpi and \"Connection to lifeline [[62364, 0], 0] lost\"",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "HPCers:\n\nI've been successfully running snow via Rmpi on some small tests I've\nbeen doing for this big modeling run I'm working towards, and when I\nfinally initiated the run, I'm getting (after some time and several\nsnow calls) the following error which quits out of R entirely:\n\n[HOSTNAME:19967] [[62364,1],0] routed:binomial: Connection to lifeline\n[[62364,0],0] lost\n\nThis is on a Debian x64 system with 4 CPUs.\n\nI've used both a debian install of openmpi plus a standard\ninstall.packages(\"snow\"), as well as trying out the \"sudo apt-get\ninstall r-cran-rmpi\" approaches to running snow via Rmpi, and I'm\ngetting the same behavior.  The code and input data are too complex to\npaste in here, but a couple of things I was thinking might be hints to\nwhat might be going on:\n\n1) I am currently initiating a snow/Rmpi cluster a SINGLE time via \t\t\t\ncl <- makeCluster(8, type = \"MPI\")\n[some main loop]\n[main body of code which has looping, lots of calls to cl using\nclusterMap and clusterApplyLB]\n[end main loop]\nstopCluster(cl)\n\n2) Many times, my call to the cluster is requesting 7 \"slaves\".  I\nconfigured the makeCluster statement with 8 slaves (2 x the number of\nphysical processors) -- I wanted to \"overload\" the processors because\nslaves during a single clusterApplyLB() call is likely to be\nasymmetric in the amount of time its taking.\n\n3) This process makes it through several more or less identical loops\nbefore I get the \"Connection to lifeline [[X,Y],Z] lost\" error.\n\nThoughts?  Thanks!  I saw some mention in related errors about\nconfiguring some host file, but was unclear a) how this helps me, b)\nwhat I need to put in the file, and c) how do I get R to \"read\" the\nfile (since it appears that R does not use this hostfile when firing\nup MPI.\n\n--j",
+      "body_snippet": "HPCers:\n\nI've been successfully running snow via Rmpi on some small tests I've\nbeen doing for this big modeling run I'm working towards, and when I\nfinally initiated the run, I'm getting (after some t",
+      "thread_id": "thread-085291b87f91",
+      "thread_depth": 0,
+      "month": "2010-07"
+    },
+    {
+      "id": "msg-7ea5420adf86",
+      "message_id": "<19513.51118.152312.772775@ron.nulle.part>",
+      "from_name": "Dirk Eddelbuettel",
+      "from_email_hash": "447d8de83a7b9c5d61116890bacb6dc0c76aee31b3011a41fb7d3c62dac9042f",
+      "date": "2010-07-11T08:31:26-05:00",
+      "subject": "[R-sig-hpc] snow, open mpi and \"Connection to lifeline [[62364, 0], 0] lost\"",
+      "subject_clean": "snow, open mpi and \"Connection to lifeline [[62364, 0], 0] lost\"",
+      "in_reply_to": "<AANLkTimiesdoomselEvTscWuu6ec18gCGjzsAc8rbkaa@mail.gmail.com>",
+      "references": [
+        "<AANLkTimiesdoomselEvTscWuu6ec18gCGjzsAc8rbkaa@mail.gmail.com>"
+      ],
+      "body_plain": "Jonathan,\n\nSorry, meant to reply earlier but this fell to the wayside.\n\nOn 6 July 2010 at 10:11, Jonathan Greenberg wrote:\n| HPCers:\n| \n| I've been successfully running snow via Rmpi on some small tests I've\n| been doing for this big modeling run I'm working towards, and when I\n| finally initiated the run, I'm getting (after some time and several\n| snow calls) the following error which quits out of R entirely:\n| \n| [HOSTNAME:19967] [[62364,1],0] routed:binomial: Connection to lifeline\n| [[62364,0],0] lost\n| \n| This is on a Debian x64 system with 4 CPUs.\n| \n| I've used both a debian install of openmpi plus a standard\n| install.packages(\"snow\"), as well as trying out the \"sudo apt-get\n| install r-cran-rmpi\" approaches to running snow via Rmpi, and I'm\n| getting the same behavior.  The code and input data are too complex to\n| paste in here, but a couple of things I was thinking might be hints to\n| what might be going on:\n| \n| 1) I am currently initiating a snow/Rmpi cluster a SINGLE time via \t\t\t\n| cl <- makeCluster(8, type = \"MPI\")\n| [some main loop]\n| [main body of code which has looping, lots of calls to cl using\n| clusterMap and clusterApplyLB]\n| [end main loop]\n| stopCluster(cl)\n| \n| 2) Many times, my call to the cluster is requesting 7 \"slaves\".  I\n| configured the makeCluster statement with 8 slaves (2 x the number of\n| physical processors) -- I wanted to \"overload\" the processors because\n| slaves during a single clusterApplyLB() call is likely to be\n| asymmetric in the amount of time its taking.\n| \n| 3) This process makes it through several more or less identical loops\n| before I get the \"Connection to lifeline [[X,Y],Z] lost\" error.\n| \n| Thoughts?  Thanks!  I saw some mention in related errors about\n| configuring some host file, but was unclear a) how this helps me, b)\n| what I need to put in the file, and c) how do I get R to \"read\" the\n| file (since it appears that R does not use this hostfile when firing\n| up MPI.\n\nI would try to simplify. Create a C/C++-only MPI program (e.g. the hello\nworld example in my 'Intro to HPC with R' slides) and see if you can run\nthat.  If so, add something to add a little load -- sum the squares of logs\nof a million numbers or whatever -- and see if that works. If so, try a\nsimple Rmpi approach and then go from Rmpi to snow and Rmpi.\n\nHope this helps.\n\n-- \n  Regards, Dirk",
+      "body_snippet": "Jonathan,\n\nSorry, meant to reply earlier but this fell to the wayside.\n\nOn 6 July 2010 at 10:11, Jonathan Greenberg wrote:\n| HPCers:\n| \n| I've been successfully running snow via Rmpi on some small tes",
+      "thread_id": "thread-085291b87f91",
+      "thread_depth": 1,
+      "month": "2010-07"
+    },
+    {
+      "id": "msg-927af9226bef",
+      "message_id": "<E7E58914-A98E-4500-B2C1-AE06654220D0@stat.ufl.edu>",
+      "from_name": "Vikneswaran Gopal",
+      "from_email_hash": "442292a648008908367f6ce94a7026e609f8f7270fc221e7eb49b3e81fa8a188",
+      "date": "2010-07-14T23:42:46-07:00",
+      "subject": "[R-sig-hpc] problems with Rmpi under PBS",
+      "subject_clean": "problems with Rmpi under PBS",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Hi everyone,\n\nI am having problems running Rmpi on several nodes under PBS. When I  \nrun it on several processors on the same node, things are fine. When I  \nstart requesting for processors on more than 3 nodes, it seg faults.  \nThe code is very basic - it does nothing but broadcast a function and  \nthen execute it.\n################################\nmainMainFn <- function(nsim) {\n   dummy1 <- function() {\n     n <- 200\n     k <- 2.3\n   }\n   outMx <- NULL\n   library(rlecuyer')\n   mpi.bcast.Robj2slave(dummy1)\n   mpi.setup.rngstream()\n\n   for (i in 1:nsim) {\n     mpi.bcast.cmd(dummy1)\n     cat(\"nsim\", i, \"done\\n\", sep=\" \")\n   }\n   outMx\n}\n\ntmp <- mainMainFn(nsim=20)\nmpi.close.Rslaves()\nmpi.quit()\n###############################\n\nThe R output file has the following errors:\n[r10a-s5:05955] *** Process received signal ***\n[r10a-s5:05955] Signal: Segmentation fault (11)\n[r10a-s5:05955] Signal code: Address not mapped (1)\n[r10a-s5:05955] Failing at address: 0xe8d7978\n[r10a-s5:05955] [ 0] /lib64/libc.so.6 [0x3a16a30280]\n[r10a-s5:05955] [ 1] /lib64/libc.so.6 [0x3a16a7188c]\n[r10a-s5:05955] [ 2] /lib64/libc.so.6(cfree+0x8c) [0x3a16a7590c]\n[r10a-s5:05955] [ 3] /lib64/libnss_ldap.so.2 [0x2b02fb0a9f8e]\n[r10a-s5:05955] [ 4] /lib64/libnss_ldap.so.2 [0x2b02fb0a7353]\n[r10a-s5:05955] [ 5] /lib64/libnss_ldap.so.2 [0x2b02fb09f616]\n[r10a-s5:05955] [ 6] /lib64/libnss_ldap.so.2 [0x2b02fb08e6ef]\n[r10a-s5:05955] [ 7] /lib64/libnss_ldap.so.2 [0x2b02fb09177a]\n[r10a-s5:05955] [ 8] /lib64/libc.so.6(__libc_fork+0x1b2) [0x3a16a99952]\n[r10a-s5:05955] [ 9] /lib64/libc.so.6(_IO_proc_open+0xad) [0x3a16a62cbd]\n[r10a-s5:05955] [10] /lib64/libc.so.6(popen+0x69) [0x3a16a62f19]\n[r10a-s5:05955] [11] /usr/lib64/R/lib/libR.so [0x303458b6c9]\n[r10a-s5:05955] [12] /usr/lib64/R/lib/libR.so [0x30344fe09e]\n[r10a-s5:05955] [13] /usr/lib64/R/lib/libR.so(Rf_eval+0x456)  \n[0x30344c2216]\n[r10a-s5:05955] [14] /usr/lib64/R/lib/libR.so [0x30344c6983]\n[r10a-s5:05955] [15] /usr/lib64/R/lib/libR.so(Rf_eval+0x456)  \n[0x30344c2216]\n[r10a-s5:05955] [16] /usr/lib64/R/lib/libR.so(Rf_applyClosure+0x2a5)  \n[0x30344c4935]\n[r10a-s5:05955] [17] /usr/lib64/R/lib/libR.so(Rf_eval+0x328)  \n[0x30344c20e8]\n[r10a-s5:05955] [18] /usr/lib64/R/lib/libR.so [0x30344c279d]\n[r10a-s5:05955] [19] /usr/lib64/R/lib/libR.so(Rf_eval+0x4fd)  \n[0x30344c22bd]\n[r10a-s5:05955] [20] /usr/lib64/R/lib/libR.so [0x30344c279d]\n[r10a-s5:05955] [21] /usr/lib64/R/lib/libR.so(Rf_eval+0x4fd)  \n[0x30344c22bd]\n[r10a-s5:05955] [22] /usr/lib64/R/lib/libR.so [0x30344c7438]\n[r10a-s5:05955] [23] /usr/lib64/R/lib/libR.so(Rf_eval+0x456)  \n[0x30344c2216]\n[r10a-s5:05955] [24] /usr/lib64/R/lib/libR.so [0x30344c6983]\n[r10a-s5:05955] [25] /usr/lib64/R/lib/libR.so(Rf_eval+0x456)  \n[0x30344c2216]\n[r10a-s5:05955] [26] /usr/lib64/R/lib/libR.so(Rf_eval+0x456)  \n[0x30344c2216]\n[r10a-s5:05955] [27] /usr/lib64/R/lib/libR.so [0x30344c6983]\n[r10a-s5:05955] [28] /usr/lib64/R/lib/libR.so(Rf_eval+0x456)  \n[0x30344c2216]\n[r10a-s5:05955] [29] /usr/lib64/R/lib/libR.so(Rf_eval+0x456)  \n[0x30344c2216]\n[r10a-s5:05955] *** End of error message ***\n\nAny ideas on what I might be doing wrong?\n\nVik",
+      "body_snippet": "Hi everyone,\n\nI am having problems running Rmpi on several nodes under PBS. When I  \nrun it on several processors on the same node, things are fine. When I  \nstart requesting for processors on more th",
+      "thread_id": "thread-927af9226bef",
+      "thread_depth": 0,
+      "month": "2010-07"
+    },
+    {
+      "id": "msg-74098d65fe93",
+      "message_id": "<4C3F13EA.7010404@ibe.med.uni-muenchen.de>",
+      "from_name": "Markus Schmidberger",
+      "from_email_hash": "f8bfa84297de571d104d5331872fd43189cf7e374fa9dc4c24b6e4212d13663a",
+      "date": "2010-07-15T15:58:02+02:00",
+      "subject": "[R-sig-hpc] Short survey concerning the use of software engineering in the field of High Performance Computing",
+      "subject_clean": "Short survey concerning the use of software engineering in the field of High Performance Computing",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Dear Colleagues,\n\nthis is a short survey (21 questions that take about 10 minutes to \nanswer) in context of the research work for my PhD thesis and the Munich \nCenter of Advanced Computing (Project B2). It would be very helpful, if \nyou will take the time to answer my questions concerning the use of \nsoftware engineering in the field of High Performance Computing.\n\nPlease note, all questions are mandatory to answer!\n\nhttp://www.q-set.de/q-set.php?sCode=TCSBHMPZAASZ\n\n\nThank you very much, kind regards\n\nMiriam Schmidberger\n(Dipl. Medien-Inf.)\n\nschmidbm at in.tum.de\n\nTechnische Universit?t M?nchen\nInstitut f?r Informatik\nBoltzmannstr. 3\n85748 Garching\nGermany\nOffice 01.07.037\nTel: +49 (89) 289-18226",
+      "body_snippet": "Dear Colleagues,\n\nthis is a short survey (21 questions that take about 10 minutes to \nanswer) in context of the research work for my PhD thesis and the Munich \nCenter of Advanced Computing (Project B2",
+      "thread_id": "thread-74098d65fe93",
+      "thread_depth": 0,
+      "month": "2010-07"
+    },
+    {
+      "id": "msg-2b5b08256b61",
+      "message_id": "<21435d5cfe38bb9e2ffab15d0bf197ed.squirrel@www.stats.uwo.ca>",
+      "from_name": "Hao Yu",
+      "from_email_hash": "f90343116b4a1720ab706b8b458137d0f188602a07689c3a137d7f8799e4a179",
+      "date": "2010-07-16T10:09:26-04:00",
+      "subject": "[R-sig-hpc] problems with Rmpi under PBS",
+      "subject_clean": "problems with Rmpi under PBS",
+      "in_reply_to": "<E7E58914-A98E-4500-B2C1-AE06654220D0@stat.ufl.edu>",
+      "references": [
+        "<E7E58914-A98E-4500-B2C1-AE06654220D0@stat.ufl.edu>"
+      ],
+      "body_plain": "Can you check if Rmpi runs alone on the remote nodes? If remote nodes have\ndifferent OS/hardware, Rmpi must be compiled separately.\n\nNotice that\n           mpi.bcast.cmd(dummy1)\ndoes not execute the function fummy1. It should be\n           mpi.bcast.cmd(dummy1())\n\nHao\n\nVikneswaran Gopal wrote:\n> Hi everyone,\n>\n> I am having problems running Rmpi on several nodes under PBS. When I\n> run it on several processors on the same node, things are fine. When I\n> start requesting for processors on more than 3 nodes, it seg faults.\n> The code is very basic - it does nothing but broadcast a function and\n> then execute it.\n> ################################\n> mainMainFn <- function(nsim) {\n>    dummy1 <- function() {\n>      n <- 200\n>      k <- 2.3\n>    }\n>    outMx <- NULL\n>    library(rlecuyer')\n>    mpi.bcast.Robj2slave(dummy1)\n>    mpi.setup.rngstream()\n>\n>    for (i in 1:nsim) {\n>      mpi.bcast.cmd(dummy1)\n>      cat(\"nsim\", i, \"done\\n\", sep=\" \")\n>    }\n>    outMx\n> }\n>\n> tmp <- mainMainFn(nsim=20)\n> mpi.close.Rslaves()\n> mpi.quit()\n> ###############################\n>\n> The R output file has the following errors:\n> [r10a-s5:05955] *** Process received signal ***\n> [r10a-s5:05955] Signal: Segmentation fault (11)\n> [r10a-s5:05955] Signal code: Address not mapped (1)\n> [r10a-s5:05955] Failing at address: 0xe8d7978\n> [r10a-s5:05955] [ 0] /lib64/libc.so.6 [0x3a16a30280]\n> [r10a-s5:05955] [ 1] /lib64/libc.so.6 [0x3a16a7188c]\n> [r10a-s5:05955] [ 2] /lib64/libc.so.6(cfree+0x8c) [0x3a16a7590c]\n> [r10a-s5:05955] [ 3] /lib64/libnss_ldap.so.2 [0x2b02fb0a9f8e]\n> [r10a-s5:05955] [ 4] /lib64/libnss_ldap.so.2 [0x2b02fb0a7353]\n> [r10a-s5:05955] [ 5] /lib64/libnss_ldap.so.2 [0x2b02fb09f616]\n> [r10a-s5:05955] [ 6] /lib64/libnss_ldap.so.2 [0x2b02fb08e6ef]\n> [r10a-s5:05955] [ 7] /lib64/libnss_ldap.so.2 [0x2b02fb09177a]\n> [r10a-s5:05955] [ 8] /lib64/libc.so.6(__libc_fork+0x1b2) [0x3a16a99952]\n> [r10a-s5:05955] [ 9] /lib64/libc.so.6(_IO_proc_open+0xad) [0x3a16a62cbd]\n> [r10a-s5:05955] [10] /lib64/libc.so.6(popen+0x69) [0x3a16a62f19]\n> [r10a-s5:05955] [11] /usr/lib64/R/lib/libR.so [0x303458b6c9]\n> [r10a-s5:05955] [12] /usr/lib64/R/lib/libR.so [0x30344fe09e]\n> [r10a-s5:05955] [13] /usr/lib64/R/lib/libR.so(Rf_eval+0x456)\n> [0x30344c2216]\n> [r10a-s5:05955] [14] /usr/lib64/R/lib/libR.so [0x30344c6983]\n> [r10a-s5:05955] [15] /usr/lib64/R/lib/libR.so(Rf_eval+0x456)\n> [0x30344c2216]\n> [r10a-s5:05955] [16] /usr/lib64/R/lib/libR.so(Rf_applyClosure+0x2a5)\n> [0x30344c4935]\n> [r10a-s5:05955] [17] /usr/lib64/R/lib/libR.so(Rf_eval+0x328)\n> [0x30344c20e8]\n> [r10a-s5:05955] [18] /usr/lib64/R/lib/libR.so [0x30344c279d]\n> [r10a-s5:05955] [19] /usr/lib64/R/lib/libR.so(Rf_eval+0x4fd)\n> [0x30344c22bd]\n> [r10a-s5:05955] [20] /usr/lib64/R/lib/libR.so [0x30344c279d]\n> [r10a-s5:05955] [21] /usr/lib64/R/lib/libR.so(Rf_eval+0x4fd)\n> [0x30344c22bd]\n> [r10a-s5:05955] [22] /usr/lib64/R/lib/libR.so [0x30344c7438]\n> [r10a-s5:05955] [23] /usr/lib64/R/lib/libR.so(Rf_eval+0x456)\n> [0x30344c2216]\n> [r10a-s5:05955] [24] /usr/lib64/R/lib/libR.so [0x30344c6983]\n> [r10a-s5:05955] [25] /usr/lib64/R/lib/libR.so(Rf_eval+0x456)\n> [0x30344c2216]\n> [r10a-s5:05955] [26] /usr/lib64/R/lib/libR.so(Rf_eval+0x456)\n> [0x30344c2216]\n> [r10a-s5:05955] [27] /usr/lib64/R/lib/libR.so [0x30344c6983]\n> [r10a-s5:05955] [28] /usr/lib64/R/lib/libR.so(Rf_eval+0x456)\n> [0x30344c2216]\n> [r10a-s5:05955] [29] /usr/lib64/R/lib/libR.so(Rf_eval+0x456)\n> [0x30344c2216]\n> [r10a-s5:05955] *** End of error message ***\n>\n> Any ideas on what I might be doing wrong?\n>\n> Vik\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>\n\n\n-- \nDepartment of Statistics & Actuarial Sciences\nFax Phone#:(519)-661-3813\nThe University of Western Ontario\nOffice Phone#:(519)-661-3622\nLondon, Ontario N6A 5B7\nhttp://www.stats.uwo.ca/faculty/yu",
+      "body_snippet": "Can you check if Rmpi runs alone on the remote nodes? If remote nodes have\ndifferent OS/hardware, Rmpi must be compiled separately.\n\nNotice that\n           mpi.bcast.cmd(dummy1)\ndoes not execute the f",
+      "thread_id": "thread-927af9226bef",
+      "thread_depth": 1,
+      "month": "2010-07"
+    },
+    {
+      "id": "msg-9455c02fd74e",
+      "message_id": "<201007231017375385550@gmail.com>",
+      "from_name": "hongxu",
+      "from_email_hash": "537f5bef783b60f290422cb48536d6f033e01fb3fc3d7c01e34c00de0798499c",
+      "date": "2010-07-23T10:17:41+08:00",
+      "subject": "[R-sig-hpc] [R-sig-HPC]Problems of submitting Rmpi Parallel Job with LSF",
+      "subject_clean": "Problems of submitting Rmpi Parallel Job with LSF",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100723/e77fd0b1/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20100723/e77fd0b1/attachment.pl>",
+      "thread_id": "thread-9455c02fd74e",
+      "thread_depth": 0,
+      "month": "2010-07"
+    },
+    {
+      "id": "msg-913cabeb47b5",
+      "message_id": "<19532.56997.923345.353152@max.nulle.part>",
+      "from_name": "Dirk Eddelbuettel",
+      "from_email_hash": "447d8de83a7b9c5d61116890bacb6dc0c76aee31b3011a41fb7d3c62dac9042f",
+      "date": "2010-07-25T20:02:29-05:00",
+      "subject": "[R-sig-hpc] [R-sig-HPC]Problems of submitting Rmpi Parallel Job\twith LSF",
+      "subject_clean": "Problems of submitting Rmpi Parallel Job\twith LSF",
+      "in_reply_to": "<201007231017375385550@gmail.com>",
+      "references": [
+        "<201007231017375385550@gmail.com>"
+      ],
+      "body_plain": "On 23 July 2010 at 10:17, hongxu wrote:\n| Dear all, I have some questions about how to submit Rmpi Parallel Job with LSF.\n| \n| \n| I'd like to use LSF command bsub to submit Rmpi parallel job directly, for example, use the command line\n| \n| $bsub -W 10 -a openmpi -n 16 -q x64_dbg -o result.Rout -e err mpijob.openmpi 'R --no-save -q < prog.R > Output' \n| \n| to submit Rmpi parallel job, using 16 remote CPUs.\n| \n| However, some errors appear:     \n| .......................\n|  29 The output (if any) follows:\n|  30\n|  31 ARGUMENT '<' __ignored__\n|  32\n|  33 ARGUMENT 'prog.R' __ignored__\n|  34\n|  35 ARGUMENT '>' __ignored__\n|  36\n|  37 ARGUMENT 'Output' __ignored__\n| .......................\n| How can I implement this process--use LSF to submit Rmpi parallel jobs directly?\n\nLooks like your problem is with your shell indirection. I *much* prefer to\nwork with r (ie /usr/bin/r from the littler project) when I launch Rmpi jobs.\nYou could also use Rscript.\n\nExamples for r and Rmpi are in my 'Intro to High-Performance Computing with\nR' slides at http://dirk.eddelbuettel.com/presentations.html.\n\nI can't help with lsf as I don't access to it -- but slurm works quite nicely\nwith Rmpi via r.\n\nHope this helps.\n\nDirk\n\n\n| Using Rlsf seems to be able to solve this problem, but the user submits R jobs in R environment, not as convenient as bsub.\n| \n| Furthermore, based on the webpage http://rc.partners.org/node/241 , the user can directly use bsub to submit Rmpi jobs.\n| \n| \n| Thank you for your time!\n| \n| 2010-07-23 \n| \n| \n| \n| hongxu \n| \n| \t[[alternative HTML version deleted]]\n| \n| _______________________________________________\n| R-sig-hpc mailing list\n| R-sig-hpc at r-project.org\n| https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n\n-- \nDirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com",
+      "body_snippet": "On 23 July 2010 at 10:17, hongxu wrote:\n| Dear all, I have some questions about how to submit Rmpi Parallel Job with LSF.\n| \n| \n| I'd like to use LSF command bsub to submit Rmpi parallel job directly,",
+      "thread_id": "thread-9455c02fd74e",
+      "thread_depth": 1,
+      "month": "2010-07"
+    },
+    {
+      "id": "msg-c98174b8f364",
+      "message_id": "<1529786557.1694280.1280305688716.JavaMail.fmail@mwmweb069>",
+      "from_name": "Jens Oehlschlägel",
+      "from_email_hash": "f073adaa565bb1d2ee057e84a39a987c70da1df4938e3d4d5a72e0cc3cffbdc1",
+      "date": "2010-07-28T10:28:08+02:00",
+      "subject": "[R-sig-hpc] (help)After writing data in MMF using SEXP structure, can i reference  in R?",
+      "subject_clean": "(help)After writing data in MMF using SEXP structure, can i reference  in R?",
+      "in_reply_to": "<AANLkTim3bFsSA8utGWH2COTC4=9Kqkqjyr8wZ6gC_PZb@mail.gmail.com>",
+      "references": [
+        "<AANLkTim3bFsSA8utGWH2COTC4=9Kqkqjyr8wZ6gC_PZb@mail.gmail.com>"
+      ],
+      "body_plain": "Young-Ju,\n\n> The ff package helped me much.\n> I have some question.> After writing data in MMF using SEXP structure, can i reference in R?\n\nff does not write to MMF using SEXP structure. What is written to file is a vector (or array) of binary data - e.g. doubles - without any header or tail (tail other than completing the last byte in sub-byte vmodes like 'boolean'). \n> If input data is larger than 2GB, Can i reference MMF Data in R?\n\nThe high-level functions in ff support up to .Machine$integer.max = 2147483647 elements per atomic ff object. \nFor vmode='boolean' this translates to a filesize limit of 0.25GB  \nFor vmode='double' this translates to filesize limit of 16GB\n\nIf your data can be represented in a columnar structure, you can reference larger datasets using ffdf aka ff data.frame: you write each column in a seperate file, reference each column using 'ff' and then bind all columns using 'ffdf'. \n\nHTH\n\nJens Oehlschl?gel\n\n\n---------------------\nVon: Young-Ju Park  \nGesendet: Jul 28, 2010 4:38:52 AM\nAn: dadler at uni-goettingen.de,christian_glaeser at gmx.de,onenadi at uni-goettingen.de,Jens.Oehlschlaegel at truecluster.com,wzucchi at uni-goettingen.de\nBetreff: (help)After writing data in MMF using SEXP structure, can i reference in R?\n\n\nHi all,\n \nThe ff package helped me much.\n \nI have some question.\n \nAfter writing data in MMF using SEXP structure, can i reference in R?\nIf input data is larger than 2GB,  Can i reference  MMF Data in R?\n \nmy work environment :\nR version : 2.11.1\nOS : WinXP Pro sp3\n\nThanks and best regards.\nPark, Young-Ju\n \nfrom Korea.",
+      "body_snippet": "Young-Ju,\n\n> The ff package helped me much.\n> I have some question.> After writing data in MMF using SEXP structure, can i reference in R?\n\nff does not write to MMF using SEXP structure. What is writt",
+      "thread_id": "thread-c98174b8f364",
+      "thread_depth": 0,
+      "month": "2010-07"
+    },
+    {
+      "id": "msg-38846c0079dd",
+      "message_id": "<AANLkTimBKDqpgzaUJ0onRii1gB=7UFTOgd_e=aYwbYWz@mail.gmail.com>",
+      "from_name": "Jonathan Greenberg",
+      "from_email_hash": "e3d1f797a67ff50abd0f3272bc96c7dddb9dc310253ac9bc52161554b3ffd93f",
+      "date": "2010-07-28T17:02:59-07:00",
+      "subject": "[R-sig-hpc] Getting multithreaded R working (solution)",
+      "subject_clean": "Getting multithreaded R working (solution)",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Folks:\n\nThis may have already been posted here, but I have a step-by-step\nguide to getting a multithreaded version of R working with the\nGotoBlas2 package -- I never was able to get atlas configured for\nmultiple threads, but gotoblas2 took all of 30 seconds to accomplish\nthis task.  Here's the weblink:\n\nhttp://lostingeospace.blogspot.com/2010/07/multithreaded-r-using-blas-in-debian_28.html\n\nIf anyone has any comments or corrections on this please let me know.\nThanks to Dirk and Paul Johnson for key hints on getting this\nworking...\n\n--j\n\nP.S. If anyone has *easy* instructions for getting atlas working as a\nmultithreaded library or how do drop in the Intel MKL (I couldn't\nfigure out which *.so would be the correct one) please let me know and\nI'll post them as well.",
+      "body_snippet": "Folks:\n\nThis may have already been posted here, but I have a step-by-step\nguide to getting a multithreaded version of R working with the\nGotoBlas2 package -- I never was able to get atlas configured f",
+      "thread_id": "thread-38846c0079dd",
+      "thread_depth": 0,
+      "month": "2010-07"
+    },
+    {
+      "id": "msg-857e1bea2cbd",
+      "message_id": "<4C51F6AE.3040404@wu.ac.at>",
+      "from_name": "Stefan Theussl",
+      "from_email_hash": "04a896cecacc60dff30e54bfa103746d9e124841b959c2c0f14d56decefbb42e",
+      "date": "2010-07-29T23:46:22+02:00",
+      "subject": "[R-sig-hpc] Getting multithreaded R working (solution)",
+      "subject_clean": "Getting multithreaded R working (solution)",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "[...]\n > P.S. If anyone has *easy* instructions for getting atlas working as a\n > multithreaded library or how do drop in the Intel MKL (I couldn't\n > figure out which *.so would be the correct one) please let me know and\n > I'll post them as well.\n\nI did get MKL working with R via the following trick:\n\n1) export \nLD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/intel/intel-mkl-9.0.018/lib/em64t\n\n2) then configure with: \n\"--with-blas=-L/opt/intel/intel-mkl-9.0.018/lib/em64t/ -lmkl -lguide \n-lpthread\"\n\nBack then I used MKL version 9.0.018. I don't know if this still works \nwith more recent MKL or R.\n\nBest,\nst",
+      "body_snippet": "[...]\n > P.S. If anyone has *easy* instructions for getting atlas working as a\n > multithreaded library or how do drop in the Intel MKL (I couldn't\n > figure out which *.so would be the correct one) p",
+      "thread_id": "thread-857e1bea2cbd",
+      "thread_depth": 0,
+      "month": "2010-07"
+    },
+    {
+      "id": "msg-47f274470568",
+      "message_id": "<AANLkTin9HLsZp8Yz=F73m-4vSmkoVK-ikz4Q0newt+7F@mail.gmail.com>",
+      "from_name": "Jonathan Greenberg",
+      "from_email_hash": "e3d1f797a67ff50abd0f3272bc96c7dddb9dc310253ac9bc52161554b3ffd93f",
+      "date": "2010-07-29T14:56:41-07:00",
+      "subject": "[R-sig-hpc] Getting multithreaded R working (solution)",
+      "subject_clean": "Getting multithreaded R working (solution)",
+      "in_reply_to": "<4C51F6AE.3040404@wu.ac.at>",
+      "references": [
+        "<4C51F6AE.3040404@wu.ac.at>"
+      ],
+      "body_plain": "Thanks Stefan:\n\nHave you (or anyone) gotten Intel MKL working via the \"plugin\"\napproach that Dirk has setup for the debian packages, where you just\npoint:\n\nupdate-alternatives --config libblas.so.3gf\nand\nupdate-alternatives --config liblapack.so\nto the BLAS/lapack libraries you want --  I don't know which file to\npoint to for this.\n\nls -l /usr/lib/intel/mkl/10.2.5.035/lib/em64t returned (a standard\ninstall points to /opt/intel by the way, I moved these):\n\n-r-xr-xr-x 1 root root    984748 Mar 25 09:05 libguide.a\n-r-xr-xr-x 1 root root    698155 Mar 25 09:05 libguide.so\n-r-xr-xr-x 1 root root   1056924 Mar 25 09:05 libiomp5.a\n-r-xr-xr-x 1 root root    749714 Mar 25 09:05 libiomp5.so\n-r-xr-xr-x 1 root root  19930316 Mar 25 12:04 libmkl_avx.so\n-r--r--r-- 1 root root   1592136 Mar 25 12:10 libmkl_blacs_ilp64.a\n-r--r--r-- 1 root root   1593520 Mar 25 12:09 libmkl_blacs_intelmpi_ilp64.a\n-r-xr-xr-x 1 root root    639316 Mar 25 12:09 libmkl_blacs_intelmpi_ilp64.so\n-r--r--r-- 1 root root    973850 Mar 25 12:05 libmkl_blacs_intelmpi_lp64.a\n-r-xr-xr-x 1 root root    404221 Mar 25 12:05 libmkl_blacs_intelmpi_lp64.so\n-r--r--r-- 1 root root    972474 Mar 25 12:06 libmkl_blacs_lp64.a\n-r--r--r-- 1 root root   1620802 Mar 25 12:12 libmkl_blacs_openmpi_ilp64.a\n-r--r--r-- 1 root root   1000990 Mar 25 12:07 libmkl_blacs_openmpi_lp64.a\n-r--r--r-- 1 root root   1593152 Mar 25 12:13 libmkl_blacs_sgimpt_ilp64.a\n-r--r--r-- 1 root root    973498 Mar 25 12:08 libmkl_blacs_sgimpt_lp64.a\n-r--r--r-- 1 root root    447246 Mar 25 12:36 libmkl_blas95_ilp64.a\n-r--r--r-- 1 root root    435758 Mar 25 12:36 libmkl_blas95_lp64.a\n-r--r--r-- 1 root root    112558 Mar 25 12:13 libmkl_cdft_core.a\n-r--r--r-- 1 root root 210211710 Mar 25 12:39 libmkl_core.a\n-r-xr-xr-x 1 root root   3888898 Mar 25 12:03 libmkl_core.so\n-r-xr-xr-x 1 root root  19385503 Mar 25 12:03 libmkl_def.so\n-r--r--r-- 1 root root  10037880 Mar 25 12:38 libmkl_gf_ilp64.a\n-r-xr-xr-x 1 root root   3583798 Mar 25 12:39 libmkl_gf_ilp64.so\n-r--r--r-- 1 root root  10491422 Mar 25 12:38 libmkl_gf_lp64.a\n-r-xr-xr-x 1 root root   3899087 Mar 25 12:39 libmkl_gf_lp64.so\n-r--r--r-- 1 root root  15441782 Mar 25 12:39 libmkl_gnu_thread.a\n-r-xr-xr-x 1 root root  12457443 Mar 25 12:40 libmkl_gnu_thread.so\n-r--r--r-- 1 root root  10363194 Mar 25 12:38 libmkl_intel_ilp64.a\n-r-xr-xr-x 1 root root   3719554 Mar 25 12:39 libmkl_intel_ilp64.so\n-r--r--r-- 1 root root  10816706 Mar 25 12:38 libmkl_intel_lp64.a\n-r-xr-xr-x 1 root root   4034675 Mar 25 12:39 libmkl_intel_lp64.so\n-r--r--r-- 1 root root   2537716 Mar 25 11:55 libmkl_intel_sp2dp.a\n-r-xr-xr-x 1 root root   1175095 Mar 25 12:04 libmkl_intel_sp2dp.so\n-r--r--r-- 1 root root  26877982 Mar 25 12:39 libmkl_intel_thread.a\n-r-xr-xr-x 1 root root  20805097 Mar 25 12:39 libmkl_intel_thread.so\n-r--r--r-- 1 root root   6701900 Mar 25 12:36 libmkl_lapack95_ilp64.a\n-r--r--r-- 1 root root   6693188 Mar 25 12:36 libmkl_lapack95_lp64.a\n-r-xr-xr-x 1 root root  13269122 Mar 25 12:04 libmkl_lapack.so\n-r-xr-xr-x 1 root root  22193012 Mar 25 12:03 libmkl_mc3.so\n-r-xr-xr-x 1 root root  22455155 Mar 25 12:03 libmkl_mc.so\n-r-xr-xr-x 1 root root  20821233 Mar 25 12:03 libmkl_p4n.so\n-r--r--r-- 1 root root  18304180 Mar 25 12:39 libmkl_pgi_thread.a\n-r-xr-xr-x 1 root root  15045661 Mar 25 12:40 libmkl_pgi_thread.so\n-r--r--r-- 1 root root   9924200 Mar 25 12:40 libmkl_scalapack_ilp64.a\n-r-xr-xr-x 1 root root   6208757 Mar 25 12:40 libmkl_scalapack_ilp64.so\n-r--r--r-- 1 root root   9882058 Mar 25 12:40 libmkl_scalapack_lp64.a\n-r-xr-xr-x 1 root root   6123754 Mar 25 12:40 libmkl_scalapack_lp64.so\n-r--r--r-- 1 root root   9707104 Mar 25 12:39 libmkl_sequential.a\n-r-xr-xr-x 1 root root   8970003 Mar 25 12:39 libmkl_sequential.so\n-r--r--r-- 1 root root      1048 Mar 25 09:05 libmkl_solver_ilp64.a\n-r--r--r-- 1 root root      1048 Mar 25 09:05 libmkl_solver_ilp64_sequential.a\n-r--r--r-- 1 root root      1048 Mar 25 09:05 libmkl_solver_lp64.a\n-r--r--r-- 1 root root      1048 Mar 25 09:05 libmkl_solver_lp64_sequential.a\n-r-xr-xr-x 1 root root   4266997 Mar 25 12:39 libmkl_vml_avx.so\n-r-xr-xr-x 1 root root   2218467 Mar 25 12:39 libmkl_vml_def.so\n-r-xr-xr-x 1 root root   3834953 Mar 25 12:39 libmkl_vml_mc2.so\n-r-xr-xr-x 1 root root   3845965 Mar 25 12:39 libmkl_vml_mc3.so\n-r-xr-xr-x 1 root root   3879774 Mar 25 12:39 libmkl_vml_mc.so\n-r-xr-xr-x 1 root root   3325933 Mar 25 12:39 libmkl_vml_p4n.so\ndrwxr-xr-x 4 root root      4096 Jul 28 14:43 locale\n\n--j\n\nOn Thu, Jul 29, 2010 at 2:46 PM, Stefan Theussl <stefan.theussl at wu.ac.at> wrote:\n>\n> [...]\n>> P.S. If anyone has *easy* instructions for getting atlas working as a\n>> multithreaded library or how do drop in the Intel MKL (I couldn't\n>> figure out which *.so would be the correct one) please let me know and\n>> I'll post them as well.\n>\n> I did get MKL working with R via the following trick:\n>\n> 1) export\n> LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/intel/intel-mkl-9.0.018/lib/em64t\n>\n> 2) then configure with:\n> \"--with-blas=-L/opt/intel/intel-mkl-9.0.018/lib/em64t/ -lmkl -lguide\n> -lpthread\"\n>\n> Back then I used MKL version 9.0.018. I don't know if this still works with\n> more recent MKL or R.\n>\n> Best,\n> st\n>",
+      "body_snippet": "Thanks Stefan:\n\nHave you (or anyone) gotten Intel MKL working via the \"plugin\"\napproach that Dirk has setup for the debian packages, where you just\npoint:\n\nupdate-alternatives --config libblas.so.3gf\n",
+      "thread_id": "thread-857e1bea2cbd",
+      "thread_depth": 1,
+      "month": "2010-07"
+    },
+    {
+      "id": "msg-ff3391d68485",
+      "message_id": "<19537.64953.893112.692398@max.nulle.part>",
+      "from_name": "Dirk Eddelbuettel",
+      "from_email_hash": "447d8de83a7b9c5d61116890bacb6dc0c76aee31b3011a41fb7d3c62dac9042f",
+      "date": "2010-07-29T17:16:25-05:00",
+      "subject": "[R-sig-hpc] Getting multithreaded R working (solution)",
+      "subject_clean": "Getting multithreaded R working (solution)",
+      "in_reply_to": "<4C51F6AE.3040404@wu.ac.at>",
+      "references": [
+        "<4C51F6AE.3040404@wu.ac.at>"
+      ],
+      "body_plain": "On 29 July 2010 at 23:46, Stefan Theussl wrote:\n| [...]\n|  > P.S. If anyone has *easy* instructions for getting atlas working as a\n|  > multithreaded library or how do drop in the Intel MKL (I couldn't\n|  > figure out which *.so would be the correct one) please let me know and\n|  > I'll post them as well.\n| \n| I did get MKL working with R via the following trick:\n| \n| 1) export \n| LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/intel/intel-mkl-9.0.018/lib/em64t\n| \n| 2) then configure with: \n| \"--with-blas=-L/opt/intel/intel-mkl-9.0.018/lib/em64t/ -lmkl -lguide \n| -lpthread\"\n| \n| Back then I used MKL version 9.0.018. I don't know if this still works \n| with more recent MKL or R.\n\nStep 2) should not be necessary.  The BLAS is a binary interface; you can\n\"simply\" drop the right ones in.  By having ld.so \"find\" the MKL ones before\nthe system ones, we made the MKL be used in the Revolution R release with\nUbuntu 9.10.  That still works for -- so no rebuilding of R needed here.\n\n\nOn 29 July 2010 at 14:56, Jonathan Greenberg wrote:\n| Have you (or anyone) gotten Intel MKL working via the \"plugin\"\n| approach that Dirk has setup for the debian packages, where you just\n| point:\n\n\nI have :)  \n\nI have a proof-of-concept shell script that takes advantage of the Debian /\nUbuntu package management system and does the following for benchmarks:\n\n    i)    removes all accelerates blas and runs with 'refblas'\n\n    ii)   installs Atlas and runs with 'atlas'\n\n    iii)  removes Atlas, install MKL (via aforementioned Revo package) and \n          runs with 'mkl'\n\n    iv)   remove MKL and install goto (using .deb package built with the neat\n          goto-helper package from the ISM in Japan) and run 'goto'\n  \nplus for kicks\n\n    v)    install gputools and runs with 'gpu'\n\nI showed first results in the 'Intro to HPC' tutorial at useR and want to do\nsome more work on this.  In fact, the gputools authors and I have a mostly\nempty project on r-forge for this but not had time to do much...\n\n\n\n-- \nDirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com",
+      "body_snippet": "On 29 July 2010 at 23:46, Stefan Theussl wrote:\n| [...]\n|  > P.S. If anyone has *easy* instructions for getting atlas working as a\n|  > multithreaded library or how do drop in the Intel MKL (I couldn'",
+      "thread_id": "thread-857e1bea2cbd",
+      "thread_depth": 1,
+      "month": "2010-07"
+    },
+    {
+      "id": "msg-f867d13f4793",
+      "message_id": "<AANLkTiknPzinuh987kr+ZgbxyX4+E+YWUfKHRWfSZoCv@mail.gmail.com>",
+      "from_name": "Jonathan Greenberg",
+      "from_email_hash": "e3d1f797a67ff50abd0f3272bc96c7dddb9dc310253ac9bc52161554b3ffd93f",
+      "date": "2010-07-29T15:29:19-07:00",
+      "subject": "[R-sig-hpc] Getting multithreaded R working (solution)",
+      "subject_clean": "Getting multithreaded R working (solution)",
+      "in_reply_to": "<19537.64953.893112.692398@max.nulle.part>",
+      "references": [
+        "<4C51F6AE.3040404@wu.ac.at>",
+        "<19537.64953.893112.692398@max.nulle.part>"
+      ],
+      "body_plain": "I really like that all we have to do is \"update-alternatives --install\n/usr/lib/libblas.so.3gf\" with your version -- gotoblas2 was a breeze\nto get working this technique.  Mostly with MKL I'm just unclear on\nwhat specific file I need to link against once its been installed.\nActually, along these lines, does LAPACK work independently from the\nBLAS, e.g. will the \"default\" LAPACK (sudo apt-get install\nliblapack-dev) use whichever BLAS happens to be linked up, or do we\nneed a different LAPACK (update-alternatives --config liblapack.so)\nfor each particularly BLAS we are using (e.g. use the GotoBLAS2 lapack\nwith GotoBLAS2, use Intel MKL's LAPACK, with Intel's BLAS, etc...)\n\nAnd unfortunately no revolution-mkl for debian yet :(  The intel\ninstall is easy tho, just run the install script and its all good.  I\ndid move it out of /opt tho and into /usr/lib to live with the rest of\nthe libraries on my system!\n\n--j\n\nOn Thu, Jul 29, 2010 at 3:16 PM, Dirk Eddelbuettel <edd at debian.org> wrote:\n>\n> On 29 July 2010 at 23:46, Stefan Theussl wrote:\n> | [...]\n> | ?> P.S. If anyone has *easy* instructions for getting atlas working as a\n> | ?> multithreaded library or how do drop in the Intel MKL (I couldn't\n> | ?> figure out which *.so would be the correct one) please let me know and\n> | ?> I'll post them as well.\n> |\n> | I did get MKL working with R via the following trick:\n> |\n> | 1) export\n> | LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/intel/intel-mkl-9.0.018/lib/em64t\n> |\n> | 2) then configure with:\n> | \"--with-blas=-L/opt/intel/intel-mkl-9.0.018/lib/em64t/ -lmkl -lguide\n> | -lpthread\"\n> |\n> | Back then I used MKL version 9.0.018. I don't know if this still works\n> | with more recent MKL or R.\n>\n> Step 2) should not be necessary. ?The BLAS is a binary interface; you can\n> \"simply\" drop the right ones in. ?By having ld.so \"find\" the MKL ones before\n> the system ones, we made the MKL be used in the Revolution R release with\n> Ubuntu 9.10. ?That still works for -- so no rebuilding of R needed here.\n>\n>\n> On 29 July 2010 at 14:56, Jonathan Greenberg wrote:\n> | Have you (or anyone) gotten Intel MKL working via the \"plugin\"\n> | approach that Dirk has setup for the debian packages, where you just\n> | point:\n>\n>\n> I have :)\n>\n> I have a proof-of-concept shell script that takes advantage of the Debian /\n> Ubuntu package management system and does the following for benchmarks:\n>\n> ? ?i) ? ?removes all accelerates blas and runs with 'refblas'\n>\n> ? ?ii) ? installs Atlas and runs with 'atlas'\n>\n> ? ?iii) ?removes Atlas, install MKL (via aforementioned Revo package) and\n> ? ? ? ? ?runs with 'mkl'\n>\n> ? ?iv) ? remove MKL and install goto (using .deb package built with the neat\n> ? ? ? ? ?goto-helper package from the ISM in Japan) and run 'goto'\n>\n> plus for kicks\n>\n> ? ?v) ? ?install gputools and runs with 'gpu'\n>\n> I showed first results in the 'Intro to HPC' tutorial at useR and want to do\n> some more work on this. ?In fact, the gputools authors and I have a mostly\n> empty project on r-forge for this but not had time to do much...\n>\n>\n>\n> --\n> Dirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com\n>",
+      "body_snippet": "I really like that all we have to do is \"update-alternatives --install\n/usr/lib/libblas.so.3gf\" with your version -- gotoblas2 was a breeze\nto get working this technique.  Mostly with MKL I'm just unc",
+      "thread_id": "thread-857e1bea2cbd",
+      "thread_depth": 2,
+      "month": "2010-07"
+    },
+    {
+      "id": "msg-f731b5e36077",
+      "message_id": "<AANLkTin7Lfb9S+jBg+aUN26ah-NVTqm5u-45rWa4Q2-7@mail.gmail.com>",
+      "from_name": "Jonathan Greenberg",
+      "from_email_hash": "e3d1f797a67ff50abd0f3272bc96c7dddb9dc310253ac9bc52161554b3ffd93f",
+      "date": "2010-07-29T16:19:10-07:00",
+      "subject": "[R-sig-hpc] Getting multithreaded R working (solution)",
+      "subject_clean": "Getting multithreaded R working (solution)",
+      "in_reply_to": "<AANLkTiknPzinuh987kr+ZgbxyX4+E+YWUfKHRWfSZoCv@mail.gmail.com>",
+      "references": [
+        "<4C51F6AE.3040404@wu.ac.at>",
+        "<19537.64953.893112.692398@max.nulle.part>",
+        "<AANLkTiknPzinuh987kr+ZgbxyX4+E+YWUfKHRWfSZoCv@mail.gmail.com>"
+      ],
+      "body_plain": "Dirk:\n\nHave you seen whether there is any significant performance boost in a\nmultithreaded system between GotoBLAS2 and Intel MKL?  I'm curious if\nI should be spending time trying to get Intel MKL configured if I\nalready have a working GotoBLAS2...\n\n--j\n\nOn Thu, Jul 29, 2010 at 3:29 PM, Jonathan Greenberg\n<greenberg at ucdavis.edu> wrote:\n> I really like that all we have to do is \"update-alternatives --install\n> /usr/lib/libblas.so.3gf\" with your version -- gotoblas2 was a breeze\n> to get working this technique. ?Mostly with MKL I'm just unclear on\n> what specific file I need to link against once its been installed.\n> Actually, along these lines, does LAPACK work independently from the\n> BLAS, e.g. will the \"default\" LAPACK (sudo apt-get install\n> liblapack-dev) use whichever BLAS happens to be linked up, or do we\n> need a different LAPACK (update-alternatives --config liblapack.so)\n> for each particularly BLAS we are using (e.g. use the GotoBLAS2 lapack\n> with GotoBLAS2, use Intel MKL's LAPACK, with Intel's BLAS, etc...)\n>\n> And unfortunately no revolution-mkl for debian yet :( ?The intel\n> install is easy tho, just run the install script and its all good. ?I\n> did move it out of /opt tho and into /usr/lib to live with the rest of\n> the libraries on my system!\n>\n> --j\n>\n> On Thu, Jul 29, 2010 at 3:16 PM, Dirk Eddelbuettel <edd at debian.org> wrote:\n>>\n>> On 29 July 2010 at 23:46, Stefan Theussl wrote:\n>> | [...]\n>> | ?> P.S. If anyone has *easy* instructions for getting atlas working as a\n>> | ?> multithreaded library or how do drop in the Intel MKL (I couldn't\n>> | ?> figure out which *.so would be the correct one) please let me know and\n>> | ?> I'll post them as well.\n>> |\n>> | I did get MKL working with R via the following trick:\n>> |\n>> | 1) export\n>> | LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/intel/intel-mkl-9.0.018/lib/em64t\n>> |\n>> | 2) then configure with:\n>> | \"--with-blas=-L/opt/intel/intel-mkl-9.0.018/lib/em64t/ -lmkl -lguide\n>> | -lpthread\"\n>> |\n>> | Back then I used MKL version 9.0.018. I don't know if this still works\n>> | with more recent MKL or R.\n>>\n>> Step 2) should not be necessary. ?The BLAS is a binary interface; you can\n>> \"simply\" drop the right ones in. ?By having ld.so \"find\" the MKL ones before\n>> the system ones, we made the MKL be used in the Revolution R release with\n>> Ubuntu 9.10. ?That still works for -- so no rebuilding of R needed here.\n>>\n>>\n>> On 29 July 2010 at 14:56, Jonathan Greenberg wrote:\n>> | Have you (or anyone) gotten Intel MKL working via the \"plugin\"\n>> | approach that Dirk has setup for the debian packages, where you just\n>> | point:\n>>\n>>\n>> I have :)\n>>\n>> I have a proof-of-concept shell script that takes advantage of the Debian /\n>> Ubuntu package management system and does the following for benchmarks:\n>>\n>> ? ?i) ? ?removes all accelerates blas and runs with 'refblas'\n>>\n>> ? ?ii) ? installs Atlas and runs with 'atlas'\n>>\n>> ? ?iii) ?removes Atlas, install MKL (via aforementioned Revo package) and\n>> ? ? ? ? ?runs with 'mkl'\n>>\n>> ? ?iv) ? remove MKL and install goto (using .deb package built with the neat\n>> ? ? ? ? ?goto-helper package from the ISM in Japan) and run 'goto'\n>>\n>> plus for kicks\n>>\n>> ? ?v) ? ?install gputools and runs with 'gpu'\n>>\n>> I showed first results in the 'Intro to HPC' tutorial at useR and want to do\n>> some more work on this. ?In fact, the gputools authors and I have a mostly\n>> empty project on r-forge for this but not had time to do much...\n>>\n>>\n>>\n>> --\n>> Dirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com\n>>\n>",
+      "body_snippet": "Dirk:\n\nHave you seen whether there is any significant performance boost in a\nmultithreaded system between GotoBLAS2 and Intel MKL?  I'm curious if\nI should be spending time trying to get Intel MKL con",
+      "thread_id": "thread-857e1bea2cbd",
+      "thread_depth": 3,
+      "month": "2010-07"
+    },
+    {
+      "id": "msg-dd359c4e9eeb",
+      "message_id": "<19538.3570.782817.200737@max.nulle.part>",
+      "from_name": "Dirk Eddelbuettel",
+      "from_email_hash": "447d8de83a7b9c5d61116890bacb6dc0c76aee31b3011a41fb7d3c62dac9042f",
+      "date": "2010-07-29T18:25:38-05:00",
+      "subject": "[R-sig-hpc] Getting multithreaded R working (solution)",
+      "subject_clean": "Getting multithreaded R working (solution)",
+      "in_reply_to": "<AANLkTiknPzinuh987kr+ZgbxyX4+E+YWUfKHRWfSZoCv@mail.gmail.com>",
+      "references": [
+        "<4C51F6AE.3040404@wu.ac.at>",
+        "<19537.64953.893112.692398@max.nulle.part>",
+        "<AANLkTiknPzinuh987kr+ZgbxyX4+E+YWUfKHRWfSZoCv@mail.gmail.com>"
+      ],
+      "body_plain": "On 29 July 2010 at 15:29, Jonathan Greenberg wrote:\n| And unfortunately no revolution-mkl for debian yet :(  The intel\n\nThe ones from Ubuntu seem to run ;-)\n\n| install is easy tho, just run the install script and its all good.  I\n| did move it out of /opt tho and into /usr/lib to live with the rest of\n| the libraries on my system!\n\nOne word: \"Don't\". Moving files by hand into /usr (where dpkg and apt rule)\nis simply a Very Bad Idea (TM).  Just say no.  Create a local deb, or simply\nset up a /etc/ld.so.conf.d/localBlas.conf (look at other files there).\n\n-- \nDirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com",
+      "body_snippet": "On 29 July 2010 at 15:29, Jonathan Greenberg wrote:\n| And unfortunately no revolution-mkl for debian yet :(  The intel\n\nThe ones from Ubuntu seem to run ;-)\n\n| install is easy tho, just run the instal",
+      "thread_id": "thread-857e1bea2cbd",
+      "thread_depth": 3,
+      "month": "2010-07"
+    },
+    {
+      "id": "msg-4e7d0b6b90e0",
+      "message_id": "<19538.4264.233774.903278@max.nulle.part>",
+      "from_name": "Dirk Eddelbuettel",
+      "from_email_hash": "447d8de83a7b9c5d61116890bacb6dc0c76aee31b3011a41fb7d3c62dac9042f",
+      "date": "2010-07-29T18:37:12-05:00",
+      "subject": "[R-sig-hpc] Getting multithreaded R working (solution)",
+      "subject_clean": "Getting multithreaded R working (solution)",
+      "in_reply_to": "<AANLkTin7Lfb9S+jBg+aUN26ah-NVTqm5u-45rWa4Q2-7@mail.gmail.com>",
+      "references": [
+        "<4C51F6AE.3040404@wu.ac.at>",
+        "<19537.64953.893112.692398@max.nulle.part>",
+        "<AANLkTiknPzinuh987kr+ZgbxyX4+E+YWUfKHRWfSZoCv@mail.gmail.com>",
+        "<AANLkTin7Lfb9S+jBg+aUN26ah-NVTqm5u-45rWa4Q2-7@mail.gmail.com>"
+      ],
+      "body_plain": "On 29 July 2010 at 16:19, Jonathan Greenberg wrote:\n| Have you seen whether there is any significant performance boost in a\n| multithreaded system between GotoBLAS2 and Intel MKL?  I'm curious if\n| I should be spending time trying to get Intel MKL configured if I\n| already have a working GotoBLAS2...\n\nOn the (very, very limited) testing I have done they were at par.\n\n-- \nDirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com",
+      "body_snippet": "On 29 July 2010 at 16:19, Jonathan Greenberg wrote:\n| Have you seen whether there is any significant performance boost in a\n| multithreaded system between GotoBLAS2 and Intel MKL?  I'm curious if\n| I ",
+      "thread_id": "thread-857e1bea2cbd",
+      "thread_depth": 4,
+      "month": "2010-07"
+    },
+    {
+      "id": "msg-2727cce207dd",
+      "message_id": "<AANLkTi=vzVux_bSvg1-UhPBdef8PFA5NfWZiytU0cWTc@mail.gmail.com>",
+      "from_name": "Jonathan Greenberg",
+      "from_email_hash": "e3d1f797a67ff50abd0f3272bc96c7dddb9dc310253ac9bc52161554b3ffd93f",
+      "date": "2010-07-29T16:58:57-07:00",
+      "subject": "[R-sig-hpc] Getting multithreaded R working (solution)",
+      "subject_clean": "Getting multithreaded R working (solution)",
+      "in_reply_to": "<19538.3570.782817.200737@max.nulle.part>",
+      "references": [
+        "<4C51F6AE.3040404@wu.ac.at>",
+        "<19537.64953.893112.692398@max.nulle.part>",
+        "<AANLkTiknPzinuh987kr+ZgbxyX4+E+YWUfKHRWfSZoCv@mail.gmail.com>",
+        "<19538.3570.782817.200737@max.nulle.part>"
+      ],
+      "body_plain": "I would completely agree about moving stuff except that there is no\n.deb for Debian, so the Intel MKL I had was installed \"by hand\"\nanyway, so no harm done, unless apt or dpkg decide to remove folders\nthey have no business touching.\n\nThanks for the info on goto vs. mkl, it looks like the dynamic linking\nin MKL v. 10 is a bit different from v 9 -- in theory I should just\nhave to link up libmkl_core.so but I'm getting an error when using\nthis with R, I get an error as soon as I boot up R:\n\nError in dyn.load(file, DLLpath = DLLpath, ...) :\n  unable to load shared library '/usr/lib64/R/library/stats/libs/stats.so':\n  /usr/lib64/R/library/stats/libs/stats.so: undefined symbol: dswap_\nDuring startup - Warning message:\npackage stats in options(\"defaultPackages\") was not found\n\nHere is my update-alternatives setting:\n\nThere are 4 choices for the alternative libblas.so.3gf (providing\n/usr/lib/libblas.so.3gf).\n\n  Selection    Path\nPriority   Status\n------------------------------------------------------------\n  0            /usr/lib/atlas-corei7sse3/atlas/libblas.so.3gf\n 60        auto mode\n  1            /usr/lib/atlas-corei7sse3/atlas/libblas.so.3gf\n 60        manual mode\n  2            /usr/lib/gotoblas2/libgoto2_core2p-r1.13.so\n 5         manual mode\n* 3            /usr/lib/intel/mkl/10.2.5.035/lib/em64t/libmkl_core.so\n 5         manual mode\n  4            /usr/lib/libblas/libblas.so.3gf\n 10        manual mode\n\nWe'll push ahead with gotoblas2, but if you have any ideas on\ndynamically linking a non-deb version of MKL, please let me know!  Its\nnice seeing all our processor lit up when using R!\n\n--j\n\nOn Thu, Jul 29, 2010 at 4:25 PM, Dirk Eddelbuettel <edd at debian.org> wrote:\n>\n> On 29 July 2010 at 15:29, Jonathan Greenberg wrote:\n> | And unfortunately no revolution-mkl for debian yet :( ?The intel\n>\n> The ones from Ubuntu seem to run ;-)\n>\n> | install is easy tho, just run the install script and its all good. ?I\n> | did move it out of /opt tho and into /usr/lib to live with the rest of\n> | the libraries on my system!\n>\n> One word: \"Don't\". Moving files by hand into /usr (where dpkg and apt rule)\n> is simply a Very Bad Idea (TM). ?Just say no. ?Create a local deb, or simply\n> set up a /etc/ld.so.conf.d/localBlas.conf (look at other files there).\n>\n> --\n> Dirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com\n>",
+      "body_snippet": "I would completely agree about moving stuff except that there is no\n.deb for Debian, so the Intel MKL I had was installed \"by hand\"\nanyway, so no harm done, unless apt or dpkg decide to remove folders",
+      "thread_id": "thread-857e1bea2cbd",
+      "thread_depth": 4,
+      "month": "2010-07"
+    },
+    {
+      "id": "msg-5e1a5232cb80",
+      "message_id": "<AANLkTi=gP=FK8JMDvRC1Xo3Kx5X--DFekt=648o-9NR-@mail.gmail.com>",
+      "from_name": "Ei-ji Nakama",
+      "from_email_hash": "287a261a23e709ca3530a6c601118b8b3e722caf557d2663cc59d766c87e025a",
+      "date": "2010-07-30T16:27:13+09:00",
+      "subject": "[R-sig-hpc] Getting multithreaded R working (solution)",
+      "subject_clean": "Getting multithreaded R working (solution)",
+      "in_reply_to": "<AANLkTi=vzVux_bSvg1-UhPBdef8PFA5NfWZiytU0cWTc@mail.gmail.com>",
+      "references": [
+        "<4C51F6AE.3040404@wu.ac.at>",
+        "<19537.64953.893112.692398@max.nulle.part>",
+        "<AANLkTiknPzinuh987kr+ZgbxyX4+E+YWUfKHRWfSZoCv@mail.gmail.com>",
+        "<19538.3570.782817.200737@max.nulle.part>",
+        "<AANLkTi=vzVux_bSvg1-UhPBdef8PFA5NfWZiytU0cWTc@mail.gmail.com>"
+      ],
+      "body_plain": "Hi\n\n2010/7/30 Jonathan Greenberg <greenberg at ucdavis.edu>:\n> We'll push ahead with gotoblas2, but if you have any ideas on\n> dynamically linking a non-deb version of MKL, please let me know!  Its\n> nice seeing all our processor lit up when using R!\n\n$ wget http://prs.ism.ac.jp/~nakama/debian/lenny-ism/gotoblas2-helper_0.1-12_all.deb\n$ dpkg -i gotoblas2-helper_0.1-12_all.deb\n\nregister\n$ iceweasel http://www.tacc.utexas.edu/?id=402\n\nedit username and password\n$ sudo vi /etc/gotoblas2-helper/gotoblas2-site.conf\n\ndownload,dpkg-buildpackage and dpkg -i\n$ sudo  /etc/init.d/gotoblas2-helper start\n\n$ LANG=C ls -al  /usr/lib/gotoblas2/\ntotal 33344\ndrwxr-xr-x   2 root root     4096 Feb  8 14:23 .\ndrwxr-xr-x 301 root root   143360 Jul 30 12:03 ..\n-rw-r--r--   1 root root 11012466 Feb  8 14:22 libblas.a\nlrwxrwxrwx   1 root root       14 Feb  8 14:23 libblas.so -> libblas.so.3gf\nlrwxrwxrwx   1 root root       16 Feb  8 14:23 libblas.so.3gf ->\nlibblas.so.3gf.0\n-rw-r--r--   1 root root  6057883 Feb  8 14:22 libblas.so.3gf.0\n-rw-r--r--   1 root root  8825058 Feb  8 14:22 liblapack.a\nlrwxrwxrwx   1 root root       16 Feb  8 14:23 liblapack.so -> liblapack.so.3gf\nlrwxrwxrwx   1 root root       18 Feb  8 14:23 liblapack.so.3gf ->\nliblapack.so.3gf.0\n-rw-r--r--   1 root root  8033064 Feb  8 14:22 liblapack.so.3gf.0\n\n$ ldd /usr/lib64/R/lib/libR.so | grep blas\n\tlibblas.so.3gf => /usr/lib/gotoblas2/libblas.so.3gf (0x00007f2ebcea3000)\n\n-- \nEI-JI Nakama? <nakama (a) ki.rim.or.jp>\n\"\\u4e2d\\u9593\\u6804\\u6cbb\"? <nakama (a) ki.rim.or.jp>",
+      "body_snippet": "Hi\n\n2010/7/30 Jonathan Greenberg <greenberg at ucdavis.edu>:\n> We'll push ahead with gotoblas2, but if you have any ideas on\n> dynamically linking a non-deb version of MKL, please let me know!  Its\n> ",
+      "thread_id": "thread-857e1bea2cbd",
+      "thread_depth": 5,
+      "month": "2010-07"
+    }
+  ],
+  "threads": [
+    {
+      "id": "thread-085291b87f91",
+      "subject": "snow, open mpi and \"Connection to lifeline [[62364, 0], 0] lost\"",
+      "message_count": 2,
+      "participants": [
+        "Dirk Eddelbuettel",
+        "Jonathan Greenberg"
+      ],
+      "started": "2010-07-06T10:11:55-07:00",
+      "last_reply": "2010-07-11T08:31:26-05:00",
+      "root_message_id": "msg-085291b87f91"
+    },
+    {
+      "id": "thread-927af9226bef",
+      "subject": "problems with Rmpi under PBS",
+      "message_count": 2,
+      "participants": [
+        "Hao Yu",
+        "Vikneswaran Gopal"
+      ],
+      "started": "2010-07-14T23:42:46-07:00",
+      "last_reply": "2010-07-16T10:09:26-04:00",
+      "root_message_id": "msg-927af9226bef"
+    },
+    {
+      "id": "thread-74098d65fe93",
+      "subject": "Short survey concerning the use of software engineering in the field of High Performance Computing",
+      "message_count": 1,
+      "participants": [
+        "Markus Schmidberger"
+      ],
+      "started": "2010-07-15T15:58:02+02:00",
+      "last_reply": "2010-07-15T15:58:02+02:00",
+      "root_message_id": "msg-74098d65fe93"
+    },
+    {
+      "id": "thread-9455c02fd74e",
+      "subject": "Problems of submitting Rmpi Parallel Job with LSF",
+      "message_count": 2,
+      "participants": [
+        "Dirk Eddelbuettel",
+        "hongxu"
+      ],
+      "started": "2010-07-23T10:17:41+08:00",
+      "last_reply": "2010-07-25T20:02:29-05:00",
+      "root_message_id": "msg-9455c02fd74e"
+    },
+    {
+      "id": "thread-c98174b8f364",
+      "subject": "(help)After writing data in MMF using SEXP structure, can i reference  in R?",
+      "message_count": 1,
+      "participants": [
+        "Jens Oehlschlägel"
+      ],
+      "started": "2010-07-28T10:28:08+02:00",
+      "last_reply": "2010-07-28T10:28:08+02:00",
+      "root_message_id": "msg-c98174b8f364"
+    },
+    {
+      "id": "thread-38846c0079dd",
+      "subject": "Getting multithreaded R working (solution)",
+      "message_count": 1,
+      "participants": [
+        "Jonathan Greenberg"
+      ],
+      "started": "2010-07-28T17:02:59-07:00",
+      "last_reply": "2010-07-28T17:02:59-07:00",
+      "root_message_id": "msg-38846c0079dd"
+    },
+    {
+      "id": "thread-857e1bea2cbd",
+      "subject": "Getting multithreaded R working (solution)",
+      "message_count": 9,
+      "participants": [
+        "Dirk Eddelbuettel",
+        "Ei-ji Nakama",
+        "Jonathan Greenberg",
+        "Stefan Theussl"
+      ],
+      "started": "2010-07-29T23:46:22+02:00",
+      "last_reply": "2010-07-30T16:27:13+09:00",
+      "root_message_id": "msg-857e1bea2cbd"
+    }
+  ]
+}

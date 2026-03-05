@@ -1,0 +1,500 @@
+From marius.hofert at uwaterloo.ca  Tue Sep 26 11:56:56 2017
+From: marius.hofert at uwaterloo.ca (Marius Hofert)
+Date: Tue, 26 Sep 2017 11:56:56 +0200
+Subject: [R-sig-hpc] Rmpi: mpi.close.Rslaves() 'hangs'
+Message-ID: <CAM3-KjYkM7LSs-14EjVW9QFrRbR=T0d4s8BCv0KZYaz=vjV+wQ@mail.gmail.com>
+
+Hi,
+
+The example on ?mpi.close.Rslaves seems to 'hang' for me:
+
+library(Rmpi)
+mpi.spawn.Rslaves(nslaves=2)
+tailslave.log()
+mpi.remote.exec(rnorm(10))
+mpi.close.Rslaves() # => hangs
+
+... with output (hanging at the last line, not returning to the prompt):
+
+> library(Rmpi)
+> mpi.spawn.Rslaves(nslaves=2)
+tailslave.log()
+2 slaves are spawned successfully. 0 failed.
+master (rank 0, comm 1) of size 3 is running on: sklar
+slave1 (rank 1, comm 1) of size 3 is running on: sklar
+slave2 (rank 2, comm 1) of size 3 is running on: sklar
+>
+==> sklar.51249+1.51251.log <==
+Host: sklar Rank(ID): 1 of Size: 3 on comm 1
+
+==> sklar.51249+1.51252.log <==
+Host: sklar Rank(ID): 2 of Size: 3 on comm 1
+> mpi.remote.exec(rnorm(10))
+           X1         X2
+1   0.7266248 -1.3922235
+2   0.7212728  1.6761796
+3   0.4735390 -1.8894523
+4   1.3799295 -1.0452228
+5  -2.1399312 -0.3452672
+6   0.0909944  0.3565657
+7  -0.6401649  0.8735195
+8  -0.4515465 -0.8951751
+9  -0.2142557  0.1436790
+10 -1.3349072 -0.7224436
+> mpi.close.Rslaves()
+
+Below is my sessionInfo(). OpenMPI was installed correctly:
+
+mhofert at sklar:~$ mpirun --version
+mpirun (Open MPI) 2.1.1
+
+Report bugs to http://www.open-mpi.org/community/help/
+mhofert at sklar:~$
+
+More information:
+1) The above behavior is also mentioned in the last comment on
+https://github.com/Burke-Lauenroth-Lab/rSFSW2/issues/43
+2) We use(d) similar code in 'simsalapar' some time/years ago and it
+never failed. I haven't used the package myself in a while, so I just
+noticed (while trying to check the package, it 'hung'/never
+terminated). mpi.close.Rslaves() didn't seem to change in that time
+either. The only thing that changed is my hardware (no MacBook Pro
+"13, 2017; from MacBook Pro "15, 2015). I suspect it's related to that
+(?) but not sure.
+3) Since mpi.close.Rslaves() 'hangs', I see all workers still active
+(htop output).
+4) I reported this to both R-SIG-Mac and maintainer("Rmpi") but didn't
+get a reply.
+
+Thanks & cheers,
+Marius
+
+
+> sessionInfo()
+R version 3.4.1 (2017-06-30)
+Platform: x86_64-apple-darwin16.7.0 (64-bit)
+Running under: macOS Sierra 10.12.6
+
+Matrix products: default
+BLAS: /usr/local/R/R-3.4.1_build/lib/libRblas.dylib
+LAPACK: /usr/local/R/R-3.4.1_build/lib/libRlapack.dylib
+
+locale:
+[1] en_CA.UTF-8/en_CA.UTF-8/en_CA.UTF-8/C/en_CA.UTF-8/en_CA.UTF-8
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base
+
+other attached packages:
+[1] Rmpi_0.6-6
+
+loaded via a namespace (and not attached):
+[1] compiler_3.4.1 parallel_3.4.1
+
+
+From nakama at ki.rim.or.jp  Thu Sep 28 06:55:59 2017
+From: nakama at ki.rim.or.jp (Ei-ji Nakama)
+Date: Thu, 28 Sep 2017 13:55:59 +0900
+Subject: [R-sig-hpc] Rmpi: mpi.close.Rslaves() 'hangs'
+In-Reply-To: <CAM3-KjYkM7LSs-14EjVW9QFrRbR=T0d4s8BCv0KZYaz=vjV+wQ@mail.gmail.com>
+References: <CAM3-KjYkM7LSs-14EjVW9QFrRbR=T0d4s8BCv0KZYaz=vjV+wQ@mail.gmail.com>
+Message-ID: <CAJqeyYanvhDc7L7H8kjpyzJocduvyTzr771Sc6zbP7xSi1ps9w@mail.gmail.com>
+
+Hi,
+
+using openmpi-2.x same problem occurs on Linux.
+# There is no problem with openmpi 1.6 and openmpi 1.10
+
+$ orte-ps
+...
+$ echo "bt" | gdb -p <PID>
+Looping in MPI_Comm_disconnect...
+
+$ mkdir -p ~/.openmpi ; echo pmix_base_verbose=100 >> ~/.openmpi/mca-params.conf
+Debug information can be obtained by setting the above and executing
+the script...
+<<snip : debug result is long>>
+l was look it up ((but a little))
+
+When PMIX is used, the value is set to the following environment variable.
+> grep("^PMIX",names(Sys.getenv()),value=TRUE)
+[1] "PMIX_DEBUG"         "PMIX_NAMESPACE"     "PMIX_RANK"
+[4] "PMIX_SECURITY_MODE" "PMIX_SERVER_URI"
+
+Well, as an alternative, there is MPI_Comm_free, so if using PMIX it
+seems to be better to change to use MPI_Comm_Free without using
+MPI_Comm_disconnect.
+
+diff -ruN Rmpi.orig/R/Rparutilities.R Rmpi/R/Rparutilities.R
+--- Rmpi.orig/R/Rparutilities.R    2016-05-31 23:12:53.000
+000000 +0900
++++ Rmpi/R/Rparutilities.R    2017-09-28 12:41:50.545396494 +0900
+@@ -332,8 +332,12 @@
+     }
+ #     mpi.barrier(comm)
+     if (comm >0){
+-        if (is.loaded("mpi_comm_disconnect"))
+-            mpi.comm.disconnect(comm)
++        if (is.loaded("mpi_comm_disconnect")){
++            if (Sys.getenv("PMIX_NAMESPACE")=="")
++                mpi.comm.disconnect(comm)
++            else
++                mpi.comm.free(comm)
++        }
+         else
+             mpi.comm.free(comm)
+     }
+diff -ruN Rmpi.orig/inst/Rslaves.sh Rmpi/inst/Rslaves.sh
+--- Rmpi.orig/inst/Rslaves.sh    2012-09-05 01:17:59.000000000 +0900
++++ Rmpi/inst/Rslaves.sh    2017-09-27 15:07:05.205719837 +0900
+@@ -14,7 +14,7 @@
+
+ if  [ "$3" = "needlog" ]; then
+     hn=`hostname -s`
+-    $R_HOME/bin/R --no-init-file --slave --no-save -f  $1 > $hn.$2.$$.log 2>&1
++    exec $R_HOME/bin/R --no-init-file --slave --no-save -f  $1 >
+$hn.$2.$$.log 2>&1
+ else
+-    $R_HOME/bin/R --no-init-file --slave --no-save -f  $1 > /dev/null 2>&1
++    exec $R_HOME/bin/R --no-init-file --slave --no-save -f  $1 > /dev/null 2>&1
+ fi
+diff -ruN Rmpi.orig/inst/slavedaemon.R Rmpi/inst/slavedaemon.R
+--- Rmpi.orig/inst/slavedaemon.R    2013-02-23 13:07:54.000000000 +0900
++++ Rmpi/inst/slavedaemon.R    2017-09-28 11:45:19.598288064 +0900
+@@ -16,6 +16,9 @@
+ repeat
+     try(eval(mpi.bcast.cmd(rank=0,comm=.comm, nonblock=.nonblock,
+sleep=.sleep),envir=.GlobalEnv),TRUE)
+ print("Done")
+-invisible(mpi.comm.disconnect(.comm))
++if(Sys.getenv("PMIX_NAMESPACE")=="")
++    invisible(mpi.comm.disconnect(.comm))
++else
++    invisible(mpi.comm.free(.comm))
+ invisible(mpi.comm.set.errhandler(0))
+ mpi.quit()
+
+Best Regards,
+--
+
+
+From marius.hofert at uwaterloo.ca  Thu Sep 28 08:48:24 2017
+From: marius.hofert at uwaterloo.ca (Marius Hofert)
+Date: Thu, 28 Sep 2017 08:48:24 +0200
+Subject: [R-sig-hpc] Rmpi: mpi.close.Rslaves() 'hangs'
+In-Reply-To: <cef3c72cff094edb8e2dd08f1259049e@connhm04.connect.uwaterloo.ca>
+References: <CAM3-KjYkM7LSs-14EjVW9QFrRbR=T0d4s8BCv0KZYaz=vjV+wQ@mail.gmail.com>
+ <cef3c72cff094edb8e2dd08f1259049e@connhm04.connect.uwaterloo.ca>
+Message-ID: <CAM3-Kja=JXAxjECzWt0WnQjbn0tasHbJeNR-gjVsCQXkoBf=9w@mail.gmail.com>
+
+Hi Ei-ji,
+
+Thanks for your help.
+
+You lost me a bit... Here is what I got:
+
+1) I can confirm that I have Open MPI 2.1.1 (mpirun --version), so
+that is most likely the source of the problem (and the mpi version
+probably changed since I last used Rmpi and move to different
+hardware).
+
+2) As I understand, you suggest to use Rmpi's mpi.comm.free(comm)
+instead of mpi.comm.disconnect(comm). I thus adapted
+mpi.close.Rslave() (which 'hangs') to always call mpi.comm.free().
+More precisely, I defined mpi.close.Rslave2() which is changed in the
+last part in comparison to mpi.close.Rslave():
+
+    if (comm > 0) {
+        ## Changed (as it 'hangs' in openmpi-2.x):
+        ## if (is.loaded("mpi_comm_disconnect"))
+        ##     mpi.comm.disconnect(comm)
+        ## else
+        mpi.comm.free(comm)
+    }
+
+If I execute the minimal working example with this new
+mpi.close.Rslave2() at the end, something strange happens: *While*
+doing the computation, 'htop' doesn't show the two cores separately,
+but *after* executing it, the two cores show up and I need to manually
+'kill -9 <PID>' them.
+
+Any ideas?
+
+As a 'user' (not: maintainer), I don't think there's much I can do. I
+feel this needs to be addressed by the maintainer of Rmpi (as opposed
+to me hacking into mpi.close.Rslave()). I contacted the maintainer of
+Rmpi again, but still no response.
+
+Thanks & cheers,
+Marius
+
+
+On Thu, Sep 28, 2017 at 6:55 AM, Ei-ji Nakama <nakama at ki.rim.or.jp> wrote:
+> Hi,
+>
+> using openmpi-2.x same problem occurs on Linux.
+> # There is no problem with openmpi 1.6 and openmpi 1.10
+>
+> $ orte-ps
+> ...
+> $ echo "bt" | gdb -p <PID>
+> Looping in MPI_Comm_disconnect...
+>
+> $ mkdir -p ~/.openmpi ; echo pmix_base_verbose=100 >> ~/.openmpi/mca-params.conf
+> Debug information can be obtained by setting the above and executing
+> the script...
+> <<snip : debug result is long>>
+> l was look it up ((but a little))
+>
+> When PMIX is used, the value is set to the following environment variable.
+>> grep("^PMIX",names(Sys.getenv()),value=TRUE)
+> [1] "PMIX_DEBUG"         "PMIX_NAMESPACE"     "PMIX_RANK"
+> [4] "PMIX_SECURITY_MODE" "PMIX_SERVER_URI"
+>
+> Well, as an alternative, there is MPI_Comm_free, so if using PMIX it
+> seems to be better to change to use MPI_Comm_Free without using
+> MPI_Comm_disconnect.
+>
+> diff -ruN Rmpi.orig/R/Rparutilities.R Rmpi/R/Rparutilities.R
+> --- Rmpi.orig/R/Rparutilities.R    2016-05-31 23:12:53.000
+> 000000 +0900
+> +++ Rmpi/R/Rparutilities.R    2017-09-28 12:41:50.545396494 +0900
+> @@ -332,8 +332,12 @@
+>      }
+>  #     mpi.barrier(comm)
+>      if (comm >0){
+> -        if (is.loaded("mpi_comm_disconnect"))
+> -            mpi.comm.disconnect(comm)
+> +        if (is.loaded("mpi_comm_disconnect")){
+> +            if (Sys.getenv("PMIX_NAMESPACE")=="")
+> +                mpi.comm.disconnect(comm)
+> +            else
+> +                mpi.comm.free(comm)
+> +        }
+>          else
+>              mpi.comm.free(comm)
+>      }
+> diff -ruN Rmpi.orig/inst/Rslaves.sh Rmpi/inst/Rslaves.sh
+> --- Rmpi.orig/inst/Rslaves.sh    2012-09-05 01:17:59.000000000 +0900
+> +++ Rmpi/inst/Rslaves.sh    2017-09-27 15:07:05.205719837 +0900
+> @@ -14,7 +14,7 @@
+>
+>  if  [ "$3" = "needlog" ]; then
+>      hn=`hostname -s`
+> -    $R_HOME/bin/R --no-init-file --slave --no-save -f  $1 > $hn.$2.$$.log 2>&1
+> +    exec $R_HOME/bin/R --no-init-file --slave --no-save -f  $1 >
+> $hn.$2.$$.log 2>&1
+>  else
+> -    $R_HOME/bin/R --no-init-file --slave --no-save -f  $1 > /dev/null 2>&1
+> +    exec $R_HOME/bin/R --no-init-file --slave --no-save -f  $1 > /dev/null 2>&1
+>  fi
+> diff -ruN Rmpi.orig/inst/slavedaemon.R Rmpi/inst/slavedaemon.R
+> --- Rmpi.orig/inst/slavedaemon.R    2013-02-23 13:07:54.000000000 +0900
+> +++ Rmpi/inst/slavedaemon.R    2017-09-28 11:45:19.598288064 +0900
+> @@ -16,6 +16,9 @@
+>  repeat
+>      try(eval(mpi.bcast.cmd(rank=0,comm=.comm, nonblock=.nonblock,
+> sleep=.sleep),envir=.GlobalEnv),TRUE)
+>  print("Done")
+> -invisible(mpi.comm.disconnect(.comm))
+> +if(Sys.getenv("PMIX_NAMESPACE")=="")
+> +    invisible(mpi.comm.disconnect(.comm))
+> +else
+> +    invisible(mpi.comm.free(.comm))
+>  invisible(mpi.comm.set.errhandler(0))
+>  mpi.quit()
+>
+> Best Regards,
+> --
+
+
+From nakama at ki.rim.or.jp  Thu Sep 28 09:31:04 2017
+From: nakama at ki.rim.or.jp (Ei-ji Nakama)
+Date: Thu, 28 Sep 2017 16:31:04 +0900
+Subject: [R-sig-hpc] Rmpi: mpi.close.Rslaves() 'hangs'
+In-Reply-To: <CAM3-Kja=JXAxjECzWt0WnQjbn0tasHbJeNR-gjVsCQXkoBf=9w@mail.gmail.com>
+References: <CAM3-KjYkM7LSs-14EjVW9QFrRbR=T0d4s8BCv0KZYaz=vjV+wQ@mail.gmail.com>
+ <cef3c72cff094edb8e2dd08f1259049e@connhm04.connect.uwaterloo.ca>
+ <CAM3-Kja=JXAxjECzWt0WnQjbn0tasHbJeNR-gjVsCQXkoBf=9w@mail.gmail.com>
+Message-ID: <CAJqeyYY91xYZQxqzc9UpACdG5y0G46soNJFWytrg9vbbEnqjpQ@mail.gmail.com>
+
+Hi,
+
+2017-09-28 15:48 GMT+09:00 Marius Hofert <marius.hofert at uwaterloo.ca>:
+> If I execute the minimal working example with this new
+> mpi.close.Rslave2() at the end, something strange happens: *While*
+> doing the computation, 'htop' doesn't show the two cores separately,
+> but *after* executing it, the two cores show up and I need to manually
+> 'kill -9 <PID>' them.
+>
+> Any ideas?
+
+Look at the modifications made to Rmpi/inst/slavedaemon.R
+MPI_Comm_disconnect is looping even on slave ...
+
+> On Thu, Sep 28, 2017 at 6:55 AM, Ei-ji Nakama <nakama at ki.rim.or.jp> wrote:
+>> diff -ruN Rmpi.orig/inst/slavedaemon.R Rmpi/inst/slavedaemon.R
+>> --- Rmpi.orig/inst/slavedaemon.R    2013-02-23 13:07:54.000000000 +0900
+>> +++ Rmpi/inst/slavedaemon.R    2017-09-28 11:45:19.598288064 +0900
+>> @@ -16,6 +16,9 @@
+>>  repeat
+>>      try(eval(mpi.bcast.cmd(rank=0,comm=.comm, nonblock=.nonblock,
+>> sleep=.sleep),envir=.GlobalEnv),TRUE)
+>>  print("Done")
+>> -invisible(mpi.comm.disconnect(.comm))
+>> +if(Sys.getenv("PMIX_NAMESPACE")=="")
+>> +    invisible(mpi.comm.disconnect(.comm))
+>> +else
+>> +    invisible(mpi.comm.free(.comm))
+>>  invisible(mpi.comm.set.errhandler(0))
+>>  mpi.quit()
+
+-- 
+Best Regards,
+--
+Eiji NAKAMA <nakama (a) ki.rim.or.jp>
+"\u4e2d\u9593\u6804\u6cbb"  <nakama (a) ki.rim.or.jp>
+
+
+From marius.hofert at uwaterloo.ca  Thu Sep 28 09:51:34 2017
+From: marius.hofert at uwaterloo.ca (Marius Hofert)
+Date: Thu, 28 Sep 2017 09:51:34 +0200
+Subject: [R-sig-hpc] Rmpi: mpi.close.Rslaves() 'hangs'
+In-Reply-To: <c9a66c5e512743849683e77be7e18b98@connhm04.connect.uwaterloo.ca>
+References: <CAM3-KjYkM7LSs-14EjVW9QFrRbR=T0d4s8BCv0KZYaz=vjV+wQ@mail.gmail.com>
+ <cef3c72cff094edb8e2dd08f1259049e@connhm04.connect.uwaterloo.ca>
+ <CAM3-Kja=JXAxjECzWt0WnQjbn0tasHbJeNR-gjVsCQXkoBf=9w@mail.gmail.com>
+ <c9a66c5e512743849683e77be7e18b98@connhm04.connect.uwaterloo.ca>
+Message-ID: <CAM3-KjZudcfPzuP3Lqctw+qY8hxt7Gi7=4DUV49VTu-q+ay2gQ@mail.gmail.com>
+
+Hi,
+
+Thanks. I see the loop.
+
+What are you suggesting? That this is a bug introduced to Rmpi? ... or
+to use an older version of openmpi for now (?).
+
+Cheers,
+M
+
+
+
+On Thu, Sep 28, 2017 at 9:31 AM, Ei-ji Nakama <nakama at ki.rim.or.jp> wrote:
+> Hi,
+>
+> 2017-09-28 15:48 GMT+09:00 Marius Hofert <marius.hofert at uwaterloo.ca>:
+>> If I execute the minimal working example with this new
+>> mpi.close.Rslave2() at the end, something strange happens: *While*
+>> doing the computation, 'htop' doesn't show the two cores separately,
+>> but *after* executing it, the two cores show up and I need to manually
+>> 'kill -9 <PID>' them.
+>>
+>> Any ideas?
+>
+> Look at the modifications made to Rmpi/inst/slavedaemon.R
+> MPI_Comm_disconnect is looping even on slave ...
+>
+>> On Thu, Sep 28, 2017 at 6:55 AM, Ei-ji Nakama <nakama at ki.rim.or.jp> wrote:
+>>> diff -ruN Rmpi.orig/inst/slavedaemon.R Rmpi/inst/slavedaemon.R
+>>> --- Rmpi.orig/inst/slavedaemon.R    2013-02-23 13:07:54.000000000 +0900
+>>> +++ Rmpi/inst/slavedaemon.R    2017-09-28 11:45:19.598288064 +0900
+>>> @@ -16,6 +16,9 @@
+>>>  repeat
+>>>      try(eval(mpi.bcast.cmd(rank=0,comm=.comm, nonblock=.nonblock,
+>>> sleep=.sleep),envir=.GlobalEnv),TRUE)
+>>>  print("Done")
+>>> -invisible(mpi.comm.disconnect(.comm))
+>>> +if(Sys.getenv("PMIX_NAMESPACE")=="")
+>>> +    invisible(mpi.comm.disconnect(.comm))
+>>> +else
+>>> +    invisible(mpi.comm.free(.comm))
+>>>  invisible(mpi.comm.set.errhandler(0))
+>>>  mpi.quit()
+>
+> --
+> Best Regards,
+> --
+> Eiji NAKAMA <nakama (a) ki.rim.or.jp>
+> "\u4e2d\u9593\u6804\u6cbb"  <nakama (a) ki.rim.or.jp>
+
+
+From nakama at ki.rim.or.jp  Thu Sep 28 10:10:55 2017
+From: nakama at ki.rim.or.jp (Ei-ji Nakama)
+Date: Thu, 28 Sep 2017 17:10:55 +0900
+Subject: [R-sig-hpc] Rmpi: mpi.close.Rslaves() 'hangs'
+In-Reply-To: <CAM3-KjZudcfPzuP3Lqctw+qY8hxt7Gi7=4DUV49VTu-q+ay2gQ@mail.gmail.com>
+References: <CAM3-KjYkM7LSs-14EjVW9QFrRbR=T0d4s8BCv0KZYaz=vjV+wQ@mail.gmail.com>
+ <cef3c72cff094edb8e2dd08f1259049e@connhm04.connect.uwaterloo.ca>
+ <CAM3-Kja=JXAxjECzWt0WnQjbn0tasHbJeNR-gjVsCQXkoBf=9w@mail.gmail.com>
+ <c9a66c5e512743849683e77be7e18b98@connhm04.connect.uwaterloo.ca>
+ <CAM3-KjZudcfPzuP3Lqctw+qY8hxt7Gi7=4DUV49VTu-q+ay2gQ@mail.gmail.com>
+Message-ID: <CAJqeyYaKnAD1J5zZo=g6Fp5H99tuJNHW+ezpuf1S17WkUWDkyA@mail.gmail.com>
+
+Hi,
+
+MPI has several implementations.
+Rmpi also avoids various MPI defects, I do not know them all.
+So it can not be judged that this is better.
+Well, it may be a bug(or specification?!) in MPI_Comm_disconnect in
+openmpi 2.x...
+
+2017-09-28 16:51 GMT+09:00 Marius Hofert <marius.hofert at uwaterloo.ca>:
+> Hi,
+>
+> Thanks. I see the loop.
+>
+> What are you suggesting? That this is a bug introduced to Rmpi? ... or
+> to use an older version of openmpi for now (?).
+>
+> Cheers,
+> M
+>
+>
+>
+> On Thu, Sep 28, 2017 at 9:31 AM, Ei-ji Nakama <nakama at ki.rim.or.jp> wrote:
+>> Hi,
+>>
+>> 2017-09-28 15:48 GMT+09:00 Marius Hofert <marius.hofert at uwaterloo.ca>:
+>>> If I execute the minimal working example with this new
+>>> mpi.close.Rslave2() at the end, something strange happens: *While*
+>>> doing the computation, 'htop' doesn't show the two cores separately,
+>>> but *after* executing it, the two cores show up and I need to manually
+>>> 'kill -9 <PID>' them.
+>>>
+>>> Any ideas?
+>>
+>> Look at the modifications made to Rmpi/inst/slavedaemon.R
+>> MPI_Comm_disconnect is looping even on slave ...
+>>
+>>> On Thu, Sep 28, 2017 at 6:55 AM, Ei-ji Nakama <nakama at ki.rim.or.jp> wrote:
+>>>> diff -ruN Rmpi.orig/inst/slavedaemon.R Rmpi/inst/slavedaemon.R
+>>>> --- Rmpi.orig/inst/slavedaemon.R    2013-02-23 13:07:54.000000000 +0900
+>>>> +++ Rmpi/inst/slavedaemon.R    2017-09-28 11:45:19.598288064 +0900
+>>>> @@ -16,6 +16,9 @@
+>>>>  repeat
+>>>>      try(eval(mpi.bcast.cmd(rank=0,comm=.comm, nonblock=.nonblock,
+>>>> sleep=.sleep),envir=.GlobalEnv),TRUE)
+>>>>  print("Done")
+>>>> -invisible(mpi.comm.disconnect(.comm))
+>>>> +if(Sys.getenv("PMIX_NAMESPACE")=="")
+>>>> +    invisible(mpi.comm.disconnect(.comm))
+>>>> +else
+>>>> +    invisible(mpi.comm.free(.comm))
+>>>>  invisible(mpi.comm.set.errhandler(0))
+>>>>  mpi.quit()
+>>
+>> --
+>> Best Regards,
+>> --
+>> Eiji NAKAMA <nakama (a) ki.rim.or.jp>
+>> "\u4e2d\u9593\u6804\u6cbb"  <nakama (a) ki.rim.or.jp>
+
+
+
+-- 
+Best Regards,
+--
+Eiji NAKAMA <nakama (a) ki.rim.or.jp>
+"\u4e2d\u9593\u6804\u6cbb"  <nakama (a) ki.rim.or.jp>
+
+

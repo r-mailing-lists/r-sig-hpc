@@ -1,0 +1,620 @@
+{
+  "list": "r-sig-hpc",
+  "description": "",
+  "month": "2009-01",
+  "messages": [
+    {
+      "id": "msg-f1c7ad88283c",
+      "message_id": "<b0f0ada60901021355j7b313beesf7ac1c5099082229@mail.gmail.com>",
+      "from_name": "Gang Chen",
+      "from_email_hash": "af663321f5a18be30cc81be49fad0e4e1811d914ffd4c4b8c20a303b8f5e234e",
+      "date": "2009-01-02T16:55:03-05:00",
+      "subject": "[R-sig-hpc] Parallel computing with snow",
+      "subject_clean": "Parallel computing with snow",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "I've been using parApply() in snow package for parallel computing with\nthe following lines in R 2.8.1:\n\n   library(snow)\n   nNodes <- 4\n   cl <- makeCluster(nNodes, type = \"SOCK\")\n   fm <- parApply(cl, myData, c(1,2), func1, ...)\n\nSince I have a Mac OS X (version 10.4.11) with two dual-core\nprocessors, I thought that I could run 4 simultaneous clusters.\nHowever with the 1st job it seems only two clusters (362 and 364\nbelow) were running with roughly the same CPU time (4th column) while\nthe other two clusters were pretty much idling (I assume the 1st row\nwith PID 357 was the main process with which I started R):\n\n  PID COMMAND      %CPU   TIME   #TH #PRTS #MREGS RPRVT  RSHRD  RSIZE  VSIZE\n  357         R             0.0%       0:15.81   1    20   171   128M\n5.66M   137M   169M\n  362         R            99.8%      11:41.07   1    19   129  28.8M\n5.66M  38.3M  64.7M\n  364         R           100.3%      12:26.43   1    19   129  28.5M\n5.66M  38.0M  64.7M\n  366         R             0.0%       0:01.67   1    19   120  23.7M\n4.88M  32.3M  61.2M\n  368         R             0.0%       0:01.68   1    19   120  23.7M\n4.88M  32.3M  61.2M\n\nWhy weren't 4 clusters split roughly equally in CPU time with two barely used?\n\nI also tried a different job with fm <- parApply(cl, myData, c(1,2),\nfunc2, ...), and the result is slightly different with all 4 clusters\nmore or less involved although they were still not distributed evenly\nneither:\n\n  PID COMMAND      %CPU   TIME   #TH #PRTS #MREGS RPRVT  RSHRD  RSIZE  VSIZE\n  413          R            0.0%       0:18.46   1    20   119   221M\n4.57M   231M   250M\n  419          R           93.3%       2:53.62   1    19    80  18.0M\n4.57M  29.1M  51.2M\n  421          R           93.6%       6:07.85   1    19    79  15.9M\n4.57M  26.9M  50.2M\n  423          R           92.8%       5:12.13   1    19    79  17.4M\n4.57M  28.4M  50.2M\n  425          R           93.3%       1:39.73   1    19    82  20.0M\n4.57M  32.9M  53.2M\n\nWhat gives? Why different usage of clusters between the two jobs?\n\nAll help is highly appreciated,\nGang",
+      "body_snippet": "I've been using parApply() in snow package for parallel computing with\nthe following lines in R 2.8.1:\n\n   library(snow)\n   nNodes <- 4\n   cl <- makeCluster(nNodes, type = \"SOCK\")\n   fm <- parApply(cl",
+      "thread_id": "thread-f1c7ad88283c",
+      "thread_depth": 0,
+      "month": "2009-01"
+    },
+    {
+      "id": "msg-17a26387e6a7",
+      "message_id": "<alpine.OSX.2.00.0901041421530.10575@luke-tierneys-macbook-pro-15.local>",
+      "from_name": "luke at stat.uiowa.edu",
+      "from_email_hash": "a5794212f0450ee86843a234fdc23fdecc67cbd9935fd99e22e36e11b265bf20",
+      "date": "2009-01-04T14:28:13-06:00",
+      "subject": "[R-sig-hpc] Parallel computing with snow",
+      "subject_clean": "Parallel computing with snow",
+      "in_reply_to": "<b0f0ada60901021355j7b313beesf7ac1c5099082229@mail.gmail.com>",
+      "references": [
+        "<b0f0ada60901021355j7b313beesf7ac1c5099082229@mail.gmail.com>"
+      ],
+      "body_plain": "parApply should be dividing the data in roughly equal chunks.  If you\nget unequal usage that most likely reflects different performance of\nyour 'func1' and 'func2' on these chunks, assuming there is enough\ndata for 4 chunks. It is impossible kow more specifically \"what gives\"\nwithout knowing more about 'mData', 'func1, and 'func2'.\n\nluke\n\nOn Fri, 2 Jan 2009, Gang Chen wrote:\n\n> I've been using parApply() in snow package for parallel computing with\n> the following lines in R 2.8.1:\n>\n>   library(snow)\n>   nNodes <- 4\n>   cl <- makeCluster(nNodes, type = \"SOCK\")\n>   fm <- parApply(cl, myData, c(1,2), func1, ...)\n>\n> Since I have a Mac OS X (version 10.4.11) with two dual-core\n> processors, I thought that I could run 4 simultaneous clusters.\n> However with the 1st job it seems only two clusters (362 and 364\n> below) were running with roughly the same CPU time (4th column) while\n> the other two clusters were pretty much idling (I assume the 1st row\n> with PID 357 was the main process with which I started R):\n>\n>  PID COMMAND      %CPU   TIME   #TH #PRTS #MREGS RPRVT  RSHRD  RSIZE  VSIZE\n>  357         R             0.0%       0:15.81   1    20   171   128M\n> 5.66M   137M   169M\n>  362         R            99.8%      11:41.07   1    19   129  28.8M\n> 5.66M  38.3M  64.7M\n>  364         R           100.3%      12:26.43   1    19   129  28.5M\n> 5.66M  38.0M  64.7M\n>  366         R             0.0%       0:01.67   1    19   120  23.7M\n> 4.88M  32.3M  61.2M\n>  368         R             0.0%       0:01.68   1    19   120  23.7M\n> 4.88M  32.3M  61.2M\n>\n> Why weren't 4 clusters split roughly equally in CPU time with two barely used?\n>\n> I also tried a different job with fm <- parApply(cl, myData, c(1,2),\n> func2, ...), and the result is slightly different with all 4 clusters\n> more or less involved although they were still not distributed evenly\n> neither:\n>\n>  PID COMMAND      %CPU   TIME   #TH #PRTS #MREGS RPRVT  RSHRD  RSIZE  VSIZE\n>  413          R            0.0%       0:18.46   1    20   119   221M\n> 4.57M   231M   250M\n>  419          R           93.3%       2:53.62   1    19    80  18.0M\n> 4.57M  29.1M  51.2M\n>  421          R           93.6%       6:07.85   1    19    79  15.9M\n> 4.57M  26.9M  50.2M\n>  423          R           92.8%       5:12.13   1    19    79  17.4M\n> 4.57M  28.4M  50.2M\n>  425          R           93.3%       1:39.73   1    19    82  20.0M\n> 4.57M  32.9M  53.2M\n>\n> What gives? Why different usage of clusters between the two jobs?\n>\n> All help is highly appreciated,\n> Gang\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>\n\n-- \nLuke Tierney\nChair, Statistics and Actuarial Science\nRalph E. Wareham Professor of Mathematical Sciences\nUniversity of Iowa                  Phone:             319-335-3386\nDepartment of Statistics and        Fax:               319-335-3017\n    Actuarial Science\n241 Schaeffer Hall                  email:      luke at stat.uiowa.edu\nIowa City, IA 52242                 WWW:  http://www.stat.uiowa.edu",
+      "body_snippet": "parApply should be dividing the data in roughly equal chunks.  If you\nget unequal usage that most likely reflects different performance of\nyour 'func1' and 'func2' on these chunks, assuming there is e",
+      "thread_id": "thread-f1c7ad88283c",
+      "thread_depth": 1,
+      "month": "2009-01"
+    },
+    {
+      "id": "msg-280cf7931385",
+      "message_id": "<8ec76080901051123i2875ab46kdf74f9a64a993d02@mail.gmail.com>",
+      "from_name": "Whit Armstrong",
+      "from_email_hash": "9f0af921ac5e402b55cb0593a435b87162faa6caa4eef5ccb3498c95d81634d0",
+      "date": "2009-01-05T14:23:31-05:00",
+      "subject": "[R-sig-hpc] simple question on R/Rmpi/snow/slurm configuration",
+      "subject_clean": "simple question on R/Rmpi/snow/slurm configuration",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "I'm attempting to get Dirk's example from the \"intro to HCP with R\"\ntalk working (http://dirk.eddelbuettel.com/papers/bocDec2008introHPCwithR.pdf).\n\nI have slurm working correctly (all the trivial hostname examples\ncomplete successfully).\n\nI fire up an R sesssion w/ the following command\n\nsalloc orterun -n 7 R --vanilla\n\nand then run\nsuppressMessages(library(Rmpi))\n\nbut my console never returns control.\n\nit's just frozen until I <control-c> out of it at which point I get\nthis message:\n> suppressMessages(library(Rmpi))\n[linuxsvr.kls.corp:05875] mca: base: component_find: unable to open\nosc pt2pt: file not found (ignored)\norterun: killing job...\n\norterun noticed that job rank 0 with PID 5875 on node node0 exited on\nsignal 15 (Terminated).\nsalloc: Relinquishing job allocation 70\n[warmstrong at linuxsvr ~]$\n\nmeanwhile squeue shows:\n\n[warmstrong at linuxsvr ~]$ squeue\n  JOBID PARTITION     NAME     USER  ST       TIME  NODES NODELIST(REASON)\n     71      prod  orterun warmstro   R       0:31      1 node0\n[warmstrong at linuxsvr ~]$\n\n\nHave I missed something crucial?  Should I only be running these\nexamples in batch mode or with littler?\n\nThanks in advance,\nWhit",
+      "body_snippet": "I'm attempting to get Dirk's example from the \"intro to HCP with R\"\ntalk working (http://dirk.eddelbuettel.com/papers/bocDec2008introHPCwithR.pdf).\n\nI have slurm working correctly (all the trivial hos",
+      "thread_id": "thread-280cf7931385",
+      "thread_depth": 0,
+      "month": "2009-01"
+    },
+    {
+      "id": "msg-7cfc998a3152",
+      "message_id": "<6phprj1cwgk.fsf@gopher4.fhcrc.org>",
+      "from_name": "Martin Morgan",
+      "from_email_hash": "9f5a643078023be7f11cfed10069ce2b31d0a2cc98705fa84c2ae0e157a1fb93",
+      "date": "2009-01-05T12:46:35-08:00",
+      "subject": "[R-sig-hpc] simple question on R/Rmpi/snow/slurm configuration",
+      "subject_clean": "simple question on R/Rmpi/snow/slurm configuration",
+      "in_reply_to": "<8ec76080901051123i2875ab46kdf74f9a64a993d02@mail.gmail.com> (Whit Armstrong's message of \"Mon, 5 Jan 2009 14:23:31 -0500\")",
+      "references": [
+        "<8ec76080901051123i2875ab46kdf74f9a64a993d02@mail.gmail.com>"
+      ],
+      "body_plain": "\"Whit Armstrong\" <armstrong.whit at gmail.com> writes:\n\n> I'm attempting to get Dirk's example from the \"intro to HCP with R\"\n> talk working (http://dirk.eddelbuettel.com/papers/bocDec2008introHPCwithR.pdf).\n>\n> I have slurm working correctly (all the trivial hostname examples\n> complete successfully).\n>\n> I fire up an R sesssion w/ the following command\n>\n> salloc orterun -n 7 R --vanilla\n\nI think you want to salloc your universe, and then run R on one node\nof the universe\n\nsalloc -n 7 orterun -np 1 R --vanilla\n\nthen\n\n> library(Rmpi)\n> mpi.universe.size()\n\nwill report 7.\n\nMartin\n\n> and then run\n> suppressMessages(library(Rmpi))\n>\n> but my console never returns control.\n>\n> it's just frozen until I <control-c> out of it at which point I get\n> this message:\n>> suppressMessages(library(Rmpi))\n> [linuxsvr.kls.corp:05875] mca: base: component_find: unable to open\n> osc pt2pt: file not found (ignored)\n> orterun: killing job...\n>\n> orterun noticed that job rank 0 with PID 5875 on node node0 exited on\n> signal 15 (Terminated).\n> salloc: Relinquishing job allocation 70\n> [warmstrong at linuxsvr ~]$\n>\n> meanwhile squeue shows:\n>\n> [warmstrong at linuxsvr ~]$ squeue\n>   JOBID PARTITION     NAME     USER  ST       TIME  NODES NODELIST(REASON)\n>      71      prod  orterun warmstro   R       0:31      1 node0\n> [warmstrong at linuxsvr ~]$\n>\n>\n> Have I missed something crucial?  Should I only be running these\n> examples in batch mode or with littler?\n>\n> Thanks in advance,\n> Whit\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n\n-- \nMartin Morgan\nComputational Biology / Fred Hutchinson Cancer Research Center\n1100 Fairview Ave. N.\nPO Box 19024 Seattle, WA 98109\n\nLocation: Arnold Building M2 B169\nPhone: (206) 667-2793",
+      "body_snippet": "\"Whit Armstrong\" <armstrong.whit at gmail.com> writes:\n\n> I'm attempting to get Dirk's example from the \"intro to HCP with R\"\n> talk working (http://dirk.eddelbuettel.com/papers/bocDec2008introHPCwith",
+      "thread_id": "thread-280cf7931385",
+      "thread_depth": 1,
+      "month": "2009-01"
+    },
+    {
+      "id": "msg-ceeb74dee721",
+      "message_id": "<8ec76080901051304k18bc7ec8m1e0d325529400473@mail.gmail.com>",
+      "from_name": "Whit Armstrong",
+      "from_email_hash": "9f0af921ac5e402b55cb0593a435b87162faa6caa4eef5ccb3498c95d81634d0",
+      "date": "2009-01-05T16:04:14-05:00",
+      "subject": "[R-sig-hpc] simple question on R/Rmpi/snow/slurm configuration",
+      "subject_clean": "simple question on R/Rmpi/snow/slurm configuration",
+      "in_reply_to": "<6phprj1cwgk.fsf@gopher4.fhcrc.org>",
+      "references": [
+        "<8ec76080901051123i2875ab46kdf74f9a64a993d02@mail.gmail.com>",
+        "<6phprj1cwgk.fsf@gopher4.fhcrc.org>"
+      ],
+      "body_plain": "Thanks, Martin.\n\nI am able to load the Rmpi package when I run the command you suggest.\nHowever, when I call makeMPIcluster, the object returned is always\nnull:\n\n[warmstrong at linuxsvr ~]$ salloc -n 8 orterun -np 1 R --vanilla\nsalloc: Granted job allocation 84\n\nR version 2.8.0 (2008-10-20)\nCopyright (C) 2008 The R Foundation for Statistical Computing\n...\n...\n> library(Rmpi)\nlibrary(Rmpi)\n[linuxsvr.kls.corp:09097] mca: base: component_find: unable to open\nosc pt2pt: file not found (ignored)\n> library(snow)\nlibrary(snow)\n>  cl <- getMPIcluster()\n cl <- getMPIcluster()\n> cl\ncl\nNULL\n>  mpi.universe.size()\n mpi.universe.size()\n[1] 8\n>\n\nAny suggestions?\n\nThanks,\nWhit\n\n\nOn Mon, Jan 5, 2009 at 3:46 PM, Martin Morgan <mtmorgan at fhcrc.org> wrote:\n> \"Whit Armstrong\" <armstrong.whit at gmail.com> writes:\n>\n>> I'm attempting to get Dirk's example from the \"intro to HCP with R\"\n>> talk working (http://dirk.eddelbuettel.com/papers/bocDec2008introHPCwithR.pdf).\n>>\n>> I have slurm working correctly (all the trivial hostname examples\n>> complete successfully).\n>>\n>> I fire up an R sesssion w/ the following command\n>>\n>> salloc orterun -n 7 R --vanilla\n>\n> I think you want to salloc your universe, and then run R on one node\n> of the universe\n>\n> salloc -n 7 orterun -np 1 R --vanilla\n>\n> then\n>\n>> library(Rmpi)\n>> mpi.universe.size()\n>\n> will report 7.\n>\n> Martin\n>\n>> and then run\n>> suppressMessages(library(Rmpi))\n>>\n>> but my console never returns control.\n>>\n>> it's just frozen until I <control-c> out of it at which point I get\n>> this message:\n>>> suppressMessages(library(Rmpi))\n>> [linuxsvr.kls.corp:05875] mca: base: component_find: unable to open\n>> osc pt2pt: file not found (ignored)\n>> orterun: killing job...\n>>\n>> orterun noticed that job rank 0 with PID 5875 on node node0 exited on\n>> signal 15 (Terminated).\n>> salloc: Relinquishing job allocation 70\n>> [warmstrong at linuxsvr ~]$\n>>\n>> meanwhile squeue shows:\n>>\n>> [warmstrong at linuxsvr ~]$ squeue\n>>   JOBID PARTITION     NAME     USER  ST       TIME  NODES NODELIST(REASON)\n>>      71      prod  orterun warmstro   R       0:31      1 node0\n>> [warmstrong at linuxsvr ~]$\n>>\n>>\n>> Have I missed something crucial?  Should I only be running these\n>> examples in batch mode or with littler?\n>>\n>> Thanks in advance,\n>> Whit\n>>\n>> _______________________________________________\n>> R-sig-hpc mailing list\n>> R-sig-hpc at r-project.org\n>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>\n> --\n> Martin Morgan\n> Computational Biology / Fred Hutchinson Cancer Research Center\n> 1100 Fairview Ave. N.\n> PO Box 19024 Seattle, WA 98109\n>\n> Location: Arnold Building M2 B169\n> Phone: (206) 667-2793\n>",
+      "body_snippet": "Thanks, Martin.\n\nI am able to load the Rmpi package when I run the command you suggest.\nHowever, when I call makeMPIcluster, the object returned is always\nnull:\n\n[warmstrong at linuxsvr ~]$ salloc -n ",
+      "thread_id": "thread-280cf7931385",
+      "thread_depth": 2,
+      "month": "2009-01"
+    },
+    {
+      "id": "msg-cd29b80c287d",
+      "message_id": "<49627BCD.2090703@fhcrc.org>",
+      "from_name": "Martin Morgan",
+      "from_email_hash": "9f5a643078023be7f11cfed10069ce2b31d0a2cc98705fa84c2ae0e157a1fb93",
+      "date": "2009-01-05T13:29:49-08:00",
+      "subject": "[R-sig-hpc] simple question on R/Rmpi/snow/slurm configuration",
+      "subject_clean": "simple question on R/Rmpi/snow/slurm configuration",
+      "in_reply_to": "<8ec76080901051304k18bc7ec8m1e0d325529400473@mail.gmail.com>",
+      "references": [
+        "<8ec76080901051123i2875ab46kdf74f9a64a993d02@mail.gmail.com>",
+        "<6phprj1cwgk.fsf@gopher4.fhcrc.org>",
+        "<8ec76080901051304k18bc7ec8m1e0d325529400473@mail.gmail.com>"
+      ],
+      "body_plain": "Whit Armstrong wrote:\n> Thanks, Martin.\n> \n> I am able to load the Rmpi package when I run the command you suggest.\n> However, when I call makeMPIcluster, the object returned is always\n> null:\n\nprovide makeMPIcluster with an argument 'count' to indicate how many \nnodes to launch, makeMPIcluster(7).\n\nI think makeMPIcluster() is looking at mpi.comm.size to determine how \nmany nodes to launch, instead of mpi.universe.size().\n\nA caveat, maybe others will chime in -- I don't usually use slurm or \nsnow, so don't have a lot of experience with the specifics of this setup.\n\nMartin\n\n> [warmstrong at linuxsvr ~]$ salloc -n 8 orterun -np 1 R --vanilla\n> salloc: Granted job allocation 84\n> \n> R version 2.8.0 (2008-10-20)\n> Copyright (C) 2008 The R Foundation for Statistical Computing\n> ...\n> ...\n>> library(Rmpi)\n> library(Rmpi)\n> [linuxsvr.kls.corp:09097] mca: base: component_find: unable to open\n> osc pt2pt: file not found (ignored)\n>> library(snow)\n> library(snow)\n>>  cl <- getMPIcluster()\n>  cl <- getMPIcluster()\n>> cl\n> cl\n> NULL\n>>  mpi.universe.size()\n>  mpi.universe.size()\n> [1] 8\n> \n> Any suggestions?\n> \n> Thanks,\n> Whit\n> \n> \n> On Mon, Jan 5, 2009 at 3:46 PM, Martin Morgan <mtmorgan at fhcrc.org> wrote:\n>> \"Whit Armstrong\" <armstrong.whit at gmail.com> writes:\n>>\n>>> I'm attempting to get Dirk's example from the \"intro to HCP with R\"\n>>> talk working (http://dirk.eddelbuettel.com/papers/bocDec2008introHPCwithR.pdf).\n>>>\n>>> I have slurm working correctly (all the trivial hostname examples\n>>> complete successfully).\n>>>\n>>> I fire up an R sesssion w/ the following command\n>>>\n>>> salloc orterun -n 7 R --vanilla\n>> I think you want to salloc your universe, and then run R on one node\n>> of the universe\n>>\n>> salloc -n 7 orterun -np 1 R --vanilla\n>>\n>> then\n>>\n>>> library(Rmpi)\n>>> mpi.universe.size()\n>> will report 7.\n>>\n>> Martin\n>>\n>>> and then run\n>>> suppressMessages(library(Rmpi))\n>>>\n>>> but my console never returns control.\n>>>\n>>> it's just frozen until I <control-c> out of it at which point I get\n>>> this message:\n>>>> suppressMessages(library(Rmpi))\n>>> [linuxsvr.kls.corp:05875] mca: base: component_find: unable to open\n>>> osc pt2pt: file not found (ignored)\n>>> orterun: killing job...\n>>>\n>>> orterun noticed that job rank 0 with PID 5875 on node node0 exited on\n>>> signal 15 (Terminated).\n>>> salloc: Relinquishing job allocation 70\n>>> [warmstrong at linuxsvr ~]$\n>>>\n>>> meanwhile squeue shows:\n>>>\n>>> [warmstrong at linuxsvr ~]$ squeue\n>>>   JOBID PARTITION     NAME     USER  ST       TIME  NODES NODELIST(REASON)\n>>>      71      prod  orterun warmstro   R       0:31      1 node0\n>>> [warmstrong at linuxsvr ~]$\n>>>\n>>>\n>>> Have I missed something crucial?  Should I only be running these\n>>> examples in batch mode or with littler?\n>>>\n>>> Thanks in advance,\n>>> Whit\n>>>\n>>> _______________________________________________\n>>> R-sig-hpc mailing list\n>>> R-sig-hpc at r-project.org\n>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>> --\n>> Martin Morgan\n>> Computational Biology / Fred Hutchinson Cancer Research Center\n>> 1100 Fairview Ave. N.\n>> PO Box 19024 Seattle, WA 98109\n>>\n>> Location: Arnold Building M2 B169\n>> Phone: (206) 667-2793\n>>\n\n\n-- \nMartin Morgan\nComputational Biology / Fred Hutchinson Cancer Research Center\n1100 Fairview Ave. N.\nPO Box 19024 Seattle, WA 98109\n\nLocation: Arnold Building M2 B169\nPhone: (206) 667-2793",
+      "body_snippet": "Whit Armstrong wrote:\n> Thanks, Martin.\n> \n> I am able to load the Rmpi package when I run the command you suggest.\n> However, when I call makeMPIcluster, the object returned is always\n> null:\n\nprovid",
+      "thread_id": "thread-280cf7931385",
+      "thread_depth": 3,
+      "month": "2009-01"
+    },
+    {
+      "id": "msg-9ddd11aadc74",
+      "message_id": "<18786.32348.586894.657059@ron.nulle.part>",
+      "from_name": "Dirk Eddelbuettel",
+      "from_email_hash": "447d8de83a7b9c5d61116890bacb6dc0c76aee31b3011a41fb7d3c62dac9042f",
+      "date": "2009-01-05T15:40:44-06:00",
+      "subject": "[R-sig-hpc] simple question on R/Rmpi/snow/slurm configuration",
+      "subject_clean": "simple question on R/Rmpi/snow/slurm configuration",
+      "in_reply_to": "<8ec76080901051304k18bc7ec8m1e0d325529400473@mail.gmail.com>",
+      "references": [
+        "<8ec76080901051123i2875ab46kdf74f9a64a993d02@mail.gmail.com>",
+        "<6phprj1cwgk.fsf@gopher4.fhcrc.org>",
+        "<8ec76080901051304k18bc7ec8m1e0d325529400473@mail.gmail.com>"
+      ],
+      "body_plain": "On 5 January 2009 at 16:04, Whit Armstrong wrote:\n| > library(Rmpi)\n| library(Rmpi)\n| [linuxsvr.kls.corp:09097] mca: base: component_find: unable to open\n| osc pt2pt: file not found (ignored)\n| > library(snow)\n| library(snow)\n| >  cl <- getMPIcluster()\n|  cl <- getMPIcluster()\n| > cl\n\nI don't think that works.  You need to be explicit in the creation of the\ncluster.  The best trick I found was in re-factoring / abstracting-out what\nsnow does in its internal scripts. I showed that in the UseR talk (as opposed\nto tutorial) and picked it up in last months presentation. It goes as\nfollows:\n\n-----------------------------------------------------------------------------\n#!/usr/bin/env r\n\nsuppressMessages(library(Rmpi))\nsuppressMessages(library(snow))\n\n#mpirank <- mpi.comm.rank(0)    # just FYI\nndsvpid <- Sys.getenv(\"OMPI_MCA_ns_nds_vpid\")\nif (ndsvpid == \"0\") {                   # are we master ?\n    #cat(\"Launching master (OMPI_MCA_ns_nds_vpid=\", ndsvpid, \" mpi rank=\",     mpirank, \")\\n\")\n    makeMPIcluster()\n} else {                                # or are we a slave ?\n    #cat(\"Launching slave with (OMPI_MCA_ns_nds_vpid=\", ndsvpid, \" mpi rank=\", mpirank, \")\\n\")\n    sink(file=\"/dev/null\")\n    slaveLoop(makeMPImaster())\n    q()\n}\n\n## a trivial main body, but note how getMPIcluster() learns from the\n## launched cluster how many nodes are available\ncl <- getMPIcluster()\nclusterEvalQ(cl, options(\"digits.secs\"=3))      ## use millisecond\n## granularity\nres <- clusterCall(cl, function() paste(Sys.info()[\"nodename\"],\n## format(Sys.time())))\nprint(do.call(rbind,res))\nstopCluster(cl)\n-----------------------------------------------------------------------------\n\nwhich you can launch via salloc as Martin suggested to create a slurm\nallocation. Then use orterun to actually use it have orterun call your\nscript. I tend to wrap things into littler script.  I.e. something like\n\n      $ salloc -w host[1-32] orterun -n 8 nameOfTheScriptAbove.r\n\nwhere you should then see 7 hosts (as one acts as the dispatching controller,\nso you get N-1 working out of N assigned by orterun).\n\nThis has the advantage of never hard-coding how many nodes you use. It is all\ndriven from the commandline.  If you always have the same fixed nodes, then\nit easier to just use the default snow cluster creation with hard-wired\nnodes.\n\nHth,  Dirk\n\n\n-- \nThree out of two people have difficulties with fractions.",
+      "body_snippet": "On 5 January 2009 at 16:04, Whit Armstrong wrote:\n| > library(Rmpi)\n| library(Rmpi)\n| [linuxsvr.kls.corp:09097] mca: base: component_find: unable to open\n| osc pt2pt: file not found (ignored)\n| > libr",
+      "thread_id": "thread-280cf7931385",
+      "thread_depth": 3,
+      "month": "2009-01"
+    },
+    {
+      "id": "msg-1ce50f9c656c",
+      "message_id": "<8ec76080901051431m297a0457l6ba020bb6f5c15b6@mail.gmail.com>",
+      "from_name": "Whit Armstrong",
+      "from_email_hash": "9f0af921ac5e402b55cb0593a435b87162faa6caa4eef5ccb3498c95d81634d0",
+      "date": "2009-01-05T17:31:38-05:00",
+      "subject": "[R-sig-hpc] simple question on R/Rmpi/snow/slurm configuration",
+      "subject_clean": "simple question on R/Rmpi/snow/slurm configuration",
+      "in_reply_to": "<18786.32348.586894.657059@ron.nulle.part>",
+      "references": [
+        "<8ec76080901051123i2875ab46kdf74f9a64a993d02@mail.gmail.com>",
+        "<6phprj1cwgk.fsf@gopher4.fhcrc.org>",
+        "<8ec76080901051304k18bc7ec8m1e0d325529400473@mail.gmail.com>",
+        "<18786.32348.586894.657059@ron.nulle.part>"
+      ],
+      "body_plain": "Thanks, Dirk.\n\nI can run your example, but I'm confused about two things.\n\n1) I can only get the jobs to run on node0 (the controller node), no\nmatter what number I use for -n or -w.\n\n2) I don't understand how to use this example in the context of the\nparLapply function.  It's possible that I don't understand your\nscript, but to me it seems like orterun is simply sending this script\nout to all the nodes to be executed.  What I really want to do is load\nmy data into a list, then do a parLapply on the list such that each\nexecution of the function that is applied to the list is allocated out\nto a different node.\n\nSorry that I need so much instruction with this.\n\nHere is the output from running: salloc orterun -n 100 test.mpi.r\n(that's your example script).\n      [,1]\n  [1,] \"linuxsvr.kls.corp 2009-01-05 17:25:56.250\"\n  [2,] \"linuxsvr.kls.corp 2009-01-05 17:25:56.257\"\n  [3,] \"linuxsvr.kls.corp 2009-01-05 17:25:56.260\"\n  [4,] \"linuxsvr.kls.corp 2009-01-05 17:25:56.258\"\n  [5,] \"linuxsvr.kls.corp 2009-01-05 17:25:56.258\"\n  [6,] \"linuxsvr.kls.corp 2009-01-05 17:25:56.258\"\n...\nand so on.  The hostname in all cases is linuxsvr (the controller node).\n\nWhen I try w/ the -w option, the job just hangs:\n\n[warmstrong at linuxsvr ~]$ salloc -w node[0-4] orterun -n 100 test.mpi.r\nsalloc: Granted job allocation 118\n\n\nand the following may prove helpful:\n\n[warmstrong at linuxsvr ~]$ squeue\n  JOBID PARTITION     NAME     USER  ST       TIME  NODES NODELIST(REASON)\n    118      prod  orterun warmstro   R       1:03      5 node[0-4]\n\n[warmstrong at linuxsvr ~]$ scontrol show nodes\nNodeName=node0 State=ALLOCATED CPUs=8 AllocCPUs=8 RealMemory=64000 TmpDisk=0\n   Sockets=2 Cores=4 Threads=1 Weight=1 Features=(null) Reason=(null)\n   Arch=x86_64 OS=Linux\nNodeName=node1 State=ALLOCATED CPUs=1 AllocCPUs=1 RealMemory=2000 TmpDisk=0\n   Sockets=1 Cores=1 Threads=1 Weight=1 Features=(null) Reason=(null)\n   Arch=x86_64 OS=Linux\nNodeName=node2 State=ALLOCATED CPUs=4 AllocCPUs=4 RealMemory=2000 TmpDisk=0\n   Sockets=1 Cores=4 Threads=1 Weight=1 Features=(null) Reason=(null)\n   Arch=x86_64 OS=Linux\nNodeName=node3 State=ALLOCATED CPUs=2 AllocCPUs=2 RealMemory=2000 TmpDisk=0\n   Sockets=1 Cores=2 Threads=1 Weight=1 Features=(null) Reason=(null)\n   Arch=x86_64 OS=Linux\nNodeName=node4 State=ALLOCATED CPUs=4 AllocCPUs=4 RealMemory=2000 TmpDisk=0\n   Sockets=1 Cores=4 Threads=1 Weight=1 Features=(null) Reason=(null)\n   Arch=x86_64 OS=Linux\n[warmstrong at linuxsvr ~]$\n\n\n[warmstrong at linuxsvr ~]$ scontrol show job 118\nJobId=118 UserId=warmstrong(11122) GroupId=domain users(10513)\n   Name=orterun\n   Priority=4294901641 Partition=prod BatchFlag=0\n   AllocNode:Sid=linuxsvr:8453 TimeLimit=UNLIMITED ExitCode=0:0\n   JobState=RUNNING StartTime=01/05-17:27:38 EndTime=NONE\n   NodeList=node[0-4] NodeListIndices=0-4\n   AllocCPUs=8,1,4,2,4\n   ReqProcs=5 ReqNodes=5 ReqS:C:T=1-64.00K:1-64.00K:1-64.00K\n   Shared=0 Contiguous=0 CPUs/task=0 Licenses=(null)\n   MinProcs=1 MinSockets=1 MinCores=1 MinThreads=1\n   MinMemoryNode=0 MinTmpDisk=0 Features=(null)\n   Dependency=(null) Account=(null) Requeue=1\n   Reason=None Network=(null)\n   ReqNodeList=node[0-4] ReqNodeListIndices=0-4\n   ExcNodeList=(null) ExcNodeListIndices=\n   SubmitTime=01/05-17:27:38 SuspendTime=None PreSusTime=0\n\n[warmstrong at linuxsvr ~]$\n\n\nThanks,\nWhit\n\n\n\nOn Mon, Jan 5, 2009 at 4:40 PM, Dirk Eddelbuettel <edd at debian.org> wrote:\n>\n> On 5 January 2009 at 16:04, Whit Armstrong wrote:\n> | > library(Rmpi)\n> | library(Rmpi)\n> | [linuxsvr.kls.corp:09097] mca: base: component_find: unable to open\n> | osc pt2pt: file not found (ignored)\n> | > library(snow)\n> | library(snow)\n> | >  cl <- getMPIcluster()\n> |  cl <- getMPIcluster()\n> | > cl\n>\n> I don't think that works.  You need to be explicit in the creation of the\n> cluster.  The best trick I found was in re-factoring / abstracting-out what\n> snow does in its internal scripts. I showed that in the UseR talk (as opposed\n> to tutorial) and picked it up in last months presentation. It goes as\n> follows:\n>\n> -----------------------------------------------------------------------------\n> #!/usr/bin/env r\n>\n> suppressMessages(library(Rmpi))\n> suppressMessages(library(snow))\n>\n> #mpirank <- mpi.comm.rank(0)    # just FYI\n> ndsvpid <- Sys.getenv(\"OMPI_MCA_ns_nds_vpid\")\n> if (ndsvpid == \"0\") {                   # are we master ?\n>    #cat(\"Launching master (OMPI_MCA_ns_nds_vpid=\", ndsvpid, \" mpi rank=\",     mpirank, \")\\n\")\n>    makeMPIcluster()\n> } else {                                # or are we a slave ?\n>    #cat(\"Launching slave with (OMPI_MCA_ns_nds_vpid=\", ndsvpid, \" mpi rank=\", mpirank, \")\\n\")\n>    sink(file=\"/dev/null\")\n>    slaveLoop(makeMPImaster())\n>    q()\n> }\n>\n> ## a trivial main body, but note how getMPIcluster() learns from the\n> ## launched cluster how many nodes are available\n> cl <- getMPIcluster()\n> clusterEvalQ(cl, options(\"digits.secs\"=3))      ## use millisecond\n> ## granularity\n> res <- clusterCall(cl, function() paste(Sys.info()[\"nodename\"],\n> ## format(Sys.time())))\n> print(do.call(rbind,res))\n> stopCluster(cl)\n> -----------------------------------------------------------------------------\n>\n> which you can launch via salloc as Martin suggested to create a slurm\n> allocation. Then use orterun to actually use it have orterun call your\n> script. I tend to wrap things into littler script.  I.e. something like\n>\n>      $ salloc -w host[1-32] orterun -n 8 nameOfTheScriptAbove.r\n>\n> where you should then see 7 hosts (as one acts as the dispatching controller,\n> so you get N-1 working out of N assigned by orterun).\n>\n> This has the advantage of never hard-coding how many nodes you use. It is all\n> driven from the commandline.  If you always have the same fixed nodes, then\n> it easier to just use the default snow cluster creation with hard-wired\n> nodes.\n>\n> Hth,  Dirk\n>\n>\n> --\n> Three out of two people have difficulties with fractions.\n>",
+      "body_snippet": "Thanks, Dirk.\n\nI can run your example, but I'm confused about two things.\n\n1) I can only get the jobs to run on node0 (the controller node), no\nmatter what number I use for -n or -w.\n\n2) I don't under",
+      "thread_id": "thread-280cf7931385",
+      "thread_depth": 4,
+      "month": "2009-01"
+    },
+    {
+      "id": "msg-f59ec9e53a13",
+      "message_id": "<8ec76080901070730yd5ae843kaa9013d59365b5e5@mail.gmail.com>",
+      "from_name": "Whit Armstrong",
+      "from_email_hash": "9f0af921ac5e402b55cb0593a435b87162faa6caa4eef5ccb3498c95d81634d0",
+      "date": "2009-01-07T10:30:44-05:00",
+      "subject": "[R-sig-hpc] simple question on R/Rmpi/snow/slurm configuration",
+      "subject_clean": "simple question on R/Rmpi/snow/slurm configuration",
+      "in_reply_to": "<8ec76080901051123i2875ab46kdf74f9a64a993d02@mail.gmail.com>",
+      "references": [
+        "<8ec76080901051123i2875ab46kdf74f9a64a993d02@mail.gmail.com>"
+      ],
+      "body_plain": "Thanks to everyone for helping me sort out these issues. I finally\nhave our cluster up and running on all my nodes.\n\nPer Dirk's suggestion, below is a short checklist for anyone setting\nup a slurm/Rmpi/snow cluster.\n\n1) ensure that UID's and GID's are identical across all nodes.\n\nWe are using windows authentication on our Linux servers, so we had to\nremove all the local slurm and munge UID's and GID's from /etc/passwd\nand create windows users and groups for slurm and munge to ensure\nconsistency across all nodes.  Alternatively, you can copy\n/etc/password to all the remote nodes, but that is a little bit of a\nmaintenance nightmare.\n\n2) make sure all your nodes have the same munge.key.\n\nSee, \"Creating a Secret Key\" on this page:\nhttp://home.gna.org/munge/install_guide.html\n\n3) make sure all nodes have the same slurm.key and slurm.conf.\n\nSee: \"Create OpenSSL keys\" on this page:\nhttps://computing.llnl.gov/linux/slurm/quickstart_admin.html\n\n4)  make sure you can ssh to the compute nodes with no password.\n\nHere is a good site:\nhttp://wiki.freaks-unidos.net/ssh%20without%20password\nOur setup has /home mounted on all nodes, so just storing the keys in\n/home/username/.ssh works.  If remote nodes do not have /home mounted,\nthen you will need a different setup. This must be done separately for\nall users who will use the cluster.\n\n5) try very hard to use the same Linux distribution across all nodes.\n\nUnfortunately, for us, this is not the case.  Our main server is\nRHEL5, and all our nodes are Ubuntu.  I had to manually\ncompile/install openMPI on the Redhat server (as I was very unhappy\nwith their packaged version).  My issue yesterday was due to orterun\nbeing installed in /usr/local/bin on the controller node (Redhat), and\ninstalled in /usr/bin on the compute nodes (Ubuntu).  openMPI seems to\nassume that orterun is in the same location on all machines.  Which\nresulted in the following error in slurmd.log:\n[Jan 05 14:05:00] [57.0] execve(): /usr/local/bin/orterun: No such\nfile or directory\n\nRecompiling openMPI on the RHEL server and making sure the locations\nof the orterun binary are the same as on the compute nodes finally\nfixed the problem.\n\n6) in addition to rebooting nodes also use \"sudo scontrol reconfigure\"\nto make sure that the slurm.conf file is reloaded on compute nodes.\n\nwe kept getting jobs stuck in completing state due to a uid/gid\nproblem.  Which showed the following error:\n[Dec 31 12:58:22] debug2: Processing RPC: REQUEST_TERMINATE_JOB\n[Dec 31 12:58:22] debug:  _rpc_terminate_job, uid = 11667\n[Dec 31 12:58:22] error: Security violation: kill_job(2) from uid 11667\n\nthis problem was finally resolved by rebooting all the compute nodes\nand using sudo scontrol reconfigure on all the nodes.\n\n7) verify each component independently. per Dirk: basic MPI with one\nof the helloWorld examples. Then Rmpi. Then snow. Then slurm.\n\nthis allowed me to find the ssh problem with MPI, since slurm/munge\nare happy to authenticate with their shared keys rather than using\nssh.\n_________________________________________________________________________________________________________________________\n\n\nI hope this checklist can serve as a useful guide for anyone who faces\nthe harrowing task of setting up a cluster.  Now that the hard part is\ndone we are seeing close to linear speedups on our simulations, so the\nend result is worth the pain.\n\nThe next chore for me is node maintenance.  Dirk has suggested dsh\n(dancer's shell):\nhttp://www.netfort.gr.jp/~dancer/software/dsh.html.en and Moe at LLNL\nhas suggested pdsh https://sourceforge.net/projects/pdsh/.  If anyone\nhas any additional suggestions, I would love to hear about it.\n\nCheers,\nWhit",
+      "body_snippet": "Thanks to everyone for helping me sort out these issues. I finally\nhave our cluster up and running on all my nodes.\n\nPer Dirk's suggestion, below is a short checklist for anyone setting\nup a slurm/Rmp",
+      "thread_id": "thread-280cf7931385",
+      "thread_depth": 1,
+      "month": "2009-01"
+    },
+    {
+      "id": "msg-c6e5c68393ac",
+      "message_id": "<0272351c0c6984db31948cc227aa3bf7.squirrel@www.stats.uwo.ca>",
+      "from_name": "Hao Yu",
+      "from_email_hash": "f90343116b4a1720ab706b8b458137d0f188602a07689c3a137d7f8799e4a179",
+      "date": "2009-01-07T15:37:30-05:00",
+      "subject": "[R-sig-hpc] simple question on R/Rmpi/snow/slurm configuration",
+      "subject_clean": "simple question on R/Rmpi/snow/slurm configuration",
+      "in_reply_to": "<8ec76080901070730yd5ae843kaa9013d59365b5e5@mail.gmail.com>",
+      "references": [
+        "<8ec76080901051123i2875ab46kdf74f9a64a993d02@mail.gmail.com>",
+        "<8ec76080901070730yd5ae843kaa9013d59365b5e5@mail.gmail.com>"
+      ],
+      "body_plain": "Hi Whit,\n\nRegarding 4), my slurm setting is actually to disable it so users cannot\nremote login or exec on any remote nodes. It seems slurm/munge take care\nof authentication and remote executions.\n\nHao\n\nPS: in /etc/pam.d/common-auth, the following line was added\naccount    required     /lib/security/pam_slurm.so\n\nWhit Armstrong wrote:\n> Thanks to everyone for helping me sort out these issues. I finally\n> have our cluster up and running on all my nodes.\n>\n> Per Dirk's suggestion, below is a short checklist for anyone setting\n> up a slurm/Rmpi/snow cluster.\n>\n> 1) ensure that UID's and GID's are identical across all nodes.\n>\n> We are using windows authentication on our Linux servers, so we had to\n> remove all the local slurm and munge UID's and GID's from /etc/passwd\n> and create windows users and groups for slurm and munge to ensure\n> consistency across all nodes.  Alternatively, you can copy\n> /etc/password to all the remote nodes, but that is a little bit of a\n> maintenance nightmare.\n>\n> 2) make sure all your nodes have the same munge.key.\n>\n> See, \"Creating a Secret Key\" on this page:\n> http://home.gna.org/munge/install_guide.html\n>\n> 3) make sure all nodes have the same slurm.key and slurm.conf.\n>\n> See: \"Create OpenSSL keys\" on this page:\n> https://computing.llnl.gov/linux/slurm/quickstart_admin.html\n>\n> 4)  make sure you can ssh to the compute nodes with no password.\n>\n> Here is a good site:\n> http://wiki.freaks-unidos.net/ssh%20without%20password\n> Our setup has /home mounted on all nodes, so just storing the keys in\n> /home/username/.ssh works.  If remote nodes do not have /home mounted,\n> then you will need a different setup. This must be done separately for\n> all users who will use the cluster.\n>\n> 5) try very hard to use the same Linux distribution across all nodes.\n>\n> Unfortunately, for us, this is not the case.  Our main server is\n> RHEL5, and all our nodes are Ubuntu.  I had to manually\n> compile/install openMPI on the Redhat server (as I was very unhappy\n> with their packaged version).  My issue yesterday was due to orterun\n> being installed in /usr/local/bin on the controller node (Redhat), and\n> installed in /usr/bin on the compute nodes (Ubuntu).  openMPI seems to\n> assume that orterun is in the same location on all machines.  Which\n> resulted in the following error in slurmd.log:\n> [Jan 05 14:05:00] [57.0] execve(): /usr/local/bin/orterun: No such\n> file or directory\n>\n> Recompiling openMPI on the RHEL server and making sure the locations\n> of the orterun binary are the same as on the compute nodes finally\n> fixed the problem.\n>\n> 6) in addition to rebooting nodes also use \"sudo scontrol reconfigure\"\n> to make sure that the slurm.conf file is reloaded on compute nodes.\n>\n> we kept getting jobs stuck in completing state due to a uid/gid\n> problem.  Which showed the following error:\n> [Dec 31 12:58:22] debug2: Processing RPC: REQUEST_TERMINATE_JOB\n> [Dec 31 12:58:22] debug:  _rpc_terminate_job, uid = 11667\n> [Dec 31 12:58:22] error: Security violation: kill_job(2) from uid 11667\n>\n> this problem was finally resolved by rebooting all the compute nodes\n> and using sudo scontrol reconfigure on all the nodes.\n>\n> 7) verify each component independently. per Dirk: basic MPI with one\n> of the helloWorld examples. Then Rmpi. Then snow. Then slurm.\n>\n> this allowed me to find the ssh problem with MPI, since slurm/munge\n> are happy to authenticate with their shared keys rather than using\n> ssh.\n> _________________________________________________________________________________________________________________________\n>\n>\n> I hope this checklist can serve as a useful guide for anyone who faces\n> the harrowing task of setting up a cluster.  Now that the hard part is\n> done we are seeing close to linear speedups on our simulations, so the\n> end result is worth the pain.\n>\n> The next chore for me is node maintenance.  Dirk has suggested dsh\n> (dancer's shell):\n> http://www.netfort.gr.jp/~dancer/software/dsh.html.en and Moe at LLNL\n> has suggested pdsh https://sourceforge.net/projects/pdsh/.  If anyone\n> has any additional suggestions, I would love to hear about it.\n>\n> Cheers,\n> Whit\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>\n\n\n-- \nDepartment of Statistics & Actuarial Sciences\nFax Phone#:(519)-661-3813\nThe University of Western Ontario\nOffice Phone#:(519)-661-3622\nLondon, Ontario N6A 5B7\nhttp://www.stats.uwo.ca/faculty/yu",
+      "body_snippet": "Hi Whit,\n\nRegarding 4), my slurm setting is actually to disable it so users cannot\nremote login or exec on any remote nodes. It seems slurm/munge take care\nof authentication and remote executions.\n\nHa",
+      "thread_id": "thread-280cf7931385",
+      "thread_depth": 2,
+      "month": "2009-01"
+    },
+    {
+      "id": "msg-30bc0dee9848",
+      "message_id": "<2b4a11950901081236v351f3aaasccc434a162392b2e@mail.gmail.com>",
+      "from_name": "elijah wright",
+      "from_email_hash": "07781c584cf8881e5af75adc4915b05234ae9468eba4002b8692c0fbd41ef4f7",
+      "date": "2009-01-08T15:36:44-05:00",
+      "subject": "[R-sig-hpc] simple question on R/Rmpi/snow/slurm configuration",
+      "subject_clean": "simple question on R/Rmpi/snow/slurm configuration",
+      "in_reply_to": "<8ec76080901070730yd5ae843kaa9013d59365b5e5@mail.gmail.com>",
+      "references": [
+        "<8ec76080901051123i2875ab46kdf74f9a64a993d02@mail.gmail.com>",
+        "<8ec76080901070730yd5ae843kaa9013d59365b5e5@mail.gmail.com>"
+      ],
+      "body_plain": "> The next chore for me is node maintenance.  Dirk has suggested dsh\n> (dancer's shell):\n> http://www.netfort.gr.jp/~dancer/software/dsh.html.en and Moe at LLNL\n> has suggested pdsh https://sourceforge.net/projects/pdsh/.  If anyone\n> has any additional suggestions, I would love to hear about it.\n\nI'd strongly encourage you to adopt puppet for managing cluster nodes;\nyou want to be able to \"promise\" that an up to date cluster node is\njust like any of your other cluster nodes - same software installed,\nsame keys distributed, same permutation of bugs.\n\nIt may initially seem like a large investment of time to learn\npuppet's configuration language and figure out how to automate many of\nyour sysadmin processes, but the long-term payoff in reliability and\nthe decrease in your management overhead will *more than* account for\nit.  And let you get back to doing research, or whatever it is what\nyou need the nodes for.  :-)\n\n--elijah",
+      "body_snippet": "> The next chore for me is node maintenance.  Dirk has suggested dsh\n> (dancer's shell):\n> http://www.netfort.gr.jp/~dancer/software/dsh.html.en and Moe at LLNL\n> has suggested pdsh https://sourceforg",
+      "thread_id": "thread-280cf7931385",
+      "thread_depth": 2,
+      "month": "2009-01"
+    },
+    {
+      "id": "msg-b6e10519cf40",
+      "message_id": "<8ed68eed0901151249i6c3b2853l7c4755fd327a45d4@mail.gmail.com>",
+      "from_name": "Sean O'Riordain",
+      "from_email_hash": "dd8fd961009c3a88893d9c0b20385532852028764ca27139077a29efdd358d53",
+      "date": "2009-01-15T20:49:52Z",
+      "subject": "[R-sig-hpc] ps3 / amazon ec2 clustering",
+      "subject_clean": "ps3 / amazon ec2 clustering",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Good evening,\n\nSeeing the article on the ps3 in Computer [1], and realizing that cell\nengines are better at singles than doubles which doesn't suit R. Has\nany body used a ps3 or ps3s for R work?  Can I use the \"research\nbudget - no really\" excuse? :-)\n\nSecondly has anybody used the Amazon EC2 [2] - elastic computing cloud\nto do R work? I see that Zementis [3] is using it for a service for\n\"predictive analytics\" - if it was setup properly with snow etc, it'd\nbe a comparatively cheap way of pulling in processing power for\nsimulations - as and when needed... and you only pay for what you\nactually use.\n\n[1] http://www2.computer.org/portal/web/computingnow/news?utm_source=bronto&utm_medium=email&utm_term=How+to+Turn+Your+PS3+into+a+Supercomputing+Node&utm_content=seanpor%40acm.org&utm_campaign=CSMC6-Jan.+13\n\n[2] http://aws.amazon.com/ec2/\n\n[3] http://www.zementis.com/\n\nKind regards,\nSean O'Riordain",
+      "body_snippet": "Good evening,\n\nSeeing the article on the ps3 in Computer [1], and realizing that cell\nengines are better at singles than doubles which doesn't suit R. Has\nany body used a ps3 or ps3s for R work?  Can ",
+      "thread_id": "thread-b6e10519cf40",
+      "thread_depth": 0,
+      "month": "2009-01"
+    },
+    {
+      "id": "msg-30ffba244bfb",
+      "message_id": "<18799.43132.170816.835859@ron.nulle.part>",
+      "from_name": "Dirk Eddelbuettel",
+      "from_email_hash": "447d8de83a7b9c5d61116890bacb6dc0c76aee31b3011a41fb7d3c62dac9042f",
+      "date": "2009-01-15T15:19:56-06:00",
+      "subject": "[R-sig-hpc] ps3 / amazon ec2 clustering",
+      "subject_clean": "ps3 / amazon ec2 clustering",
+      "in_reply_to": "<8ed68eed0901151249i6c3b2853l7c4755fd327a45d4@mail.gmail.com>",
+      "references": [
+        "<8ed68eed0901151249i6c3b2853l7c4755fd327a45d4@mail.gmail.com>"
+      ],
+      "body_plain": "On 15 January 2009 at 20:49, Sean O'Riordain wrote:\n| Good evening,\n| \n| Seeing the article on the ps3 in Computer [1], and realizing that cell\n| engines are better at singles than doubles which doesn't suit R. Has\n| any body used a ps3 or ps3s for R work?  Can I use the \"research\n| budget - no really\" excuse? :-)\n\nYes, Doug Bates pioneered that years ago, see\n     \n\thttps://stat.ethz.ch/pipermail/r-devel/2007-August/046521.html\n\nand follow-ups. Choice quote: \"It's great to be able to run R on my DVD\nplayer.\"  That said, he used plain old Ubuntu and if I recall correctly they\nmay have stopped supporting that platform.  CCing Doug (Hi Doug: posting here\nrequires subscriptions, so expect a bounce on reply...)\n\nAs for ps3 and cluster computing with R: Don't know.  One does see the odd\nreference to cheap research clusters built with ps3 machines.\n\n| Secondly has anybody used the Amazon EC2 [2] - elastic computing cloud\n| to do R work? I see that Zementis [3] is using it for a service for\n| \"predictive analytics\" - if it was setup properly with snow etc, it'd\n| be a comparatively cheap way of pulling in processing power for\n| simulations - as and when needed... and you only pay for what you\n| actually use.\n\nI learned via the Open MPI lists that Open MPI is now supported there so you\ncould get Open MPI, Rmpi, snow, ... via the (current !!) Ubuntu images on\nAmazon EC2.  I have no practical experience with this though.\n\nDirk\n\n| \n| [1] http://www2.computer.org/portal/web/computingnow/news?utm_source=bronto&utm_medium=email&utm_term=How+to+Turn+Your+PS3+into+a+Supercomputing+Node&utm_content=seanpor%40acm.org&utm_campaign=CSMC6-Jan.+13\n| \n| [2] http://aws.amazon.com/ec2/\n| \n| [3] http://www.zementis.com/\n| \n| Kind regards,\n| Sean O'Riordain\n| \n| _______________________________________________\n| R-sig-hpc mailing list\n| R-sig-hpc at r-project.org\n| https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n\n-- \nThree out of two people have difficulties with fractions.",
+      "body_snippet": "On 15 January 2009 at 20:49, Sean O'Riordain wrote:\n| Good evening,\n| \n| Seeing the article on the ps3 in Computer [1], and realizing that cell\n| engines are better at singles than doubles which doesn",
+      "thread_id": "thread-b6e10519cf40",
+      "thread_depth": 1,
+      "month": "2009-01"
+    },
+    {
+      "id": "msg-1d1e764e7151",
+      "message_id": "<20090116093049750.00000001432@129-125-29-96>",
+      "from_name": "R.H.Koning at rug.nl",
+      "from_email_hash": "bb48d594516b65d0c7033cb1f8a5a3fd876427f5131962bd7423bc09bcf5f8b7",
+      "date": "2009-01-16T09:30:49+01:00",
+      "subject": "[R-sig-hpc] mpi and opensuse 11.1",
+      "subject_clean": "mpi and opensuse 11.1",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090116/89afd308/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090116/89afd308/attachment.pl>",
+      "thread_id": "thread-1d1e764e7151",
+      "thread_depth": 0,
+      "month": "2009-01"
+    },
+    {
+      "id": "msg-301afe140f06",
+      "message_id": "<49704B85.60902@wu-wien.ac.at>",
+      "from_name": "Stefan Theussl",
+      "from_email_hash": "70e8bee0526e3cac6b44f6b75b3c1dc402cf6df4c6b9a60357ba6c6b6872f44c",
+      "date": "2009-01-16T09:55:33+01:00",
+      "subject": "[R-sig-hpc] mpi and opensuse 11.1",
+      "subject_clean": "mpi and opensuse 11.1",
+      "in_reply_to": "<20090116093049750.00000001432@129-125-29-96>",
+      "references": [
+        "<20090116093049750.00000001432@129-125-29-96>"
+      ],
+      "body_plain": "Hello Ruud,\n\nhave you tried to install Rmpi using\nR CMD INSTALL Rmpi_version.tar.gz --configure-args=--with-mpi=/mpipath ,\nwhere mpipath is the path to your mpi installation (see 2 in README of \nRmpi)?\n\nBest,\nStefan\n\nPS: to corresponding command in R would be install.packages(\"Rmpi\", \nconfigure.args=\"--with-mpi=/mpipath\")\n\nR.H.Koning at rug.nl wrote:\n> Hello, I am not a linux expert, so maybe this question shows my ignorance. I have installed openSUSE 11.1 on a dual processor machine (64 bit, HP xw6400), and I have installed openmpi (all files reside in /usr/lib64/mpi/gcc/openmpi). I compiled R (2.8.1) from sources successfully without setting any additional parameters. However, I am unable to install Rmpi: install.packages(\"Rmpi\") gives \n>\n> Checking for mpi.h usability. no\n>\n> Checking for mpi.h presence. no\n>\n> Checking for mpi.h. no\n>\n> Try to find libmpi.so or libmpich.a\n>\n> Checking for main in -lmpi. no\n>\n> Libmpi not found. Exiting.\n>\n>  \n>\n> However, mpi.h is present in /usr/lib64/mpi/gcc/openmpi/include and libmpi.so is a link to libmpi.so.0.0.0 in /usr/lib64/mpi/gcc/openmpi/lib64. Could anyone help me a bit to convince R that openmpi is installed? Thanks, Ruud\n>\n>  \n>\n>\n> \t[[alternative HTML version deleted]]\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>",
+      "body_snippet": "Hello Ruud,\n\nhave you tried to install Rmpi using\nR CMD INSTALL Rmpi_version.tar.gz --configure-args=--with-mpi=/mpipath ,\nwhere mpipath is the path to your mpi installation (see 2 in README of \nRmpi)",
+      "thread_id": "thread-1d1e764e7151",
+      "thread_depth": 1,
+      "month": "2009-01"
+    },
+    {
+      "id": "msg-5fb38b898b12",
+      "message_id": "<58eb85080901160633s52322bb8h987ed170789e23c9@mail.gmail.com>",
+      "from_name": "Tomas Radivoyevitch",
+      "from_email_hash": "26e9cdaa8e41a12c013019ff4fac374ea9fd9302360fa655017d357e3de42127",
+      "date": "2009-01-16T09:33:10-05:00",
+      "subject": "[R-sig-hpc] ROCKS 5.1 with R 2.8.1 and Rmpi",
+      "subject_clean": "ROCKS 5.1 with R 2.8.1 and Rmpi",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090116/24c4bca7/attachment.pl>",
+      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090116/24c4bca7/attachment.pl>",
+      "thread_id": "thread-5fb38b898b12",
+      "thread_depth": 0,
+      "month": "2009-01"
+    },
+    {
+      "id": "msg-ba08b36b2f23",
+      "message_id": "<4977A0AB.5010207@ornl.gov>",
+      "from_name": "George Ostrouchov",
+      "from_email_hash": "9080d52958959c83b81a189c9cdf0d2d87e68ade72613c46dbc212f344428698",
+      "date": "2009-01-21T17:24:43-05:00",
+      "subject": "[R-sig-hpc] lead a roundtable at JSM in DC?",
+      "subject_clean": "lead a roundtable at JSM in DC?",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Would someone on this list be willing to lead a roundtable discussion on \nthe various approaches to parallel computing with R? I think this would \nbe a popular topic - I know that I would sign up. It is usually a \npleasant and informal discussion between 10 people and a great way to \nget your lunch free.\n\nIf you are not interested in leading the discussion but attending JSM \nand interested in participating, let me know that too.\n\nNote that at JSM participation is limited to one activity (present a \npaper, be a discussant, lead a roundtable, ...). I am the \nProgram-Chair-Elect for the Section on Physical and Engineering Sciences \nthis year who gets to organize the roundtables.\n\nThanks for your consideration,\nGeorge\n\n-- \nGeorge Ostrouchov\nStatistics and Data Sciences Group\nComputer Science and Mathematics Division\nOak Ridge National Laboratory\n865-574-3137  http://www.csm.ornl.gov/~ost",
+      "body_snippet": "Would someone on this list be willing to lead a roundtable discussion on \nthe various approaches to parallel computing with R? I think this would \nbe a popular topic - I know that I would sign up. It ",
+      "thread_id": "thread-ba08b36b2f23",
+      "thread_depth": 0,
+      "month": "2009-01"
+    },
+    {
+      "id": "msg-85ff56d0d8d8",
+      "message_id": "<18809.48542.86880.921562@ron.nulle.part>",
+      "from_name": "Dirk Eddelbuettel",
+      "from_email_hash": "447d8de83a7b9c5d61116890bacb6dc0c76aee31b3011a41fb7d3c62dac9042f",
+      "date": "2009-01-23T06:52:46-06:00",
+      "subject": "[R-sig-hpc] New CRAN Task View on High Performance Computing / Parallel Computing",
+      "subject_clean": "New CRAN Task View on High Performance Computing / Parallel Computing",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "A new CRAN Task View (see http://cran.r-project.org/web/views/) for \n'High Performance and Parallel Computing' is now online at\n  http://cran.r-project.org/web/views/HighPerformanceComputing.html\n\nAny comments, suggestions or corrections -- primarily about packages on CRAN\nbut also on relevant packages elsewhere -- would be appreciated.\n\nRegards, Dirk\n\n-- \nThree out of two people have difficulties with fractions.",
+      "body_snippet": "A new CRAN Task View (see http://cran.r-project.org/web/views/) for \n'High Performance and Parallel Computing' is now online at\n  http://cran.r-project.org/web/views/HighPerformanceComputing.html\n\nAny",
+      "thread_id": "thread-85ff56d0d8d8",
+      "thread_depth": 0,
+      "month": "2009-01"
+    },
+    {
+      "id": "msg-5b1fdfa59b26",
+      "message_id": "<fb7c7e870901270141n58a4e980kcdd1617ef1401a5c@mail.gmail.com>",
+      "from_name": "Rainer M Krug",
+      "from_email_hash": "e11b90edace280d0de30dfc4fa9de87a9a079d3f2c2f179123fa9e4ae628223d",
+      "date": "2009-01-27T11:41:44+02:00",
+      "subject": "[R-sig-hpc] [R] Running R under Sun Grid Engine with OpenMPI tight integration",
+      "subject_clean": "Running R under Sun Grid Engine with OpenMPI tight integration",
+      "in_reply_to": "<462af7860901270104n6a5984bfw19eaef663e435f8a@mail.gmail.com>",
+      "references": [
+        "<ec9506d70901261630q25f4a897r962c4f984cfeeb66@mail.gmail.com>",
+        "<fb7c7e870901262233h3832e1acvc4cd64717bdd6455@mail.gmail.com>",
+        "<462af7860901270104n6a5984bfw19eaef663e435f8a@mail.gmail.com>"
+      ],
+      "body_plain": "On Tue, Jan 27, 2009 at 11:04 AM, Marce <marcemb at gmail.com> wrote:\n> 2009/1/27 Rainer M Krug <r.m.krug at gmail.com>:\n>> On Tue, Jan 27, 2009 at 2:30 AM, Peter Waltman <peter.waltman at gmail.com> wrote:\n>>> Hi -\n>>>\n>>> I saw your posting on the R-help mailing list.  Were you ever able to get\n>>> this working?  did you end up switching to use the rsge library?\n>>\n>> Yes - that is exactly what I did - I am using rsge or, which is in\n>> most cases sufficient for me, starting several instances of R and run\n>> the whole simulation (array processing).\n>>\n>> But I would still like to know how I can use the Rmpi and snow on the\n>> Sun Grid Engine.\n>>\n>> Please keep me posted,\n>>\n>> Rainer\n>>>\n>>> I'm trying to do the same, and not having very much luck getting it going.\n>>>\n>>> Thanks!\n>>>\n>>> Peter Waltman\n>>>\n>>\n>>\n>>\n>> --\n>> Rainer M. Krug, PhD (Conservation Ecology, SUN), MSc (Conservation\n>> Biology, UCT), Dipl. Phys. (Germany)\n>>\n>> Centre of Excellence for Invasion Biology\n>> Faculty of Science\n>> Natural Sciences Building\n>> Private Bag X1\n>> University of Stellenbosch\n>> Matieland 7602\n>> South Africa\n>>\n>> ______________________________________________\n>> R-help at r-project.org mailing list\n>> https://stat.ethz.ch/mailman/listinfo/r-help\n>> PLEASE do read the posting guide http://www.R-project.org/posting-guide.html\n>> and provide commented, minimal, self-contained, reproducible code.\n>>\n>\n> Hi all,\n> I have been installed R in SGE but with LAM tight integration, I don't\n> k now if this help you :s . The problem I had with OpenMPI was that\n> the load in all nodes waiting for a job and with an instance of R.\n> Their load up to 100 %, and there isn't a job running on them.\n> Even so, I will try to configure it with OpenMPI..when I have results\n> I will post them ok?\n\nYes please - could you please provide some info (and a small example)\non how you managed this with LAM?\n\nI think we should move this thread to r-sig-hpc, as it is more\nappropriate there. I CC'd it to there - please respond there and not\non r-help.\n\nThanks\n\nRainer\n\n>\n> Saludos\n>\n> ______________________________________________\n> R-help at r-project.org mailing list\n> https://stat.ethz.ch/mailman/listinfo/r-help\n> PLEASE do read the posting guide http://www.R-project.org/posting-guide.html\n> and provide commented, minimal, self-contained, reproducible code.\n>\n\n\n\n-- \nRainer M. Krug, PhD (Conservation Ecology, SUN), MSc (Conservation\nBiology, UCT), Dipl. Phys. (Germany)\n\nCentre of Excellence for Invasion Biology\nFaculty of Science\nNatural Sciences Building\nPrivate Bag X1\nUniversity of Stellenbosch\nMatieland 7602\nSouth Africa",
+      "body_snippet": "On Tue, Jan 27, 2009 at 11:04 AM, Marce <marcemb at gmail.com> wrote:\n> 2009/1/27 Rainer M Krug <r.m.krug at gmail.com>:\n>> On Tue, Jan 27, 2009 at 2:30 AM, Peter Waltman <peter.waltman at gmail.com> ",
+      "thread_id": "thread-5b1fdfa59b26",
+      "thread_depth": 0,
+      "month": "2009-01"
+    },
+    {
+      "id": "msg-92d2ebb3dc0b",
+      "message_id": "<49801D41.3050904@ibe.med.uni-muenchen.de>",
+      "from_name": "Markus Schmidberger",
+      "from_email_hash": "f8bfa84297de571d104d5331872fd43189cf7e374fa9dc4c24b6e4212d13663a",
+      "date": "2009-01-28T09:54:25+01:00",
+      "subject": "[R-sig-hpc] [R] Running R under Sun Grid Engine with OpenMPI tight integration",
+      "subject_clean": "Running R under Sun Grid Engine with OpenMPI tight integration",
+      "in_reply_to": "<fb7c7e870901270141n58a4e980kcdd1617ef1401a5c@mail.gmail.com>",
+      "references": [
+        "<ec9506d70901261630q25f4a897r962c4f984cfeeb66@mail.gmail.com>",
+        "<fb7c7e870901262233h3832e1acvc4cd64717bdd6455@mail.gmail.com>",
+        "<462af7860901270104n6a5984bfw19eaef663e435f8a@mail.gmail.com>",
+        "<fb7c7e870901270141n58a4e980kcdd1617ef1401a5c@mail.gmail.com>"
+      ],
+      "body_plain": "Hi,\n\nin Munich we use SGE with Lam/MPI and Rmpi (latest version). It is \nworking very well now. There were only some small changes to the SGE \nconfiguration required.\n\nAttached a document form REvolution Computing for using SGE with \nOpenMPI. It is a nice installation guide. Thanks to REvolution for \nproviding this document to the R community.\n\nBest\nMarkus\n\n\nRainer M Krug schrieb:\n> On Tue, Jan 27, 2009 at 11:04 AM, Marce <marcemb at gmail.com> wrote:\n>   \n>> 2009/1/27 Rainer M Krug <r.m.krug at gmail.com>:\n>>     \n>>> On Tue, Jan 27, 2009 at 2:30 AM, Peter Waltman <peter.waltman at gmail.com> wrote:\n>>>       \n>>>> Hi -\n>>>>\n>>>> I saw your posting on the R-help mailing list.  Were you ever able to get\n>>>> this working?  did you end up switching to use the rsge library?\n>>>>         \n>>> Yes - that is exactly what I did - I am using rsge or, which is in\n>>> most cases sufficient for me, starting several instances of R and run\n>>> the whole simulation (array processing).\n>>>\n>>> But I would still like to know how I can use the Rmpi and snow on the\n>>> Sun Grid Engine.\n>>>\n>>> Please keep me posted,\n>>>\n>>> Rainer\n>>>       \n>>>> I'm trying to do the same, and not having very much luck getting it going.\n>>>>\n>>>> Thanks!\n>>>>\n>>>> Peter Waltman\n>>>>\n>>>>         \n>>>\n>>> --\n>>> Rainer M. Krug, PhD (Conservation Ecology, SUN), MSc (Conservation\n>>> Biology, UCT), Dipl. Phys. (Germany)\n>>>\n>>> Centre of Excellence for Invasion Biology\n>>> Faculty of Science\n>>> Natural Sciences Building\n>>> Private Bag X1\n>>> University of Stellenbosch\n>>> Matieland 7602\n>>> South Africa\n>>>\n>>> ______________________________________________\n>>> R-help at r-project.org mailing list\n>>> https://stat.ethz.ch/mailman/listinfo/r-help\n>>> PLEASE do read the posting guide http://www.R-project.org/posting-guide.html\n>>> and provide commented, minimal, self-contained, reproducible code.\n>>>\n>>>       \n>> Hi all,\n>> I have been installed R in SGE but with LAM tight integration, I don't\n>> k now if this help you :s . The problem I had with OpenMPI was that\n>> the load in all nodes waiting for a job and with an instance of R.\n>> Their load up to 100 %, and there isn't a job running on them.\n>> Even so, I will try to configure it with OpenMPI..when I have results\n>> I will post them ok?\n>>     \n>\n> Yes please - could you please provide some info (and a small example)\n> on how you managed this with LAM?\n>\n> I think we should move this thread to r-sig-hpc, as it is more\n> appropriate there. I CC'd it to there - please respond there and not\n> on r-help.\n>\n> Thanks\n>\n> Rainer\n>\n>   \n>> Saludos\n>>\n>> ______________________________________________\n>> R-help at r-project.org mailing list\n>> https://stat.ethz.ch/mailman/listinfo/r-help\n>> PLEASE do read the posting guide http://www.R-project.org/posting-guide.html\n>> and provide commented, minimal, self-contained, reproducible code.\n>>\n>>     \n>\n>\n>\n>   \n\n\n-- \nDipl.-Tech. Math. Markus Schmidberger\n\nLudwig-Maximilians-Universit?t M?nchen\nIBE - Institut f?r medizinische Informationsverarbeitung,\nBiometrie und Epidemiologie\nMarchioninistr. 15, D-81377 Muenchen\nURL: http://www.ibe.med.uni-muenchen.de \nMail: Markus.Schmidberger [at] ibe.med.uni-muenchen.de\nTel: +49 (089) 7095 - 4497\n\n-------------- next part --------------\nA non-text attachment was scrubbed...\nName: sge-snow.pdf\nType: application/pdf\nSize: 64428 bytes\nDesc: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090128/b5e43c4b/attachment-0001.pdf>",
+      "body_snippet": "Hi,\n\nin Munich we use SGE with Lam/MPI and Rmpi (latest version). It is \nworking very well now. There were only some small changes to the SGE \nconfiguration required.\n\nAttached a document form REvolut",
+      "thread_id": "thread-5b1fdfa59b26",
+      "thread_depth": 1,
+      "month": "2009-01"
+    },
+    {
+      "id": "msg-95dd813d2b0a",
+      "message_id": "<fb7c7e870901280140q1e343d26w51ea6a9984d3378d@mail.gmail.com>",
+      "from_name": "Rainer M Krug",
+      "from_email_hash": "e11b90edace280d0de30dfc4fa9de87a9a079d3f2c2f179123fa9e4ae628223d",
+      "date": "2009-01-28T11:40:53+02:00",
+      "subject": "[R-sig-hpc] [R] Running R under Sun Grid Engine with OpenMPI tight integration",
+      "subject_clean": "Running R under Sun Grid Engine with OpenMPI tight integration",
+      "in_reply_to": "<49801D41.3050904@ibe.med.uni-muenchen.de>",
+      "references": [
+        "<ec9506d70901261630q25f4a897r962c4f984cfeeb66@mail.gmail.com>",
+        "<fb7c7e870901262233h3832e1acvc4cd64717bdd6455@mail.gmail.com>",
+        "<462af7860901270104n6a5984bfw19eaef663e435f8a@mail.gmail.com>",
+        "<fb7c7e870901270141n58a4e980kcdd1617ef1401a5c@mail.gmail.com>",
+        "<49801D41.3050904@ibe.med.uni-muenchen.de>"
+      ],
+      "body_plain": "On Wed, Jan 28, 2009 at 10:54 AM, Markus Schmidberger\n<schmidb at ibe.med.uni-muenchen.de> wrote:\n> Hi,\n>\n> in Munich we use SGE with Lam/MPI and Rmpi (latest version). It is working\n> very well now. There were only some small changes to the SGE configuration\n> required.\n>\n> Attached a document form REvolution Computing for using SGE with OpenMPI. It\n> is a nice installation guide. Thanks to REvolution for providing this\n> document to the R community.\n\nThanks a lot for the document and the info - that sounds fantastic,\nand I will try it out very soon.\n\nCould you provide the link to the original document from Revolution,\nso that I can check for updates on the document?\n\nCheers\n\nRainer\n\n>\n> Best\n> Markus\n>\n>\n> Rainer M Krug schrieb:\n>>\n>> On Tue, Jan 27, 2009 at 11:04 AM, Marce <marcemb at gmail.com> wrote:\n>>\n>>>\n>>> 2009/1/27 Rainer M Krug <r.m.krug at gmail.com>:\n>>>\n>>>>\n>>>> On Tue, Jan 27, 2009 at 2:30 AM, Peter Waltman <peter.waltman at gmail.com>\n>>>> wrote:\n>>>>\n>>>>>\n>>>>> Hi -\n>>>>>\n>>>>> I saw your posting on the R-help mailing list.  Were you ever able to\n>>>>> get\n>>>>> this working?  did you end up switching to use the rsge library?\n>>>>>\n>>>>\n>>>> Yes - that is exactly what I did - I am using rsge or, which is in\n>>>> most cases sufficient for me, starting several instances of R and run\n>>>> the whole simulation (array processing).\n>>>>\n>>>> But I would still like to know how I can use the Rmpi and snow on the\n>>>> Sun Grid Engine.\n>>>>\n>>>> Please keep me posted,\n>>>>\n>>>> Rainer\n>>>>\n>>>>>\n>>>>> I'm trying to do the same, and not having very much luck getting it\n>>>>> going.\n>>>>>\n>>>>> Thanks!\n>>>>>\n>>>>> Peter Waltman\n>>>>>\n>>>>>\n>>>>\n>>>> --\n>>>> Rainer M. Krug, PhD (Conservation Ecology, SUN), MSc (Conservation\n>>>> Biology, UCT), Dipl. Phys. (Germany)\n>>>>\n>>>> Centre of Excellence for Invasion Biology\n>>>> Faculty of Science\n>>>> Natural Sciences Building\n>>>> Private Bag X1\n>>>> University of Stellenbosch\n>>>> Matieland 7602\n>>>> South Africa\n>>>>\n>>>> ______________________________________________\n>>>> R-help at r-project.org mailing list\n>>>> https://stat.ethz.ch/mailman/listinfo/r-help\n>>>> PLEASE do read the posting guide\n>>>> http://www.R-project.org/posting-guide.html\n>>>> and provide commented, minimal, self-contained, reproducible code.\n>>>>\n>>>>\n>>>\n>>> Hi all,\n>>> I have been installed R in SGE but with LAM tight integration, I don't\n>>> k now if this help you :s . The problem I had with OpenMPI was that\n>>> the load in all nodes waiting for a job and with an instance of R.\n>>> Their load up to 100 %, and there isn't a job running on them.\n>>> Even so, I will try to configure it with OpenMPI..when I have results\n>>> I will post them ok?\n>>>\n>>\n>> Yes please - could you please provide some info (and a small example)\n>> on how you managed this with LAM?\n>>\n>> I think we should move this thread to r-sig-hpc, as it is more\n>> appropriate there. I CC'd it to there - please respond there and not\n>> on r-help.\n>>\n>> Thanks\n>>\n>> Rainer\n>>\n>>\n>>>\n>>> Saludos\n>>>\n>>> ______________________________________________\n>>> R-help at r-project.org mailing list\n>>> https://stat.ethz.ch/mailman/listinfo/r-help\n>>> PLEASE do read the posting guide\n>>> http://www.R-project.org/posting-guide.html\n>>> and provide commented, minimal, self-contained, reproducible code.\n>>>\n>>>\n>>\n>>\n>>\n>>\n>\n>\n> --\n> Dipl.-Tech. Math. Markus Schmidberger\n>\n> Ludwig-Maximilians-Universit?t M?nchen\n> IBE - Institut f?r medizinische Informationsverarbeitung,\n> Biometrie und Epidemiologie\n> Marchioninistr. 15, D-81377 Muenchen\n> URL: http://www.ibe.med.uni-muenchen.de Mail: Markus.Schmidberger [at]\n> ibe.med.uni-muenchen.de\n> Tel: +49 (089) 7095 - 4497\n>\n>\n\n\n\n-- \nRainer M. Krug, PhD (Conservation Ecology, SUN), MSc (Conservation\nBiology, UCT), Dipl. Phys. (Germany)\n\nCentre of Excellence for Invasion Biology\nFaculty of Science\nNatural Sciences Building\nPrivate Bag X1\nUniversity of Stellenbosch\nMatieland 7602\nSouth Africa",
+      "body_snippet": "On Wed, Jan 28, 2009 at 10:54 AM, Markus Schmidberger\n<schmidb at ibe.med.uni-muenchen.de> wrote:\n> Hi,\n>\n> in Munich we use SGE with Lam/MPI and Rmpi (latest version). It is working\n> very well now. ",
+      "thread_id": "thread-5b1fdfa59b26",
+      "thread_depth": 2,
+      "month": "2009-01"
+    },
+    {
+      "id": "msg-1390ced42b84",
+      "message_id": "<498028B2.1030007@ibe.med.uni-muenchen.de>",
+      "from_name": "Markus Schmidberger",
+      "from_email_hash": "f8bfa84297de571d104d5331872fd43189cf7e374fa9dc4c24b6e4212d13663a",
+      "date": "2009-01-28T10:43:14+01:00",
+      "subject": "[R-sig-hpc] [R] Running R under Sun Grid Engine with OpenMPI tight integration",
+      "subject_clean": "Running R under Sun Grid Engine with OpenMPI tight integration",
+      "in_reply_to": "<fb7c7e870901280140q1e343d26w51ea6a9984d3378d@mail.gmail.com>",
+      "references": [
+        "<ec9506d70901261630q25f4a897r962c4f984cfeeb66@mail.gmail.com>",
+        "<fb7c7e870901262233h3832e1acvc4cd64717bdd6455@mail.gmail.com>",
+        "<462af7860901270104n6a5984bfw19eaef663e435f8a@mail.gmail.com>",
+        "<fb7c7e870901270141n58a4e980kcdd1617ef1401a5c@mail.gmail.com>",
+        "<49801D41.3050904@ibe.med.uni-muenchen.de>",
+        "<fb7c7e870901280140q1e343d26w51ea6a9984d3378d@mail.gmail.com>"
+      ],
+      "body_plain": "Thats a internal wiki from Revolution. I only got the pdf. But this \nshould be the latest version.\n\nBest\nMarkus\n\nRainer M Krug schrieb:\n> On Wed, Jan 28, 2009 at 10:54 AM, Markus Schmidberger\n> <schmidb at ibe.med.uni-muenchen.de> wrote:\n>   \n>> Hi,\n>>\n>> in Munich we use SGE with Lam/MPI and Rmpi (latest version). It is working\n>> very well now. There were only some small changes to the SGE configuration\n>> required.\n>>\n>> Attached a document form REvolution Computing for using SGE with OpenMPI. It\n>> is a nice installation guide. Thanks to REvolution for providing this\n>> document to the R community.\n>>     \n>\n> Thanks a lot for the document and the info - that sounds fantastic,\n> and I will try it out very soon.\n>\n> Could you provide the link to the original document from Revolution,\n> so that I can check for updates on the document?\n>\n> Cheers\n>\n> Rainer\n>\n>   \n>> Best\n>> Markus\n>>\n>>\n>> Rainer M Krug schrieb:\n>>     \n>>> On Tue, Jan 27, 2009 at 11:04 AM, Marce <marcemb at gmail.com> wrote:\n>>>\n>>>       \n>>>> 2009/1/27 Rainer M Krug <r.m.krug at gmail.com>:\n>>>>\n>>>>         \n>>>>> On Tue, Jan 27, 2009 at 2:30 AM, Peter Waltman <peter.waltman at gmail.com>\n>>>>> wrote:\n>>>>>\n>>>>>           \n>>>>>> Hi -\n>>>>>>\n>>>>>> I saw your posting on the R-help mailing list.  Were you ever able to\n>>>>>> get\n>>>>>> this working?  did you end up switching to use the rsge library?\n>>>>>>\n>>>>>>             \n>>>>> Yes - that is exactly what I did - I am using rsge or, which is in\n>>>>> most cases sufficient for me, starting several instances of R and run\n>>>>> the whole simulation (array processing).\n>>>>>\n>>>>> But I would still like to know how I can use the Rmpi and snow on the\n>>>>> Sun Grid Engine.\n>>>>>\n>>>>> Please keep me posted,\n>>>>>\n>>>>> Rainer\n>>>>>\n>>>>>           \n>>>>>> I'm trying to do the same, and not having very much luck getting it\n>>>>>> going.\n>>>>>>\n>>>>>> Thanks!\n>>>>>>\n>>>>>> Peter Waltman\n>>>>>>\n>>>>>>\n>>>>>>             \n>>>>> --\n>>>>> Rainer M. Krug, PhD (Conservation Ecology, SUN), MSc (Conservation\n>>>>> Biology, UCT), Dipl. Phys. (Germany)\n>>>>>\n>>>>> Centre of Excellence for Invasion Biology\n>>>>> Faculty of Science\n>>>>> Natural Sciences Building\n>>>>> Private Bag X1\n>>>>> University of Stellenbosch\n>>>>> Matieland 7602\n>>>>> South Africa\n>>>>>\n>>>>> ______________________________________________\n>>>>> R-help at r-project.org mailing list\n>>>>> https://stat.ethz.ch/mailman/listinfo/r-help\n>>>>> PLEASE do read the posting guide\n>>>>> http://www.R-project.org/posting-guide.html\n>>>>> and provide commented, minimal, self-contained, reproducible code.\n>>>>>\n>>>>>\n>>>>>           \n>>>> Hi all,\n>>>> I have been installed R in SGE but with LAM tight integration, I don't\n>>>> k now if this help you :s . The problem I had with OpenMPI was that\n>>>> the load in all nodes waiting for a job and with an instance of R.\n>>>> Their load up to 100 %, and there isn't a job running on them.\n>>>> Even so, I will try to configure it with OpenMPI..when I have results\n>>>> I will post them ok?\n>>>>\n>>>>         \n>>> Yes please - could you please provide some info (and a small example)\n>>> on how you managed this with LAM?\n>>>\n>>> I think we should move this thread to r-sig-hpc, as it is more\n>>> appropriate there. I CC'd it to there - please respond there and not\n>>> on r-help.\n>>>\n>>> Thanks\n>>>\n>>> Rainer\n>>>\n>>>\n>>>       \n>>>> Saludos\n>>>>\n>>>> ______________________________________________\n>>>> R-help at r-project.org mailing list\n>>>> https://stat.ethz.ch/mailman/listinfo/r-help\n>>>> PLEASE do read the posting guide\n>>>> http://www.R-project.org/posting-guide.html\n>>>> and provide commented, minimal, self-contained, reproducible code.\n>>>>\n>>>>\n>>>>         \n>>>\n>>>\n>>>       \n>> --\n>> Dipl.-Tech. Math. Markus Schmidberger\n>>\n>> Ludwig-Maximilians-Universit?t M?nchen\n>> IBE - Institut f?r medizinische Informationsverarbeitung,\n>> Biometrie und Epidemiologie\n>> Marchioninistr. 15, D-81377 Muenchen\n>> URL: http://www.ibe.med.uni-muenchen.de Mail: Markus.Schmidberger [at]\n>> ibe.med.uni-muenchen.de\n>> Tel: +49 (089) 7095 - 4497\n>>\n>>\n>>     \n>\n>\n>\n>   \n\n\n-- \nDipl.-Tech. Math. Markus Schmidberger\n\nLudwig-Maximilians-Universit?t M?nchen\nIBE - Institut f?r medizinische Informationsverarbeitung,\nBiometrie und Epidemiologie\nMarchioninistr. 15, D-81377 Muenchen\nURL: http://www.ibe.med.uni-muenchen.de \nMail: Markus.Schmidberger [at] ibe.med.uni-muenchen.de\nTel: +49 (089) 7095 - 4497",
+      "body_snippet": "Thats a internal wiki from Revolution. I only got the pdf. But this \nshould be the latest version.\n\nBest\nMarkus\n\nRainer M Krug schrieb:\n> On Wed, Jan 28, 2009 at 10:54 AM, Markus Schmidberger\n> <schmi",
+      "thread_id": "thread-5b1fdfa59b26",
+      "thread_depth": 3,
+      "month": "2009-01"
+    },
+    {
+      "id": "msg-889d083793db",
+      "message_id": "<475a3c8f0901290903g13c672e5n4c22c27cc7014dcb@mail.gmail.com>",
+      "from_name": "David M Smith",
+      "from_email_hash": "e873ecc9b48a51d9f95de487124f2f7eca018cad7e4a09f1c70640b96d54465e",
+      "date": "2009-01-29T09:03:00-08:00",
+      "subject": "[R-sig-hpc] [R] Running R under Sun Grid Engine with OpenMPI tight integration",
+      "subject_clean": "Running R under Sun Grid Engine with OpenMPI tight integration",
+      "in_reply_to": "<498028B2.1030007@ibe.med.uni-muenchen.de>",
+      "references": [
+        "<ec9506d70901261630q25f4a897r962c4f984cfeeb66@mail.gmail.com>",
+        "<fb7c7e870901262233h3832e1acvc4cd64717bdd6455@mail.gmail.com>",
+        "<462af7860901270104n6a5984bfw19eaef663e435f8a@mail.gmail.com>",
+        "<fb7c7e870901270141n58a4e980kcdd1617ef1401a5c@mail.gmail.com>",
+        "<49801D41.3050904@ibe.med.uni-muenchen.de>",
+        "<fb7c7e870901280140q1e343d26w51ea6a9984d3378d@mail.gmail.com>",
+        "<498028B2.1030007@ibe.med.uni-muenchen.de>"
+      ],
+      "body_plain": "Yes, that is the latest version.  I just checked the document in our\ninternal Google Site.  There's no externally accessible URL, but feel\nfree to circulate it. It may become a white paper one day.\n\n# David Smith\n\nOn Wed, Jan 28, 2009 at 1:43 AM, Markus Schmidberger\n<schmidb at ibe.med.uni-muenchen.de> wrote:\n> Thats a internal wiki from Revolution. I only got the pdf. But this should be the latest version.\n>\n> Best\n> Markus\n\n--\nDavid M Smith <david at revolution-computing.com>\nDirector of Community, REvolution Computing www.revolution-computing.com\nTel: +1 (206) 577-4778 x3203 (Seattle, USA)",
+      "body_snippet": "Yes, that is the latest version.  I just checked the document in our\ninternal Google Site.  There's no externally accessible URL, but feel\nfree to circulate it. It may become a white paper one day.\n\n#",
+      "thread_id": "thread-5b1fdfa59b26",
+      "thread_depth": 4,
+      "month": "2009-01"
+    },
+    {
+      "id": "msg-ea93dd89c52d",
+      "message_id": "<fb7c7e870901292225w3a20c9e6v1ad2bc10bef50f43@mail.gmail.com>",
+      "from_name": "Rainer M Krug",
+      "from_email_hash": "e11b90edace280d0de30dfc4fa9de87a9a079d3f2c2f179123fa9e4ae628223d",
+      "date": "2009-01-30T08:25:02+02:00",
+      "subject": "[R-sig-hpc] [R] Running R under Sun Grid Engine with OpenMPI tight integration",
+      "subject_clean": "Running R under Sun Grid Engine with OpenMPI tight integration",
+      "in_reply_to": "<475a3c8f0901290903g13c672e5n4c22c27cc7014dcb@mail.gmail.com>",
+      "references": [
+        "<ec9506d70901261630q25f4a897r962c4f984cfeeb66@mail.gmail.com>",
+        "<fb7c7e870901262233h3832e1acvc4cd64717bdd6455@mail.gmail.com>",
+        "<462af7860901270104n6a5984bfw19eaef663e435f8a@mail.gmail.com>",
+        "<fb7c7e870901270141n58a4e980kcdd1617ef1401a5c@mail.gmail.com>",
+        "<49801D41.3050904@ibe.med.uni-muenchen.de>",
+        "<fb7c7e870901280140q1e343d26w51ea6a9984d3378d@mail.gmail.com>",
+        "<498028B2.1030007@ibe.med.uni-muenchen.de>",
+        "<475a3c8f0901290903g13c672e5n4c22c27cc7014dcb@mail.gmail.com>"
+      ],
+      "body_plain": "On Thu, Jan 29, 2009 at 7:03 PM, David M Smith\n<david at revolution-computing.com> wrote:\n> Yes, that is the latest version.  I just checked the document in our\n> internal Google Site.  There's no externally accessible URL, but feel\n> free to circulate it. It may become a white paper one day.\n\nThanks a lot. It would be great, if it would become a white paper.\n\nWould it be possible to post updates of the document to this list?\n\nRainer\n\n>\n> # David Smith\n>\n> On Wed, Jan 28, 2009 at 1:43 AM, Markus Schmidberger\n> <schmidb at ibe.med.uni-muenchen.de> wrote:\n>> Thats a internal wiki from Revolution. I only got the pdf. But this should be the latest version.\n>>\n>> Best\n>> Markus\n>\n> --\n> David M Smith <david at revolution-computing.com>\n> Director of Community, REvolution Computing www.revolution-computing.com\n> Tel: +1 (206) 577-4778 x3203 (Seattle, USA)\n>\n\n\n\n-- \nRainer M. Krug, PhD (Conservation Ecology, SUN), MSc (Conservation\nBiology, UCT), Dipl. Phys. (Germany)\n\nCentre of Excellence for Invasion Biology\nFaculty of Science\nNatural Sciences Building\nPrivate Bag X1\nUniversity of Stellenbosch\nMatieland 7602\nSouth Africa",
+      "body_snippet": "On Thu, Jan 29, 2009 at 7:03 PM, David M Smith\n<david at revolution-computing.com> wrote:\n> Yes, that is the latest version.  I just checked the document in our\n> internal Google Site.  There's no ext",
+      "thread_id": "thread-5b1fdfa59b26",
+      "thread_depth": 5,
+      "month": "2009-01"
+    },
+    {
+      "id": "msg-3fee17345721",
+      "message_id": "<C5AA1852.DF89%MAB@Stowers.org>",
+      "from_name": "Blanchette, Marco",
+      "from_email_hash": "5596f04a4bb41cd0a38cf776efe080c8bee57ab9c9f3423a7299d7bad22c1ca6",
+      "date": "2009-01-31T15:01:38-06:00",
+      "subject": "[R-sig-hpc] Unable to install Rmpi under Leopard with MPICH2 installed",
+      "subject_clean": "Unable to install Rmpi under Leopard with MPICH2 installed",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Dear list,\n\nBecause one of the application we use do not run under lam-mpi, I just migrated from lam-mpi 7.1.2 to MPICH2 1.0.8. I have been struggling to reinstall Rmpi with the new 64 bit R deployment [R 2.8.1 Patched (2009-01-29)] on a Mac Pro running Mac OSX 10.5.5 (leopard). Snow builds and runs correctly, however Rmpi give the following error after installation (either from the repository or from a local install):\n> library(Rmpi)\nError in dyn.load(file, DLLpath = DLLpath, ...) :\n  unable to load shared library '/Users/mab/Library/R/2.8/library/Rmpi/libs/x86_64/Rmpi.so':\n  dlopen(/Users/mab/Library/R/2.8/library/Rmpi/libs/x86_64/Rmpi.so, 6): Library not loaded: /usr//lib/libmpi.0.dylib\n  Referenced from: /Users/mab/Library/R/2.8/library/Rmpi/libs/x86_64/Rmpi.so\n  Reason: image not found\nError in library(Rmpi) : .First.lib failed for 'Rmpi'\nError in dyn.unload(file.path(libpath, \"libs\", paste(\"Rmpi\", .Platform$dynlib.ext,  :\n  dynamic/shared library '/Users/mab/Library/R/2.8/library/Rmpi/libs/Rmpi.so' was not loaded\n\nMPICH2 (the mpirun, mpiexec and mpicc) is install under /usr/local/bin and the libaries are under /usr/local/lib. Is the standard R CMD INSTALL Rmpi is suppose to guess the correct configuration? Do I need to have MPICH2 compile in 64bit? I use to be able to run Rmpi with lam-mpi no problem under the 64 bit R 2.8.0.\n\nYour help will be greatly appreciated.\n\nThanks\n\nMarco\n--\nMarco Blanchette, Ph.D.\nAssistant Investigator\nStowers Institute for Medical Research\n1000 East 50th St.\n\nKansas City, MO 64110\n\nTel: 816-926-4071\nCell: 816-726-8419\nFax: 816-926-2018",
+      "body_snippet": "Dear list,\n\nBecause one of the application we use do not run under lam-mpi, I just migrated from lam-mpi 7.1.2 to MPICH2 1.0.8. I have been struggling to reinstall Rmpi with the new 64 bit R deploymen",
+      "thread_id": "thread-3fee17345721",
+      "thread_depth": 0,
+      "month": "2009-01"
+    },
+    {
+      "id": "msg-6a5cc9cbbe9e",
+      "message_id": "<C5AA2580.DF94%MAB@Stowers.org>",
+      "from_name": "Blanchette, Marco",
+      "from_email_hash": "5596f04a4bb41cd0a38cf776efe080c8bee57ab9c9f3423a7299d7bad22c1ca6",
+      "date": "2009-01-31T15:57:52-06:00",
+      "subject": "[R-sig-hpc] Unable to install Rmpi under Leopard with MPICH2 installed",
+      "subject_clean": "Unable to install Rmpi under Leopard with MPICH2 installed",
+      "in_reply_to": "<C5AA1852.DF89%MAB@Stowers.org>",
+      "references": [],
+      "body_plain": "Dear list,\n\nI found one of my problem. There was a orphan header file (mpi.h) from lam-mpi left in /usr/include that was breaking ./configure script. Now, after removing the file, I can succesfully build Rmpi from source (see below). It builds in 64bit as seen by the -arch x86_64 flag passed to gcc (see below). However, when I try to load Rmpi in R I still get a library error. Again, your kind help would be appreciated. I would really like to hear whether the problem comes from the MPICH2 library not build in 64 bit.\n\nThanks\n\nMarco\n\n### Error from R following attempt to load Rmpi\n> library(Rmpi)\nError in dyn.load(file, DLLpath = DLLpath, ...) :\n  unable to load shared library '/Users/mab/Library/R/2.8/library/Rmpi/libs/x86_64/Rmpi.so':\n  dlopen(/Users/mab/Library/R/2.8/library/Rmpi/libs/x86_64/Rmpi.so, 6): Symbol not found: _MPI_Abort\n  Referenced from: /Users/mab/Library/R/2.8/library/Rmpi/libs/x86_64/Rmpi.so\n  Expected in: dynamic lookup\n\nError in library(Rmpi) : .First.lib failed for 'Rmpi'\nError in dyn.unload(file.path(libpath, \"libs\", paste(\"Rmpi\", .Platform$dynlib.ext,  :\n  dynamic/shared library '/Users/mab/Library/R/2.8/library/Rmpi/libs/Rmpi.so' was not loaded\n\n\n### Output from installing Rmpi\nm007344upz:src mab$ R CMD INSTALL Rmpi\n* Installing to library '/Users/mab/Library/R/2.8/library'\n* Installing *source* package 'Rmpi' ...\nchecking for gcc... gcc\nchecking for C compiler default output file name... a.out\nchecking whether the C compiler works... yes\nchecking whether we are cross compiling... no\nchecking for suffix of executables...\nchecking for suffix of object files... o\nchecking whether we are using the GNU C compiler... yes\nchecking whether gcc accepts -g... yes\nchecking for gcc option to accept ISO C89... none needed\nI am here /usr/local\nTry to find mpi.h ...\nFound in /usr/local/include\nTry to find libmpi.so or libmpich.a\nFound libmpich in /usr/local/lib\nchecking whether MPICH2 is declared... yes\nchecking whether MPICH2 is declared... (cached) yes\nchecking for openpty in -lutil... yes\nchecking for main in -lpthread... yes\nconfigure: creating ./config.status\nconfig.status: creating src/Makevars\n** libs\n** arch - x86_64\ngcc-4.2 -arch x86_64 -std=gnu99 -I/Library/Frameworks/R.framework/Resources/include -I/Library/Frameworks/R.framework/Resources/include/x86_64 -DPACKAGE_NAME=\\\"\\\" -DPACKAGE_TARNAME=\\\"\\\" -DPACKAGE_VERSION=\\\"\\\" -DPACKAGE_STRING=\\\"\\\" -DPACKAGE_BUGREPORT=\\\"\\\" -DHAVE_DECL_MPICH2=1 -DHAVE_DECL_MPICH2=1 -I/usr/local/include -DMPI2 -DMPICH -fPIC -I/usr/local/include    -fPIC  -g -O2 -c RegQuery.c -o RegQuery.o\ngcc-4.2 -arch x86_64 -std=gnu99 -I/Library/Frameworks/R.framework/Resources/include -I/Library/Frameworks/R.framework/Resources/include/x86_64 -DPACKAGE_NAME=\\\"\\\" -DPACKAGE_TARNAME=\\\"\\\" -DPACKAGE_VERSION=\\\"\\\" -DPACKAGE_STRING=\\\"\\\" -DPACKAGE_BUGREPORT=\\\"\\\" -DHAVE_DECL_MPICH2=1 -DHAVE_DECL_MPICH2=1 -I/usr/local/include -DMPI2 -DMPICH -fPIC -I/usr/local/include    -fPIC  -g -O2 -c Rmpi.c -o Rmpi.o\ngcc-4.2 -arch x86_64 -std=gnu99 -I/Library/Frameworks/R.framework/Resources/include -I/Library/Frameworks/R.framework/Resources/include/x86_64 -DPACKAGE_NAME=\\\"\\\" -DPACKAGE_TARNAME=\\\"\\\" -DPACKAGE_VERSION=\\\"\\\" -DPACKAGE_STRING=\\\"\\\" -DPACKAGE_BUGREPORT=\\\"\\\" -DHAVE_DECL_MPICH2=1 -DHAVE_DECL_MPICH2=1 -I/usr/local/include -DMPI2 -DMPICH -fPIC -I/usr/local/include    -fPIC  -g -O2 -c conversion.c -o conversion.o\ngcc-4.2 -arch x86_64 -std=gnu99 -I/Library/Frameworks/R.framework/Resources/include -I/Library/Frameworks/R.framework/Resources/include/x86_64 -DPACKAGE_NAME=\\\"\\\" -DPACKAGE_TARNAME=\\\"\\\" -DPACKAGE_VERSION=\\\"\\\" -DPACKAGE_STRING=\\\"\\\" -DPACKAGE_BUGREPORT=\\\"\\\" -DHAVE_DECL_MPICH2=1 -DHAVE_DECL_MPICH2=1 -I/usr/local/include -DMPI2 -DMPICH -fPIC -I/usr/local/include    -fPIC  -g -O2 -c internal.c -o internal.o\ngcc-4.2 -arch x86_64 -std=gnu99 -dynamiclib -Wl,-headerpad_max_install_names  -undefined dynamic_lookup -single_module -multiply_defined suppress -L/usr/local/lib -o Rmpi.so RegQuery.o Rmpi.o conversion.o internal.o -L/usr/local/lib -lmpich -lutil -lpthread -fPIC   -F/Library/Frameworks/R.framework/.. -framework R -Wl,-framework -Wl,CoreFoundation\nld warning: in /usr/local/lib/libmpich.a, file is not of required architecture\n** R\n** demo\n** inst\n** preparing package for lazy loading\n** help\n >>> Building/Updating help pages for package 'Rmpi'\n     Formats: text html latex example\n** building package indices ...\n* DONE (Rmpi)\n\n\nOn 1/31/09 3:01 PM, \"Blanchette, Marco\" <MAB at stowers.org> wrote:\n\nDear list,\n\nBecause one of the application we use do not run under lam-mpi, I just migrated from lam-mpi 7.1.2 to MPICH2 1.0.8. I have been struggling to reinstall Rmpi with the new 64 bit R deployment [R 2.8.1 Patched (2009-01-29)] on a Mac Pro running Mac OSX 10.5.5 (leopard). Snow builds and runs correctly, however Rmpi give the following error after installation (either from the repository or from a local install):\n> library(Rmpi)\nError in dyn.load(file, DLLpath = DLLpath, ...) :\n  unable to load shared library '/Users/mab/Library/R/2.8/library/Rmpi/libs/x86_64/Rmpi.so':\n  dlopen(/Users/mab/Library/R/2.8/library/Rmpi/libs/x86_64/Rmpi.so, 6): Library not loaded: /usr//lib/libmpi.0.dylib\n  Referenced from: /Users/mab/Library/R/2.8/library/Rmpi/libs/x86_64/Rmpi.so\n  Reason: image not found\nError in library(Rmpi) : .First.lib failed for 'Rmpi'\nError in dyn.unload(file.path(libpath, \"libs\", paste(\"Rmpi\", .Platform$dynlib.ext,  :\n  dynamic/shared library '/Users/mab/Library/R/2.8/library/Rmpi/libs/Rmpi.so' was not loaded\n\nMPICH2 (the mpirun, mpiexec and mpicc) is install under /usr/local/bin and the libaries are under /usr/local/lib. Is the standard R CMD INSTALL Rmpi is suppose to guess the correct configuration? Do I need to have MPICH2 compile in 64bit? I use to be able to run Rmpi with lam-mpi no problem under the 64 bit R 2.8.0.\n\nYour help will be greatly appreciated.\n\nThanks\n\nMarco\n--\nMarco Blanchette, Ph.D.\nAssistant Investigator\nStowers Institute for Medical Research\n1000 East 50th St.\n\nKansas City, MO 64110\n\nTel: 816-926-4071\nCell: 816-726-8419\nFax: 816-926-2018\n\n_______________________________________________\nR-sig-hpc mailing list\nR-sig-hpc at r-project.org\nhttps://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n\n\n--\nMarco Blanchette, Ph.D.\nAssistant Investigator\nStowers Institute for Medical Research\n1000 East 50th St.\n\nKansas City, MO 64110\n\nTel: 816-926-4071\nCell: 816-726-8419\nFax: 816-926-2018",
+      "body_snippet": "Dear list,\n\nI found one of my problem. There was a orphan header file (mpi.h) from lam-mpi left in /usr/include that was breaking ./configure script. Now, after removing the file, I can succesfully bu",
+      "thread_id": "thread-3fee17345721",
+      "thread_depth": 1,
+      "month": "2009-01"
+    },
+    {
+      "id": "msg-a46971b2ad70",
+      "message_id": "<C5AA2ACD.DF98%MAB@Stowers.org>",
+      "from_name": "Blanchette, Marco",
+      "from_email_hash": "5596f04a4bb41cd0a38cf776efe080c8bee57ab9c9f3423a7299d7bad22c1ca6",
+      "date": "2009-01-31T16:20:29-06:00",
+      "subject": "[R-sig-hpc] Unable to install Rmpi under Leopard with MPICH2 installed",
+      "subject_clean": "Unable to install Rmpi under Leopard with MPICH2 installed",
+      "in_reply_to": "<C5AA1852.DF89%MAB@Stowers.org>",
+      "references": [],
+      "body_plain": "Dear list,\n\nI found one of my problem. There was a orphan header file (mpi.h) from lam-mpi left in /usr/include that was breaking ./configure script. Now, after removing the file, I can succesfully build Rmpi from source (see below). It builds in 64bit as seen by the -arch x86_64 flag passed to gcc (see below). However, when I try to load Rmpi in R I still get a library error. Again, your kind help would be appreciated. I would really like to hear whether the problem comes from the MPICH2 library not build in 64 bit.\n\nThanks\n\nMarco\n\n### Error from R following attempt to load Rmpi\n> library(Rmpi)\nError in dyn.load(file, DLLpath = DLLpath, ...) :\n  unable to load shared library '/Users/mab/Library/R/2.8/library/Rmpi/libs/x86_64/Rmpi.so':\n  dlopen(/Users/mab/Library/R/2.8/library/Rmpi/libs/x86_64/Rmpi.so, 6): Symbol not found: _MPI_Abort\n  Referenced from: /Users/mab/Library/R/2.8/library/Rmpi/libs/x86_64/Rmpi.so\n  Expected in: dynamic lookup\n\nError in library(Rmpi) : .First.lib failed for 'Rmpi'\nError in dyn.unload(file.path(libpath, \"libs\", paste(\"Rmpi\", .Platform$dynlib.ext,  :\n  dynamic/shared library '/Users/mab/Library/R/2.8/library/Rmpi/libs/Rmpi.so' was not loaded\n\n\n### Output from installing Rmpi\nm007344upz:src mab$ R CMD INSTALL Rmpi\n* Installing to library '/Users/mab/Library/R/2.8/library'\n* Installing *source* package 'Rmpi' ...\nchecking for gcc... gcc\nchecking for C compiler default output file name... a.out\nchecking whether the C compiler works... yes\nchecking whether we are cross compiling... no\nchecking for suffix of executables...\nchecking for suffix of object files... o\nchecking whether we are using the GNU C compiler... yes\nchecking whether gcc accepts -g... yes\nchecking for gcc option to accept ISO C89... none needed\nI am here /usr/local\nTry to find mpi.h ...\nFound in /usr/local/include\nTry to find libmpi.so or libmpich.a\nFound libmpich in /usr/local/lib\nchecking whether MPICH2 is declared... yes\nchecking whether MPICH2 is declared... (cached) yes\nchecking for openpty in -lutil... yes\nchecking for main in -lpthread... yes\nconfigure: creating ./config.status\nconfig.status: creating src/Makevars\n** libs\n** arch - x86_64\ngcc-4.2 -arch x86_64 -std=gnu99 -I/Library/Frameworks/R.framework/Resources/include -I/Library/Frameworks/R.framework/Resources/include/x86_64 -DPACKAGE_NAME=\\\"\\\" -DPACKAGE_TARNAME=\\\"\\\" -DPACKAGE_VERSION=\\\"\\\" -DPACKAGE_STRING=\\\"\\\" -DPACKAGE_BUGREPORT=\\\"\\\" -DHAVE_DECL_MPICH2=1 -DHAVE_DECL_MPICH2=1 -I/usr/local/include -DMPI2 -DMPICH -fPIC -I/usr/local/include    -fPIC  -g -O2 -c RegQuery.c -o RegQuery.o\ngcc-4.2 -arch x86_64 -std=gnu99 -I/Library/Frameworks/R.framework/Resources/include -I/Library/Frameworks/R.framework/Resources/include/x86_64 -DPACKAGE_NAME=\\\"\\\" -DPACKAGE_TARNAME=\\\"\\\" -DPACKAGE_VERSION=\\\"\\\" -DPACKAGE_STRING=\\\"\\\" -DPACKAGE_BUGREPORT=\\\"\\\" -DHAVE_DECL_MPICH2=1 -DHAVE_DECL_MPICH2=1 -I/usr/local/include -DMPI2 -DMPICH -fPIC -I/usr/local/include    -fPIC  -g -O2 -c Rmpi.c -o Rmpi.o\ngcc-4.2 -arch x86_64 -std=gnu99 -I/Library/Frameworks/R.framework/Resources/include -I/Library/Frameworks/R.framework/Resources/include/x86_64 -DPACKAGE_NAME=\\\"\\\" -DPACKAGE_TARNAME=\\\"\\\" -DPACKAGE_VERSION=\\\"\\\" -DPACKAGE_STRING=\\\"\\\" -DPACKAGE_BUGREPORT=\\\"\\\" -DHAVE_DECL_MPICH2=1 -DHAVE_DECL_MPICH2=1 -I/usr/local/include -DMPI2 -DMPICH -fPIC -I/usr/local/include    -fPIC  -g -O2 -c conversion.c -o conversion.o\ngcc-4.2 -arch x86_64 -std=gnu99 -I/Library/Frameworks/R.framework/Resources/include -I/Library/Frameworks/R.framework/Resources/include/x86_64 -DPACKAGE_NAME=\\\"\\\" -DPACKAGE_TARNAME=\\\"\\\" -DPACKAGE_VERSION=\\\"\\\" -DPACKAGE_STRING=\\\"\\\" -DPACKAGE_BUGREPORT=\\\"\\\" -DHAVE_DECL_MPICH2=1 -DHAVE_DECL_MPICH2=1 -I/usr/local/include -DMPI2 -DMPICH -fPIC -I/usr/local/include    -fPIC  -g -O2 -c internal.c -o internal.o\ngcc-4.2 -arch x86_64 -std=gnu99 -dynamiclib -Wl,-headerpad_max_install_names  -undefined dynamic_lookup -single_module -multiply_defined suppress -L/usr/local/lib -o Rmpi.so RegQuery.o Rmpi.o conversion.o internal.o -L/usr/local/lib -lmpich -lutil -lpthread -fPIC   -F/Library/Frameworks/R.framework/.. -framework R -Wl,-framework -Wl,CoreFoundation\nld warning: in /usr/local/lib/libmpich.a, file is not of required architecture\n** R\n** demo\n** inst\n** preparing package for lazy loading\n** help\n >>> Building/Updating help pages for package 'Rmpi'\n     Formats: text html latex example\n** building package indices ...\n* DONE (Rmpi)\n\n\nOn 1/31/09 3:01 PM, \"Blanchette, Marco\" <MAB at stowers.org> wrote:\n\nDear list,\n\nBecause one of the application we use do not run under lam-mpi, I just migrated from lam-mpi 7.1.2 to MPICH2 1.0.8. I have been struggling to reinstall Rmpi with the new 64 bit R deployment [R 2.8.1 Patched (2009-01-29)] on a Mac Pro running Mac OSX 10.5.5 (leopard). Snow builds and runs correctly, however Rmpi give the following error after installation (either from the repository or from a local install):\n> library(Rmpi)\nError in dyn.load(file, DLLpath = DLLpath, ...) :\n  unable to load shared library '/Users/mab/Library/R/2.8/library/Rmpi/libs/x86_64/Rmpi.so':\n  dlopen(/Users/mab/Library/R/2.8/library/Rmpi/libs/x86_64/Rmpi.so, 6): Library not loaded: /usr//lib/libmpi.0.dylib\n  Referenced from: /Users/mab/Library/R/2.8/library/Rmpi/libs/x86_64/Rmpi.so\n  Reason: image not found\nError in library(Rmpi) : .First.lib failed for 'Rmpi'\nError in dyn.unload(file.path(libpath, \"libs\", paste(\"Rmpi\", .Platform$dynlib.ext,  :\n  dynamic/shared library '/Users/mab/Library/R/2.8/library/Rmpi/libs/Rmpi.so' was not loaded\n\nMPICH2 (the mpirun, mpiexec and mpicc) is install under /usr/local/bin and the libaries are under /usr/local/lib. Is the standard R CMD INSTALL Rmpi is suppose to guess the correct configuration? Do I need to have MPICH2 compile in 64bit? I use to be able to run Rmpi with lam-mpi no problem under the 64 bit R 2.8.0.\n\nYour help will be greatly appreciated.\n\nThanks\n\nMarco\n--\nMarco Blanchette, Ph.D.\nAssistant Investigator\nStowers Institute for Medical Research\n1000 East 50th St.\n\nKansas City, MO 64110\n\nTel: 816-926-4071\nCell: 816-726-8419\nFax: 816-926-2018\n\n_______________________________________________\nR-sig-hpc mailing list\nR-sig-hpc at r-project.org\nhttps://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n\n\n--\nMarco Blanchette, Ph.D.\nAssistant Investigator\nStowers Institute for Medical Research\n1000 East 50th St.\n\nKansas City, MO 64110\n\nTel: 816-926-4071\nCell: 816-726-8419\nFax: 816-926-2018",
+      "body_snippet": "Dear list,\n\nI found one of my problem. There was a orphan header file (mpi.h) from lam-mpi left in /usr/include that was breaking ./configure script. Now, after removing the file, I can succesfully bu",
+      "thread_id": "thread-3fee17345721",
+      "thread_depth": 1,
+      "month": "2009-01"
+    }
+  ],
+  "threads": [
+    {
+      "id": "thread-f1c7ad88283c",
+      "subject": "Parallel computing with snow",
+      "message_count": 2,
+      "participants": [
+        "Gang Chen",
+        "luke at stat.uiowa.edu"
+      ],
+      "started": "2009-01-02T16:55:03-05:00",
+      "last_reply": "2009-01-04T14:28:13-06:00",
+      "root_message_id": "msg-f1c7ad88283c"
+    },
+    {
+      "id": "thread-280cf7931385",
+      "subject": "simple question on R/Rmpi/snow/slurm configuration",
+      "message_count": 9,
+      "participants": [
+        "Dirk Eddelbuettel",
+        "Hao Yu",
+        "Martin Morgan",
+        "Whit Armstrong",
+        "elijah wright"
+      ],
+      "started": "2009-01-05T14:23:31-05:00",
+      "last_reply": "2009-01-08T15:36:44-05:00",
+      "root_message_id": "msg-280cf7931385"
+    },
+    {
+      "id": "thread-b6e10519cf40",
+      "subject": "ps3 / amazon ec2 clustering",
+      "message_count": 2,
+      "participants": [
+        "Dirk Eddelbuettel",
+        "Sean O'Riordain"
+      ],
+      "started": "2009-01-15T20:49:52+00:00",
+      "last_reply": "2009-01-15T15:19:56-06:00",
+      "root_message_id": "msg-b6e10519cf40"
+    },
+    {
+      "id": "thread-1d1e764e7151",
+      "subject": "mpi and opensuse 11.1",
+      "message_count": 2,
+      "participants": [
+        "R.H.Koning at rug.nl",
+        "Stefan Theussl"
+      ],
+      "started": "2009-01-16T09:30:49+01:00",
+      "last_reply": "2009-01-16T09:55:33+01:00",
+      "root_message_id": "msg-1d1e764e7151"
+    },
+    {
+      "id": "thread-5fb38b898b12",
+      "subject": "ROCKS 5.1 with R 2.8.1 and Rmpi",
+      "message_count": 1,
+      "participants": [
+        "Tomas Radivoyevitch"
+      ],
+      "started": "2009-01-16T09:33:10-05:00",
+      "last_reply": "2009-01-16T09:33:10-05:00",
+      "root_message_id": "msg-5fb38b898b12"
+    },
+    {
+      "id": "thread-ba08b36b2f23",
+      "subject": "lead a roundtable at JSM in DC?",
+      "message_count": 1,
+      "participants": [
+        "George Ostrouchov"
+      ],
+      "started": "2009-01-21T17:24:43-05:00",
+      "last_reply": "2009-01-21T17:24:43-05:00",
+      "root_message_id": "msg-ba08b36b2f23"
+    },
+    {
+      "id": "thread-85ff56d0d8d8",
+      "subject": "New CRAN Task View on High Performance Computing / Parallel Computing",
+      "message_count": 1,
+      "participants": [
+        "Dirk Eddelbuettel"
+      ],
+      "started": "2009-01-23T06:52:46-06:00",
+      "last_reply": "2009-01-23T06:52:46-06:00",
+      "root_message_id": "msg-85ff56d0d8d8"
+    },
+    {
+      "id": "thread-5b1fdfa59b26",
+      "subject": "Running R under Sun Grid Engine with OpenMPI tight integration",
+      "message_count": 6,
+      "participants": [
+        "David M Smith",
+        "Markus Schmidberger",
+        "Rainer M Krug"
+      ],
+      "started": "2009-01-27T11:41:44+02:00",
+      "last_reply": "2009-01-30T08:25:02+02:00",
+      "root_message_id": "msg-5b1fdfa59b26"
+    },
+    {
+      "id": "thread-3fee17345721",
+      "subject": "Unable to install Rmpi under Leopard with MPICH2 installed",
+      "message_count": 3,
+      "participants": [
+        "Blanchette, Marco"
+      ],
+      "started": "2009-01-31T15:01:38-06:00",
+      "last_reply": "2009-01-31T16:20:29-06:00",
+      "root_message_id": "msg-3fee17345721"
+    }
+  ]
+}

@@ -1,0 +1,1883 @@
+From handevries at gmail.com  Fri Jul  1 10:02:47 2011
+From: handevries at gmail.com (Han De Vries)
+Date: Fri, 1 Jul 2011 10:02:47 +0200
+Subject: [R-sig-hpc] Handling data with thousands of variables
+In-Reply-To: <BANLkTi=zWkJAar0xQJSkvTCvFx1MrRh37Q@mail.gmail.com>
+References: <BANLkTi=zWkJAar0xQJSkvTCvFx1MrRh37Q@mail.gmail.com>
+Message-ID: <BANLkTinEV+PP+ZMdDi0_WgAaqUbUYMZkug@mail.gmail.com>
+
+Perhaps you want to store your data in a big 10 mln rows x 20000
+columns matrix, where each cell is 1 when the corresponding keyword
+applies to a record, zero otherwise. Because you will end up with very
+many zeroes, such a matrix can be stored as a sparse matrix in an
+efficient way (using the Matrix package). The Matrix package itself
+offers various analytical tools to quickly summarize by rows or
+columns, and many other types of estimations as long as they can be
+translated to matrix operations (like linear regression). Some other
+packages, such as glmnet, can read these matrices directly for more
+specific analyses. If you have sufficient memory (you want to keep the
+entire sparse matrix in memory), handling the data can be really fast.
+
+Because you're asking about personal experiences: I have been using
+this approach with (sparse) matrices up to a few million rows
+(records) and 20K columns (variables).
+
+Kind regards,
+Han
+
+
+From haavard.kongsgaard at gmail.com  Sat Jul  2 19:24:26 2011
+From: haavard.kongsgaard at gmail.com (=?ISO-8859-1?Q?H=E5vard_Wahl_Kongsg=E5rd?=)
+Date: Sat, 2 Jul 2011 19:24:26 +0200
+Subject: [R-sig-hpc] Handling data with thousands of variables
+In-Reply-To: <BANLkTinEV+PP+ZMdDi0_WgAaqUbUYMZkug@mail.gmail.com>
+References: <BANLkTi=zWkJAar0xQJSkvTCvFx1MrRh37Q@mail.gmail.com>
+	<BANLkTinEV+PP+ZMdDi0_WgAaqUbUYMZkug@mail.gmail.com>
+Message-ID: <CAKH910-kcZcTdHzfNC8KRru6VWkz5do0AN4HN9HAiks-ck-=rg@mail.gmail.com>
+
+Ok, but what about memory usage. For now I have implemented my
+analysis in python with numpy arrays with only 100 000 cases and 10
+000 keywords.
+But the memory required for large array and matrix is massive. In R
+one possibility is the Bigmemory library,
+but it's slow and if I remember correctly the bigmemory matrix is not
+supported by other R libraries.
+
+-H?vard
+
+
+On Fri, Jul 1, 2011 at 10:02 AM, Han De Vries <handevries at gmail.com> wrote:
+> Perhaps you want to store your data in a big 10 mln rows x 20000
+> columns matrix, where each cell is 1 when the corresponding keyword
+> applies to a record, zero otherwise. Because you will end up with very
+> many zeroes, such a matrix can be stored as a sparse matrix in an
+> efficient way (using the Matrix package). The Matrix package itself
+> offers various analytical tools to quickly summarize by rows or
+> columns, and many other types of estimations as long as they can be
+> translated to matrix operations (like linear regression). Some other
+> packages, such as glmnet, can read these matrices directly for more
+> specific analyses. If you have sufficient memory (you want to keep the
+> entire sparse matrix in memory), handling the data can be really fast.
+>
+> Because you're asking about personal experiences: I have been using
+> this approach with (sparse) matrices up to a few million rows
+> (records) and 20K columns (variables).
+>
+> Kind regards,
+> Han
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From handevries at gmail.com  Sat Jul  2 20:37:26 2011
+From: handevries at gmail.com (Han De Vries)
+Date: Sat, 2 Jul 2011 20:37:26 +0200
+Subject: [R-sig-hpc] Handling data with thousands of variables
+In-Reply-To: <CAKH910-kcZcTdHzfNC8KRru6VWkz5do0AN4HN9HAiks-ck-=rg@mail.gmail.com>
+References: <BANLkTi=zWkJAar0xQJSkvTCvFx1MrRh37Q@mail.gmail.com>
+	<BANLkTinEV+PP+ZMdDi0_WgAaqUbUYMZkug@mail.gmail.com>
+	<CAKH910-kcZcTdHzfNC8KRru6VWkz5do0AN4HN9HAiks-ck-=rg@mail.gmail.com>
+Message-ID: <CAONTU5E0TOnCj=UME1Sr5Q8RvukAt+We-yBRr-QujXMR0zd4pw@mail.gmail.com>
+
+Indeed, if you would store this as a regular 100M x 20K matrix you
+would run into memory problems. However, the sparse matrix storage
+format might reduce its size by a factor 10, 100 or more. The exact
+amount will depend on the sparseness of your data, i.e. the average
+number of keywords per record. So, if you would have 20K unique
+keywords, with an average of 10 keywords per record, each row of the
+matrix would contain 19990 zeroes on average. These zeroes don't use
+memory in a sparse matrix format, because only the non-zero cells and
+their row/column coordinates are stored.
+
+2011/7/2 H?vard Wahl Kongsg?rd <haavard.kongsgaard at gmail.com>:
+> Ok, but what about memory usage. For now I have implemented my
+> analysis in python with numpy arrays with only 100 000 cases and 10
+> 000 keywords.
+> But the memory required for large array and matrix is massive. In R
+> one possibility is the Bigmemory library,
+> but it's slow and if I remember correctly the bigmemory matrix is not
+> supported by other R libraries.
+>
+> -H?vard
+>
+>
+> On Fri, Jul 1, 2011 at 10:02 AM, Han De Vries <handevries at gmail.com> wrote:
+>> Perhaps you want to store your data in a big 10 mln rows x 20000
+>> columns matrix, where each cell is 1 when the corresponding keyword
+>> applies to a record, zero otherwise. Because you will end up with very
+>> many zeroes, such a matrix can be stored as a sparse matrix in an
+>> efficient way (using the Matrix package). The Matrix package itself
+>> offers various analytical tools to quickly summarize by rows or
+>> columns, and many other types of estimations as long as they can be
+>> translated to matrix operations (like linear regression). Some other
+>> packages, such as glmnet, can read these matrices directly for more
+>> specific analyses. If you have sufficient memory (you want to keep the
+>> entire sparse matrix in memory), handling the data can be really fast.
+>>
+>> Because you're asking about personal experiences: I have been using
+>> this approach with (sparse) matrices up to a few million rows
+>> (records) and 20K columns (variables).
+>>
+>> Kind regards,
+>> Han
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>
+
+
+From haavard.kongsgaard at gmail.com  Sat Jul  2 21:31:46 2011
+From: haavard.kongsgaard at gmail.com (=?ISO-8859-1?Q?H=E5vard_Wahl_Kongsg=E5rd?=)
+Date: Sat, 2 Jul 2011 21:31:46 +0200
+Subject: [R-sig-hpc] Handling data with thousands of variables
+In-Reply-To: <CAONTU5E0TOnCj=UME1Sr5Q8RvukAt+We-yBRr-QujXMR0zd4pw@mail.gmail.com>
+References: <BANLkTi=zWkJAar0xQJSkvTCvFx1MrRh37Q@mail.gmail.com>
+	<BANLkTinEV+PP+ZMdDi0_WgAaqUbUYMZkug@mail.gmail.com>
+	<CAKH910-kcZcTdHzfNC8KRru6VWkz5do0AN4HN9HAiks-ck-=rg@mail.gmail.com>
+	<CAONTU5E0TOnCj=UME1Sr5Q8RvukAt+We-yBRr-QujXMR0zd4pw@mail.gmail.com>
+Message-ID: <CAKH910-nyfk5JQ8gpVe2DYFk01fwbpNK=wk=s50u9jBVFpm8-Q@mail.gmail.com>
+
+OK, thanks will try using a sparse matrix or a boolean array.
+Hopefully I will be able to convert to 1 and -1 (I think most svm
+implementations use that format for binary data) on the fly.
+
+-H?vard
+
+
+2011/7/2 Han De Vries <handevries at gmail.com>:
+> Indeed, if you would store this as a regular 100M x 20K matrix you
+> would run into memory problems. However, the sparse matrix storage
+> format might reduce its size by a factor 10, 100 or more. The exact
+> amount will depend on the sparseness of your data, i.e. the average
+> number of keywords per record. So, if you would have 20K unique
+> keywords, with an average of 10 keywords per record, each row of the
+> matrix would contain 19990 zeroes on average. These zeroes don't use
+> memory in a sparse matrix format, because only the non-zero cells and
+> their row/column coordinates are stored.
+>
+> 2011/7/2 H?vard Wahl Kongsg?rd <haavard.kongsgaard at gmail.com>:
+>> Ok, but what about memory usage. For now I have implemented my
+>> analysis in python with numpy arrays with only 100 000 cases and 10
+>> 000 keywords.
+>> But the memory required for large array and matrix is massive. In R
+>> one possibility is the Bigmemory library,
+>> but it's slow and if I remember correctly the bigmemory matrix is not
+>> supported by other R libraries.
+>>
+>> -H?vard
+>>
+>>
+>> On Fri, Jul 1, 2011 at 10:02 AM, Han De Vries <handevries at gmail.com> wrote:
+>>> Perhaps you want to store your data in a big 10 mln rows x 20000
+>>> columns matrix, where each cell is 1 when the corresponding keyword
+>>> applies to a record, zero otherwise. Because you will end up with very
+>>> many zeroes, such a matrix can be stored as a sparse matrix in an
+>>> efficient way (using the Matrix package). The Matrix package itself
+>>> offers various analytical tools to quickly summarize by rows or
+>>> columns, and many other types of estimations as long as they can be
+>>> translated to matrix operations (like linear regression). Some other
+>>> packages, such as glmnet, can read these matrices directly for more
+>>> specific analyses. If you have sufficient memory (you want to keep the
+>>> entire sparse matrix in memory), handling the data can be really fast.
+>>>
+>>> Because you're asking about personal experiences: I have been using
+>>> this approach with (sparse) matrices up to a few million rows
+>>> (records) and 20K columns (variables).
+>>>
+>>> Kind regards,
+>>> Han
+>>>
+>>> _______________________________________________
+>>> R-sig-hpc mailing list
+>>> R-sig-hpc at r-project.org
+>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>
+>>
+>
+
+
+From ramzi.temanni at gmail.com  Mon Jul  4 11:56:01 2011
+From: ramzi.temanni at gmail.com (Ramzi TEMANNI)
+Date: Mon, 4 Jul 2011 11:56:01 +0200
+Subject: [R-sig-hpc] writeLines + foreach/doMC
+Message-ID: <CADFjGqxu3+5vWSFohXeFYNYVevkL4kUmYSr8iZ1PnRhWSa5e8g@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110704/2bcca6a1/attachment.pl>
+
+From schmidbe at in.tum.de  Thu Jul  7 11:48:53 2011
+From: schmidbe at in.tum.de (Markus Schmidberger)
+Date: Thu, 07 Jul 2011 11:48:53 +0200
+Subject: [R-sig-hpc] Call for a Special Topic on Grid and Cloud Computing
+Message-ID: <1310032133.2885.24.camel@schmidb-TravelMate8572TG>
+
+Dear HPC users and experts,
+
+we are inviting submissions for a special topic of Methods of
+Information in Medicine (www.methods-online.com) on "Grid and cloud
+computing methods in biomedical research". 
+
+This special topic call originates from a workshop on "Grid and Cloud
+Computing for Computational (Bio-)Statistics" held in Munich, Germany on
+March 23, 2011. The aim of this workshop was to disseminate the benefits
+of grid and cloud computing in the communities of Medical Biometry and
+Medical Informatics. This special topic broadens this initiative for
+comprehensively communicating and exploring the ideas of grid and cloud
+computing, as applied to these communities. Correspondingly, the special
+topic will cover a wide range of topics regarding biomedical
+applications, theory and software for grid and cloud computing. This
+includes the implementation of grid and cloud computing methods using
+statistical software packages (e.g., using the R language for
+statistical computing). In addition to covering computational and
+biomedical aspects, the special topic is designed to investigate and
+discuss the implications of cloud computing methods w.r.t. data security
+and protection.
+
+We particularly invite presenters of the workshop to submit papers based
+on their presentations. However, the special topic is not limited to the
+presenters. We invite international scientists in the field of
+biomedical research with applications of grid and cloud computing to
+enhance the perspective of the special topic, helping to provide a broad
+and comprehensive view on the topic.
+
+All submissions must contain original unpublished work not being
+considered for publication elsewhere. All manuscripts have to be
+submitted via the journal's Manuscript Central web site
+(http://mc.manuscriptcentral.com/methods). Submissions will be refereed
+according to standard procedures of Methods of Information in Medicine.
+Authors who are uncertain about the suitability of their papers are
+encouraged to contact the special topic editors. The deadline for
+submissions is November 1, 2011. However, papers can be submitted at any
+time and when they have been received, they will enter the editorial
+system immediately.
+
+This special topic is organized by Harald Binder
+(Albert-Ludwigs-Universit?t Freiburg, Germany;
+binderh at imbi.uni-freiburg.de) and Manuel J. A. Eugster
+(Ludwig-Maximilians-Universit?t M?nchen, Germany;
+Manuel.Eugster at stat.uni-muenchen.de), who serve as special topic
+editors, and by Matthias Schmid (Friedrich-Alexander-Universit?t
+Erlangen-N?rnberg, Germany) and Markus Schmidberger (cloudnumbers.com)
+who were also workshop organizers.
+
+
+From schmidbe at in.tum.de  Wed Jul 13 14:21:08 2011
+From: schmidbe at in.tum.de (Markus Schmidberger)
+Date: Wed, 13 Jul 2011 14:21:08 +0200
+Subject: [R-sig-hpc] Running R on a Computer Cluster in the Cloud -
+	cloudnumbers.com
+Message-ID: <1310559668.3067.33.camel@schmidb-TravelMate8572TG>
+
+Dear R HPC users and experts,
+
+cloudnumbers.com provides researchers and companies with the resources
+to perform high performance calculations in the cloud. As
+cloudnumbers.com's community manager I may invite you to register and
+test R on a computer cluster in the cloud for free:
+http://my.cloudnumbers.com/register
+
+Our aim is to change the way of research collaboration is done today by
+bringing together scientists and businesses from all over the world on a
+single platform. cloudnumbers.com is a Berlin (Germany) based
+international high-tech startup striving for enabling everyone to
+benefit from the High Performance Computing related advantages of the
+cloud. We provide easy access to applications running on any kind of
+computer hardware: from single core high memory machines up to 1000
+cores computer clusters.
+
+Our platform provides several advantages:
+
+* Turn fixed into variable costs and pay only for the capacity you need.
+Watch our latest saving costs with cloudnumbers.com video:
+http://www.youtube.com/watch?v=ln_BSVigUhg&feature=player_embedded
+
+* Enter the cloud using an intuitive and user friendly platform. Watch
+our latest cloudnumbers.com in a nutshell video:
+http://www.youtube.com/watch?v=0ZNEpR_ElV0&feature=player_embedded
+
+* Be released from ongoing technological obsolescence and continuous
+maintenance costs (e.g. linking to libraries or system dependencies)
+
+* Accelerated your R, C, C++, Fortran, Python, ... calculations through
+parallel processing and great computing capacity - more than 1000 cores
+are available and GPUs are coming soon.
+
+* Share your results worldwide (coming soon).
+
+* Get high speed access to public databases (please let us know, if your
+favorite database is missing!).
+
+* We have developed a security architecture that meets high requirements
+of data security and privacy. Read our security white paper:
+http://d1372nki7bx5yg.cloudfront.net/wp-content/uploads/2011/06/cloudnumberscom-security.whitepaper.pdf
+
+
+This is only a selection of our top features. To get more information
+check out our web-page (http://www.cloudnumbers.com/) or follow our blog
+about cloud computing, HPC and HPC applications (with R):
+http://cloudnumbers.com/blog
+
+Register and test for free now at cloudnumbers.com:
+http://my.cloudnumbers.com/register
+
+We are looking forward to get your feedback and consumer insights. Take
+the chance and have an impact to the development of a new cloud
+computing calculation platform.
+
+Best
+Markus
+
+
+-- 
+Dr. rer. nat. Markus Schmidberger 
+Senior Community Manager 
+
+Cloudnumbers.com GmbH
+Chausseestra?e 6
+10119 Berlin 
+
+www.cloudnumbers.com 
+E-Mail: markus.schmidberger at cloudnumbers.com 
+
+
+************************* 
+Amtsgericht M?nchen, HRB 191138 
+Gesch?ftsf?hrer: Erik Muttersbach, Markus Fensterer, Moritz v. 
+Petersdorff-Campen
+
+
+From ustaudinger at gmail.com  Wed Jul 13 14:52:38 2011
+From: ustaudinger at gmail.com (Ulrich Staudinger)
+Date: Wed, 13 Jul 2011 14:52:38 +0200
+Subject: [R-sig-hpc] Running R on a Computer Cluster in the Cloud -
+	cloudnumbers.com
+In-Reply-To: <1310559668.3067.33.camel@schmidb-TravelMate8572TG>
+References: <1310559668.3067.33.camel@schmidb-TravelMate8572TG>
+Message-ID: <CAMrz3D0-Bdfn607C69hYdG=up4Xqy5H9y-jrNBdOeNM1=nZmUg@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110713/f536235c/attachment.pl>
+
+From taquito2007 at gmail.com  Sun Jul 17 14:30:32 2011
+From: taquito2007 at gmail.com (Takatsugu Kobayashi)
+Date: Sun, 17 Jul 2011 21:30:32 +0900
+Subject: [R-sig-hpc] R on Amazon Web Service question
+Message-ID: <CADL0PciWW6ZhYanhPMt_v14yr70cjFuc-+_neD6w2YH5Q6ydGw@mail.gmail.com>
+
+Hi
+
+I am a newbie to R/AWS and please forgive me my basic question. I
+placed this thread in AWS Forum but haven't heard from the community
+yet.
+
+I was told by my boss at my company to set up the system in which to
+process a large dataset and analyze it statistically. The input data
+ranges from 5GB - 10GB.
+
+The packages of AWS products I can think of inclues
+
+- EC2 high memory instance for data processing
+- RDS Oracle DB for data processing
+
+and
+
+- EC2 medium-large CPU instances for data analysis with R
+- Map Reduce for data analysis with R
+
+ and
+
+- S3
+
+Now I have two questions regarding R and AWS:
+
+1. Is ONE medium-high CPU instance enough for statistical-analysis of
+that large dataset/
+2. Should I subscribe the same number of MapReduce services as those
+of EC2 instances?
+
+Thanks in Advance.
+
+Taka
+
+
+From kasperdanielhansen at gmail.com  Sun Jul 17 16:59:08 2011
+From: kasperdanielhansen at gmail.com (Kasper Daniel Hansen)
+Date: Sun, 17 Jul 2011 10:59:08 -0400
+Subject: [R-sig-hpc] R on Amazon Web Service question
+In-Reply-To: <CADL0PciWW6ZhYanhPMt_v14yr70cjFuc-+_neD6w2YH5Q6ydGw@mail.gmail.com>
+References: <CADL0PciWW6ZhYanhPMt_v14yr70cjFuc-+_neD6w2YH5Q6ydGw@mail.gmail.com>
+Message-ID: <CAC2h7uvObBTW6WXLdnMUDqOV199bYVHRYrAbTTd_BZVDD++o9Q@mail.gmail.com>
+
+On Sun, Jul 17, 2011 at 8:30 AM, Takatsugu Kobayashi
+<taquito2007 at gmail.com> wrote:
+> Hi
+>
+> I am a newbie to R/AWS and please forgive me my basic question. I
+> placed this thread in AWS Forum but haven't heard from the community
+> yet.
+>
+> I was told by my boss at my company to set up the system in which to
+> process a large dataset and analyze it statistically. The input data
+> ranges from 5GB - 10GB.
+>
+> The packages of AWS products I can think of inclues
+>
+> - EC2 high memory instance for data processing
+> - RDS Oracle DB for data processing
+>
+> and
+>
+> - EC2 medium-large CPU instances for data analysis with R
+> - Map Reduce for data analysis with R
+>
+> ?and
+>
+> - S3
+>
+> Now I have two questions regarding R and AWS:
+>
+> 1. Is ONE medium-high CPU instance enough for statistical-analysis of
+> that large dataset/
+> 2. Should I subscribe the same number of MapReduce services as those
+> of EC2 instances?
+
+There is no way we can advice you on this without more details.  It
+seems the data is stored in an oracle database?  But the most
+important thing is what analysis you want to do and how fast you want
+it done (and how much time you want to spend coding).  The beauty of
+aws is that it is easy for you to experiment with different setups.
+
+Kasper
+
+
+From ivan.zhang at bankofamerica.com  Mon Jul 18 18:29:42 2011
+From: ivan.zhang at bankofamerica.com (Zhang, Ivan)
+Date: Mon, 18 Jul 2011 12:29:42 -0400
+Subject: [R-sig-hpc] ff package - Error selecting 0 rows.
+Message-ID: <259640267CB3094FA5A4F65F2AB3CB0229BC74F0@ex2k.bankofamerica.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110718/42f1ad7e/attachment.pl>
+
+From megh700004 at yahoo.com  Mon Jul 18 21:25:59 2011
+From: megh700004 at yahoo.com (Megh Dal)
+Date: Mon, 18 Jul 2011 12:25:59 -0700 (PDT)
+Subject: [R-sig-hpc] Question on foreach package
+Message-ID: <1311017159.46256.YahooMailNeo@web161820.mail.bf1.yahoo.com>
+
+As per the documentation of foreach package, if I use "%dopar%" then computation happens parallaly and on the contrary for %do%", it happens?sequentially. Here, I tried both "%dopar%" and "%do%" for one of the examples given in the help page of ?foreach:
+
+> a <- matrix(1:1600, 40, 40)
+> b <- t(a)
+> system.time(foreach(b=iter(b, by='col'), .combine=cbind) %dopar% ? (a %*% b))
+? ?user ?system elapsed?
+? ?0.04 ? ?0.00 ? ?0.05?
+> a <- matrix(1:1600, 40, 40)
+> b <- t(a)
+> system.time(foreach(b=iter(b, by='col'), .combine=cbind) %do% ? (a %*% b))
+? ?user ?system elapsed?
+? ?0.05 ? ?0.00 ? ?0.05?
+
+However?surprisingly, I did not see any improvement in the computation time. I am using windows vista with dual core CPU (I think it is dual core as when I open Task manager -> Performance, I see there are 2 windows for CPU Usage History......... I am correct that it is dual core, right?) Therefore as it is dual core, shouldn't the computation time with "%dopar%" will be half of "%do%"?
+
+Am I missing something?
+
+Your help will be highly appreciated.
+
+Thanks
+
+
+From roman.lustrik at gmail.com  Mon Jul 18 21:33:24 2011
+From: roman.lustrik at gmail.com (=?UTF-8?Q?Roman_Lu=C5=A1trik?=)
+Date: Mon, 18 Jul 2011 21:33:24 +0200
+Subject: [R-sig-hpc] Question on foreach package
+In-Reply-To: <1311017159.46256.YahooMailNeo@web161820.mail.bf1.yahoo.com>
+References: <1311017159.46256.YahooMailNeo@web161820.mail.bf1.yahoo.com>
+Message-ID: <CAHT1vpj_QfZW1Zfs-U-bHk7dotiBi8QLTAOTG_tGzam4qGOsBA@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110718/89e8c650/attachment.pl>
+
+From stephen.b.weston at gmail.com  Mon Jul 18 21:40:23 2011
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Mon, 18 Jul 2011 15:40:23 -0400
+Subject: [R-sig-hpc] Question on foreach package
+In-Reply-To: <1311017159.46256.YahooMailNeo@web161820.mail.bf1.yahoo.com>
+References: <1311017159.46256.YahooMailNeo@web161820.mail.bf1.yahoo.com>
+Message-ID: <CALh21iLEOQ0PmzYvxNRtiKKX3T3kMwQrc=1aK1w2Wu2WCuyDAQ@mail.gmail.com>
+
+The example that you're trying is tiny.  The overhead in most of the
+parallel programming packages in R is such that you don't get a
+speed improvement for problems that take less than a few seconds,
+let alone 0.05 seconds.
+
+Actually, since the parallel version isn't slower, I wonder if
+you registered a parallel backend.  Did you, and if so, which
+one?
+
+- Steve
+
+
+On Mon, Jul 18, 2011 at 3:25 PM, Megh Dal <megh700004 at yahoo.com> wrote:
+> As per the documentation of foreach package, if I use "%dopar%" then computation happens parallaly and on the contrary for %do%", it happens?sequentially. Here, I tried both "%dopar%" and "%do%" for one of the examples given in the help page of ?foreach:
+>
+>> a <- matrix(1:1600, 40, 40)
+>> b <- t(a)
+>> system.time(foreach(b=iter(b, by='col'), .combine=cbind) %dopar% ? (a %*% b))
+> ? ?user ?system elapsed
+> ? ?0.04 ? ?0.00 ? ?0.05
+>> a <- matrix(1:1600, 40, 40)
+>> b <- t(a)
+>> system.time(foreach(b=iter(b, by='col'), .combine=cbind) %do% ? (a %*% b))
+> ? ?user ?system elapsed
+> ? ?0.05 ? ?0.00 ? ?0.05
+>
+> However?surprisingly, I did not see any improvement in the computation time. I am using windows vista with dual core CPU (I think it is dual core as when I open Task manager -> Performance, I see there are 2 windows for CPU Usage History......... I am correct that it is dual core, right?) Therefore as it is dual core, shouldn't the computation time with "%dopar%" will be half of "%do%"?
+>
+> Am I missing something?
+>
+> Your help will be highly appreciated.
+>
+> Thanks
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From megh700004 at yahoo.com  Mon Jul 18 21:43:37 2011
+From: megh700004 at yahoo.com (Megh Dal)
+Date: Mon, 18 Jul 2011 12:43:37 -0700 (PDT)
+Subject: [R-sig-hpc] Question on foreach package
+In-Reply-To: <CAEr64e-8aJoquDsUNh1CetPte8FKaQVrCn4UcnyPEAeHVgtsBA@mail.gmail.com>
+References: <1311017159.46256.YahooMailNeo@web161820.mail.bf1.yahoo.com>
+	<CAEr64e-8aJoquDsUNh1CetPte8FKaQVrCn4UcnyPEAeHVgtsBA@mail.gmail.com>
+Message-ID: <1311018217.63035.YahooMailNeo@web161802.mail.bf1.yahoo.com>
+
+Actually when I run "%dopar%" 1st time, I got a warning:
+
+Warning message:
+executing %dopar% sequentially: no parallel backend registered?
+
+However I was studying "http://cran.r-project.org/web/packages/foreach/vignettes/foreach.pdf" and there is no mention this word "parallel backend registered". What should I do with this? What actually I need to register?
+
+Please forgive me as my question gives very stupid expression. However I just have started exploring foreach package.?
+Thanks,
+
+
+>________________________________
+>From: Zachary Mayer <zach.mayer at gmail.com>
+>To: Megh Dal <megh700004 at yahoo.com>
+>Sent: Tuesday, July 19, 2011 12:57 AM
+>Subject: Re: [R-sig-hpc] Question on foreach package
+>
+>
+>Make sure you have a parallel backend enabled and properly configured.
+>
+>
+>Open task manager while you run the computation and see if both cores are being used.
+>
+>
+>On Mon, Jul 18, 2011 at 3:25 PM, Megh Dal <megh700004 at yahoo.com> wrote:
+>
+>As per the documentation of foreach package, if I use "%dopar%" then computation happens parallaly and on the contrary for %do%", it happens?sequentially. Here, I tried both "%dopar%" and "%do%" for one of the examples given in the help page of ?foreach:
+>>
+>>> a <- matrix(1:1600, 40, 40)
+>>> b <- t(a)
+>>> system.time(foreach(b=iter(b, by='col'), .combine=cbind) %dopar% ? (a %*% b))
+>>? ?user ?system elapsed?
+>>? ?0.04 ? ?0.00 ? ?0.05?
+>>> a <- matrix(1:1600, 40, 40)
+>>> b <- t(a)
+>>> system.time(foreach(b=iter(b, by='col'), .combine=cbind) %do% ? (a %*% b))
+>>? ?user ?system elapsed?
+>>? ?0.05 ? ?0.00 ? ?0.05?
+>>
+>>However?surprisingly, I did not see any improvement in the computation time. I am using windows vista with dual core CPU (I think it is dual core as when I open Task manager -> Performance, I see there are 2 windows for CPU Usage History......... I am correct that it is dual core, right?) Therefore as it is dual core, shouldn't the computation time with "%dopar%" will be half of "%do%"?
+>>
+>>Am I missing something?
+>>
+>>Your help will be highly appreciated.
+>>
+>>Thanks
+>>
+>>_______________________________________________
+>>R-sig-hpc mailing list
+>>R-sig-hpc at r-project.org
+>>https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>
+>
+>
+
+
+From brian at braverock.com  Mon Jul 18 21:48:25 2011
+From: brian at braverock.com (Brian G. Peterson)
+Date: Mon, 18 Jul 2011 14:48:25 -0500
+Subject: [R-sig-hpc] Question on foreach package
+In-Reply-To: <1311017159.46256.YahooMailNeo@web161820.mail.bf1.yahoo.com>
+References: <1311017159.46256.YahooMailNeo@web161820.mail.bf1.yahoo.com>
+Message-ID: <1311018505.2400.53.camel@brian-rcg>
+
+On Mon, 2011-07-18 at 12:25 -0700, Megh Dal wrote:
+> As per the documentation of foreach package, if I use "%dopar%" then computation happens parallaly and on the contrary for %do%", it happens sequentially. Here, I tried both "%dopar%" and "%do%" for one of the examples given in the help page of ?foreach:
+> 
+> > a <- matrix(1:1600, 40, 40)
+> > b <- t(a)
+> > system.time(foreach(b=iter(b, by='col'), .combine=cbind) %dopar%   (a %*% b))
+>    user  system elapsed 
+>    0.04    0.00    0.05 
+> > a <- matrix(1:1600, 40, 40)
+> > b <- t(a)
+> > system.time(foreach(b=iter(b, by='col'), .combine=cbind) %do%   (a %*% b))
+>    user  system elapsed 
+>    0.05    0.00    0.05 
+> 
+> However surprisingly, I did not see any improvement in the computation time. I am using windows vista with dual core CPU (I think it is dual core as when I open Task manager -> Performance, I see there are 2 windows for CPU Usage History......... I am correct that it is dual core, right?) Therefore as it is dual core, shouldn't the computation time with "%dopar%" will be half of "%do%"?
+> 
+> Am I missing something?
+> 
+> Your help will be highly appreciated.
+
+It doesn't look like you registered a parallel backend for foreach (also
+per the documentation).
+
+See, for example, doMC, doSMP, doRedis, doMPI as parallel backends for
+foreach. you need to call at a registerDo* function, or %dopar% will
+behave exactly like %do%. I use %dopar% in all my programming, test in
+single-threaded mode, and then register a parallel backend so that I get
+parallel execution 'for free'. 
+
+Your example is a trivial 'toy' one too, so communication costs may take
+as long as the calculation, but we'll leave that aside for now.
+
+
+-- 
+Brian G. Peterson
+http://braverock.com/brian/
+Ph: 773-459-4973
+IM: bgpbraverock
+
+
+From megh700004 at yahoo.com  Thu Jul 21 12:59:15 2011
+From: megh700004 at yahoo.com (Megh Dal)
+Date: Thu, 21 Jul 2011 03:59:15 -0700 (PDT)
+Subject: [R-sig-hpc] Where to download REvolution R Community 3.2?
+Message-ID: <1311245955.17727.YahooMailNeo@web161803.mail.bf1.yahoo.com>
+
+Dear all, have anyone downloaded REvolution R Community 3.2
+from http://www.r-bloggers.com/revolution-r-community-3-2-now-available/ any recent time? I am having problem to download as this link seems broken.
+
+Could somebody refer me any alternate link?
+
+Thanks,??
+
+
+From schmidbe at in.tum.de  Thu Jul 21 13:04:43 2011
+From: schmidbe at in.tum.de (Markus Schmidberger)
+Date: Thu, 21 Jul 2011 13:04:43 +0200
+Subject: [R-sig-hpc] Where to download REvolution R Community 3.2?
+In-Reply-To: <1311245955.17727.YahooMailNeo@web161803.mail.bf1.yahoo.com>
+References: <1311245955.17727.YahooMailNeo@web161803.mail.bf1.yahoo.com>
+Message-ID: <1311246283.812.4.camel@schmidb-TravelMate8572TG>
+
+try this one:
+http://www.revolutionanalytics.com/downloads/free-academic.php
+
+Best
+Markus
+
+
+Am Donnerstag, den 21.07.2011, 03:59 -0700 schrieb Megh Dal:
+> Dear all, have anyone downloaded REvolution R Community 3.2
+> from http://www.r-bloggers.com/revolution-r-community-3-2-now-available/ any recent time? I am having problem to download as this link seems broken.
+> 
+> Could somebody refer me any alternate link?
+> 
+> Thanks,  
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+-- 
+Dr. rer. nat. Markus Schmidberger 
+Senior Community Manager 
+
+Cloudnumbers.com GmbH
+Chausseestra?e 6
+10119 Berlin 
+
+www.cloudnumbers.com 
+E-Mail: markus.schmidberger at cloudnumbers.com 
+
+
+************************* 
+Amtsgericht M?nchen, HRB 191138 
+Gesch?ftsf?hrer: Erik Muttersbach, Markus Fensterer, Moritz v. 
+Petersdorff-Campen
+
+
+From megh700004 at yahoo.com  Thu Jul 21 19:27:32 2011
+From: megh700004 at yahoo.com (Megh Dal)
+Date: Thu, 21 Jul 2011 10:27:32 -0700 (PDT)
+Subject: [R-sig-hpc] foreach() with 'lapply'?
+Message-ID: <1311269252.82392.YahooMailNeo@web161805.mail.bf1.yahoo.com>
+
+Dear all, I was exploring the "dopar" mechanism in foreach package, however it seems that "dopar" can be applied only in place of 'for' loop. Here my question is: can it be used with 'lapply' construct?
+
+I have a big 'list' object and I am in some process to apply some complex custom made function on each element of that 'list' object. I have dual core windows vista system, and planning to break that list into 2 part of equal length, then apply that function simultaneously using both cores.
+
+Can?somebody?throw some light how to?achieve?that?
+
+Thanks for your help,
+
+
+From romunov at gmail.com  Thu Jul 21 19:38:11 2011
+From: romunov at gmail.com (romunov)
+Date: Thu, 21 Jul 2011 19:38:11 +0200
+Subject: [R-sig-hpc] foreach() with 'lapply'?
+In-Reply-To: <1311269252.82392.YahooMailNeo@web161805.mail.bf1.yahoo.com>
+References: <1311269252.82392.YahooMailNeo@web161805.mail.bf1.yahoo.com>
+Message-ID: <CAHT1vph+g_PjYUxDySRXs37+phk1Sv=JWO0X-v=ofF0ePRc3Ew@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110721/75c91928/attachment.pl>
+
+From brian at braverock.com  Thu Jul 21 19:44:56 2011
+From: brian at braverock.com (Brian G. Peterson)
+Date: Thu, 21 Jul 2011 12:44:56 -0500
+Subject: [R-sig-hpc] foreach() with 'lapply'?
+In-Reply-To: <1311269252.82392.YahooMailNeo@web161805.mail.bf1.yahoo.com>
+References: <1311269252.82392.YahooMailNeo@web161805.mail.bf1.yahoo.com>
+Message-ID: <1311270296.2585.2.camel@brian-rcg>
+
+On Thu, 2011-07-21 at 10:27 -0700, Megh Dal wrote:
+> Dear all, I was exploring the "dopar" mechanism in foreach package, however it seems that "dopar" can be applied only in place of 'for' loop. Here my question is: can it be used with 'lapply' construct?
+> 
+> I have a big 'list' object and I am in some process to apply some complex custom made function on each element of that 'list' object. I have dual core windows vista system, and planning to break that list into 2 part of equal length, then apply that function simultaneously using both cores.
+> 
+> Can somebody throw some light how to achieve that?
+
+Please read the documentation before posting.
+
+foreach iterates over some iterator, as described in the package
+vignette here:
+http://cran.r-project.org/web/packages/foreach/vignettes/foreach.pdf
+
+and that iterator may easily be a list.  In that case, foreach looks
+very much like lapply.  
+
+foreach will also, by default, return a list.  See the documentation
+for .combine.
+
+If you need additional help, please provide a minimal self-contained
+example, per the posting guide.
+
+Regards,
+
+   - Brian
+
+-- 
+Brian G. Peterson
+http://braverock.com/brian/
+Ph: 773-459-4973
+IM: bgpbraverock
+
+
+From zach.mayer at gmail.com  Thu Jul 21 20:18:58 2011
+From: zach.mayer at gmail.com (Zachary Mayer)
+Date: Thu, 21 Jul 2011 14:18:58 -0400
+Subject: [R-sig-hpc] foreach() with 'lapply'?
+In-Reply-To: <1311269252.82392.YahooMailNeo@web161805.mail.bf1.yahoo.com>
+References: <1311269252.82392.YahooMailNeo@web161805.mail.bf1.yahoo.com>
+Message-ID: <CAEr64e9K5vqfwVUB6i1NfdMHSEqrTw4UnpwrroR7F1Qto1t-VQ@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110721/14a62224/attachment.pl>
+
+From johnramey at gmail.com  Thu Jul 21 20:23:43 2011
+From: johnramey at gmail.com (John Ramey)
+Date: Thu, 21 Jul 2011 11:23:43 -0700
+Subject: [R-sig-hpc] foreach() with 'lapply'?
+In-Reply-To: <CAEr64e9K5vqfwVUB6i1NfdMHSEqrTw4UnpwrroR7F1Qto1t-VQ@mail.gmail.com>
+References: <1311269252.82392.YahooMailNeo@web161805.mail.bf1.yahoo.com>
+	<CAEr64e9K5vqfwVUB6i1NfdMHSEqrTw4UnpwrroR7F1Qto1t-VQ@mail.gmail.com>
+Message-ID: <CAE0SV6fTAraymS65XERYuz+hmipT3NZ9-8pRBbZ9YTaaOBxeDA@mail.gmail.com>
+
+Zach,
+
+I have been looking for something like that, and now that I've seen
+your solution, it seems so obvious.
+
+Nice job!
+
+-- 
+John A. Ramey, M.S.
+Ph.D. Candidate
+Department of Statistics
+Baylor University
+http://www.johnramey.net
+
+On Thu, Jul 21, 2011 at 11:18 AM, Zachary Mayer <zach.mayer at gmail.com> wrote:
+> I use this function as a 'no brainer' replacement for lapply:
+>
+> felapply <- function(X, FUN, ...) {
+> ? ?foreach(i=X) %dopar% {
+> ? ? ? ?FUN(i, ...)
+> ? ?}
+> }
+> x <- felapply(seq(1,10), sqrt)
+> y <- lapply(seq(1,10), sqrt)
+> all.equal(x,y)
+>
+>
+>
+> On Thu, Jul 21, 2011 at 1:27 PM, Megh Dal <megh700004 at yahoo.com> wrote:
+>
+>> Dear all, I was exploring the "dopar" mechanism in foreach package, however
+>> it seems that "dopar" can be applied only in place of 'for' loop. Here my
+>> question is: can it be used with 'lapply' construct?
+>>
+>> I have a big 'list' object and I am in some process to apply some complex
+>> custom made function on each element of that 'list' object. I have dual core
+>> windows vista system, and planning to break that list into 2 part of equal
+>> length, then apply that function simultaneously using both cores.
+>>
+>> Can somebody throw some light how to achieve that?
+>>
+>> Thanks for your help,
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>
+> ? ? ? ?[[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From pauljohn32 at gmail.com  Sat Jul 23 00:15:10 2011
+From: pauljohn32 at gmail.com (Paul Johnson)
+Date: Fri, 22 Jul 2011 17:15:10 -0500
+Subject: [R-sig-hpc] request help with replication and snowFT
+Message-ID: <CAErODj-AvkAvq3i6Ni1vvRVkpbjmRizJi-kgLMzm5pDhCXCi1w@mail.gmail.com>
+
+Hi, everybody.
+
+I finally got back to my hpc work and want to use the snowFT framework
+to replicate random number streams.  In my test applications, I'm
+failing utterly.
+
+Here is example code from the snowFT manual, the only difference is
+that we are on OpenMPI.  Run the same commands twice.  I believe they
+should give the same numbers, but they don't.
+
+cl <- makeClusterFT(3, type="MPI")
+r<-10
+clusterSetupRNG.FT(cl, streamper="replicate",n=r, seed=rep(1,6))
+res<-clusterApplyFT(cl,rep(5,10),rnorm)
+stopCluster(res[[2]])
+print(res[[1]])
+
+cl <- makeClusterFT(3, type="MPI")
+r<-10
+clusterSetupRNG.FT(cl, streamper="replicate",n=r, seed=rep(1,6))
+res<-clusterApplyFT(cl,rep(5,10),rnorm)
+stopCluster(res[[2]])
+print(res[[1]])
+
+
+Here's the output.
+
+>
+> library(snowFT)
+>
+>
+> cl <- makeClusterFT(3, type="MPI")
+	3 slaves are spawned successfully. 0 failed.
+> r<-10
+> clusterSetupRNG.FT(cl, streamper="replicate",n=r, seed=rep(1,6))
+[1] "RNGstream" "replicate"
+> res<-clusterApplyFT(cl,rep(5,10),rnorm)
+> stopCluster(res[[2]])
+[1] 1
+> print(res[[1]])
+[[1]]
+[1] -0.1456025  1.3072949 -1.0957783  0.6168508  0.6448932
+
+[[2]]
+[1]  1.63010246 -0.23033278 -0.91349106 -0.03618282  3.30093452
+
+[[3]]
+[1]  0.3667690 -0.3776691 -2.1429295 -1.0149990 -0.1546822
+
+[[4]]
+[1] -0.2193551  1.9246829 -0.1609943 -0.2835361  1.5796259
+
+[[5]]
+[1] -0.2151461  1.8466480 -0.8347105 -0.1572832  1.1244531
+
+[[6]]
+[1] -1.0051997  1.8332684 -1.0159134 -0.2503565 -1.0492845
+
+[[7]]
+[1] -0.7926305  0.9066504 -0.5414232 -0.8936676 -0.4695451
+
+[[8]]
+[1] -0.01403189  0.94844300 -1.55585713 -0.64284893 -0.96375069
+
+[[9]]
+[1] -1.5221444  0.3433271 -0.6120788  1.3496397  0.8353766
+
+[[10]]
+[1]  0.73350122  0.07025138  0.44000765 -0.32853919 -2.00299434
+
+>
+> cl <- makeClusterFT(3, type="MPI")
+	3 slaves are spawned successfully. 0 failed.
+> r<-10
+> clusterSetupRNG.FT(cl, streamper="replicate",n=r, seed=rep(1,6))
+[1] "RNGstream" "replicate"
+> res<-clusterApplyFT(cl,rep(5,10),rnorm)
+> stopCluster(res[[2]])
+[1] 1
+> print(res[[1]])
+[[1]]
+[1] -0.8417970  0.2168521 -0.6801217 -1.1004275  1.9878556
+
+[[2]]
+[1]  0.05736959 -0.02219014 -0.24350810 -0.67493732  1.12872995
+
+[[3]]
+[1]  2.1888386 -0.6185255  0.6155721 -0.9960713 -0.3225214
+
+[[4]]
+[1]  0.2889124 -0.7812625  0.6137595 -0.4277711 -0.9265217
+
+[[5]]
+[1]  1.1439147 -0.8985090 -0.7180237 -0.8555336 -0.7178986
+
+[[6]]
+[1]  0.7085318 -0.9131429  0.8304874  0.9064519 -0.4819298
+
+[[7]]
+[1] 0.89758192 0.69964093 0.65992814 1.04772400 0.04638749
+
+[[8]]
+[1]  0.5077768  2.6082531 -0.4321813 -0.6506362  0.1527894
+
+[[9]]
+[1] -1.1617166  0.9932200 -1.1405765  0.9429077 -0.8969591
+
+[[10]]
+[1] -1.0571084  1.2550529  0.2394692 -1.1023199 -0.4573881
+
+>
+
+In the cluster nodes, we have R 2.13.0 and OpenMPI version 1.4.1
+
+
+-- 
+Paul E. Johnson
+Professor, Political Science
+1541 Lilac Lane, Room 504
+University of Kansas
+
+
+From hanas at uw.edu  Sat Jul 23 01:58:35 2011
+From: hanas at uw.edu (Hana Sevcikova)
+Date: Fri, 22 Jul 2011 16:58:35 -0700
+Subject: [R-sig-hpc] request help with replication and snowFT
+In-Reply-To: <CAErODj-AvkAvq3i6Ni1vvRVkpbjmRizJi-kgLMzm5pDhCXCi1w@mail.gmail.com>
+References: <CAErODj-AvkAvq3i6Ni1vvRVkpbjmRizJi-kgLMzm5pDhCXCi1w@mail.gmail.com>
+Message-ID: <4E2A0EAB.2080608@uw.edu>
+
+Paul,
+
+You need to pass the 'gentype' argument into clusterApplyFT, i.e.
+
+res<-clusterApplyFT(cl,rep(5,10), rnorm, gentype = "RNGstream")
+
+This is because clusterApplyFT has a different default generator than 
+clusterSetupRNG.FT (I should change that). I guess it wasn't a big deal 
+because these are meant to be internal functions used through the 
+performParallel wrapper.
+
+Hana
+
+
+On 7/22/11 3:15 PM, Paul Johnson wrote:
+> Hi, everybody.
+>
+> I finally got back to my hpc work and want to use the snowFT framework
+> to replicate random number streams.  In my test applications, I'm
+> failing utterly.
+>
+> Here is example code from the snowFT manual, the only difference is
+> that we are on OpenMPI.  Run the same commands twice.  I believe they
+> should give the same numbers, but they don't.
+>
+> cl<- makeClusterFT(3, type="MPI")
+> r<-10
+> clusterSetupRNG.FT(cl, streamper="replicate",n=r, seed=rep(1,6))
+> res<-clusterApplyFT(cl,rep(5,10),rnorm)
+> stopCluster(res[[2]])
+> print(res[[1]])
+>
+> cl<- makeClusterFT(3, type="MPI")
+> r<-10
+> clusterSetupRNG.FT(cl, streamper="replicate",n=r, seed=rep(1,6))
+> res<-clusterApplyFT(cl,rep(5,10),rnorm)
+> stopCluster(res[[2]])
+> print(res[[1]])
+>
+>
+> Here's the output.
+>
+>> library(snowFT)
+>>
+>>
+>> cl<- makeClusterFT(3, type="MPI")
+> 	3 slaves are spawned successfully. 0 failed.
+>> r<-10
+>> clusterSetupRNG.FT(cl, streamper="replicate",n=r, seed=rep(1,6))
+> [1] "RNGstream" "replicate"
+>> res<-clusterApplyFT(cl,rep(5,10),rnorm)
+>> stopCluster(res[[2]])
+> [1] 1
+>> print(res[[1]])
+> [[1]]
+> [1] -0.1456025  1.3072949 -1.0957783  0.6168508  0.6448932
+>
+> [[2]]
+> [1]  1.63010246 -0.23033278 -0.91349106 -0.03618282  3.30093452
+>
+> [[3]]
+> [1]  0.3667690 -0.3776691 -2.1429295 -1.0149990 -0.1546822
+>
+> [[4]]
+> [1] -0.2193551  1.9246829 -0.1609943 -0.2835361  1.5796259
+>
+> [[5]]
+> [1] -0.2151461  1.8466480 -0.8347105 -0.1572832  1.1244531
+>
+> [[6]]
+> [1] -1.0051997  1.8332684 -1.0159134 -0.2503565 -1.0492845
+>
+> [[7]]
+> [1] -0.7926305  0.9066504 -0.5414232 -0.8936676 -0.4695451
+>
+> [[8]]
+> [1] -0.01403189  0.94844300 -1.55585713 -0.64284893 -0.96375069
+>
+> [[9]]
+> [1] -1.5221444  0.3433271 -0.6120788  1.3496397  0.8353766
+>
+> [[10]]
+> [1]  0.73350122  0.07025138  0.44000765 -0.32853919 -2.00299434
+>
+>> cl<- makeClusterFT(3, type="MPI")
+> 	3 slaves are spawned successfully. 0 failed.
+>> r<-10
+>> clusterSetupRNG.FT(cl, streamper="replicate",n=r, seed=rep(1,6))
+> [1] "RNGstream" "replicate"
+>> res<-clusterApplyFT(cl,rep(5,10),rnorm)
+>> stopCluster(res[[2]])
+> [1] 1
+>> print(res[[1]])
+> [[1]]
+> [1] -0.8417970  0.2168521 -0.6801217 -1.1004275  1.9878556
+>
+> [[2]]
+> [1]  0.05736959 -0.02219014 -0.24350810 -0.67493732  1.12872995
+>
+> [[3]]
+> [1]  2.1888386 -0.6185255  0.6155721 -0.9960713 -0.3225214
+>
+> [[4]]
+> [1]  0.2889124 -0.7812625  0.6137595 -0.4277711 -0.9265217
+>
+> [[5]]
+> [1]  1.1439147 -0.8985090 -0.7180237 -0.8555336 -0.7178986
+>
+> [[6]]
+> [1]  0.7085318 -0.9131429  0.8304874  0.9064519 -0.4819298
+>
+> [[7]]
+> [1] 0.89758192 0.69964093 0.65992814 1.04772400 0.04638749
+>
+> [[8]]
+> [1]  0.5077768  2.6082531 -0.4321813 -0.6506362  0.1527894
+>
+> [[9]]
+> [1] -1.1617166  0.9932200 -1.1405765  0.9429077 -0.8969591
+>
+> [[10]]
+> [1] -1.0571084  1.2550529  0.2394692 -1.1023199 -0.4573881
+>
+> In the cluster nodes, we have R 2.13.0 and OpenMPI version 1.4.1
+>
+>
+
+
+From jens.oehlschlaegel at truecluster.com  Sat Jul 23 18:25:17 2011
+From: jens.oehlschlaegel at truecluster.com (=?UTF-8?Q?=22Jens_Oehlschl=C3=A4gel=22?=)
+Date: Sat, 23 Jul 2011 18:25:17 +0200 (CEST)
+Subject: [R-sig-hpc] ff package - Error selecting 0 rows.
+Message-ID: <631112356.1529590.1311438317240.JavaMail.fmail@mwmweb024>
+
+Hi Ivan,
+
+Thanks for reporting this bug.
+
+>Error in as.integer.hi(x, ...) : object 'ret' not found
+
+debug(as.integer.hi) and calling again shows that the return value 'integer()' was not assigned to 'ret'. This is fixed now in subversion on r-forge and will find its way to CRAN during the next week.
+
+>Also, there doesn't seem to be a consistent way to return a data.frame with zero rows i.e. d[0,] returns a ffdf whereas d[1,] returns a data.frame
+
+The documentation says "ff index expressions do not allow zeros and NAs" and trying to use a zero integer subscript?reminds you
+
+> c[0,]
+Fehler in as.hi.integer(as.integer(x), ...) :
+? 0s and mixed positive/negative subscripts not allowed
+
+ff allows to use 'integer()' as an integer representation of an empty subscript, look at
+
+> c[integer(),]
+[1] a b
+<0 Zeilen> (oder row.names mit L?nge 0)
+
+> str(c[integer(),])
+'data.frame':?? 0 obs. of? 2 variables:
+?$ a: int
+?$ b: int
+
+
+Kind regards
+
+
+Jens Oehlschl?gel?
+
+
+From pauljohn32 at gmail.com  Sat Jul 23 18:46:20 2011
+From: pauljohn32 at gmail.com (Paul Johnson)
+Date: Sat, 23 Jul 2011 11:46:20 -0500
+Subject: [R-sig-hpc] request help with replication and snowFT
+In-Reply-To: <4E2A0EAB.2080608@uw.edu>
+References: <CAErODj-AvkAvq3i6Ni1vvRVkpbjmRizJi-kgLMzm5pDhCXCi1w@mail.gmail.com>
+	<4E2A0EAB.2080608@uw.edu>
+Message-ID: <CAErODj_woV=pLLdQhshKV1+OiZmekex9VYA=WXOwEd5cR9HPHg@mail.gmail.com>
+
+On Fri, Jul 22, 2011 at 6:58 PM, Hana Sevcikova <hanas at uw.edu> wrote:
+> Paul,
+>
+> You need to pass the 'gentype' argument into clusterApplyFT, i.e.
+>
+> res<-clusterApplyFT(cl,rep(5,10), rnorm, gentype = "RNGstream")
+>
+> This is because clusterApplyFT has a different default generator than
+> clusterSetupRNG.FT (I should change that). I guess it wasn't a big deal
+> because these are meant to be internal functions used through the
+> performParallel wrapper.
+>
+> Hana
+>
+
+Thanks.
+
+Could you please explain more about the intended use of
+parallelPerform? I tried, but could not find a convenient way to send
+functions to the nodes before the main function would run.  I could
+build everything into a package and install that on the nodes, but for
+development and testing, that makes for a pretty tedious process.
+
+I can't say what your students are willing to put up to use a cluster,
+but mine are not so patient as that.  We want to just write functions,
+send them out, see what happens.  In the snowFT documentation, there
+are no examples like that,I had to do some guessing to see what might
+work. Would you care to put an example like this in your
+documentation?
+
+And then explain how a user can grab any one arbitrary stream and
+re-run it for interactive investigation of its properties.  When we
+run this thing 1000 times and 2 are really off the usual result, we
+want to dig in and try to see what happened.
+
+Here's my test case:
+
+### r: number of streams. Should be set as BIGGEST number of runs=streams
+### you could ever want to replicate.  It sets a framework of streams
+### that is the same on all nodes.  Here I have 33 streams, only 10 nodes.
+### snowFT handles the problem of creating 33 separate streams, so there
+### is one ready for each possible run, no matter which node is doing
+### the work.
+r <- 33
+### cnt: number of nodes
+cnt <- 10
+
+cl <- makeClusterFT(cnt, type="MPI")
+
+### From snowFT methods:
+printClusterInfo(cl)
+
+### Can use SNOW methods as well.
+### Testing with SNOW methods: sends function to each system
+clusterCall( cl, function() Sys.info()[c("nodename","machine")])
+
+### Some user-written functions involved in a simulation
+myA <- function( x ){
+  2 *x
+}
+
+myB <- function( x ){
+  3 * x
+}
+
+
+myC <- function( x, y){
+  x + y
+}
+
+## The main function of interest
+myNorm <- function (x){
+  whew <-  myA(x)
+  whewyou <- myB(whew)
+  whewwho <- myC(whew, whewyou)
+  y <- rnorm(whewwho)
+  list(x, whew, whewyou, whewwho, y, sum(y))
+}
+
+
+mySeeds <- c(1231, 2323, 43435, 12123, 22442, 634654)
+##create "x" vector.
+myx <- sample(1:8, r, replace=T)
+
+## Send functions to systems with SNOW functions
+clusterExport(cl, "myA")
+clusterExport(cl, "myB")
+clusterExport(cl, "myC")
+
+clusterSetupRNG.FT(cl, type = "RNGstream", streamper="replicate", n=r,
+seed=mySeeds)
+res1 <- clusterApplyFT(cl, x=myx, fun=myNorm, seed=mySeeds)
+
+print(res1[[1]])
+
+
+
+
+-- 
+Paul E. Johnson
+Professor, Political Science
+1541 Lilac Lane, Room 504
+University of Kansas
+
+
+From hanas at uw.edu  Sun Jul 24 06:06:29 2011
+From: hanas at uw.edu (Hana Sevcikova)
+Date: Sat, 23 Jul 2011 21:06:29 -0700
+Subject: [R-sig-hpc] request help with replication and snowFT
+In-Reply-To: <CAErODj_woV=pLLdQhshKV1+OiZmekex9VYA=WXOwEd5cR9HPHg@mail.gmail.com>
+References: <CAErODj-AvkAvq3i6Ni1vvRVkpbjmRizJi-kgLMzm5pDhCXCi1w@mail.gmail.com>	<4E2A0EAB.2080608@uw.edu>
+	<CAErODj_woV=pLLdQhshKV1+OiZmekex9VYA=WXOwEd5cR9HPHg@mail.gmail.com>
+Message-ID: <4E2B9A45.60609@uw.edu>
+
+Paul,
+> Could you please explain more about the intended use of
+> parallelPerform?
+Make parallel computing in R as easy as possible.
+
+> I tried, but could not find a convenient way to send
+> functions to the nodes before the main function would run.  I could
+> build everything into a package and install that on the nodes, but for
+> development and testing, that makes for a pretty tedious process.
+You can just pack the additional functions into the main function. In 
+your example,
+
+## The main function of interest
+myNorm<- function (x){
+   myA<- function( x ){
+     2 *x
+   }
+   myB<- function( x ){
+     3 * x
+   }
+   myC<- function( x, y){
+     x + y
+   }
+   whew<-  myA(x)
+   whewyou<- myB(whew)
+   whewwho<- myC(whew, whewyou)
+   y<- rnorm(whewwho)
+   list(x, whew, whewyou, whewwho, y, sum(y))
+}
+
+
+The Sys.info call can be defined in an init function:
+
+nodeinfo<- function() Sys.info()[c("nodename","machine")]
+
+
+Then, you can use performParallel:
+
+res1<- performParallel(cnt, x=myx, fun=myNorm, initfun=nodeinfo, seed=mySeeds)
+
+
+> Would you care to put an example like this in your
+> documentation?
+I can do that.
+
+Note that snowFT is not an attempt to replace snow - it is its 
+extension.  It simplifies its usage in order to make it accessible to 
+people who might otherwise feel too intimidated by parallel computing 
+(and offers some additional benefits such as reproducibility and fault 
+tolerance). But for people who want to explore and dig into the details, 
+the full set of snow functions is available.
+
+> And then explain how a user can grab any one arbitrary stream and
+> re-run it for interactive investigation of its properties.  When we
+> run this thing 1000 times and 2 are really off the usual result, we
+> want to dig in and try to see what happened.
+There is no function that allows this. It would be a nice extension 
+though - let me know if you have a suggestion for an implementation.
+
+Hana
+
+
+
+> Here's my test case:
+>
+> ### r: number of streams. Should be set as BIGGEST number of runs=streams
+> ### you could ever want to replicate.  It sets a framework of streams
+> ### that is the same on all nodes.  Here I have 33 streams, only 10 nodes.
+> ### snowFT handles the problem of creating 33 separate streams, so there
+> ### is one ready for each possible run, no matter which node is doing
+> ### the work.
+> r<- 33
+> ### cnt: number of nodes
+> cnt<- 10
+>
+> cl<- makeClusterFT(cnt, type="MPI")
+>
+> ### From snowFT methods:
+> printClusterInfo(cl)
+>
+> ### Can use SNOW methods as well.
+> ### Testing with SNOW methods: sends function to each system
+> clusterCall( cl, function() Sys.info()[c("nodename","machine")])
+>
+> ### Some user-written functions involved in a simulation
+> myA<- function( x ){
+>    2 *x
+> }
+>
+> myB<- function( x ){
+>    3 * x
+> }
+>
+>
+> myC<- function( x, y){
+>    x + y
+> }
+>
+> ## The main function of interest
+> myNorm<- function (x){
+>    whew<-  myA(x)
+>    whewyou<- myB(whew)
+>    whewwho<- myC(whew, whewyou)
+>    y<- rnorm(whewwho)
+>    list(x, whew, whewyou, whewwho, y, sum(y))
+> }
+>
+>
+> mySeeds<- c(1231, 2323, 43435, 12123, 22442, 634654)
+> ##create "x" vector.
+> myx<- sample(1:8, r, replace=T)
+>
+> ## Send functions to systems with SNOW functions
+> clusterExport(cl, "myA")
+> clusterExport(cl, "myB")
+> clusterExport(cl, "myC")
+>
+> clusterSetupRNG.FT(cl, type = "RNGstream", streamper="replicate", n=r,
+> seed=mySeeds)
+> res1<- clusterApplyFT(cl, x=myx, fun=myNorm, seed=mySeeds)
+>
+> print(res1[[1]])
+>
+>
+>
+>
+
+
+From samo.pahor at gmail.com  Tue Jul 26 15:40:16 2011
+From: samo.pahor at gmail.com (Samo Pahor)
+Date: Tue, 26 Jul 2011 15:40:16 +0200
+Subject: [R-sig-hpc] load does not work for me with foreach and %dopar%
+Message-ID: <CAFNBy2nnrW5uDW9YGMY2dK5pnyAuiofQoYLnA2Hx=weqB5SV8g@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110726/16084538/attachment.pl>
+
+From beniltoncarvalho at gmail.com  Tue Jul 26 15:55:52 2011
+From: beniltoncarvalho at gmail.com (Benilton Carvalho)
+Date: Tue, 26 Jul 2011 14:55:52 +0100
+Subject: [R-sig-hpc] load does not work for me with foreach and %dopar%
+In-Reply-To: <CAFNBy2nnrW5uDW9YGMY2dK5pnyAuiofQoYLnA2Hx=weqB5SV8g@mail.gmail.com>
+References: <CAFNBy2nnrW5uDW9YGMY2dK5pnyAuiofQoYLnA2Hx=weqB5SV8g@mail.gmail.com>
+Message-ID: <CAO-arWO0G7THxr1FHkjZ6YgeRorhkgGCvWw9ApKWBoH6XUZw1Q@mail.gmail.com>
+
+with %dopar%, different R sessions will be used (and they're not the
+one you called foreach() from).
+
+so, load() does work, but you never asked foreach() to return whatever
+you loaded:
+
+results = foreach(i=objectsNamesVector) %dopar% get(load(paste(i,
+'.RData', sep='')))
+print(results)
+
+b
+
+
+From brian at braverock.com  Tue Jul 26 15:56:23 2011
+From: brian at braverock.com (Brian G. Peterson)
+Date: Tue, 26 Jul 2011 08:56:23 -0500
+Subject: [R-sig-hpc] load does not work for me with foreach and %dopar%
+In-Reply-To: <CAFNBy2nnrW5uDW9YGMY2dK5pnyAuiofQoYLnA2Hx=weqB5SV8g@mail.gmail.com>
+References: <CAFNBy2nnrW5uDW9YGMY2dK5pnyAuiofQoYLnA2Hx=weqB5SV8g@mail.gmail.com>
+Message-ID: <1311688583.3187.20.camel@brian-rcg>
+
+Samo,
+
+I think you have a basic misunderstanding of how the parallel execution
+works.
+
+In basically any parallel backend for R, you're creating separate
+environments (and R processes) in which execution is taking place.
+
+Your example loads x,y,z inside the foreach construct, and then tries to
+print them outside the construct from the master  (calling) R process.
+The only thing returned from foreach is what you choose to return.
+Otherwise, the master process knows nothing of what happened in each of
+the workers.
+
+
+If you put something like
+
+     print(get(objectsNamesVector[i]))
+
+inside your foreach construct, I think you would get the same results
+with both %do% and %dopar%
+
+you would, however,  *not* get objects called x,y,z in your
+calling/master process with %dopar%. 
+
+Regards,
+
+   - Brian
+
+On Tue, 2011-07-26 at 15:40 +0200, Samo Pahor wrote:
+> Hello HPF experts.
+> 
+> I have a very basic/beginner question regarding using of load, foreach,
+> %dopar% and doSMP.
+> 
+> I encountered some issues with using foreach %dopar% when loading objects
+> from disk into memory... Objects are not loaded when I try to load them when
+> using foreach %dopar% (it works when I use only %do%) Below is a simple
+> example that shows my problem.
+> 
+> require(doSMP)
+> workers <- startWorkers(4)
+> registerDoSMP(workers)
+> 
+> envir = .GlobalEnv
+> 
+> x <- "X test"
+> y <- "Y test"
+> z <- "Z test"
+> 
+> save(x, file="x.RData")
+> save(y, file="y.RData")
+> save(z, file="z.RData")
+> 
+> rm(x)
+> rm(y)
+> rm(z)
+> 
+> objectsNamesVector <- c("x", "y", "z")
+> 
+> foreach(i=1:length(objectsNamesVector), .combine=function (...) NULL,
+>   .multicombine=TRUE) %do% {
+>     print(paste("Loading object ", objectsNamesVector[i]," - ", i, "
+> of ",    length(objectsNamesVector), sep=""))
+>     load(file=paste(objectsNamesVector[i], ".RData", sep=""), envir=envir)
+> }
+> 
+> print(x)
+> print(y)
+> print(z)
+> 
+> rm(x)
+> rm(y)
+> rm(z)
+> 
+> foreach(i=1:length(objectsNamesVector), .combine=function (...) NULL,
+> .multicombine=TRUE) %dopar% {
+>     print(paste("Loading object ", objectsNamesVector[i]," - ", i, "
+> of ", length(objectsNamesVector), sep=""))
+>     load(file=paste(objectsNamesVector[i], ".RData", sep=""), envir=envir)
+> }
+> 
+> print(x)
+> print(y)
+> print(z)
+> 
+> Result of executing this code is(without the ">"):
+> 
+> envir = .GlobalEnv
+> 
+> x <- "X test"
+> y <- "Y test"
+> z <- "Z test"
+> 
+> save(x, file="x.RData")
+> save(y, file="y.RData")
+> save(z, file="z.RData")
+> 
+> rm(x)
+> rm(y)
+> rm(z)
+> 
+> objectsNamesVector <- c("x", "y", "z")
+> 
+> foreach(i=1:length(objectsNamesVector), .combine=function (...) NULL,
+>   .multicombine=TRUE) %do% {
+> +   print(paste("Loading object ", objectsNamesVector[i]," - ", i, "
+> of ", length(objectsNamesVector), sep=""))
+> +   load(file=paste(objectsNamesVector[i], ".RData", sep=""), envir=envir)
+> + }
+> [1] "Loading object x - 1 of 3"
+> [1] "Loading object y - 2 of 3"
+> [1] "Loading object z - 3 of 3"
+> NULL
+> 
+> print(x)
+> [1] "X test"
+> print(y)
+> [1] "Y test"
+> print(z)
+> [1] "Z test"
+> rm(x)
+> rm(y)
+> rm(z)
+> 
+> foreach(i=1:length(objectsNamesVector), .combine=function (...) NULL,
+> .multicombine=TRUE) %dopar% {
+> +   print(paste("Loading object ", objectsNamesVector[i]," - ", i, "
+> of ", length(objectsNamesVector), sep=""))
+> +   load(file=paste(objectsNamesVector[i], ".RData", sep=""), envir=envir)
+> + }
+> NULL
+> 
+> print(x)
+> Error in print(x) : object 'x' not found
+> print(y)
+> Error in print(y) : object 'y' not found
+> print(z)
+> Error in print(z) : object 'z' not found
+> 
+> I understand that I cannot improve IO with foreach since IO is sequential on
+> my architecture. I would just like to understand why this load is not
+> working... Because I would then like to do more processing after I
+> successfully load the objects.
+> 
+> Thank you for your answer and/or pointer to documetation where I can
+> understand this issue.
+> 
+> Regards, Samo.
+> 
+> P.S.: I asked this question a few days ago on stackovwerflow (
+> http://stackoverflow.com/questions/6804229/load-does-not-work-with-foreach-and-dopar)
+> but
+> received no answer. Therefore I asked once again here.
+> 
+> 	[[alternative HTML version deleted]]
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+-- 
+Brian G. Peterson
+http://braverock.com/brian/
+Ph: 773-459-4973
+IM: bgpbraverock
+
+
+From hanas at uw.edu  Tue Jul 26 18:09:50 2011
+From: hanas at uw.edu (Hana Sevcikova)
+Date: Tue, 26 Jul 2011 09:09:50 -0700
+Subject: [R-sig-hpc] request help with replication and snowFT
+In-Reply-To: <CAErODj_woV=pLLdQhshKV1+OiZmekex9VYA=WXOwEd5cR9HPHg@mail.gmail.com>
+References: <CAErODj-AvkAvq3i6Ni1vvRVkpbjmRizJi-kgLMzm5pDhCXCi1w@mail.gmail.com>	<4E2A0EAB.2080608@uw.edu>
+	<CAErODj_woV=pLLdQhshKV1+OiZmekex9VYA=WXOwEd5cR9HPHg@mail.gmail.com>
+Message-ID: <4E2EE6CE.2020705@uw.edu>
+
+Paul,
+> And then explain how a user can grab any one arbitrary stream and
+> re-run it for interactive investigation of its properties.  When we
+> run this thing 1000 times and 2 are really off the usual result, we
+> want to dig in and try to see what happened.
+I know this is not exactly what you have in mind but one way to explore 
+the individual streams is to set the number of nodes to 0 (in your 
+example cnt=0) in which case the process runs sequentially using the 
+same random numbers as in parallel case. Thus, you can use any R 
+debugger to see what's going on with your streams.
+
+Hana
+
+
+> Here's my test case:
+>
+> ### r: number of streams. Should be set as BIGGEST number of runs=streams
+> ### you could ever want to replicate.  It sets a framework of streams
+> ### that is the same on all nodes.  Here I have 33 streams, only 10 nodes.
+> ### snowFT handles the problem of creating 33 separate streams, so there
+> ### is one ready for each possible run, no matter which node is doing
+> ### the work.
+> r<- 33
+> ### cnt: number of nodes
+> cnt<- 10
+>
+> cl<- makeClusterFT(cnt, type="MPI")
+>
+> ### From snowFT methods:
+> printClusterInfo(cl)
+>
+> ### Can use SNOW methods as well.
+> ### Testing with SNOW methods: sends function to each system
+> clusterCall( cl, function() Sys.info()[c("nodename","machine")])
+>
+> ### Some user-written functions involved in a simulation
+> myA<- function( x ){
+>    2 *x
+> }
+>
+> myB<- function( x ){
+>    3 * x
+> }
+>
+>
+> myC<- function( x, y){
+>    x + y
+> }
+>
+> ## The main function of interest
+> myNorm<- function (x){
+>    whew<-  myA(x)
+>    whewyou<- myB(whew)
+>    whewwho<- myC(whew, whewyou)
+>    y<- rnorm(whewwho)
+>    list(x, whew, whewyou, whewwho, y, sum(y))
+> }
+>
+>
+> mySeeds<- c(1231, 2323, 43435, 12123, 22442, 634654)
+> ##create "x" vector.
+> myx<- sample(1:8, r, replace=T)
+>
+> ## Send functions to systems with SNOW functions
+> clusterExport(cl, "myA")
+> clusterExport(cl, "myB")
+> clusterExport(cl, "myC")
+>
+> clusterSetupRNG.FT(cl, type = "RNGstream", streamper="replicate", n=r,
+> seed=mySeeds)
+> res1<- clusterApplyFT(cl, x=myx, fun=myNorm, seed=mySeeds)
+>
+> print(res1[[1]])
+>
+>
+>
+>
+
+
+From megh700004 at yahoo.com  Tue Jul 26 18:19:20 2011
+From: megh700004 at yahoo.com (Megh Dal)
+Date: Tue, 26 Jul 2011 09:19:20 -0700 (PDT)
+Subject: [R-sig-hpc] R hangs when I run 'rmSessions()'
+Message-ID: <1311697160.36967.YahooMailNeo@web161810.mail.bf1.yahoo.com>
+
+Dear all, I am having a strange problem with doSMP package. When I start a fresh R console and run 'workers <- startWorkers(2)' I come up a warning message: there is an existing doSMP session using doSMP1?
+
+Why I should get that message as I start a fresh work into R?
+
+Next when I try to?disable?that with rmSessions("doSMP1"), R hangs.
+
+Can?somebody?share any such similar problem? How you then resolved it? If I do not run?rmSessions("doSMP1") at all then would I get any problem? Can I still utilize my dual core for my calculation? I am using windows vista with latest R 2.13.1
+
+Thanks for your help
+
+
+From hanas at uw.edu  Tue Jul 26 18:19:25 2011
+From: hanas at uw.edu (Hana Sevcikova)
+Date: Tue, 26 Jul 2011 09:19:25 -0700
+Subject: [R-sig-hpc] request help with replication and snowFT
+In-Reply-To: <4E2EE6CE.2020705@uw.edu>
+References: <CAErODj-AvkAvq3i6Ni1vvRVkpbjmRizJi-kgLMzm5pDhCXCi1w@mail.gmail.com>	<4E2A0EAB.2080608@uw.edu>	<CAErODj_woV=pLLdQhshKV1+OiZmekex9VYA=WXOwEd5cR9HPHg@mail.gmail.com>
+	<4E2EE6CE.2020705@uw.edu>
+Message-ID: <4E2EE90D.9010907@uw.edu>
+
+Note that for this sequential run you need to use the performParallel 
+wrapper (not the clusterApplyFT function).
+
+Hana
+
+On 7/26/11 9:09 AM, Hana Sevcikova wrote:
+> Paul,
+>> And then explain how a user can grab any one arbitrary stream and
+>> re-run it for interactive investigation of its properties.  When we
+>> run this thing 1000 times and 2 are really off the usual result, we
+>> want to dig in and try to see what happened.
+> I know this is not exactly what you have in mind but one way to 
+> explore the individual streams is to set the number of nodes to 0 (in 
+> your example cnt=0) in which case the process runs sequentially using 
+> the same random numbers as in parallel case. Thus, you can use any R 
+> debugger to see what's going on with your streams.
+>
+> Hana
+>
+>
+>> Here's my test case:
+>>
+>> ### r: number of streams. Should be set as BIGGEST number of 
+>> runs=streams
+>> ### you could ever want to replicate.  It sets a framework of streams
+>> ### that is the same on all nodes.  Here I have 33 streams, only 10 
+>> nodes.
+>> ### snowFT handles the problem of creating 33 separate streams, so there
+>> ### is one ready for each possible run, no matter which node is doing
+>> ### the work.
+>> r<- 33
+>> ### cnt: number of nodes
+>> cnt<- 10
+>>
+>> cl<- makeClusterFT(cnt, type="MPI")
+>>
+>> ### From snowFT methods:
+>> printClusterInfo(cl)
+>>
+>> ### Can use SNOW methods as well.
+>> ### Testing with SNOW methods: sends function to each system
+>> clusterCall( cl, function() Sys.info()[c("nodename","machine")])
+>>
+>> ### Some user-written functions involved in a simulation
+>> myA<- function( x ){
+>>    2 *x
+>> }
+>>
+>> myB<- function( x ){
+>>    3 * x
+>> }
+>>
+>>
+>> myC<- function( x, y){
+>>    x + y
+>> }
+>>
+>> ## The main function of interest
+>> myNorm<- function (x){
+>>    whew<-  myA(x)
+>>    whewyou<- myB(whew)
+>>    whewwho<- myC(whew, whewyou)
+>>    y<- rnorm(whewwho)
+>>    list(x, whew, whewyou, whewwho, y, sum(y))
+>> }
+>>
+>>
+>> mySeeds<- c(1231, 2323, 43435, 12123, 22442, 634654)
+>> ##create "x" vector.
+>> myx<- sample(1:8, r, replace=T)
+>>
+>> ## Send functions to systems with SNOW functions
+>> clusterExport(cl, "myA")
+>> clusterExport(cl, "myB")
+>> clusterExport(cl, "myC")
+>>
+>> clusterSetupRNG.FT(cl, type = "RNGstream", streamper="replicate", n=r,
+>> seed=mySeeds)
+>> res1<- clusterApplyFT(cl, x=myx, fun=myNorm, seed=mySeeds)
+>>
+>> print(res1[[1]])
+>>
+>>
+>>
+>>
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From stephen.b.weston at gmail.com  Wed Jul 27 15:28:28 2011
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Wed, 27 Jul 2011 09:28:28 -0400
+Subject: [R-sig-hpc] R hangs when I run 'rmSessions()'
+In-Reply-To: <1311697160.36967.YahooMailNeo@web161810.mail.bf1.yahoo.com>
+References: <1311697160.36967.YahooMailNeo@web161810.mail.bf1.yahoo.com>
+Message-ID: <CALh21i+JZ4_1dGT-jXej7TyWWwWHqDsnJMTgZMfuo3R+Onng4g@mail.gmail.com>
+
+I believe that to manually clean up after an old doSMP
+session on Windows, you should go to the directory
+%TEMP%\boost_interprocess, and delete the files doSMP*.
+
+- Steve
+
+
+On Tue, Jul 26, 2011 at 12:19 PM, Megh Dal <megh700004 at yahoo.com> wrote:
+> Dear all, I am having a strange problem with doSMP package. When I start a fresh R console and run 'workers <- startWorkers(2)' I come up a warning message: there is an existing doSMP session using doSMP1
+>
+> Why I should get that message as I start a fresh work into R?
+>
+> Next when I try to?disable?that with rmSessions("doSMP1"), R hangs.
+>
+> Can?somebody?share any such similar problem? How you then resolved it? If I do not run?rmSessions("doSMP1") at all then would I get any problem? Can I still utilize my dual core for my calculation? I am using windows vista with latest R 2.13.1
+>
+> Thanks for your help
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+

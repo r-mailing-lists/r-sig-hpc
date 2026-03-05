@@ -1,0 +1,4281 @@
+From jgrn at illinois.edu  Tue Nov  1 22:36:50 2011
+From: jgrn at illinois.edu (Jonathan Greenberg)
+Date: Tue, 1 Nov 2011 14:36:50 -0700
+Subject: [R-sig-hpc] Choosing Intel MKL BLAS when compiling R
+Message-ID: <CABG0rfvnoswR+Hi7peaTAPczT_4j6FTV-H0rDLwqJOw05HrLuw@mail.gmail.com>
+
+r-sig-hpc'ers:
+
+I am compiling R 2.14 from scratch on a cluster computer (I can't use
+any package managers for the install, unfortunately), and they have
+the Intel MKL libraries available for BLAS/LAPACK.  I have not
+successfully gotten a configure/make/make install combo yet that uses
+multiple CPUs to do, say:
+
+a = matrix(rnorm(5000*5000), 5000, 5000)
+b = matrix(rnorm(5000*5000), 5000, 5000)
+# This following line, minimally, should be getting distributed.
+c = a%*%b
+
+First off, I've tried compiling it with the configure flags:
+./configure --prefix=/myprefix/ --enable-BLAS-shlib
+
+How do I then select the Intel MKL libraries to be used as the BLAS?
+They are located in /usr/local/intel-11.1/mkl/lib/em64t
+
+Thanks!
+
+--j
+
+
+-- 
+Jonathan A. Greenberg, PhD
+Assistant Professor
+Department of Geography
+University of Illinois at Urbana-Champaign
+607 South Mathews Avenue, MC 150
+Urbana, IL 61801
+Phone: 415-763-5476
+AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+http://www.geog.illinois.edu/people/JonathanGreenberg.html
+
+
+From edd at debian.org  Tue Nov  1 23:12:17 2011
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Tue, 1 Nov 2011 17:12:17 -0500
+Subject: [R-sig-hpc] Choosing Intel MKL BLAS when compiling R
+In-Reply-To: <CABG0rfvnoswR+Hi7peaTAPczT_4j6FTV-H0rDLwqJOw05HrLuw@mail.gmail.com>
+References: <CABG0rfvnoswR+Hi7peaTAPczT_4j6FTV-H0rDLwqJOw05HrLuw@mail.gmail.com>
+Message-ID: <20144.28353.208153.858367@max.nulle.part>
+
+
+On 1 November 2011 at 14:36, Jonathan Greenberg wrote:
+| r-sig-hpc'ers:
+| 
+| I am compiling R 2.14 from scratch on a cluster computer (I can't use
+| any package managers for the install, unfortunately), and they have
+| the Intel MKL libraries available for BLAS/LAPACK.  I have not
+| successfully gotten a configure/make/make install combo yet that uses
+| multiple CPUs to do, say:
+| 
+| a = matrix(rnorm(5000*5000), 5000, 5000)
+| b = matrix(rnorm(5000*5000), 5000, 5000)
+| # This following line, minimally, should be getting distributed.
+| c = a%*%b
+| 
+| First off, I've tried compiling it with the configure flags:
+| ./configure --prefix=/myprefix/ --enable-BLAS-shlib
+| 
+| How do I then select the Intel MKL libraries to be used as the BLAS?
+| They are located in /usr/local/intel-11.1/mkl/lib/em64t
+
+BLAS is an interface so you do not have to configure for a given BLAS. You
+just build for the generic BLAS, and the drop better ones in.
+
+This is demonstrated in a little package / vignette / paper I have at 
+
+   https://r-forge.r-project.org/scm/viewvc.php/pkg/gcbd/?root=gcb
+
+and you may want to hit the pdf directly at 
+
+   https://r-forge.r-project.org/scm/viewvc.php/pkg/gcbd/inst/doc/gcbd.pdf?root=gcb&view=log
+
+This uses the package manager on Debian/Ubuntu to drop the basic Blas, Atlas,
+Goto and MKL in and out in a fully automatable (and hence scripted) manner so
+that benchmarks can be run.   Besides the fact that is uses the dpkg package
+manager --- and of course the fact that the respective package maintainer
+have done the hard work of conforming to the Debian standard for pluggable
+Blas --- nothing is really distro specific.  So you could use this as
+'proof-of-concept' and try to make your cluster machines conform.  
+
+In essence, this means trying to configure R to any external Blas and then
+plugging the MKL in.
+
+Some other details are in the 'R Installation and Administration' manual.
+
+Good luck,  Dirk
+
+-- 
+"Outside of a dog, a book is a man's best friend. Inside of a dog, it is too
+dark to read." -- Groucho Marx
+
+
+From jgrn at illinois.edu  Tue Nov  1 23:40:51 2011
+From: jgrn at illinois.edu (Jonathan Greenberg)
+Date: Tue, 1 Nov 2011 15:40:51 -0700
+Subject: [R-sig-hpc] Choosing Intel MKL BLAS when compiling R
+In-Reply-To: <20144.28353.208153.858367@max.nulle.part>
+References: <CABG0rfvnoswR+Hi7peaTAPczT_4j6FTV-H0rDLwqJOw05HrLuw@mail.gmail.com>
+	<20144.28353.208153.858367@max.nulle.part>
+Message-ID: <CABG0rfvRLV+LaZT8XhkPd-arqK8vvNs4evuBk5mkEJM=wg0hNw@mail.gmail.com>
+
+Dirk:
+
+Thanks -- I was able to get this running on a Debian box previously
+(http://lostingeospace.blogspot.com/2010/07/multithreaded-r-using-blas-in-debian_28.html)
+but I'm having trouble figuring out specific steps I need to do to
+choose the Intel MKL BLAS, particularly now that I don't have a
+package manager to rely on -- is it an issue of using
+update-alternatives?  How can I check to see what R is currently
+using?
+
+--j
+
+On Tue, Nov 1, 2011 at 3:12 PM, Dirk Eddelbuettel <edd at debian.org> wrote:
+>
+> On 1 November 2011 at 14:36, Jonathan Greenberg wrote:
+> | r-sig-hpc'ers:
+> |
+> | I am compiling R 2.14 from scratch on a cluster computer (I can't use
+> | any package managers for the install, unfortunately), and they have
+> | the Intel MKL libraries available for BLAS/LAPACK. ?I have not
+> | successfully gotten a configure/make/make install combo yet that uses
+> | multiple CPUs to do, say:
+> |
+> | a = matrix(rnorm(5000*5000), 5000, 5000)
+> | b = matrix(rnorm(5000*5000), 5000, 5000)
+> | # This following line, minimally, should be getting distributed.
+> | c = a%*%b
+> |
+> | First off, I've tried compiling it with the configure flags:
+> | ./configure --prefix=/myprefix/ --enable-BLAS-shlib
+> |
+> | How do I then select the Intel MKL libraries to be used as the BLAS?
+> | They are located in /usr/local/intel-11.1/mkl/lib/em64t
+>
+> BLAS is an interface so you do not have to configure for a given BLAS. You
+> just build for the generic BLAS, and the drop better ones in.
+>
+> This is demonstrated in a little package / vignette / paper I have at
+>
+> ? https://r-forge.r-project.org/scm/viewvc.php/pkg/gcbd/?root=gcb
+>
+> and you may want to hit the pdf directly at
+>
+> ? https://r-forge.r-project.org/scm/viewvc.php/pkg/gcbd/inst/doc/gcbd.pdf?root=gcb&view=log
+>
+> This uses the package manager on Debian/Ubuntu to drop the basic Blas, Atlas,
+> Goto and MKL in and out in a fully automatable (and hence scripted) manner so
+> that benchmarks can be run. ? Besides the fact that is uses the dpkg package
+> manager --- and of course the fact that the respective package maintainer
+> have done the hard work of conforming to the Debian standard for pluggable
+> Blas --- nothing is really distro specific. ?So you could use this as
+> 'proof-of-concept' and try to make your cluster machines conform.
+>
+> In essence, this means trying to configure R to any external Blas and then
+> plugging the MKL in.
+>
+> Some other details are in the 'R Installation and Administration' manual.
+>
+> Good luck, ?Dirk
+>
+> --
+> "Outside of a dog, a book is a man's best friend. Inside of a dog, it is too
+> dark to read." -- Groucho Marx
+>
+
+
+
+-- 
+Jonathan A. Greenberg, PhD
+Assistant Professor
+Department of Geography
+University of Illinois at Urbana-Champaign
+607 South Mathews Avenue, MC 150
+Urbana, IL 61801
+Phone: 415-763-5476
+AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+http://www.geog.illinois.edu/people/JonathanGreenberg.html
+
+
+From jgrn at illinois.edu  Wed Nov  2 00:06:34 2011
+From: jgrn at illinois.edu (Jonathan Greenberg)
+Date: Tue, 1 Nov 2011 16:06:34 -0700
+Subject: [R-sig-hpc] Choosing Intel MKL BLAS when compiling R
+In-Reply-To: <CABG0rfvRLV+LaZT8XhkPd-arqK8vvNs4evuBk5mkEJM=wg0hNw@mail.gmail.com>
+References: <CABG0rfvnoswR+Hi7peaTAPczT_4j6FTV-H0rDLwqJOw05HrLuw@mail.gmail.com>
+	<20144.28353.208153.858367@max.nulle.part>
+	<CABG0rfvRLV+LaZT8XhkPd-arqK8vvNs4evuBk5mkEJM=wg0hNw@mail.gmail.com>
+Message-ID: <CABG0rfsT+QXo6RrrumS9BJkU-NeR5BD=pSoT3-QL+Unufh+HZA@mail.gmail.com>
+
+Sorry, small update.  I had this problem before when dealing with
+Intel MKL, but I need to revisit it now -- I got the linking working
+via alternatives, but this does not seem to work:
+
+(from alternatives:)
+Current `best' version is /usr/local/intel-11.1/mkl/lib/em64t/libmkl_core.so
+
+Booting up R gives me this error:
+Error in dyn.load(file, DLLpath = DLLpath, ...) :
+  unable to load shared object
+'/usr/apps/oa/lib64/R/library/stats/libs/stats.so':
+  /usr/apps/oa/lib64/R/library/stats/libs/stats.so: undefined symbol: dswap_
+During startup - Warning message:
+package 'stats' in options("defaultPackages") was not found
+
+I had this problem before -- is libmkl_core.so not the right file to
+be linking against?  If so, which one should I be using?  Here's a
+dump of the em64t folder:
+
+libmkl_avx.so                   libmkl_gf_lp64.a         libmkl_pgi_thread.so
+libmkl_blacs_ilp64.a            libmkl_gf_lp64.so
+libmkl_scalapack_ilp64.a
+libmkl_blacs_intelmpi_ilp64.a   libmkl_gnu_thread.a
+libmkl_scalapack_ilp64.so
+libmkl_blacs_intelmpi_ilp64.so  libmkl_gnu_thread.so     libmkl_scalapack_lp64.a
+libmkl_blacs_intelmpi_lp64.a    libmkl_intel_ilp64.a
+libmkl_scalapack_lp64.so
+libmkl_blacs_intelmpi_lp64.so   libmkl_intel_ilp64.so    libmkl_sequential.a
+libmkl_blacs_lp64.a             libmkl_intel_lp64.a      libmkl_sequential.so
+libmkl_blacs_openmpi_ilp64.a    libmkl_intel_lp64.so     libmkl_solver_ilp64.a
+libmkl_blacs_openmpi_lp64.a     libmkl_intel_sp2dp.a
+libmkl_solver_ilp64_sequential.a
+libmkl_blacs_sgimpt_ilp64.a     libmkl_intel_sp2dp.so    libmkl_solver_lp64.a
+libmkl_blacs_sgimpt_lp64.a      libmkl_intel_thread.a
+libmkl_solver_lp64_sequential.a
+libmkl_blas95_ilp64.a           libmkl_intel_thread.so   libmkl_vml_avx.so
+libmkl_blas95_lp64.a            libmkl_lapack.so         libmkl_vml_def.so
+libmkl_cdft_core.a              libmkl_lapack95_ilp64.a  libmkl_vml_mc.so
+libmkl_core.a                   libmkl_lapack95_lp64.a   libmkl_vml_mc2.so
+libmkl_core.so                  libmkl_mc.so             libmkl_vml_mc3.so
+libmkl_def.so                   libmkl_mc3.so            libmkl_vml_p4n.so
+libmkl_gf_ilp64.a               libmkl_p4n.so            locale
+libmkl_gf_ilp64.so              libmkl_pgi_thread.a
+
+--j
+
+
+On Tue, Nov 1, 2011 at 3:40 PM, Jonathan Greenberg <jgrn at illinois.edu> wrote:
+> Dirk:
+>
+> Thanks -- I was able to get this running on a Debian box previously
+> (http://lostingeospace.blogspot.com/2010/07/multithreaded-r-using-blas-in-debian_28.html)
+> but I'm having trouble figuring out specific steps I need to do to
+> choose the Intel MKL BLAS, particularly now that I don't have a
+> package manager to rely on -- is it an issue of using
+> update-alternatives? ?How can I check to see what R is currently
+> using?
+>
+> --j
+>
+> On Tue, Nov 1, 2011 at 3:12 PM, Dirk Eddelbuettel <edd at debian.org> wrote:
+>>
+>> On 1 November 2011 at 14:36, Jonathan Greenberg wrote:
+>> | r-sig-hpc'ers:
+>> |
+>> | I am compiling R 2.14 from scratch on a cluster computer (I can't use
+>> | any package managers for the install, unfortunately), and they have
+>> | the Intel MKL libraries available for BLAS/LAPACK. ?I have not
+>> | successfully gotten a configure/make/make install combo yet that uses
+>> | multiple CPUs to do, say:
+>> |
+>> | a = matrix(rnorm(5000*5000), 5000, 5000)
+>> | b = matrix(rnorm(5000*5000), 5000, 5000)
+>> | # This following line, minimally, should be getting distributed.
+>> | c = a%*%b
+>> |
+>> | First off, I've tried compiling it with the configure flags:
+>> | ./configure --prefix=/myprefix/ --enable-BLAS-shlib
+>> |
+>> | How do I then select the Intel MKL libraries to be used as the BLAS?
+>> | They are located in /usr/local/intel-11.1/mkl/lib/em64t
+>>
+>> BLAS is an interface so you do not have to configure for a given BLAS. You
+>> just build for the generic BLAS, and the drop better ones in.
+>>
+>> This is demonstrated in a little package / vignette / paper I have at
+>>
+>> ? https://r-forge.r-project.org/scm/viewvc.php/pkg/gcbd/?root=gcb
+>>
+>> and you may want to hit the pdf directly at
+>>
+>> ? https://r-forge.r-project.org/scm/viewvc.php/pkg/gcbd/inst/doc/gcbd.pdf?root=gcb&view=log
+>>
+>> This uses the package manager on Debian/Ubuntu to drop the basic Blas, Atlas,
+>> Goto and MKL in and out in a fully automatable (and hence scripted) manner so
+>> that benchmarks can be run. ? Besides the fact that is uses the dpkg package
+>> manager --- and of course the fact that the respective package maintainer
+>> have done the hard work of conforming to the Debian standard for pluggable
+>> Blas --- nothing is really distro specific. ?So you could use this as
+>> 'proof-of-concept' and try to make your cluster machines conform.
+>>
+>> In essence, this means trying to configure R to any external Blas and then
+>> plugging the MKL in.
+>>
+>> Some other details are in the 'R Installation and Administration' manual.
+>>
+>> Good luck, ?Dirk
+>>
+>> --
+>> "Outside of a dog, a book is a man's best friend. Inside of a dog, it is too
+>> dark to read." -- Groucho Marx
+>>
+>
+>
+>
+> --
+> Jonathan A. Greenberg, PhD
+> Assistant Professor
+> Department of Geography
+> University of Illinois at Urbana-Champaign
+> 607 South Mathews Avenue, MC 150
+> Urbana, IL 61801
+> Phone: 415-763-5476
+> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+> http://www.geog.illinois.edu/people/JonathanGreenberg.html
+>
+
+
+
+-- 
+Jonathan A. Greenberg, PhD
+Assistant Professor
+Department of Geography
+University of Illinois at Urbana-Champaign
+607 South Mathews Avenue, MC 150
+Urbana, IL 61801
+Phone: 415-763-5476
+AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+http://www.geog.illinois.edu/people/JonathanGreenberg.html
+
+
+From jgrn at illinois.edu  Wed Nov  2 00:25:51 2011
+From: jgrn at illinois.edu (Jonathan Greenberg)
+Date: Tue, 1 Nov 2011 16:25:51 -0700
+Subject: [R-sig-hpc] Choosing Intel MKL BLAS when compiling R
+In-Reply-To: <20144.31781.568144.527876@max.nulle.part>
+References: <CABG0rfvnoswR+Hi7peaTAPczT_4j6FTV-H0rDLwqJOw05HrLuw@mail.gmail.com>
+	<20144.28353.208153.858367@max.nulle.part>
+	<CABG0rfvRLV+LaZT8XhkPd-arqK8vvNs4evuBk5mkEJM=wg0hNw@mail.gmail.com>
+	<20144.31781.568144.527876@max.nulle.part>
+Message-ID: <CABG0rfuy_3kyBwZ9MXWcs+4ynv_a+_O3z2eX6j1s1XsdbvjRWg@mail.gmail.com>
+
+Ok, so I did a new test and installed a local version of GotoBLAS
+(OpenBLAS fork), used alternatives --install, and its working
+perfectly.  According to your paper, I'm probably good to go (you got
+the best results from GotoBLAS, right?)  However, just to see if I can
+settle the issue (I have colleagues who would prefer to use Intel
+MKL's BLAS), can you advise on how to properly link against the Intel
+MKL libraries based on the previous error I reported?  What is the
+specific file I should be pointing R towards?
+
+***
+
+Error in dyn.load(file, DLLpath = DLLpath, ...) :
+ unable to load shared object
+'/usr/apps/oa/lib64/R/library/stats/libs/stats.so':
+ /usr/apps/oa/lib64/R/library/stats/libs/stats.so: undefined symbol: dswap_
+During startup - Warning message:
+package 'stats' in options("defaultPackages") was not found
+
+***
+
+--j
+
+
+On Tue, Nov 1, 2011 at 4:09 PM, Dirk Eddelbuettel <edd at debian.org> wrote:
+>
+> On 1 November 2011 at 15:40, Jonathan Greenberg wrote:
+> | Dirk:
+> |
+> | Thanks -- I was able to get this running on a Debian box previously
+> | (http://lostingeospace.blogspot.com/2010/07/multithreaded-r-using-blas-in-debian_28.html)
+> | but I'm having trouble figuring out specific steps I need to do to
+> | choose the Intel MKL BLAS, particularly now that I don't have a
+> | package manager to rely on -- is it an issue of using
+> | update-alternatives? ?How can I check to see what R is currently
+> | using?
+>
+> By examining the Makefile(s) created after configure, as well as the
+> configure logs. ?"My" builds for Debian end the configure step in
+>
+> R is now configured for i486-pc-linux-gnu
+>
+> ?Source directory: ? ? ? ? ?.
+> ?Installation directory: ? ?/usr
+>
+> ?C compiler: ? ? ? ? ? ? ? ?gcc -std=gnu99 ?-O3 -pipe ?-g
+> ?Fortran 77 compiler: ? ? ? gfortran ?-O3 -pipe ?-g
+>
+> ?C++ compiler: ? ? ? ? ? ? ?g++ ?-O3 -pipe ?-g
+> ?Fortran 90/95 compiler: ? ?gfortran -O3 -pipe ?-g
+> ?Obj-C compiler:
+>
+> ?Interfaces supported: ? ? ?X11, tcltk
+> ?External libraries: ? ? ? ?readline, BLAS(generic), LAPACK(generic), lzma
+> ?Additional capabilities: ? PNG, JPEG, TIFF, NLS, cairo
+> ?Options enabled: ? ? ? ? ? shared R library, R profiling, memory profiling, Java
+>
+> ?Recommended packages: ? ? ?no
+>
+>
+> which shows you that external Blas and Lapack are used -- that's needed for
+> the drop-in behaviour which you then deal with at the dynamoc linker stage
+> (eg with LD_PRELOAD etc).
+>
+> Dirk
+>
+> --
+> "Outside of a dog, a book is a man's best friend. Inside of a dog, it is too
+> dark to read." -- Groucho Marx
+>
+
+
+
+-- 
+Jonathan A. Greenberg, PhD
+Assistant Professor
+Department of Geography
+University of Illinois at Urbana-Champaign
+607 South Mathews Avenue, MC 150
+Urbana, IL 61801
+Phone: 415-763-5476
+AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+http://www.geog.illinois.edu/people/JonathanGreenberg.html
+
+
+From edd at debian.org  Wed Nov  2 00:59:12 2011
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Tue, 1 Nov 2011 18:59:12 -0500
+Subject: [R-sig-hpc] Choosing Intel MKL BLAS when compiling R
+In-Reply-To: <CABG0rfuy_3kyBwZ9MXWcs+4ynv_a+_O3z2eX6j1s1XsdbvjRWg@mail.gmail.com>
+References: <CABG0rfvnoswR+Hi7peaTAPczT_4j6FTV-H0rDLwqJOw05HrLuw@mail.gmail.com>
+	<20144.28353.208153.858367@max.nulle.part>
+	<CABG0rfvRLV+LaZT8XhkPd-arqK8vvNs4evuBk5mkEJM=wg0hNw@mail.gmail.com>
+	<20144.31781.568144.527876@max.nulle.part>
+	<CABG0rfuy_3kyBwZ9MXWcs+4ynv_a+_O3z2eX6j1s1XsdbvjRWg@mail.gmail.com>
+Message-ID: <20144.34768.48204.332296@max.nulle.part>
+
+
+On 1 November 2011 at 16:25, Jonathan Greenberg wrote:
+| Ok, so I did a new test and installed a local version of GotoBLAS
+| (OpenBLAS fork), used alternatives --install, and its working
+| perfectly.  According to your paper, I'm probably good to go (you got
+| the best results from GotoBLAS, right?)  However, just to see if I can
+
+Correct, though that was a) a little over a year ago and b) it used the older
+MKL "we all" once got access to because Revo (then called REvolution
+Computing) had it integrated into Ubuntu 9.10 (Disclaimer: I was on a
+consultant on that project.)
+
+On the other hand, with R 2.14.0 you can no longer use MKL anyway it
+conflicts (via R's use of OpenMP) with the MKL build (as they both provide
+conflicting MP primitives, if memory serves).  So my money is still on Goto,
+and hopefully one day on the OpenBlas replacement.
+
+| settle the issue (I have colleagues who would prefer to use Intel
+| MKL's BLAS), can you advise on how to properly link against the Intel
+| MKL libraries based on the previous error I reported?  What is the
+| specific file I should be pointing R towards?
+
+I suggest yoru colleagues request help from the vendor they paid dearly for
+this.  I am after all just a volunteer and not really in charge of your
+cluster (nor do I have the time to dive into this..., sorry!)
+
+Dirk
+
+| 
+| ***
+| 
+| Error in dyn.load(file, DLLpath = DLLpath, ...) :
+|  unable to load shared object
+| '/usr/apps/oa/lib64/R/library/stats/libs/stats.so':
+|  /usr/apps/oa/lib64/R/library/stats/libs/stats.so: undefined symbol: dswap_
+| During startup - Warning message:
+| package 'stats' in options("defaultPackages") was not found
+| 
+| ***
+| 
+| --j
+| 
+| 
+| On Tue, Nov 1, 2011 at 4:09 PM, Dirk Eddelbuettel <edd at debian.org> wrote:
+| >
+| > On 1 November 2011 at 15:40, Jonathan Greenberg wrote:
+| > | Dirk:
+| > |
+| > | Thanks -- I was able to get this running on a Debian box previously
+| > | (http://lostingeospace.blogspot.com/2010/07/multithreaded-r-using-blas-in-debian_28.html)
+| > | but I'm having trouble figuring out specific steps I need to do to
+| > | choose the Intel MKL BLAS, particularly now that I don't have a
+| > | package manager to rely on -- is it an issue of using
+| > | update-alternatives? ?How can I check to see what R is currently
+| > | using?
+| >
+| > By examining the Makefile(s) created after configure, as well as the
+| > configure logs. ?"My" builds for Debian end the configure step in
+| >
+| > R is now configured for i486-pc-linux-gnu
+| >
+| > ?Source directory: ? ? ? ? ?.
+| > ?Installation directory: ? ?/usr
+| >
+| > ?C compiler: ? ? ? ? ? ? ? ?gcc -std=gnu99 ?-O3 -pipe ?-g
+| > ?Fortran 77 compiler: ? ? ? gfortran ?-O3 -pipe ?-g
+| >
+| > ?C++ compiler: ? ? ? ? ? ? ?g++ ?-O3 -pipe ?-g
+| > ?Fortran 90/95 compiler: ? ?gfortran -O3 -pipe ?-g
+| > ?Obj-C compiler:
+| >
+| > ?Interfaces supported: ? ? ?X11, tcltk
+| > ?External libraries: ? ? ? ?readline, BLAS(generic), LAPACK(generic), lzma
+| > ?Additional capabilities: ? PNG, JPEG, TIFF, NLS, cairo
+| > ?Options enabled: ? ? ? ? ? shared R library, R profiling, memory profiling, Java
+| >
+| > ?Recommended packages: ? ? ?no
+| >
+| >
+| > which shows you that external Blas and Lapack are used -- that's needed for
+| > the drop-in behaviour which you then deal with at the dynamoc linker stage
+| > (eg with LD_PRELOAD etc).
+| >
+| > Dirk
+| >
+| > --
+| > "Outside of a dog, a book is a man's best friend. Inside of a dog, it is too
+| > dark to read." -- Groucho Marx
+| >
+| 
+| 
+| 
+| -- 
+| Jonathan A. Greenberg, PhD
+| Assistant Professor
+| Department of Geography
+| University of Illinois at Urbana-Champaign
+| 607 South Mathews Avenue, MC 150
+| Urbana, IL 61801
+| Phone: 415-763-5476
+| AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+| http://www.geog.illinois.edu/people/JonathanGreenberg.html
+
+-- 
+"Outside of a dog, a book is a man's best friend. Inside of a dog, it is too
+dark to read." -- Groucho Marx
+
+
+From braunm at mit.edu  Wed Nov  2 01:23:40 2011
+From: braunm at mit.edu (Michael Braun)
+Date: Tue, 1 Nov 2011 20:23:40 -0400
+Subject: [R-sig-hpc] Choosing Intel MKL BLAS when compiling R
+In-Reply-To: <mailman.5251.1320191961.26350.r-sig-hpc@r-project.org>
+References: <mailman.5251.1320191961.26350.r-sig-hpc@r-project.org>
+Message-ID: <B78284CE-B8D1-414F-9272-0ACC217165EA@mit.edu>
+
+Jonathan:
+
+Compiling R, and linking to Intel MKL, is quite simple, as long as you are using a recent version of MKL.  Intel has a MKL Link Advisor at
+
+http://software.intel.com/en-us/articles/intel-mkl-link-line-advisor/
+
+Choose the linking model you want, and then use the --with-blas option on configure.  For example, on my Mac, to link dynamically with the parallel version (which can be controlled with environment variables), I use the following:
+
+'--with-blas=-L$(MKLROOT)/lib -lmkl_rt -lpthread -liomp5'
+
+I compiled R 2.14.0 this morning with this option, and it seems to work fine.  I'm not sure what Dirk was referencing about how MKL is no longer compatible with R.  If there is an issue, it would be good to know about it.  Perhaps he can point us to the page in the documentation where this is mentioned.
+
+I hope this helps.
+
+Michael
+
+
+On Nov 1, 2011, at 7:59 PM, <r-sig-hpc-request at r-project.org> <r-sig-hpc-request at r-project.org> wrote:
+> 
+> 
+> Message: 1
+> Date: Tue, 1 Nov 2011 14:36:50 -0700
+> From: Jonathan Greenberg <jgrn at illinois.edu>
+> To: r-sig-hpc at r-project.org
+> Subject: [R-sig-hpc] Choosing Intel MKL BLAS when compiling R
+> Message-ID:
+>        <CABG0rfvnoswR+Hi7peaTAPczT_4j6FTV-H0rDLwqJOw05HrLuw at mail.gmail.com>
+> Content-Type: text/plain; charset=ISO-8859-1
+> 
+> r-sig-hpc'ers:
+> 
+> I am compiling R 2.14 from scratch on a cluster computer (I can't use
+> any package managers for the install, unfortunately), and they have
+> the Intel MKL libraries available for BLAS/LAPACK.  I have not
+> successfully gotten a configure/make/make install combo yet that uses
+> multiple CPUs to do, say:
+> 
+> a = matrix(rnorm(5000*5000), 5000, 5000)
+> b = matrix(rnorm(5000*5000), 5000, 5000)
+> # This following line, minimally, should be getting distributed.
+> c = a%*%b
+> 
+> First off, I've tried compiling it with the configure flags:
+> ./configure --prefix=/myprefix/ --enable-BLAS-shlib
+> 
+> How do I then select the Intel MKL libraries to be used as the BLAS?
+> They are located in /usr/local/intel-11.1/mkl/lib/em64t
+> 
+> Thanks!
+> 
+> --j
+> 
+> 
+> --
+> Jonathan A. Greenberg, PhD
+> Assistant Professor
+> Department of Geography
+> University of Illinois at Urbana-Champaign
+> 607 South Mathews Avenue, MC 150
+> Urbana, IL 61801
+> Phone: 415-763-5476
+> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+> http://www.geog.illinois.edu/people/JonathanGreenberg.html
+> 
+> 
+
+-------------------------------------------
+Michael Braun
+Associate Professor of Management Science (Marketing Group)
+MIT Sloan School of Management
+100 Main St.., E62-535
+Cambridge, MA 02139
+braunm at mit.edu
+617-253-3436
+
+
+
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20111101/8120ed31/attachment.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: smime.p7s
+Type: application/pkcs7-signature
+Size: 1844 bytes
+Desc: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20111101/8120ed31/attachment.bin>
+
+From simon.urbanek at r-project.org  Wed Nov  2 02:09:02 2011
+From: simon.urbanek at r-project.org (Simon Urbanek)
+Date: Tue, 1 Nov 2011 21:09:02 -0400
+Subject: [R-sig-hpc] Choosing Intel MKL BLAS when compiling R
+In-Reply-To: <B78284CE-B8D1-414F-9272-0ACC217165EA@mit.edu>
+References: <mailman.5251.1320191961.26350.r-sig-hpc@r-project.org>
+	<B78284CE-B8D1-414F-9272-0ACC217165EA@mit.edu>
+Message-ID: <296C9578-BB1C-48E3-B8EB-A698EAF1CB81@r-project.org>
+
+
+On Nov 1, 2011, at 8:23 PM, Michael Braun wrote:
+
+> Jonathan:
+> 
+> Compiling R, and linking to Intel MKL, is quite simple, as long as you are using a recent version of MKL.  Intel has a MKL Link Advisor at
+> 
+> http://software.intel.com/en-us/articles/intel-mkl-link-line-advisor/
+> 
+> Choose the linking model you want, and then use the --with-blas option on configure.  For example, on my Mac, to link dynamically with the parallel version (which can be controlled with environment variables), I use the following:
+> 
+> '--with-blas=-L$(MKLROOT)/lib -lmkl_rt -lpthread -liomp5'
+> 
+> I compiled R 2.14.0 this morning with this option, and it seems to work fine.  I'm not sure what Dirk was referencing about how MKL is no longer compatible with R.  If there is an issue, it would be good to know about it.  Perhaps he can point us to the page in the documentation where this is mentioned.
+> 
+
+The issue is not relevant on OS X because OpenMP performance on OS X for vector parallelization is very bad, so it is typically disabled.
+
+One comment to the earlier discussion - it's not always as simple as replacing the BLAS back-end due to ABI difference in the different implementations. You'll notice, for example, when complex BLAS calls start crashing (because R can work around such issues at configure time but not if you switch BLAS). On Debian I'm usually compiling ATLAS by hand which yields the best performance so I don't run into that problem.
+
+Cheers,
+Simon
+
+
+
+> I hope this helps.
+> 
+> Michael
+> 
+> 
+> On Nov 1, 2011, at 7:59 PM, <r-sig-hpc-request at r-project.org> <r-sig-hpc-request at r-project.org> wrote:
+>> 
+>> 
+>> Message: 1
+>> Date: Tue, 1 Nov 2011 14:36:50 -0700
+>> From: Jonathan Greenberg <jgrn at illinois.edu>
+>> To: r-sig-hpc at r-project.org
+>> Subject: [R-sig-hpc] Choosing Intel MKL BLAS when compiling R
+>> Message-ID:
+>>        <CABG0rfvnoswR+Hi7peaTAPczT_4j6FTV-H0rDLwqJOw05HrLuw at mail.gmail.com>
+>> Content-Type: text/plain; charset=ISO-8859-1
+>> 
+>> r-sig-hpc'ers:
+>> 
+>> I am compiling R 2.14 from scratch on a cluster computer (I can't use
+>> any package managers for the install, unfortunately), and they have
+>> the Intel MKL libraries available for BLAS/LAPACK.  I have not
+>> successfully gotten a configure/make/make install combo yet that uses
+>> multiple CPUs to do, say:
+>> 
+>> a = matrix(rnorm(5000*5000), 5000, 5000)
+>> b = matrix(rnorm(5000*5000), 5000, 5000)
+>> # This following line, minimally, should be getting distributed.
+>> c = a%*%b
+>> 
+>> First off, I've tried compiling it with the configure flags:
+>> ./configure --prefix=/myprefix/ --enable-BLAS-shlib
+>> 
+>> How do I then select the Intel MKL libraries to be used as the BLAS?
+>> They are located in /usr/local/intel-11.1/mkl/lib/em64t
+>> 
+>> Thanks!
+>> 
+>> --j
+>> 
+>> 
+>> --
+>> Jonathan A. Greenberg, PhD
+>> Assistant Professor
+>> Department of Geography
+>> University of Illinois at Urbana-Champaign
+>> 607 South Mathews Avenue, MC 150
+>> Urbana, IL 61801
+>> Phone: 415-763-5476
+>> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+>> http://www.geog.illinois.edu/people/JonathanGreenberg.html
+>> 
+>> 
+> 
+> -------------------------------------------
+> Michael Braun
+> Associate Professor of Management Science (Marketing Group)
+> MIT Sloan School of Management
+> 100 Main St.., E62-535
+> Cambridge, MA 02139
+> braunm at mit.edu
+> 617-253-3436
+> 
+> 
+> 
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From braunm at mit.edu  Wed Nov  2 04:19:26 2011
+From: braunm at mit.edu (Michael Braun)
+Date: Tue, 1 Nov 2011 23:19:26 -0400
+Subject: [R-sig-hpc] Choosing Intel MKL BLAS when compiling R
+In-Reply-To: <296C9578-BB1C-48E3-B8EB-A698EAF1CB81@r-project.org>
+References: <mailman.5251.1320191961.26350.r-sig-hpc@r-project.org>
+	<B78284CE-B8D1-414F-9272-0ACC217165EA@mit.edu>
+	<296C9578-BB1C-48E3-B8EB-A698EAF1CB81@r-project.org>
+Message-ID: <985213D6-4E19-487C-A6ED-E2DC8F9346DB@mit.edu>
+
+Simon:
+
+Can you clarify your statement about OpenMP on OSX?  Is this an issue with OpenMP in general, or just R's use of it?  Or just Intel's use of it? 
+
+Michael
+
+
+On Nov 1, 2011, at 9:09 PM, Simon Urbanek wrote:
+
+> 
+> On Nov 1, 2011, at 8:23 PM, Michael Braun wrote:
+> 
+>> Jonathan:
+>> 
+>> Compiling R, and linking to Intel MKL, is quite simple, as long as you are using a recent version of MKL.  Intel has a MKL Link Advisor at
+>> 
+>> http://software.intel.com/en-us/articles/intel-mkl-link-line-advisor/
+>> 
+>> Choose the linking model you want, and then use the --with-blas option on configure.  For example, on my Mac, to link dynamically with the parallel version (which can be controlled with environment variables), I use the following:
+>> 
+>> '--with-blas=-L$(MKLROOT)/lib -lmkl_rt -lpthread -liomp5'
+>> 
+>> I compiled R 2.14.0 this morning with this option, and it seems to work fine.  I'm not sure what Dirk was referencing about how MKL is no longer compatible with R.  If there is an issue, it would be good to know about it.  Perhaps he can point us to the page in the documentation where this is mentioned.
+>> 
+> 
+> The issue is not relevant on OS X because OpenMP performance on OS X for vector parallelization is very bad, so it is typically disabled.
+> 
+> One comment to the earlier discussion - it's not always as simple as replacing the BLAS back-end due to ABI difference in the different implementations. You'll notice, for example, when complex BLAS calls start crashing (because R can work around such issues at configure time but not if you switch BLAS). On Debian I'm usually compiling ATLAS by hand which yields the best performance so I don't run into that problem.
+> 
+> Cheers,
+> Simon
+> 
+> 
+> 
+>> I hope this helps.
+>> 
+>> Michael
+>> 
+>> 
+>> On Nov 1, 2011, at 7:59 PM, <r-sig-hpc-request at r-project.org> <r-sig-hpc-request at r-project.org> wrote:
+>>> 
+>>> 
+>>> Message: 1
+>>> Date: Tue, 1 Nov 2011 14:36:50 -0700
+>>> From: Jonathan Greenberg <jgrn at illinois.edu>
+>>> To: r-sig-hpc at r-project.org
+>>> Subject: [R-sig-hpc] Choosing Intel MKL BLAS when compiling R
+>>> Message-ID:
+>>>       <CABG0rfvnoswR+Hi7peaTAPczT_4j6FTV-H0rDLwqJOw05HrLuw at mail.gmail.com>
+>>> Content-Type: text/plain; charset=ISO-8859-1
+>>> 
+>>> r-sig-hpc'ers:
+>>> 
+>>> I am compiling R 2.14 from scratch on a cluster computer (I can't use
+>>> any package managers for the install, unfortunately), and they have
+>>> the Intel MKL libraries available for BLAS/LAPACK.  I have not
+>>> successfully gotten a configure/make/make install combo yet that uses
+>>> multiple CPUs to do, say:
+>>> 
+>>> a = matrix(rnorm(5000*5000), 5000, 5000)
+>>> b = matrix(rnorm(5000*5000), 5000, 5000)
+>>> # This following line, minimally, should be getting distributed.
+>>> c = a%*%b
+>>> 
+>>> First off, I've tried compiling it with the configure flags:
+>>> ./configure --prefix=/myprefix/ --enable-BLAS-shlib
+>>> 
+>>> How do I then select the Intel MKL libraries to be used as the BLAS?
+>>> They are located in /usr/local/intel-11.1/mkl/lib/em64t
+>>> 
+>>> Thanks!
+>>> 
+>>> --j
+>>> 
+>>> 
+>>> --
+>>> Jonathan A. Greenberg, PhD
+>>> Assistant Professor
+>>> Department of Geography
+>>> University of Illinois at Urbana-Champaign
+>>> 607 South Mathews Avenue, MC 150
+>>> Urbana, IL 61801
+>>> Phone: 415-763-5476
+>>> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+>>> http://www.geog.illinois.edu/people/JonathanGreenberg.html
+>>> 
+>>> 
+>> 
+>> -------------------------------------------
+>> Michael Braun
+>> Associate Professor of Management Science (Marketing Group)
+>> MIT Sloan School of Management
+>> 100 Main St.., E62-535
+>> Cambridge, MA 02139
+>> braunm at mit.edu
+>> 617-253-3436
+>> 
+>> 
+>> 
+>> 
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+
+-------------------------------------------
+Michael Braun
+Associate Professor of Management Science (Marketing Group)
+MIT Sloan School of Management
+100 Main St.., E62-535
+Cambridge, MA 02139
+braunm at mit.edu
+617-253-3436
+
+
+
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20111101/4a3a56d3/attachment-0001.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: smime.p7s
+Type: application/pkcs7-signature
+Size: 1844 bytes
+Desc: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20111101/4a3a56d3/attachment-0001.bin>
+
+From simon.urbanek at r-project.org  Wed Nov  2 13:39:21 2011
+From: simon.urbanek at r-project.org (Simon Urbanek)
+Date: Wed, 2 Nov 2011 08:39:21 -0400
+Subject: [R-sig-hpc] Choosing Intel MKL BLAS when compiling R
+In-Reply-To: <985213D6-4E19-487C-A6ED-E2DC8F9346DB@mit.edu>
+References: <mailman.5251.1320191961.26350.r-sig-hpc@r-project.org>
+	<B78284CE-B8D1-414F-9272-0ACC217165EA@mit.edu>
+	<296C9578-BB1C-48E3-B8EB-A698EAF1CB81@r-project.org>
+	<985213D6-4E19-487C-A6ED-E2DC8F9346DB@mit.edu>
+Message-ID: <AB31285E-C3C4-4711-BA59-D0DA16DE8A45@r-project.org>
+
+
+On Nov 1, 2011, at 11:19 PM, Michael Braun wrote:
+
+> Simon:
+> 
+> Can you clarify your statement about OpenMP on OSX?  Is this an issue with OpenMP in general, or just R's use of it?  Or just Intel's use of it? 
+> 
+
+It seems to be an issue in Apple's posix threads implementation that OpenMP relies on - it seems that the cost of thread synchronization is several orders of magnitude higher than on Linux which mean you can't use it for "short" tasks. It's deep enough the I don't think we can do anything about it. Luke Tierney has a good test case that shows the problem, I'll see if I can forward it here.
+
+Cheers,
+Simon
+
+
+> Michael
+> 
+> 
+> On Nov 1, 2011, at 9:09 PM, Simon Urbanek wrote:
+> 
+>> 
+>> On Nov 1, 2011, at 8:23 PM, Michael Braun wrote:
+>> 
+>>> Jonathan:
+>>> 
+>>> Compiling R, and linking to Intel MKL, is quite simple, as long as you are using a recent version of MKL.  Intel has a MKL Link Advisor at
+>>> 
+>>> http://software.intel.com/en-us/articles/intel-mkl-link-line-advisor/
+>>> 
+>>> Choose the linking model you want, and then use the --with-blas option on configure.  For example, on my Mac, to link dynamically with the parallel version (which can be controlled with environment variables), I use the following:
+>>> 
+>>> '--with-blas=-L$(MKLROOT)/lib -lmkl_rt -lpthread -liomp5'
+>>> 
+>>> I compiled R 2.14.0 this morning with this option, and it seems to work fine.  I'm not sure what Dirk was referencing about how MKL is no longer compatible with R.  If there is an issue, it would be good to know about it.  Perhaps he can point us to the page in the documentation where this is mentioned.
+>>> 
+>> 
+>> The issue is not relevant on OS X because OpenMP performance on OS X for vector parallelization is very bad, so it is typically disabled.
+>> 
+>> One comment to the earlier discussion - it's not always as simple as replacing the BLAS back-end due to ABI difference in the different implementations. You'll notice, for example, when complex BLAS calls start crashing (because R can work around such issues at configure time but not if you switch BLAS). On Debian I'm usually compiling ATLAS by hand which yields the best performance so I don't run into that problem.
+>> 
+>> Cheers,
+>> Simon
+>> 
+>> 
+>> 
+>>> I hope this helps.
+>>> 
+>>> Michael
+>>> 
+>>> 
+>>> On Nov 1, 2011, at 7:59 PM, <r-sig-hpc-request at r-project.org> <r-sig-hpc-request at r-project.org> wrote:
+>>>> 
+>>>> 
+>>>> Message: 1
+>>>> Date: Tue, 1 Nov 2011 14:36:50 -0700
+>>>> From: Jonathan Greenberg <jgrn at illinois.edu>
+>>>> To: r-sig-hpc at r-project.org
+>>>> Subject: [R-sig-hpc] Choosing Intel MKL BLAS when compiling R
+>>>> Message-ID:
+>>>>       <CABG0rfvnoswR+Hi7peaTAPczT_4j6FTV-H0rDLwqJOw05HrLuw at mail.gmail.com>
+>>>> Content-Type: text/plain; charset=ISO-8859-1
+>>>> 
+>>>> r-sig-hpc'ers:
+>>>> 
+>>>> I am compiling R 2.14 from scratch on a cluster computer (I can't use
+>>>> any package managers for the install, unfortunately), and they have
+>>>> the Intel MKL libraries available for BLAS/LAPACK.  I have not
+>>>> successfully gotten a configure/make/make install combo yet that uses
+>>>> multiple CPUs to do, say:
+>>>> 
+>>>> a = matrix(rnorm(5000*5000), 5000, 5000)
+>>>> b = matrix(rnorm(5000*5000), 5000, 5000)
+>>>> # This following line, minimally, should be getting distributed.
+>>>> c = a%*%b
+>>>> 
+>>>> First off, I've tried compiling it with the configure flags:
+>>>> ./configure --prefix=/myprefix/ --enable-BLAS-shlib
+>>>> 
+>>>> How do I then select the Intel MKL libraries to be used as the BLAS?
+>>>> They are located in /usr/local/intel-11.1/mkl/lib/em64t
+>>>> 
+>>>> Thanks!
+>>>> 
+>>>> --j
+>>>> 
+>>>> 
+>>>> --
+>>>> Jonathan A. Greenberg, PhD
+>>>> Assistant Professor
+>>>> Department of Geography
+>>>> University of Illinois at Urbana-Champaign
+>>>> 607 South Mathews Avenue, MC 150
+>>>> Urbana, IL 61801
+>>>> Phone: 415-763-5476
+>>>> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+>>>> http://www.geog.illinois.edu/people/JonathanGreenberg.html
+>>>> 
+>>>> 
+>>> 
+>>> -------------------------------------------
+>>> Michael Braun
+>>> Associate Professor of Management Science (Marketing Group)
+>>> MIT Sloan School of Management
+>>> 100 Main St.., E62-535
+>>> Cambridge, MA 02139
+>>> braunm at mit.edu
+>>> 617-253-3436
+>>> 
+>>> 
+>>> 
+>>> 
+>>> _______________________________________________
+>>> R-sig-hpc mailing list
+>>> R-sig-hpc at r-project.org
+>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>> 
+> 
+> -------------------------------------------
+> Michael Braun
+> Associate Professor of Management Science (Marketing Group)
+> MIT Sloan School of Management
+> 100 Main St.., E62-535
+> Cambridge, MA 02139
+> braunm at mit.edu
+> 617-253-3436
+> 
+> 
+> 
+> 
+
+
+From braunm at mit.edu  Wed Nov  2 15:57:31 2011
+From: braunm at mit.edu (Michael Braun)
+Date: Wed, 2 Nov 2011 10:57:31 -0400
+Subject: [R-sig-hpc] Choosing Intel MKL BLAS when compiling R
+In-Reply-To: <AB31285E-C3C4-4711-BA59-D0DA16DE8A45@r-project.org>
+References: <mailman.5251.1320191961.26350.r-sig-hpc@r-project.org>
+	<B78284CE-B8D1-414F-9272-0ACC217165EA@mit.edu>
+	<296C9578-BB1C-48E3-B8EB-A698EAF1CB81@r-project.org>
+	<985213D6-4E19-487C-A6ED-E2DC8F9346DB@mit.edu>
+	<AB31285E-C3C4-4711-BA59-D0DA16DE8A45@r-project.org>
+Message-ID: <DE4FAA79-5560-4665-89BB-86E0658B0802@mit.edu>
+
+Interesting.  Incidentally, I mis-typed my link link below.  Usually I link to MKL using -lmkl_rt -liomp5 (without the -lpthread).  I'm still learning the vagaries of C++ and system libraries, but does this mean that I have been bypassing the Apple implementation?  If Intel's libiomp5 does not have this problem, would that explain why my code seems to be working?  Or is this an unrelated issue?
+
+
+On Nov 2, 2011, at 8:39 AM, Simon Urbanek wrote:
+
+> 
+> On Nov 1, 2011, at 11:19 PM, Michael Braun wrote:
+> 
+>> Simon:
+>> 
+>> Can you clarify your statement about OpenMP on OSX?  Is this an issue with OpenMP in general, or just R's use of it?  Or just Intel's use of it? 
+>> 
+> 
+> It seems to be an issue in Apple's posix threads implementation that OpenMP relies on - it seems that the cost of thread synchronization is several orders of magnitude higher than on Linux which mean you can't use it for "short" tasks. It's deep enough the I don't think we can do anything about it. Luke Tierney has a good test case that shows the problem, I'll see if I can forward it here.
+> 
+> Cheers,
+> Simon
+> 
+> 
+>> Michael
+>> 
+>> 
+>> On Nov 1, 2011, at 9:09 PM, Simon Urbanek wrote:
+>> 
+>>> 
+>>> On Nov 1, 2011, at 8:23 PM, Michael Braun wrote:
+>>> 
+>>>> Jonathan:
+>>>> 
+>>>> Compiling R, and linking to Intel MKL, is quite simple, as long as you are using a recent version of MKL.  Intel has a MKL Link Advisor at
+>>>> 
+>>>> http://software.intel.com/en-us/articles/intel-mkl-link-line-advisor/
+>>>> 
+>>>> Choose the linking model you want, and then use the --with-blas option on configure.  For example, on my Mac, to link dynamically with the parallel version (which can be controlled with environment variables), I use the following:
+>>>> 
+>>>> '--with-blas=-L$(MKLROOT)/lib -lmkl_rt -lpthread -liomp5'
+>>>> 
+>>>> I compiled R 2.14.0 this morning with this option, and it seems to work fine.  I'm not sure what Dirk was referencing about how MKL is no longer compatible with R.  If there is an issue, it would be good to know about it.  Perhaps he can point us to the page in the documentation where this is mentioned.
+>>>> 
+>>> 
+>>> The issue is not relevant on OS X because OpenMP performance on OS X for vector parallelization is very bad, so it is typically disabled.
+>>> 
+>>> One comment to the earlier discussion - it's not always as simple as replacing the BLAS back-end due to ABI difference in the different implementations. You'll notice, for example, when complex BLAS calls start crashing (because R can work around such issues at configure time but not if you switch BLAS). On Debian I'm usually compiling ATLAS by hand which yields the best performance so I don't run into that problem.
+>>> 
+>>> Cheers,
+>>> Simon
+>>> 
+>>> 
+>>> 
+>>>> I hope this helps.
+>>>> 
+>>>> Michael
+>>>> 
+>>>> 
+>>>> On Nov 1, 2011, at 7:59 PM, <r-sig-hpc-request at r-project.org> <r-sig-hpc-request at r-project.org> wrote:
+>>>>> 
+>>>>> 
+>>>>> Message: 1
+>>>>> Date: Tue, 1 Nov 2011 14:36:50 -0700
+>>>>> From: Jonathan Greenberg <jgrn at illinois.edu>
+>>>>> To: r-sig-hpc at r-project.org
+>>>>> Subject: [R-sig-hpc] Choosing Intel MKL BLAS when compiling R
+>>>>> Message-ID:
+>>>>>      <CABG0rfvnoswR+Hi7peaTAPczT_4j6FTV-H0rDLwqJOw05HrLuw at mail.gmail.com>
+>>>>> Content-Type: text/plain; charset=ISO-8859-1
+>>>>> 
+>>>>> r-sig-hpc'ers:
+>>>>> 
+>>>>> I am compiling R 2.14 from scratch on a cluster computer (I can't use
+>>>>> any package managers for the install, unfortunately), and they have
+>>>>> the Intel MKL libraries available for BLAS/LAPACK.  I have not
+>>>>> successfully gotten a configure/make/make install combo yet that uses
+>>>>> multiple CPUs to do, say:
+>>>>> 
+>>>>> a = matrix(rnorm(5000*5000), 5000, 5000)
+>>>>> b = matrix(rnorm(5000*5000), 5000, 5000)
+>>>>> # This following line, minimally, should be getting distributed.
+>>>>> c = a%*%b
+>>>>> 
+>>>>> First off, I've tried compiling it with the configure flags:
+>>>>> ./configure --prefix=/myprefix/ --enable-BLAS-shlib
+>>>>> 
+>>>>> How do I then select the Intel MKL libraries to be used as the BLAS?
+>>>>> They are located in /usr/local/intel-11.1/mkl/lib/em64t
+>>>>> 
+>>>>> Thanks!
+>>>>> 
+>>>>> --j
+>>>>> 
+>>>>> 
+>>>>> --
+>>>>> Jonathan A. Greenberg, PhD
+>>>>> Assistant Professor
+>>>>> Department of Geography
+>>>>> University of Illinois at Urbana-Champaign
+>>>>> 607 South Mathews Avenue, MC 150
+>>>>> Urbana, IL 61801
+>>>>> Phone: 415-763-5476
+>>>>> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+>>>>> http://www.geog.illinois.edu/people/JonathanGreenberg.html
+>>>>> 
+>>>>> 
+>>>> 
+>>>> -------------------------------------------
+>>>> Michael Braun
+>>>> Associate Professor of Management Science (Marketing Group)
+>>>> MIT Sloan School of Management
+>>>> 100 Main St.., E62-535
+>>>> Cambridge, MA 02139
+>>>> braunm at mit.edu
+>>>> 617-253-3436
+>>>> 
+>>>> 
+>>>> 
+>>>> 
+>>>> _______________________________________________
+>>>> R-sig-hpc mailing list
+>>>> R-sig-hpc at r-project.org
+>>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>> 
+>> 
+>> -------------------------------------------
+>> Michael Braun
+>> Associate Professor of Management Science (Marketing Group)
+>> MIT Sloan School of Management
+>> 100 Main St.., E62-535
+>> Cambridge, MA 02139
+>> braunm at mit.edu
+>> 617-253-3436
+>> 
+>> 
+>> 
+>> 
+> 
+
+Michael Braun 
+MIT Sloan School of Management
+braunm at mit.edu
+-------------------------------------------------- 
+View my research at
+http://braunm.scripts.mit.edu/
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20111102/26969017/attachment-0001.html>
+-------------- next part --------------
+A non-text attachment was scrubbed...
+Name: smime.p7s
+Type: application/pkcs7-signature
+Size: 1844 bytes
+Desc: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20111102/26969017/attachment-0001.bin>
+
+From simon.urbanek at r-project.org  Wed Nov  2 16:18:49 2011
+From: simon.urbanek at r-project.org (Simon Urbanek)
+Date: Wed, 2 Nov 2011 11:18:49 -0400
+Subject: [R-sig-hpc] Choosing Intel MKL BLAS when compiling R
+In-Reply-To: <DE4FAA79-5560-4665-89BB-86E0658B0802@mit.edu>
+References: <mailman.5251.1320191961.26350.r-sig-hpc@r-project.org>
+	<B78284CE-B8D1-414F-9272-0ACC217165EA@mit.edu>
+	<296C9578-BB1C-48E3-B8EB-A698EAF1CB81@r-project.org>
+	<985213D6-4E19-487C-A6ED-E2DC8F9346DB@mit.edu>
+	<AB31285E-C3C4-4711-BA59-D0DA16DE8A45@r-project.org>
+	<DE4FAA79-5560-4665-89BB-86E0658B0802@mit.edu>
+Message-ID: <2DA7D8E8-14CE-4126-89B9-0D29B8ED0278@r-project.org>
+
+
+On Nov 2, 2011, at 10:57 AM, Michael Braun wrote:
+
+> Interesting.  Incidentally, I mis-typed my link link below.  Usually I link to MKL using -lmkl_rt -liomp5 (without the -lpthread).  I'm still learning the vagaries of C++ and system libraries, but does this mean that I have been bypassing the Apple implementation?  If Intel's libiomp5 does not have this problem, would that explain why my code seems to be working?  Or is this an unrelated issue?
+> 
+
+I think you may be misunderstanding - what Dirk said is that MKL and OMP in R don't mix well and I said that we don't use OMP in R on OS X so it is irrelevant for OS X.
+
+Cheers,
+Simon
+
+
+
+
+> 
+> On Nov 2, 2011, at 8:39 AM, Simon Urbanek wrote:
+> 
+>> 
+>> On Nov 1, 2011, at 11:19 PM, Michael Braun wrote:
+>> 
+>>> Simon:
+>>> 
+>>> Can you clarify your statement about OpenMP on OSX?  Is this an issue with OpenMP in general, or just R's use of it?  Or just Intel's use of it? 
+>>> 
+>> 
+>> It seems to be an issue in Apple's posix threads implementation that OpenMP relies on - it seems that the cost of thread synchronization is several orders of magnitude higher than on Linux which mean you can't use it for "short" tasks. It's deep enough the I don't think we can do anything about it. Luke Tierney has a good test case that shows the problem, I'll see if I can forward it here.
+>> 
+>> Cheers,
+>> Simon
+>> 
+>> 
+>>> Michael
+>>> 
+>>> 
+>>> On Nov 1, 2011, at 9:09 PM, Simon Urbanek wrote:
+>>> 
+>>>> 
+>>>> On Nov 1, 2011, at 8:23 PM, Michael Braun wrote:
+>>>> 
+>>>>> Jonathan:
+>>>>> 
+>>>>> Compiling R, and linking to Intel MKL, is quite simple, as long as you are using a recent version of MKL.  Intel has a MKL Link Advisor at
+>>>>> 
+>>>>> http://software.intel.com/en-us/articles/intel-mkl-link-line-advisor/
+>>>>> 
+>>>>> Choose the linking model you want, and then use the --with-blas option on configure.  For example, on my Mac, to link dynamically with the parallel version (which can be controlled with environment variables), I use the following:
+>>>>> 
+>>>>> '--with-blas=-L$(MKLROOT)/lib -lmkl_rt -lpthread -liomp5'
+>>>>> 
+>>>>> I compiled R 2.14.0 this morning with this option, and it seems to work fine.  I'm not sure what Dirk was referencing about how MKL is no longer compatible with R.  If there is an issue, it would be good to know about it.  Perhaps he can point us to the page in the documentation where this is mentioned.
+>>>>> 
+>>>> 
+>>>> The issue is not relevant on OS X because OpenMP performance on OS X for vector parallelization is very bad, so it is typically disabled.
+>>>> 
+>>>> One comment to the earlier discussion - it's not always as simple as replacing the BLAS back-end due to ABI difference in the different implementations. You'll notice, for example, when complex BLAS calls start crashing (because R can work around such issues at configure time but not if you switch BLAS). On Debian I'm usually compiling ATLAS by hand which yields the best performance so I don't run into that problem.
+>>>> 
+>>>> Cheers,
+>>>> Simon
+>>>> 
+>>>> 
+>>>> 
+>>>>> I hope this helps.
+>>>>> 
+>>>>> Michael
+>>>>> 
+>>>>> 
+>>>>> On Nov 1, 2011, at 7:59 PM, <r-sig-hpc-request at r-project.org> <r-sig-hpc-request at r-project.org> wrote:
+>>>>>> 
+>>>>>> 
+>>>>>> Message: 1
+>>>>>> Date: Tue, 1 Nov 2011 14:36:50 -0700
+>>>>>> From: Jonathan Greenberg <jgrn at illinois.edu>
+>>>>>> To: r-sig-hpc at r-project.org
+>>>>>> Subject: [R-sig-hpc] Choosing Intel MKL BLAS when compiling R
+>>>>>> Message-ID:
+>>>>>>      <CABG0rfvnoswR+Hi7peaTAPczT_4j6FTV-H0rDLwqJOw05HrLuw at mail.gmail.com>
+>>>>>> Content-Type: text/plain; charset=ISO-8859-1
+>>>>>> 
+>>>>>> r-sig-hpc'ers:
+>>>>>> 
+>>>>>> I am compiling R 2.14 from scratch on a cluster computer (I can't use
+>>>>>> any package managers for the install, unfortunately), and they have
+>>>>>> the Intel MKL libraries available for BLAS/LAPACK.  I have not
+>>>>>> successfully gotten a configure/make/make install combo yet that uses
+>>>>>> multiple CPUs to do, say:
+>>>>>> 
+>>>>>> a = matrix(rnorm(5000*5000), 5000, 5000)
+>>>>>> b = matrix(rnorm(5000*5000), 5000, 5000)
+>>>>>> # This following line, minimally, should be getting distributed.
+>>>>>> c = a%*%b
+>>>>>> 
+>>>>>> First off, I've tried compiling it with the configure flags:
+>>>>>> ./configure --prefix=/myprefix/ --enable-BLAS-shlib
+>>>>>> 
+>>>>>> How do I then select the Intel MKL libraries to be used as the BLAS?
+>>>>>> They are located in /usr/local/intel-11.1/mkl/lib/em64t
+>>>>>> 
+>>>>>> Thanks!
+>>>>>> 
+>>>>>> --j
+>>>>>> 
+>>>>>> 
+>>>>>> --
+>>>>>> Jonathan A. Greenberg, PhD
+>>>>>> Assistant Professor
+>>>>>> Department of Geography
+>>>>>> University of Illinois at Urbana-Champaign
+>>>>>> 607 South Mathews Avenue, MC 150
+>>>>>> Urbana, IL 61801
+>>>>>> Phone: 415-763-5476
+>>>>>> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+>>>>>> http://www.geog.illinois.edu/people/JonathanGreenberg.html
+>>>>>> 
+>>>>>> 
+>>>>> 
+>>>>> -------------------------------------------
+>>>>> Michael Braun
+>>>>> Associate Professor of Management Science (Marketing Group)
+>>>>> MIT Sloan School of Management
+>>>>> 100 Main St.., E62-535
+>>>>> Cambridge, MA 02139
+>>>>> braunm at mit.edu
+>>>>> 617-253-3436
+>>>>> 
+>>>>> 
+>>>>> 
+>>>>> 
+>>>>> _______________________________________________
+>>>>> R-sig-hpc mailing list
+>>>>> R-sig-hpc at r-project.org
+>>>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>> 
+>>> 
+>>> -------------------------------------------
+>>> Michael Braun
+>>> Associate Professor of Management Science (Marketing Group)
+>>> MIT Sloan School of Management
+>>> 100 Main St.., E62-535
+>>> Cambridge, MA 02139
+>>> braunm at mit.edu
+>>> 617-253-3436
+>>> 
+>>> 
+>>> 
+>>> 
+>> 
+> 
+> Michael Braun 
+> MIT Sloan School of Management
+> braunm at mit.edu
+> -------------------------------------------------- 
+> View my research at
+> http://braunm.scripts.mit.edu/
+> 
+
+
+From edd at debian.org  Wed Nov  2 16:35:00 2011
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Wed, 2 Nov 2011 10:35:00 -0500
+Subject: [R-sig-hpc] Choosing Intel MKL BLAS when compiling R
+In-Reply-To: <2DA7D8E8-14CE-4126-89B9-0D29B8ED0278@r-project.org>
+References: <mailman.5251.1320191961.26350.r-sig-hpc@r-project.org>
+	<B78284CE-B8D1-414F-9272-0ACC217165EA@mit.edu>
+	<296C9578-BB1C-48E3-B8EB-A698EAF1CB81@r-project.org>
+	<985213D6-4E19-487C-A6ED-E2DC8F9346DB@mit.edu>
+	<AB31285E-C3C4-4711-BA59-D0DA16DE8A45@r-project.org>
+	<DE4FAA79-5560-4665-89BB-86E0658B0802@mit.edu>
+	<2DA7D8E8-14CE-4126-89B9-0D29B8ED0278@r-project.org>
+Message-ID: <20145.25380.888278.744906@max.nulle.part>
+
+
+On 2 November 2011 at 11:18, Simon Urbanek wrote:
+| 
+| On Nov 2, 2011, at 10:57 AM, Michael Braun wrote:
+| 
+| > Interesting.  Incidentally, I mis-typed my link link below.  Usually I link to MKL using -lmkl_rt -liomp5 (without the -lpthread).  I'm still learning the vagaries of C++ and system libraries, but does this mean that I have been bypassing the Apple implementation?  If Intel's libiomp5 does not have this problem, would that explain why my code seems to be working?  Or is this an unrelated issue?
+| > 
+| 
+| I think you may be misunderstanding - what Dirk said is that MKL and OMP in R don't mix well and I said that we don't use OMP in R on OS X so it is irrelevant for OS X.
+
+>From NEWS (and the text is still identical between r-devel and 2.14.0)
+
+    o configure looks for support for OpenMP and if found compiles R
+      with appropriate flags and also makes them available for use in
+      packages: see 'Writing R Extensions'.
+
+      This is currently experimental, and is only used in R with a
+      single thread for colSums() and colMeans().  Expect it to be more
+      widely used in later versions of R.
+
+      This can be disabled by the --disable-openmp flag.
+
+It is my understanding that more of this will be forthcoming. Is that not correct?
+
+Michael Rutter actually gets the credit in noticing the issue.
+
+Dirk
+
+-- 
+"Outside of a dog, a book is a man's best friend. Inside of a dog, it is too
+dark to read." -- Groucho Marx
+
+
+From nakama at ki.rim.or.jp  Wed Nov  2 17:06:46 2011
+From: nakama at ki.rim.or.jp (Ei-ji Nakama)
+Date: Thu, 3 Nov 2011 01:06:46 +0900
+Subject: [R-sig-hpc] Choosing Intel MKL BLAS when compiling R
+In-Reply-To: <20145.25380.888278.744906@max.nulle.part>
+References: <mailman.5251.1320191961.26350.r-sig-hpc@r-project.org>
+	<B78284CE-B8D1-414F-9272-0ACC217165EA@mit.edu>
+	<296C9578-BB1C-48E3-B8EB-A698EAF1CB81@r-project.org>
+	<985213D6-4E19-487C-A6ED-E2DC8F9346DB@mit.edu>
+	<AB31285E-C3C4-4711-BA59-D0DA16DE8A45@r-project.org>
+	<DE4FAA79-5560-4665-89BB-86E0658B0802@mit.edu>
+	<2DA7D8E8-14CE-4126-89B9-0D29B8ED0278@r-project.org>
+	<20145.25380.888278.744906@max.nulle.part>
+Message-ID: <CAJqeyYbO=e55cDRBZvoS25oSv6a_-ikkiVS1Uhq2Qhm93Vt7aA@mail.gmail.com>
+
+> ? ?o configure looks for support for OpenMP and if found compiles R
+> ? ? ?with appropriate flags and also makes them available for use in
+> ? ? ?packages: see 'Writing R Extensions'.
+
+When people make by default option in GotoBLAS for Linux,
+it raise a thread at the time of the initialization of the library
+and set affinity.
+Therefore openmp will not cause a thread.
+
+The good method should control the number of the threads in
+omp_set_num_threads and goto_set_num_threads.
+!!!must perform this!!!
+performance when there is a part to use the thread for elsewhere is the worst
+
+MKL thinks that KMP_AFFINITY=verbose helps analysis.
+
+and ... people remove the number of the CPU's of the hyper thread in
+BLAS and should carry it out.
+# BLAS may count the number of the cores precisely partly.
+
+I wrote regret it in strange English.XD
+
+Best Regards,
+--
+EI-JI Nakama? <nakama (a) ki.rim.or.jp>
+"\u4e2d\u9593\u6804\u6cbb"? <nakama (a) ki.rim.or.jp>
+
+
+From jgrn at illinois.edu  Wed Nov  2 19:58:37 2011
+From: jgrn at illinois.edu (Jonathan Greenberg)
+Date: Wed, 2 Nov 2011 11:58:37 -0700
+Subject: [R-sig-hpc] Choosing Intel MKL BLAS when compiling R
+In-Reply-To: <CAJqeyYbO=e55cDRBZvoS25oSv6a_-ikkiVS1Uhq2Qhm93Vt7aA@mail.gmail.com>
+References: <mailman.5251.1320191961.26350.r-sig-hpc@r-project.org>
+	<B78284CE-B8D1-414F-9272-0ACC217165EA@mit.edu>
+	<296C9578-BB1C-48E3-B8EB-A698EAF1CB81@r-project.org>
+	<985213D6-4E19-487C-A6ED-E2DC8F9346DB@mit.edu>
+	<AB31285E-C3C4-4711-BA59-D0DA16DE8A45@r-project.org>
+	<DE4FAA79-5560-4665-89BB-86E0658B0802@mit.edu>
+	<2DA7D8E8-14CE-4126-89B9-0D29B8ED0278@r-project.org>
+	<20145.25380.888278.744906@max.nulle.part>
+	<CAJqeyYbO=e55cDRBZvoS25oSv6a_-ikkiVS1Uhq2Qhm93Vt7aA@mail.gmail.com>
+Message-ID: <CABG0rfsvKJ2WFu31=w12vJSpg=wAfpE9QYCBCqUbjxD65A8zRg@mail.gmail.com>
+
+So if I'm following all this correctly, Intel MKL BLAS cannot be used
+as a "swap-in" for R like GotoBLAS or Atlas, but it CAN be used during
+the compilation phase as the hard-coded BLAS used?
+
+Incidentally, I switched over to OpenBLAS from GotoBLAS last year and
+have been happy with it -- it actually solved some compilation issues
+that GotoBLAS had (also, it appears the configuration phase is a lot
+faster).
+
+--j
+
+On Wed, Nov 2, 2011 at 9:06 AM, Ei-ji Nakama <nakama at ki.rim.or.jp> wrote:
+>> ? ?o configure looks for support for OpenMP and if found compiles R
+>> ? ? ?with appropriate flags and also makes them available for use in
+>> ? ? ?packages: see 'Writing R Extensions'.
+>
+> When people make by default option in GotoBLAS for Linux,
+> it raise a thread at the time of the initialization of the library
+> and set affinity.
+> Therefore openmp will not cause a thread.
+>
+> The good method should control the number of the threads in
+> omp_set_num_threads and goto_set_num_threads.
+> !!!must perform this!!!
+> performance when there is a part to use the thread for elsewhere is the worst
+>
+> MKL thinks that KMP_AFFINITY=verbose helps analysis.
+>
+> and ... people remove the number of the CPU's of the hyper thread in
+> BLAS and should carry it out.
+> # BLAS may count the number of the cores precisely partly.
+>
+> I wrote regret it in strange English.XD
+>
+> Best Regards,
+> --
+> EI-JI Nakama? <nakama (a) ki.rim.or.jp>
+> "\u4e2d\u9593\u6804\u6cbb"? <nakama (a) ki.rim.or.jp>
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+
+-- 
+Jonathan A. Greenberg, PhD
+Assistant Professor
+Department of Geography
+University of Illinois at Urbana-Champaign
+607 South Mathews Avenue, MC 150
+Urbana, IL 61801
+Phone: 415-763-5476
+AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+http://www.geog.illinois.edu/people/JonathanGreenberg.html
+
+
+From edd at debian.org  Wed Nov  2 20:13:44 2011
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Wed, 2 Nov 2011 14:13:44 -0500
+Subject: [R-sig-hpc] Choosing Intel MKL BLAS when compiling R
+In-Reply-To: <CABG0rfsvKJ2WFu31=w12vJSpg=wAfpE9QYCBCqUbjxD65A8zRg@mail.gmail.com>
+References: <mailman.5251.1320191961.26350.r-sig-hpc@r-project.org>
+	<B78284CE-B8D1-414F-9272-0ACC217165EA@mit.edu>
+	<296C9578-BB1C-48E3-B8EB-A698EAF1CB81@r-project.org>
+	<985213D6-4E19-487C-A6ED-E2DC8F9346DB@mit.edu>
+	<AB31285E-C3C4-4711-BA59-D0DA16DE8A45@r-project.org>
+	<DE4FAA79-5560-4665-89BB-86E0658B0802@mit.edu>
+	<2DA7D8E8-14CE-4126-89B9-0D29B8ED0278@r-project.org>
+	<20145.25380.888278.744906@max.nulle.part>
+	<CAJqeyYbO=e55cDRBZvoS25oSv6a_-ikkiVS1Uhq2Qhm93Vt7aA@mail.gmail.com>
+	<CABG0rfsvKJ2WFu31=w12vJSpg=wAfpE9QYCBCqUbjxD65A8zRg@mail.gmail.com>
+Message-ID: <20145.38504.298295.669505@max.nulle.part>
+
+
+On 2 November 2011 at 11:58, Jonathan Greenberg wrote:
+| So if I'm following all this correctly, Intel MKL BLAS cannot be used
+| as a "swap-in" for R like GotoBLAS or Atlas, but it CAN be used during
+| the compilation phase as the hard-coded BLAS used?
+
+Yes and no. :-)
+
+My gcbd package/paper says (and even shows by implementation) that it can be
+used for drop-in / swap-out replacements, but it relies upon R being built
+with the --disable-openmp flag.  Which incidentally is no longer the default
+for the Debian + Ubuntu builds.
+ 
+So it depends.
+
+| Incidentally, I switched over to OpenBLAS from GotoBLAS last year and
+| have been happy with it -- it actually solved some compilation issues
+| that GotoBLAS had (also, it appears the configuration phase is a lot
+| faster).
+
+That is on my TODO list of things to try. Preferably by re-using the
+pre-built Debian packages that now exist.
+
+Dirk
+
+-- 
+"Outside of a dog, a book is a man's best friend. Inside of a dog, it is too
+dark to read." -- Groucho Marx
+
+
+From armstrong.whit at gmail.com  Thu Nov  3 18:54:43 2011
+From: armstrong.whit at gmail.com (Whit Armstrong)
+Date: Thu, 3 Nov 2011 13:54:43 -0400
+Subject: [R-sig-hpc] [zeromq-dev] rzmq package (Whit Armstrong)
+In-Reply-To: <CAF9pZTS=QUWZXBPTmwZb2bdwxkO0YzmHjN8EVygjqcBJkF9cBQ@mail.gmail.com>
+References: <CAF9pZTS=QUWZXBPTmwZb2bdwxkO0YzmHjN8EVygjqcBJkF9cBQ@mail.gmail.com>
+Message-ID: <CAMi=pg7_z1z7jqxu6XsvE1Widj+hrjOWRq4Z_6NvuyH22k8KKA@mail.gmail.com>
+
+well, rabbit requires dedicated servers and configuration, etc.
+
+zmq is light enough to fire up for a quick aws run without much config
+other than knowing what ports to use.
+
+-Whit
+
+
+On Thu, Sep 29, 2011 at 11:57 AM, Vince Fulco <vfulco1 at gmail.com> wrote:
+> Hey Whit--
+>
+> Is there a reason you used zeromq vs. rabbit or others?Just wondering
+> as very new to the apps and was chewing over a problem in (gulp!)
+> python.
+>
+> TIA,
+>
+> --
+> Vince Fulco, CFA, CAIA
+> 612.424.5477?(universal)
+> vfulco1 at gmail.com
+>
+> Receive with simplicity everything that happens to you. --Rashi
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From Daryl.Waggott at oicr.on.ca  Sat Nov  5 03:02:48 2011
+From: Daryl.Waggott at oicr.on.ca (Daryl Waggott)
+Date: Fri, 4 Nov 2011 22:02:48 -0400
+Subject: [R-sig-hpc] Encapsulated R for cluster use
+Message-ID: <0A2CC544A412CB4EA1ECA27B2642B4A10103E12DF682@EXCHANGE01.ad.oicr.on.ca>
+
+Hello R HPC list,
+
+In order to use any software tool in our production cluster environment we need to fully *bundle* or encapsulate all dependencies.  This is due to a policy of reproducible and logged research which is not at the whims of a heterogeneous computing environment.  My general question is --- are there any recommended strategies for compiling R with a set of packages that do not depend on (potentially changing) dynamically linked libraries?  Static linking doesn't look practical in R, so I have been attempting to aggregate all the dependencies determined by the function *ldd* and putting them in a a directory that is referenced by setting the LD_LIBRARY_PATH environment variable.  Needless to say, I haven't had much luck.  The cluster is all 64 bit Debian.  Are there any strategies at compile time that might be helpful?  My knowledge of the ins and outs of all the configure and make parameters is a work in progress.  Thank  you for any advice or pointers to documentation.
+
+Daryl
+
+From edd at debian.org  Sat Nov  5 05:17:59 2011
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Fri, 4 Nov 2011 23:17:59 -0500
+Subject: [R-sig-hpc] Encapsulated R for cluster use
+In-Reply-To: <0A2CC544A412CB4EA1ECA27B2642B4A10103E12DF682@EXCHANGE01.ad.oicr.on.ca>
+References: <0A2CC544A412CB4EA1ECA27B2642B4A10103E12DF682@EXCHANGE01.ad.oicr.on.ca>
+Message-ID: <20148.47351.48307.981240@max.nulle.part>
+
+
+On 4 November 2011 at 22:02, Daryl Waggott wrote:
+| Hello R HPC list,
+| 
+| In order to use any software tool in our production cluster environment we need to fully *bundle* or encapsulate all dependencies.  This is due to a policy of reproducible and logged research which is not at the whims of a heterogeneous computing environment.  My general question is --- are there any recommended strategies for compiling R with a set of packages that do not depend on (potentially changing) dynamically linked libraries?  Static linking doesn't look practical in R, so I have been attempting to aggregate all the dependencies determined by the function *ldd* and putting them in a a directory that is referenced by setting the LD_LIBRARY_PATH environment variable.  Needless to say, I haven't had much luck.  The cluster is all 64 bit Debian.  Are there any strategies at compile time that might be helpful?  My knowledge of the ins and outs of all the configure and make parameters is a work in progress.  Thank  you for any advice or pointers to documentation.
+
+Why fight the package management system?  Just record versions (or even
+store) all .deb packages needed to install R and the packages.
+
+A colleague of yours just asked about static builds on r-devel today...  Some
+deadline looming, eh?  ;-)
+
+Dirk
+
+-- 
+"Outside of a dog, a book is a man's best friend. Inside of a dog, it is too
+dark to read." -- Groucho Marx
+
+
+From saptarshi.guha at gmail.com  Sun Nov  6 00:53:03 2011
+From: saptarshi.guha at gmail.com (Saptarshi Guha)
+Date: Sat, 5 Nov 2011 16:53:03 -0700
+Subject: [R-sig-hpc] Encapsulated R for cluster use
+In-Reply-To: <20148.47351.48307.981240@max.nulle.part>
+References: <0A2CC544A412CB4EA1ECA27B2642B4A10103E12DF682@EXCHANGE01.ad.oicr.on.ca>
+	<20148.47351.48307.981240@max.nulle.part>
+Message-ID: <CAJDot1qQKBLfjCaLZAhG-jpbPyySuTdiOi+cm-y3CH8pXYe+PA@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20111105/91e8abc3/attachment.pl>
+
+From Daryl.Waggott at oicr.on.ca  Sun Nov  6 01:48:07 2011
+From: Daryl.Waggott at oicr.on.ca (Daryl Waggott)
+Date: Sat, 5 Nov 2011 20:48:07 -0400
+Subject: [R-sig-hpc] Encapsulated R for cluster use
+In-Reply-To: <CAJDot1qQKBLfjCaLZAhG-jpbPyySuTdiOi+cm-y3CH8pXYe+PA@mail.gmail.com>
+References: <0A2CC544A412CB4EA1ECA27B2642B4A10103E12DF682@EXCHANGE01.ad.oicr.on.ca>
+	<20148.47351.48307.981240@max.nulle.part>,
+	<CAJDot1qQKBLfjCaLZAhG-jpbPyySuTdiOi+cm-y3CH8pXYe+PA@mail.gmail.com>
+Message-ID: <0A2CC544A412CB4EA1ECA27B2642B4A10103E12DF688@EXCHANGE01.ad.oicr.on.ca>
+
+Very interesting! Thanks Saptarshi.  I'll look into this and bring it up at our re-invigorated Hadoop meetup.
+________________________________________
+From: Saptarshi Guha [saptarshi.guha at gmail.com]
+Sent: Saturday, November 05, 2011 7:53 PM
+To: Dirk Eddelbuettel
+Cc: Daryl Waggott; r-sig-hpc at r-project.org
+Subject: Re: [R-sig-hpc] Encapsulated R for cluster use
+
+Hello
+When I use rhipe I package the entire r distribution and send it to the nodes using hadoops distributedcache.  This facility takes zip file, sends it to the nodes (only if there time difference) and unzips it. The script makes modifications to the R script and sets ld_library_path.
+Please see http://code.google.com/p/rhipe/wiki/RHIPEonNodesWithoutR
+
+Saptarshi
+
+Its such a relief this way, no need to worry about node configuration. I hear yahoo did something similar with python.
+
+On Nov 4, 2011 9:18 PM, "Dirk Eddelbuettel" <edd at debian.org<mailto:edd at debian.org>> wrote:
+
+On 4 November 2011 at 22:02, Daryl Waggott wrote:
+| Hello R HPC list,
+|
+| In order to use any software tool in our production cluster environment we need to fully *bundle* or encapsulate all dependencies.  This is due to a policy of reproducible and logged research which is not at the whims of a heterogeneous computing environment.  My general question is --- are there any recommended strategies for compiling R with a set of packages that do not depend on (potentially changing) dynamically linked libraries?  Static linking doesn't look practical in R, so I have been attempting to aggregate all the dependencies determined by the function *ldd* and putting them in a a directory that is referenced by setting the LD_LIBRARY_PATH environment variable.  Needless to say, I haven't had much luck.  The cluster is all 64 bit Debian.  Are there any strategies at compile time that might be helpful?  My knowledge of the ins and outs of all the configure and make parameters is a work in progress.  Thank  you for any advice or pointers to documentation.
+
+Why fight the package management system?  Just record versions (or even
+store) all .deb packages needed to install R and the packages.
+
+A colleague of yours just asked about static builds on r-devel today...  Some
+deadline looming, eh?  ;-)
+
+Dirk
+
+--
+"Outside of a dog, a book is a man's best friend. Inside of a dog, it is too
+dark to read." -- Groucho Marx
+
+_______________________________________________
+R-sig-hpc mailing list
+R-sig-hpc at r-project.org<mailto:R-sig-hpc at r-project.org>
+https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From edd at debian.org  Sun Nov  6 02:52:04 2011
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Sat, 5 Nov 2011 20:52:04 -0500
+Subject: [R-sig-hpc] Encapsulated R for cluster use
+In-Reply-To: <0A2CC544A412CB4EA1ECA27B2642B4A10103E12DF688@EXCHANGE01.ad.oicr.on.ca>
+References: <0A2CC544A412CB4EA1ECA27B2642B4A10103E12DF682@EXCHANGE01.ad.oicr.on.ca>
+	<20148.47351.48307.981240@max.nulle.part>
+	<CAJDot1qQKBLfjCaLZAhG-jpbPyySuTdiOi+cm-y3CH8pXYe+PA@mail.gmail.com>
+	<0A2CC544A412CB4EA1ECA27B2642B4A10103E12DF688@EXCHANGE01.ad.oicr.on.ca>
+Message-ID: <20149.59460.788388.808344@max.nulle.part>
+
+
+On 5 November 2011 at 20:48, Daryl Waggott wrote:
+| Very interesting! Thanks Saptarshi.  I'll look into this and bring it up at our re-invigorated Hadoop meetup.
+
+What Saptarshi suggest is functionally equivalent to how 'third-party
+software' (think: RStudio, Google Chrome, ...) wraps all required libraries
+inside their own 'sumo' .deb packages.  That is an alternative for you too.
+
+And what Simon suggested (to stick the libraries you need into $R_HOME/lib)
+is also just about the same, modulo the wrapping up in a .deb.
+
+You are in essence just reinventing dependency management to create
+self-sufficient deployment units.
+
+Dirk
+
+| ________________________________________
+| From: Saptarshi Guha [saptarshi.guha at gmail.com]
+| Sent: Saturday, November 05, 2011 7:53 PM
+| To: Dirk Eddelbuettel
+| Cc: Daryl Waggott; r-sig-hpc at r-project.org
+| Subject: Re: [R-sig-hpc] Encapsulated R for cluster use
+| 
+| Hello
+| When I use rhipe I package the entire r distribution and send it to the nodes using hadoops distributedcache.  This facility takes zip file, sends it to the nodes (only if there time difference) and unzips it. The script makes modifications to the R script and sets ld_library_path.
+| Please see http://code.google.com/p/rhipe/wiki/RHIPEonNodesWithoutR
+| 
+| Saptarshi
+| 
+| Its such a relief this way, no need to worry about node configuration. I hear yahoo did something similar with python.
+| 
+| On Nov 4, 2011 9:18 PM, "Dirk Eddelbuettel" <edd at debian.org<mailto:edd at debian.org>> wrote:
+| 
+| On 4 November 2011 at 22:02, Daryl Waggott wrote:
+| | Hello R HPC list,
+| |
+| | In order to use any software tool in our production cluster environment we need to fully *bundle* or encapsulate all dependencies.  This is due to a policy of reproducible and logged research which is not at the whims of a heterogeneous computing environment.  My general question is --- are there any recommended strategies for compiling R with a set of packages that do not depend on (potentially changing) dynamically linked libraries?  Static linking doesn't look practical in R, so I have been attempting to aggregate all the dependencies determined by the function *ldd* and putting them in a a directory that is referenced by setting the LD_LIBRARY_PATH environment variable.  Needless to say, I haven't had much luck.  The cluster is all 64 bit Debian.  Are there any strategies at compile time that might be helpful?  My knowledge of the ins and outs of all the configure and make parameters is a work in progress.  Thank  you for any advice or pointers to documentation.
+| 
+| Why fight the package management system?  Just record versions (or even
+| store) all .deb packages needed to install R and the packages.
+| 
+| A colleague of yours just asked about static builds on r-devel today...  Some
+| deadline looming, eh?  ;-)
+| 
+| Dirk
+| 
+| --
+| "Outside of a dog, a book is a man's best friend. Inside of a dog, it is too
+| dark to read." -- Groucho Marx
+| 
+| _______________________________________________
+| R-sig-hpc mailing list
+| R-sig-hpc at r-project.org<mailto:R-sig-hpc at r-project.org>
+| https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+-- 
+"Outside of a dog, a book is a man's best friend. Inside of a dog, it is too
+dark to read." -- Groucho Marx
+
+
+From Muriel.Mewissen at ed.ac.uk  Thu Nov 17 12:02:16 2011
+From: Muriel.Mewissen at ed.ac.uk (Muriel Mewissen)
+Date: Thu, 17 Nov 2011 11:02:16 -0000
+Subject: [R-sig-hpc] Reminder: SPRINT & HECToR training course for R users -
+	1 December 2011 in Oxford
+Message-ID: <00f101cca518$5dfb2500$19f16f00$@Mewissen@ed.ac.uk>
+
+SPRINT training course: user-friendly statistical analysis using HECToR, the
+UK's most powerful supercomputer
+
+ 
+
+SPRINT (Simple Parallel R INTerface) provides easy access to high
+performance computing (HPC) for the analysis of high-throughput,
+post-genomic data using the statistical programming language R. The first
+ever SPRINT training course will be run at NAG Oxford on December 1st 2011.
+The course aims to give a general overview of the hardware, software and
+configuration of the HECToR system in the context of using SPRINT.
+
+ 
+
+The first full version of the SPRINT framework - SPRINT v1.0.0 - will be
+released this month. SPRINT gives R users the parallel tool kit they need to
+perform computationally-challenging statistical analyses easily on HPC. It
+lifts the limitations on data size and analysis time commonly found in many
+disciplines such as bioinformatics, where large volumes of highly parallel,
+high throughput post-genomic data are generated. SPRINT is unique in its HPC
+platform independence, its focus on complex, hard to parallelise,
+data-dependent functions and its user friendliness.
+
+ 
+
+SPRINT contains optimised versions of the following R functionality:
+
+pair-wise Pearson's correlation, permutation testing, random forest, rank
+product, partitioning around medoids and apply. It is available to use on
+HECToR, the UK's national academic supercomputing service, which is hosted
+by EPCC.
+
+ 
+
+More information, including how to register, is available at:
+
+http://www.hector.ac.uk/cse/training/sprint/
+
+ 
+
+Information about costs and eligibility:
+
+http://www.hector.ac.uk/cse/training/eligibility/
+
+ 
+
+SPRINT is an open-source project and is open to contributions. All sources
+are available from R-Forge: r-forge.r-project.org Packaged releases are
+available from CRAN: cran.r-project.or
+
+ 
+
+ 
+
+SPRINT Project
+
+ 
+
+sprint at ed.ac.uk
+
+www.r-sprint.org
+
+ 
+
+The University of Edinburgh
+
+ 
+
+ 
+
+-------------- next part --------------
+An HTML attachment was scrubbed...
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20111117/d9fc179c/attachment.html>
+-------------- next part --------------
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20111117/d9fc179c/attachment.pl>
+
+From claudia.beleites at ipht-jena.de  Wed Nov 23 15:44:45 2011
+From: claudia.beleites at ipht-jena.de (Claudia Beleites)
+Date: Wed, 23 Nov 2011 15:44:45 +0100
+Subject: [R-sig-hpc] socket cluster/gotoblas2 configuration confusion
+Message-ID: <4ECD06DD.3010403@ipht-jena.de>
+
+Dear all,
+
+I'm just doing my first steps with parallelized calculations and got 
+quite confused.
+
+Here's what I want, what I have and what I did:
+
+- I want to parallelize calculations on a Centos server with 2 x 6 cores 
+and 8 GB RAM (it is actually part of a cluster, but I have access only 
+to this node, and the other nodes do not (yet) have R installed).
+
+- My Data is too large to work with in one piece.
+But it comes in separate files of suitable size: I can work nicely with 
+2 to 3 samples in memory at the same time.
+
+- So my idea was to start up a snow socket cluster with 2 or 3 workers.
+
+- In addition I want to use an optimized and blas. Linear algebra is 
+only a small part of the analysis so it does make sense to have the 
+socket cluster with as many workers as possible and have the linear 
+algebra parts use up to n / nworkers cores.
+
+So I built R 2.14.0 using gotoblas2 and set $GOTO_NUM_THREADS to 6. 
+Matrix multiplication in a fresh R session now is much faster and CPU 
+usage shows the expected 6 cores working:
+
+ > system.time ({m <- matrix (1:9e6, 3e3); m%*%m; NULL})
+        User      System verstrichen
+       5.219       0.126       1.111
+
+However, the socket clusters seem not to use the GOTO_NUM_THREADS:
+ > library (snow)
+ > cl <- makeCluster(2,type="SOCK")
+ > tm <- snow.time(clusterEvalQ(cl, {m <- matrix (1:9e6, 3e3); m%*%m; 
+NULL}))
+ > tm
+elapsed    send receive  node 1  node 2
+   9.553   0.001   0.010   9.510   9.543
+ > tm$data
+[[1]]
+      send_start send_end recv_start recv_end exec
+[1,]          0    0.001      9.511    9.512 9.51
+
+[[2]]
+      send_start send_end recv_start recv_end  exec
+[1,]      0.001    0.001      9.544    9.553 9.543
+
+ > tm$elapsed
+elapsed
+   9.553
+ >
+
+CPU usage shows 2 cores working, and the times correspond to that.
+
+What configuration do I need to do in order to make the blas use more 
+threads for the worker processes? Anything else I should do differently?
+
+
+ > sessionInfo ()
+R version 2.14.0 (2011-10-31)
+Platform: x86_64-unknown-linux-gnu (64-bit)
+
+locale:
+  [1] LC_CTYPE=de_DE.UTF-8       LC_NUMERIC=C
+  [3] LC_TIME=de_DE.UTF-8        LC_COLLATE=de_DE.UTF-8
+  [5] LC_MONETARY=de_DE.UTF-8    LC_MESSAGES=de_DE.UTF-8
+  [7] LC_PAPER=C                 LC_NAME=C
+  [9] LC_ADDRESS=C               LC_TELEPHONE=C
+[11] LC_MEASUREMENT=de_DE.UTF-8 LC_IDENTIFICATION=C
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base
+
+other attached packages:
+[1] snow_0.3-8
+
+Additional questions:
+- Is there some command like sessionInfo () that yields information 
+about the blas (particularly NUM_THREADS)?
+- Is there some command that I can use to tell the blas how many threads 
+to use during an R session? Can I set environment variables from within 
+R? Searching didn't help as I got only info about R environments...) 
+Would that actually help here?
+
+Thanks a lot for your help.
+
+Claudia
+
+-- 
+Claudia Beleites
+Spectroscopy/Imaging
+Institute of Photonic Technology
+Albert-Einstein-Str. 9
+07745 Jena
+Germany
+
+email: claudia.beleites at ipht-jena.de
+phone: +49 3641 206-133
+fax:   +49 2641 206-399
+
+
+From stephen.b.weston at gmail.com  Wed Nov 23 16:50:45 2011
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Wed, 23 Nov 2011 10:50:45 -0500
+Subject: [R-sig-hpc] socket cluster/gotoblas2 configuration confusion
+In-Reply-To: <4ECD06DD.3010403@ipht-jena.de>
+References: <4ECD06DD.3010403@ipht-jena.de>
+Message-ID: <CALh21iLkwAWn81P4QUK4ABJ7_X0oaWPjqaVhrpkLD2O3TWmNww@mail.gmail.com>
+
+You don't say how you set GOTO_NUM_THREADS to 6.  You
+might want to verify that it did get set in each of the snow worker
+processes by using the command:
+
+    clusterEvalQ(cl, Sys.getenv('GOTO_NUM_THREADS'))
+
+If it returns any empty strings in the resulting list, then the
+environment variable is not set in the corresponding worker.
+
+You probably should set this variable through an appropriate
+shell startup file, but you could at least temporarily use:
+
+    clusterEvalQ(cl, Sys.setenv(GOTO_NUM_THREADS=6))
+
+- Steve
+
+
+On Wed, Nov 23, 2011 at 9:44 AM, Claudia Beleites
+<claudia.beleites at ipht-jena.de> wrote:
+> Dear all,
+>
+> I'm just doing my first steps with parallelized calculations and got quite
+> confused.
+>
+> Here's what I want, what I have and what I did:
+>
+> - I want to parallelize calculations on a Centos server with 2 x 6 cores and
+> 8 GB RAM (it is actually part of a cluster, but I have access only to this
+> node, and the other nodes do not (yet) have R installed).
+>
+> - My Data is too large to work with in one piece.
+> But it comes in separate files of suitable size: I can work nicely with 2 to
+> 3 samples in memory at the same time.
+>
+> - So my idea was to start up a snow socket cluster with 2 or 3 workers.
+>
+> - In addition I want to use an optimized and blas. Linear algebra is only a
+> small part of the analysis so it does make sense to have the socket cluster
+> with as many workers as possible and have the linear algebra parts use up to
+> n / nworkers cores.
+>
+> So I built R 2.14.0 using gotoblas2 and set $GOTO_NUM_THREADS to 6. Matrix
+> multiplication in a fresh R session now is much faster and CPU usage shows
+> the expected 6 cores working:
+>
+>> system.time ({m <- matrix (1:9e6, 3e3); m%*%m; NULL})
+> ? ? ? User ? ? ?System verstrichen
+> ? ? ?5.219 ? ? ? 0.126 ? ? ? 1.111
+>
+> However, the socket clusters seem not to use the GOTO_NUM_THREADS:
+>> library (snow)
+>> cl <- makeCluster(2,type="SOCK")
+>> tm <- snow.time(clusterEvalQ(cl, {m <- matrix (1:9e6, 3e3); m%*%m; NULL}))
+>> tm
+> elapsed ? ?send receive ?node 1 ?node 2
+> ?9.553 ? 0.001 ? 0.010 ? 9.510 ? 9.543
+>> tm$data
+> [[1]]
+> ? ? send_start send_end recv_start recv_end exec
+> [1,] ? ? ? ? ?0 ? ?0.001 ? ? ?9.511 ? ?9.512 9.51
+>
+> [[2]]
+> ? ? send_start send_end recv_start recv_end ?exec
+> [1,] ? ? ?0.001 ? ?0.001 ? ? ?9.544 ? ?9.553 9.543
+>
+>> tm$elapsed
+> elapsed
+> ?9.553
+>>
+>
+> CPU usage shows 2 cores working, and the times correspond to that.
+>
+> What configuration do I need to do in order to make the blas use more
+> threads for the worker processes? Anything else I should do differently?
+>
+>
+>> sessionInfo ()
+> R version 2.14.0 (2011-10-31)
+> Platform: x86_64-unknown-linux-gnu (64-bit)
+>
+> locale:
+> ?[1] LC_CTYPE=de_DE.UTF-8 ? ? ? LC_NUMERIC=C
+> ?[3] LC_TIME=de_DE.UTF-8 ? ? ? ?LC_COLLATE=de_DE.UTF-8
+> ?[5] LC_MONETARY=de_DE.UTF-8 ? ?LC_MESSAGES=de_DE.UTF-8
+> ?[7] LC_PAPER=C ? ? ? ? ? ? ? ? LC_NAME=C
+> ?[9] LC_ADDRESS=C ? ? ? ? ? ? ? LC_TELEPHONE=C
+> [11] LC_MEASUREMENT=de_DE.UTF-8 LC_IDENTIFICATION=C
+>
+> attached base packages:
+> [1] stats ? ? graphics ?grDevices utils ? ? datasets ?methods ? base
+>
+> other attached packages:
+> [1] snow_0.3-8
+>
+> Additional questions:
+> - Is there some command like sessionInfo () that yields information about
+> the blas (particularly NUM_THREADS)?
+> - Is there some command that I can use to tell the blas how many threads to
+> use during an R session? Can I set environment variables from within R?
+> Searching didn't help as I got only info about R environments...) Would that
+> actually help here?
+>
+> Thanks a lot for your help.
+>
+> Claudia
+>
+> --
+> Claudia Beleites
+> Spectroscopy/Imaging
+> Institute of Photonic Technology
+> Albert-Einstein-Str. 9
+> 07745 Jena
+> Germany
+>
+> email: claudia.beleites at ipht-jena.de
+> phone: +49 3641 206-133
+> fax: ? +49 2641 206-399
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From claudia.beleites at ipht-jena.de  Wed Nov 23 17:09:01 2011
+From: claudia.beleites at ipht-jena.de (Claudia Beleites)
+Date: Wed, 23 Nov 2011 17:09:01 +0100
+Subject: [R-sig-hpc] socket cluster/gotoblas2 configuration confusion
+In-Reply-To: <CALh21iLkwAWn81P4QUK4ABJ7_X0oaWPjqaVhrpkLD2O3TWmNww@mail.gmail.com>
+References: <4ECD06DD.3010403@ipht-jena.de>
+	<CALh21iLkwAWn81P4QUK4ABJ7_X0oaWPjqaVhrpkLD2O3TWmNww@mail.gmail.com>
+Message-ID: <4ECD1A9D.2000502@ipht-jena.de>
+
+Steve,
+
+> You don't say how you set GOTO_NUM_THREADS to 6.
+sorry, I forgot to tell you all:
+
+I used
+export GOTO_NUM_THREADS=6
+in the shell before starting R.
+
+and I did check by
+ >      clusterEvalQ(cl, system ("echo $GOTO_NUM_THREADS"))
+which gave me 6 for both workers.
+
+so does:
+ >   clusterEvalQ(cl, Sys.getenv('GOTO_NUM_THREADS'))
+[[1]]
+[1] "6"
+
+[[2]]
+[1] "6"
+
+I did not know the Sys.getenv/Sys.setenv functions, though.
+
+Thanks,
+
+Claudia
+
+> You
+> might want to verify that it did get set in each of the snow worker
+> processes by using the command:
+>
+>      clusterEvalQ(cl, Sys.getenv('GOTO_NUM_THREADS'))
+>
+> If it returns any empty strings in the resulting list, then the
+> environment variable is not set in the corresponding worker.
+>
+> You probably should set this variable through an appropriate
+> shell startup file, but you could at least temporarily use:
+>
+>      clusterEvalQ(cl, Sys.setenv(GOTO_NUM_THREADS=6))
+
+
+>
+> - Steve
+>
+>
+> On Wed, Nov 23, 2011 at 9:44 AM, Claudia Beleites
+> <claudia.beleites at ipht-jena.de>  wrote:
+>> Dear all,
+>>
+>> I'm just doing my first steps with parallelized calculations and got quite
+>> confused.
+>>
+>> Here's what I want, what I have and what I did:
+>>
+>> - I want to parallelize calculations on a Centos server with 2 x 6 cores and
+>> 8 GB RAM (it is actually part of a cluster, but I have access only to this
+>> node, and the other nodes do not (yet) have R installed).
+>>
+>> - My Data is too large to work with in one piece.
+>> But it comes in separate files of suitable size: I can work nicely with 2 to
+>> 3 samples in memory at the same time.
+>>
+>> - So my idea was to start up a snow socket cluster with 2 or 3 workers.
+>>
+>> - In addition I want to use an optimized and blas. Linear algebra is only a
+>> small part of the analysis so it does make sense to have the socket cluster
+>> with as many workers as possible and have the linear algebra parts use up to
+>> n / nworkers cores.
+>>
+>> So I built R 2.14.0 using gotoblas2 and set $GOTO_NUM_THREADS to 6. Matrix
+>> multiplication in a fresh R session now is much faster and CPU usage shows
+>> the expected 6 cores working:
+>>
+>>> system.time ({m<- matrix (1:9e6, 3e3); m%*%m; NULL})
+>>        User      System verstrichen
+>>       5.219       0.126       1.111
+>>
+>> However, the socket clusters seem not to use the GOTO_NUM_THREADS:
+>>> library (snow)
+>>> cl<- makeCluster(2,type="SOCK")
+>>> tm<- snow.time(clusterEvalQ(cl, {m<- matrix (1:9e6, 3e3); m%*%m; NULL}))
+>>> tm
+>> elapsed    send receive  node 1  node 2
+>>   9.553   0.001   0.010   9.510   9.543
+>>> tm$data
+>> [[1]]
+>>      send_start send_end recv_start recv_end exec
+>> [1,]          0    0.001      9.511    9.512 9.51
+>>
+>> [[2]]
+>>      send_start send_end recv_start recv_end  exec
+>> [1,]      0.001    0.001      9.544    9.553 9.543
+>>
+>>> tm$elapsed
+>> elapsed
+>>   9.553
+>>>
+>>
+>> CPU usage shows 2 cores working, and the times correspond to that.
+>>
+>> What configuration do I need to do in order to make the blas use more
+>> threads for the worker processes? Anything else I should do differently?
+>>
+>>
+>>> sessionInfo ()
+>> R version 2.14.0 (2011-10-31)
+>> Platform: x86_64-unknown-linux-gnu (64-bit)
+>>
+>> locale:
+>>   [1] LC_CTYPE=de_DE.UTF-8       LC_NUMERIC=C
+>>   [3] LC_TIME=de_DE.UTF-8        LC_COLLATE=de_DE.UTF-8
+>>   [5] LC_MONETARY=de_DE.UTF-8    LC_MESSAGES=de_DE.UTF-8
+>>   [7] LC_PAPER=C                 LC_NAME=C
+>>   [9] LC_ADDRESS=C               LC_TELEPHONE=C
+>> [11] LC_MEASUREMENT=de_DE.UTF-8 LC_IDENTIFICATION=C
+>>
+>> attached base packages:
+>> [1] stats     graphics  grDevices utils     datasets  methods   base
+>>
+>> other attached packages:
+>> [1] snow_0.3-8
+>>
+>> Additional questions:
+>> - Is there some command like sessionInfo () that yields information about
+>> the blas (particularly NUM_THREADS)?
+>> - Is there some command that I can use to tell the blas how many threads to
+>> use during an R session? Can I set environment variables from within R?
+>> Searching didn't help as I got only info about R environments...) Would that
+>> actually help here?
+>>
+>> Thanks a lot for your help.
+>>
+>> Claudia
+>>
+>> --
+>> Claudia Beleites
+>> Spectroscopy/Imaging
+>> Institute of Photonic Technology
+>> Albert-Einstein-Str. 9
+>> 07745 Jena
+>> Germany
+>>
+>> email: claudia.beleites at ipht-jena.de
+>> phone: +49 3641 206-133
+>> fax:   +49 2641 206-399
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+
+
+-- 
+Claudia Beleites
+Spectroscopy/Imaging
+Institute of Photonic Technology
+Albert-Einstein-Str. 9
+07745 Jena
+Germany
+
+email: claudia.beleites at ipht-jena.de
+phone: +49 3641 206-133
+fax:   +49 2641 206-399
+
+
+From stephen.b.weston at gmail.com  Wed Nov 23 18:21:12 2011
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Wed, 23 Nov 2011 12:21:12 -0500
+Subject: [R-sig-hpc] socket cluster/gotoblas2 configuration confusion
+In-Reply-To: <4ECD1A9D.2000502@ipht-jena.de>
+References: <4ECD06DD.3010403@ipht-jena.de>
+	<CALh21iLkwAWn81P4QUK4ABJ7_X0oaWPjqaVhrpkLD2O3TWmNww@mail.gmail.com>
+	<4ECD1A9D.2000502@ipht-jena.de>
+Message-ID: <CALh21iL36ypwQcJVU7L--XLh7qoKHUkxi8tqDSEoUudv83jVUw@mail.gmail.com>
+
+This is really a shot in the dark, but you could try executing:
+
+  clusterEvalQ(cl, readLines(sprintf('/proc/%d/status', Sys.getpid())))
+
+and look for the lines that mention "Cpus_allowed".  It's
+conceivable that your snow workers have been restricted to
+execute on a subset of the node's cores.  But that seems
+rather unlikely since you're using a socket cluster.
+
+- Steve
+
+
+On Wed, Nov 23, 2011 at 11:09 AM, Claudia Beleites
+<claudia.beleites at ipht-jena.de> wrote:
+> Steve,
+>
+>> You don't say how you set GOTO_NUM_THREADS to 6.
+>
+> sorry, I forgot to tell you all:
+>
+> I used
+> export GOTO_NUM_THREADS=6
+> in the shell before starting R.
+>
+> and I did check by
+>> ? ? ?clusterEvalQ(cl, system ("echo $GOTO_NUM_THREADS"))
+> which gave me 6 for both workers.
+>
+> so does:
+>> ? clusterEvalQ(cl, Sys.getenv('GOTO_NUM_THREADS'))
+> [[1]]
+> [1] "6"
+>
+> [[2]]
+> [1] "6"
+>
+> I did not know the Sys.getenv/Sys.setenv functions, though.
+>
+> Thanks,
+>
+> Claudia
+>
+>> You
+>> might want to verify that it did get set in each of the snow worker
+>> processes by using the command:
+>>
+>> ? ? clusterEvalQ(cl, Sys.getenv('GOTO_NUM_THREADS'))
+>>
+>> If it returns any empty strings in the resulting list, then the
+>> environment variable is not set in the corresponding worker.
+>>
+>> You probably should set this variable through an appropriate
+>> shell startup file, but you could at least temporarily use:
+>>
+>> ? ? clusterEvalQ(cl, Sys.setenv(GOTO_NUM_THREADS=6))
+>
+>
+>>
+>> - Steve
+>>
+>>
+>> On Wed, Nov 23, 2011 at 9:44 AM, Claudia Beleites
+>> <claudia.beleites at ipht-jena.de> ?wrote:
+>>>
+>>> Dear all,
+>>>
+>>> I'm just doing my first steps with parallelized calculations and got
+>>> quite
+>>> confused.
+>>>
+>>> Here's what I want, what I have and what I did:
+>>>
+>>> - I want to parallelize calculations on a Centos server with 2 x 6 cores
+>>> and
+>>> 8 GB RAM (it is actually part of a cluster, but I have access only to
+>>> this
+>>> node, and the other nodes do not (yet) have R installed).
+>>>
+>>> - My Data is too large to work with in one piece.
+>>> But it comes in separate files of suitable size: I can work nicely with 2
+>>> to
+>>> 3 samples in memory at the same time.
+>>>
+>>> - So my idea was to start up a snow socket cluster with 2 or 3 workers.
+>>>
+>>> - In addition I want to use an optimized and blas. Linear algebra is only
+>>> a
+>>> small part of the analysis so it does make sense to have the socket
+>>> cluster
+>>> with as many workers as possible and have the linear algebra parts use up
+>>> to
+>>> n / nworkers cores.
+>>>
+>>> So I built R 2.14.0 using gotoblas2 and set $GOTO_NUM_THREADS to 6.
+>>> Matrix
+>>> multiplication in a fresh R session now is much faster and CPU usage
+>>> shows
+>>> the expected 6 cores working:
+>>>
+>>>> system.time ({m<- matrix (1:9e6, 3e3); m%*%m; NULL})
+>>>
+>>> ? ? ? User ? ? ?System verstrichen
+>>> ? ? ?5.219 ? ? ? 0.126 ? ? ? 1.111
+>>>
+>>> However, the socket clusters seem not to use the GOTO_NUM_THREADS:
+>>>>
+>>>> library (snow)
+>>>> cl<- makeCluster(2,type="SOCK")
+>>>> tm<- snow.time(clusterEvalQ(cl, {m<- matrix (1:9e6, 3e3); m%*%m; NULL}))
+>>>> tm
+>>>
+>>> elapsed ? ?send receive ?node 1 ?node 2
+>>> ?9.553 ? 0.001 ? 0.010 ? 9.510 ? 9.543
+>>>>
+>>>> tm$data
+>>>
+>>> [[1]]
+>>> ? ? send_start send_end recv_start recv_end exec
+>>> [1,] ? ? ? ? ?0 ? ?0.001 ? ? ?9.511 ? ?9.512 9.51
+>>>
+>>> [[2]]
+>>> ? ? send_start send_end recv_start recv_end ?exec
+>>> [1,] ? ? ?0.001 ? ?0.001 ? ? ?9.544 ? ?9.553 9.543
+>>>
+>>>> tm$elapsed
+>>>
+>>> elapsed
+>>> ?9.553
+>>>>
+>>>
+>>> CPU usage shows 2 cores working, and the times correspond to that.
+>>>
+>>> What configuration do I need to do in order to make the blas use more
+>>> threads for the worker processes? Anything else I should do differently?
+>>>
+>>>
+>>>> sessionInfo ()
+>>>
+>>> R version 2.14.0 (2011-10-31)
+>>> Platform: x86_64-unknown-linux-gnu (64-bit)
+>>>
+>>> locale:
+>>> ?[1] LC_CTYPE=de_DE.UTF-8 ? ? ? LC_NUMERIC=C
+>>> ?[3] LC_TIME=de_DE.UTF-8 ? ? ? ?LC_COLLATE=de_DE.UTF-8
+>>> ?[5] LC_MONETARY=de_DE.UTF-8 ? ?LC_MESSAGES=de_DE.UTF-8
+>>> ?[7] LC_PAPER=C ? ? ? ? ? ? ? ? LC_NAME=C
+>>> ?[9] LC_ADDRESS=C ? ? ? ? ? ? ? LC_TELEPHONE=C
+>>> [11] LC_MEASUREMENT=de_DE.UTF-8 LC_IDENTIFICATION=C
+>>>
+>>> attached base packages:
+>>> [1] stats ? ? graphics ?grDevices utils ? ? datasets ?methods ? base
+>>>
+>>> other attached packages:
+>>> [1] snow_0.3-8
+>>>
+>>> Additional questions:
+>>> - Is there some command like sessionInfo () that yields information about
+>>> the blas (particularly NUM_THREADS)?
+>>> - Is there some command that I can use to tell the blas how many threads
+>>> to
+>>> use during an R session? Can I set environment variables from within R?
+>>> Searching didn't help as I got only info about R environments...) Would
+>>> that
+>>> actually help here?
+>>>
+>>> Thanks a lot for your help.
+>>>
+>>> Claudia
+>>>
+>>> --
+>>> Claudia Beleites
+>>> Spectroscopy/Imaging
+>>> Institute of Photonic Technology
+>>> Albert-Einstein-Str. 9
+>>> 07745 Jena
+>>> Germany
+>>>
+>>> email: claudia.beleites at ipht-jena.de
+>>> phone: +49 3641 206-133
+>>> fax: ? +49 2641 206-399
+>>>
+>>> _______________________________________________
+>>> R-sig-hpc mailing list
+>>> R-sig-hpc at r-project.org
+>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>
+>
+>
+> --
+> Claudia Beleites
+> Spectroscopy/Imaging
+> Institute of Photonic Technology
+> Albert-Einstein-Str. 9
+> 07745 Jena
+> Germany
+>
+> email: claudia.beleites at ipht-jena.de
+> phone: +49 3641 206-133
+> fax: ? +49 2641 206-399
+>
+>
+>
+>
+>
+
+
+From claudia.beleites at ipht-jena.de  Thu Nov 24 14:32:18 2011
+From: claudia.beleites at ipht-jena.de (Claudia Beleites)
+Date: Thu, 24 Nov 2011 14:32:18 +0100
+Subject: [R-sig-hpc] socket cluster/gotoblas2 configuration confusion
+In-Reply-To: <CALh21iL36ypwQcJVU7L--XLh7qoKHUkxi8tqDSEoUudv83jVUw@mail.gmail.com>
+References: <4ECD06DD.3010403@ipht-jena.de>
+	<CALh21iLkwAWn81P4QUK4ABJ7_X0oaWPjqaVhrpkLD2O3TWmNww@mail.gmail.com>
+	<4ECD1A9D.2000502@ipht-jena.de>
+	<CALh21iL36ypwQcJVU7L--XLh7qoKHUkxi8tqDSEoUudv83jVUw@mail.gmail.com>
+Message-ID: <4ECE4762.1040901@ipht-jena.de>
+
+Dear Steve,
+
+> This is really a shot in the dark, but you could try executing:
+>
+>    clusterEvalQ(cl, readLines(sprintf('/proc/%d/status', Sys.getpid())))
+>
+> and look for the lines that mention "Cpus_allowed".  It's
+> conceivable that your snow workers have been restricted to
+> execute on a subset of the node's cores.  But that seems
+> rather unlikely since you're using a socket cluster.
+
+It's getting even more weird - I don't seem to be able to reproduce the 
+behaviour ...
+
+I was able (twice, but not reproducibly) to get it working as I want:
+
+I opened terminal (xfce4-term) on my desktop and log into the server 
+with ssh -X -C claudia at 172.17.42.86
+and start an R session there,
+all worked well: 2 workers using 6 cores each for the multiplication.
+
+proc status output:
+
+ > cat (readLines(sprintf('/proc/%d/status', Sys.getpid())), sep = "\n")
+Name:	R
+State:	R (running)
+SleepAVG:	98%
+Tgid:	31571
+Pid:	31571
+PPid:	7664
+TracerPid:	0
+Uid:	508	508	508	508
+Gid:	509	509	509	509
+FDSize:	256
+Groups:	509
+VmPeak:	  560904 kB
+VmSize:	  560904 kB
+VmLck:	       0 kB
+VmHWM:	  276500 kB
+VmRSS:	  276496 kB
+VmData:	  405528 kB
+VmStk:	     140 kB
+VmExe:	    2856 kB
+VmLib:	   18248 kB
+VmPTE:	     916 kB
+StaBrk:	19587000 kB
+Brk:	22682000 kB
+StaStk:	7fffabd50130 kB
+Threads:	6
+SigQ:	1/79872
+SigPnd:	0000000000000000
+ShdPnd:	0000000000000000
+SigBlk:	0000000000000000
+SigIgn:	0000000000000000
+SigCgt:	0000000180001e4a
+CapInh:	0000000000000000
+CapPrm:	0000000000000000
+CapEff:	0000000000000000
+Cpus_allowed: 
+00000000,00000000,00000000,00000000,00000000,00000000,00000000,00ffffff
+Mems_allowed:	00000000,00000001
+
+For the other processes,
+either via
+* terminal -> ssh -> R
+* terminal -> emacs -> ess -> R
+* terminal -> ssh -> xfce4-panel -> terminal -> R
+* terminal -> ssh -> xfce4-panel -> emacs -> ess -> R
+I sometimes get 2 cores working in parallel as shown by the cpu graph 
+applet, sometimes the applet indicates only one core and the snow timing 
+plot indicates both workers worked at the same time, but took twice as 
+long as system.time of the matrix multiplication
+
+The proc status is different for those:
+
+
+ > cat (readLines(sprintf('/proc/%d/status', Sys.getpid())), sep = "\n")
+Name:   R
+State:  R (running)
+SleepAVG:       98%
+Tgid:   2983
+Pid:    2983
+PPid:   2956
+TracerPid:      0
+Uid:    508     508     508     508
+Gid:    509     509     509     509
+FDSize: 256
+Groups: 509
+VmPeak:   560768 kB
+VmSize:   545148 kB
+VmLck:         0 kB
+VmHWM:    342960 kB
+VmRSS:    327336 kB
+VmData:   389768 kB
+VmStk:       144 kB
+VmExe:      2856 kB
+VmLib:     18248 kB
+VmPTE:      1012 kB
+StaBrk: 121ab000 kB
+Brk:    1a342000 kB
+StaStk: 7fffa9d4aa10 kB
+Threads:        6
+SigQ:   2/79872
+SigPnd: 0000000000000000
+ShdPnd: 0000000000000000
+SigBlk: 0000000000000000
+SigIgn: 0000000000000004
+SigCgt: 0000000180001e4a
+CapInh: 0000000000000000
+CapPrm: 0000000000000000
+CapEff: 0000000000000000
+Cpus_allowed: 
+00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000001
+Mems_allowed:   00000000,00000001
+
+So the last part of cpus_allowed is 00000001 instead of 00ffffff.
+
+What exactly does that tell me? The man page was not particularly 
+enlightning...
+
+How can I change that restriction?
+
+Thanks a lot for your help,
+
+Claudia
+
+PS: I have to leave soon for a seminar over the weekend, so I won't be 
+able to try out things again before Monday.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+>
+> - Steve
+>
+>
+> On Wed, Nov 23, 2011 at 11:09 AM, Claudia Beleites
+> <claudia.beleites at ipht-jena.de>  wrote:
+>> Steve,
+>>
+>>> You don't say how you set GOTO_NUM_THREADS to 6.
+>>
+>> sorry, I forgot to tell you all:
+>>
+>> I used
+>> export GOTO_NUM_THREADS=6
+>> in the shell before starting R.
+>>
+>> and I did check by
+>>>       clusterEvalQ(cl, system ("echo $GOTO_NUM_THREADS"))
+>> which gave me 6 for both workers.
+>>
+>> so does:
+>>>    clusterEvalQ(cl, Sys.getenv('GOTO_NUM_THREADS'))
+>> [[1]]
+>> [1] "6"
+>>
+>> [[2]]
+>> [1] "6"
+>>
+>> I did not know the Sys.getenv/Sys.setenv functions, though.
+>>
+>> Thanks,
+>>
+>> Claudia
+>>
+>>> You
+>>> might want to verify that it did get set in each of the snow worker
+>>> processes by using the command:
+>>>
+>>>      clusterEvalQ(cl, Sys.getenv('GOTO_NUM_THREADS'))
+>>>
+>>> If it returns any empty strings in the resulting list, then the
+>>> environment variable is not set in the corresponding worker.
+>>>
+>>> You probably should set this variable through an appropriate
+>>> shell startup file, but you could at least temporarily use:
+>>>
+>>>      clusterEvalQ(cl, Sys.setenv(GOTO_NUM_THREADS=6))
+>>
+>>
+>>>
+>>> - Steve
+>>>
+>>>
+>>> On Wed, Nov 23, 2011 at 9:44 AM, Claudia Beleites
+>>> <claudia.beleites at ipht-jena.de>    wrote:
+>>>>
+>>>> Dear all,
+>>>>
+>>>> I'm just doing my first steps with parallelized calculations and got
+>>>> quite
+>>>> confused.
+>>>>
+>>>> Here's what I want, what I have and what I did:
+>>>>
+>>>> - I want to parallelize calculations on a Centos server with 2 x 6 cores
+>>>> and
+>>>> 8 GB RAM (it is actually part of a cluster, but I have access only to
+>>>> this
+>>>> node, and the other nodes do not (yet) have R installed).
+>>>>
+>>>> - My Data is too large to work with in one piece.
+>>>> But it comes in separate files of suitable size: I can work nicely with 2
+>>>> to
+>>>> 3 samples in memory at the same time.
+>>>>
+>>>> - So my idea was to start up a snow socket cluster with 2 or 3 workers.
+>>>>
+>>>> - In addition I want to use an optimized and blas. Linear algebra is only
+>>>> a
+>>>> small part of the analysis so it does make sense to have the socket
+>>>> cluster
+>>>> with as many workers as possible and have the linear algebra parts use up
+>>>> to
+>>>> n / nworkers cores.
+>>>>
+>>>> So I built R 2.14.0 using gotoblas2 and set $GOTO_NUM_THREADS to 6.
+>>>> Matrix
+>>>> multiplication in a fresh R session now is much faster and CPU usage
+>>>> shows
+>>>> the expected 6 cores working:
+>>>>
+>>>>> system.time ({m<- matrix (1:9e6, 3e3); m%*%m; NULL})
+>>>>
+>>>>        User      System verstrichen
+>>>>       5.219       0.126       1.111
+>>>>
+>>>> However, the socket clusters seem not to use the GOTO_NUM_THREADS:
+>>>>>
+>>>>> library (snow)
+>>>>> cl<- makeCluster(2,type="SOCK")
+>>>>> tm<- snow.time(clusterEvalQ(cl, {m<- matrix (1:9e6, 3e3); m%*%m; NULL}))
+>>>>> tm
+>>>>
+>>>> elapsed    send receive  node 1  node 2
+>>>>   9.553   0.001   0.010   9.510   9.543
+>>>>>
+>>>>> tm$data
+>>>>
+>>>> [[1]]
+>>>>      send_start send_end recv_start recv_end exec
+>>>> [1,]          0    0.001      9.511    9.512 9.51
+>>>>
+>>>> [[2]]
+>>>>      send_start send_end recv_start recv_end  exec
+>>>> [1,]      0.001    0.001      9.544    9.553 9.543
+>>>>
+>>>>> tm$elapsed
+>>>>
+>>>> elapsed
+>>>>   9.553
+>>>>>
+>>>>
+>>>> CPU usage shows 2 cores working, and the times correspond to that.
+>>>>
+>>>> What configuration do I need to do in order to make the blas use more
+>>>> threads for the worker processes? Anything else I should do differently?
+>>>>
+>>>>
+>>>>> sessionInfo ()
+>>>>
+>>>> R version 2.14.0 (2011-10-31)
+>>>> Platform: x86_64-unknown-linux-gnu (64-bit)
+>>>>
+>>>> locale:
+>>>>   [1] LC_CTYPE=de_DE.UTF-8       LC_NUMERIC=C
+>>>>   [3] LC_TIME=de_DE.UTF-8        LC_COLLATE=de_DE.UTF-8
+>>>>   [5] LC_MONETARY=de_DE.UTF-8    LC_MESSAGES=de_DE.UTF-8
+>>>>   [7] LC_PAPER=C                 LC_NAME=C
+>>>>   [9] LC_ADDRESS=C               LC_TELEPHONE=C
+>>>> [11] LC_MEASUREMENT=de_DE.UTF-8 LC_IDENTIFICATION=C
+>>>>
+>>>> attached base packages:
+>>>> [1] stats     graphics  grDevices utils     datasets  methods   base
+>>>>
+>>>> other attached packages:
+>>>> [1] snow_0.3-8
+>>>>
+>>>> Additional questions:
+>>>> - Is there some command like sessionInfo () that yields information about
+>>>> the blas (particularly NUM_THREADS)?
+>>>> - Is there some command that I can use to tell the blas how many threads
+>>>> to
+>>>> use during an R session? Can I set environment variables from within R?
+>>>> Searching didn't help as I got only info about R environments...) Would
+>>>> that
+>>>> actually help here?
+>>>>
+>>>> Thanks a lot for your help.
+>>>>
+>>>> Claudia
+>>>>
+>>>> --
+>>>> Claudia Beleites
+>>>> Spectroscopy/Imaging
+>>>> Institute of Photonic Technology
+>>>> Albert-Einstein-Str. 9
+>>>> 07745 Jena
+>>>> Germany
+>>>>
+>>>> email: claudia.beleites at ipht-jena.de
+>>>> phone: +49 3641 206-133
+>>>> fax:   +49 2641 206-399
+>>>>
+>>>> _______________________________________________
+>>>> R-sig-hpc mailing list
+>>>> R-sig-hpc at r-project.org
+>>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>>
+>>
+>>
+>> --
+>> Claudia Beleites
+>> Spectroscopy/Imaging
+>> Institute of Photonic Technology
+>> Albert-Einstein-Str. 9
+>> 07745 Jena
+>> Germany
+>>
+>> email: claudia.beleites at ipht-jena.de
+>> phone: +49 3641 206-133
+>> fax:   +49 2641 206-399
+>>
+>>
+>>
+>>
+>>
+
+
+-- 
+Claudia Beleites
+Spectroscopy/Imaging
+Institute of Photonic Technology
+Albert-Einstein-Str. 9
+07745 Jena
+Germany
+
+email: claudia.beleites at ipht-jena.de
+phone: +49 3641 206-133
+fax:   +49 2641 206-399
+
+
+From daniel.cegielka at gmail.com  Fri Nov 25 22:19:08 2011
+From: daniel.cegielka at gmail.com (=?ISO-8859-2?Q?Daniel_Cegie=B3ka?=)
+Date: Fri, 25 Nov 2011 22:19:08 +0100
+Subject: [R-sig-hpc] int64: 64 bit integer types
+Message-ID: <CAPLrYEStxr1QBhudjD1oYpwrbbfxmpjzFa6Dc0u4j8vEJFRf6g@mail.gmail.com>
+
+Maybe someone interested...
+
+64-bit integer support for R.
+
+http://cran.r-project.org/web/packages/int64/index.html
+
+http://cran.r-project.org/web/packages/int64/vignettes/int64.pdf
+
+best regards,
+daniel
+
+
+From claudia.beleites at ipht-jena.de  Mon Nov 28 16:18:47 2011
+From: claudia.beleites at ipht-jena.de (Claudia Beleites)
+Date: Mon, 28 Nov 2011 16:18:47 +0100
+Subject: [R-sig-hpc] *SOLUTION* socket cluster/gotoblas2 configuration
+ confusion
+In-Reply-To: <4ECE4762.1040901@ipht-jena.de>
+References: <4ECD06DD.3010403@ipht-jena.de>
+	<CALh21iLkwAWn81P4QUK4ABJ7_X0oaWPjqaVhrpkLD2O3TWmNww@mail.gmail.com>
+	<4ECD1A9D.2000502@ipht-jena.de>
+	<CALh21iL36ypwQcJVU7L--XLh7qoKHUkxi8tqDSEoUudv83jVUw@mail.gmail.com>
+	<4ECE4762.1040901@ipht-jena.de>
+Message-ID: <4ED3A657.1060009@ipht-jena.de>
+
+Steve,
+
+many thanks, you were right.
+
+That's the current state:
+
+I now call R with:
+taskset 0xffffffff R
+which allows all cores to be used by R.
+Actually I set
+alias R='taskset 0xffffffff R'
+The combination of a snow (socket) cluster and Sys.setenv 
+(`GOTO_NUM_THREADS`=XXX)) works as expected and allows to change the 
+number of workers and adjust the number of threads used by the BLAS 
+accordingly.
+
+Using multicore, one core per mc.cores is used as the name of the 
+parameter suggests.
+
+Best and many thanks,
+
+Claudia
+
+
+
+
+-- 
+Claudia Beleites
+Spectroscopy/Imaging
+Institute of Photonic Technology
+Albert-Einstein-Str. 9
+07745 Jena
+Germany
+
+email: claudia.beleites at ipht-jena.de
+phone: +49 3641 206-133
+fax:   +49 2641 206-399
+
+
+From stephen.b.weston at gmail.com  Mon Nov 28 17:19:18 2011
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Mon, 28 Nov 2011 11:19:18 -0500
+Subject: [R-sig-hpc] socket cluster/gotoblas2 configuration confusion
+In-Reply-To: <4ECE4762.1040901@ipht-jena.de>
+References: <4ECD06DD.3010403@ipht-jena.de>
+	<CALh21iLkwAWn81P4QUK4ABJ7_X0oaWPjqaVhrpkLD2O3TWmNww@mail.gmail.com>
+	<4ECD1A9D.2000502@ipht-jena.de>
+	<CALh21iL36ypwQcJVU7L--XLh7qoKHUkxi8tqDSEoUudv83jVUw@mail.gmail.com>
+	<4ECE4762.1040901@ipht-jena.de>
+Message-ID: <CALh21iKrs4-YBV-fKmjnTgL=8WdUD1rRFZ-VKPAauw1Roe5bkw@mail.gmail.com>
+
+I ran some tests on my Linux machine, and I was able to
+undo a cpuset restriction from within an R session using:
+
+    > system(sprintf('taskset -p 0xffffffff %d', Sys.getpid()))
+
+I was also able to start an unrestricted R session from a
+restricted shell session using:
+
+    $ taskset 0xffffffff R
+
+or
+
+    $ numactl -C 0-3 R
+
+I have no idea how your R sessions are becoming restricted, so
+I have no idea if this will work, but it's worth a try.
+
+- Steve
+
+
+On Thu, Nov 24, 2011 at 8:32 AM, Claudia Beleites
+<claudia.beleites at ipht-jena.de> wrote:
+> Dear Steve,
+>
+>> This is really a shot in the dark, but you could try executing:
+>>
+>> ? clusterEvalQ(cl, readLines(sprintf('/proc/%d/status', Sys.getpid())))
+>>
+>> and look for the lines that mention "Cpus_allowed". ?It's
+>> conceivable that your snow workers have been restricted to
+>> execute on a subset of the node's cores. ?But that seems
+>> rather unlikely since you're using a socket cluster.
+>
+> It's getting even more weird - I don't seem to be able to reproduce the
+> behaviour ...
+>
+> I was able (twice, but not reproducibly) to get it working as I want:
+>
+> I opened terminal (xfce4-term) on my desktop and log into the server with
+> ssh -X -C claudia at 172.17.42.86
+> and start an R session there,
+> all worked well: 2 workers using 6 cores each for the multiplication.
+>
+> proc status output:
+>
+>> cat (readLines(sprintf('/proc/%d/status', Sys.getpid())), sep = "\n")
+> Name: ? R
+> State: ?R (running)
+> SleepAVG: ? ? ? 98%
+> Tgid: ? 31571
+> Pid: ? ?31571
+> PPid: ? 7664
+> TracerPid: ? ? ?0
+> Uid: ? ?508 ? ? 508 ? ? 508 ? ? 508
+> Gid: ? ?509 ? ? 509 ? ? 509 ? ? 509
+> FDSize: 256
+> Groups: 509
+> VmPeak: ? 560904 kB
+> VmSize: ? 560904 kB
+> VmLck: ? ? ? ? 0 kB
+> VmHWM: ? ?276500 kB
+> VmRSS: ? ?276496 kB
+> VmData: ? 405528 kB
+> VmStk: ? ? ? 140 kB
+> VmExe: ? ? ?2856 kB
+> VmLib: ? ? 18248 kB
+> VmPTE: ? ? ? 916 kB
+> StaBrk: 19587000 kB
+> Brk: ? ?22682000 kB
+> StaStk: 7fffabd50130 kB
+> Threads: ? ? ? ?6
+> SigQ: ? 1/79872
+> SigPnd: 0000000000000000
+> ShdPnd: 0000000000000000
+> SigBlk: 0000000000000000
+> SigIgn: 0000000000000000
+> SigCgt: 0000000180001e4a
+> CapInh: 0000000000000000
+> CapPrm: 0000000000000000
+> CapEff: 0000000000000000
+> Cpus_allowed:
+> 00000000,00000000,00000000,00000000,00000000,00000000,00000000,00ffffff
+> Mems_allowed: ? 00000000,00000001
+>
+> For the other processes,
+> either via
+> * terminal -> ssh -> R
+> * terminal -> emacs -> ess -> R
+> * terminal -> ssh -> xfce4-panel -> terminal -> R
+> * terminal -> ssh -> xfce4-panel -> emacs -> ess -> R
+> I sometimes get 2 cores working in parallel as shown by the cpu graph
+> applet, sometimes the applet indicates only one core and the snow timing
+> plot indicates both workers worked at the same time, but took twice as long
+> as system.time of the matrix multiplication
+>
+> The proc status is different for those:
+>
+>
+>> cat (readLines(sprintf('/proc/%d/status', Sys.getpid())), sep = "\n")
+> Name: ? R
+> State: ?R (running)
+> SleepAVG: ? ? ? 98%
+> Tgid: ? 2983
+> Pid: ? ?2983
+> PPid: ? 2956
+> TracerPid: ? ? ?0
+> Uid: ? ?508 ? ? 508 ? ? 508 ? ? 508
+> Gid: ? ?509 ? ? 509 ? ? 509 ? ? 509
+> FDSize: 256
+> Groups: 509
+> VmPeak: ? 560768 kB
+> VmSize: ? 545148 kB
+> VmLck: ? ? ? ? 0 kB
+> VmHWM: ? ?342960 kB
+> VmRSS: ? ?327336 kB
+> VmData: ? 389768 kB
+> VmStk: ? ? ? 144 kB
+> VmExe: ? ? ?2856 kB
+> VmLib: ? ? 18248 kB
+> VmPTE: ? ? ?1012 kB
+> StaBrk: 121ab000 kB
+> Brk: ? ?1a342000 kB
+> StaStk: 7fffa9d4aa10 kB
+> Threads: ? ? ? ?6
+> SigQ: ? 2/79872
+> SigPnd: 0000000000000000
+> ShdPnd: 0000000000000000
+> SigBlk: 0000000000000000
+> SigIgn: 0000000000000004
+> SigCgt: 0000000180001e4a
+> CapInh: 0000000000000000
+> CapPrm: 0000000000000000
+> CapEff: 0000000000000000
+> Cpus_allowed:
+> 00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000001
+> Mems_allowed: ? 00000000,00000001
+>
+> So the last part of cpus_allowed is 00000001 instead of 00ffffff.
+>
+> What exactly does that tell me? The man page was not particularly
+> enlightning...
+>
+> How can I change that restriction?
+>
+> Thanks a lot for your help,
+>
+> Claudia
+>
+> PS: I have to leave soon for a seminar over the weekend, so I won't be able
+> to try out things again before Monday.
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>>
+>> - Steve
+>>
+>>
+>> On Wed, Nov 23, 2011 at 11:09 AM, Claudia Beleites
+>> <claudia.beleites at ipht-jena.de> ?wrote:
+>>>
+>>> Steve,
+>>>
+>>>> You don't say how you set GOTO_NUM_THREADS to 6.
+>>>
+>>> sorry, I forgot to tell you all:
+>>>
+>>> I used
+>>> export GOTO_NUM_THREADS=6
+>>> in the shell before starting R.
+>>>
+>>> and I did check by
+>>>>
+>>>> ? ? ?clusterEvalQ(cl, system ("echo $GOTO_NUM_THREADS"))
+>>>
+>>> which gave me 6 for both workers.
+>>>
+>>> so does:
+>>>>
+>>>> ? clusterEvalQ(cl, Sys.getenv('GOTO_NUM_THREADS'))
+>>>
+>>> [[1]]
+>>> [1] "6"
+>>>
+>>> [[2]]
+>>> [1] "6"
+>>>
+>>> I did not know the Sys.getenv/Sys.setenv functions, though.
+>>>
+>>> Thanks,
+>>>
+>>> Claudia
+>>>
+>>>> You
+>>>> might want to verify that it did get set in each of the snow worker
+>>>> processes by using the command:
+>>>>
+>>>> ? ? clusterEvalQ(cl, Sys.getenv('GOTO_NUM_THREADS'))
+>>>>
+>>>> If it returns any empty strings in the resulting list, then the
+>>>> environment variable is not set in the corresponding worker.
+>>>>
+>>>> You probably should set this variable through an appropriate
+>>>> shell startup file, but you could at least temporarily use:
+>>>>
+>>>> ? ? clusterEvalQ(cl, Sys.setenv(GOTO_NUM_THREADS=6))
+>>>
+>>>
+>>>>
+>>>> - Steve
+>>>>
+>>>>
+>>>> On Wed, Nov 23, 2011 at 9:44 AM, Claudia Beleites
+>>>> <claudia.beleites at ipht-jena.de> ? ?wrote:
+>>>>>
+>>>>> Dear all,
+>>>>>
+>>>>> I'm just doing my first steps with parallelized calculations and got
+>>>>> quite
+>>>>> confused.
+>>>>>
+>>>>> Here's what I want, what I have and what I did:
+>>>>>
+>>>>> - I want to parallelize calculations on a Centos server with 2 x 6
+>>>>> cores
+>>>>> and
+>>>>> 8 GB RAM (it is actually part of a cluster, but I have access only to
+>>>>> this
+>>>>> node, and the other nodes do not (yet) have R installed).
+>>>>>
+>>>>> - My Data is too large to work with in one piece.
+>>>>> But it comes in separate files of suitable size: I can work nicely with
+>>>>> 2
+>>>>> to
+>>>>> 3 samples in memory at the same time.
+>>>>>
+>>>>> - So my idea was to start up a snow socket cluster with 2 or 3 workers.
+>>>>>
+>>>>> - In addition I want to use an optimized and blas. Linear algebra is
+>>>>> only
+>>>>> a
+>>>>> small part of the analysis so it does make sense to have the socket
+>>>>> cluster
+>>>>> with as many workers as possible and have the linear algebra parts use
+>>>>> up
+>>>>> to
+>>>>> n / nworkers cores.
+>>>>>
+>>>>> So I built R 2.14.0 using gotoblas2 and set $GOTO_NUM_THREADS to 6.
+>>>>> Matrix
+>>>>> multiplication in a fresh R session now is much faster and CPU usage
+>>>>> shows
+>>>>> the expected 6 cores working:
+>>>>>
+>>>>>> system.time ({m<- matrix (1:9e6, 3e3); m%*%m; NULL})
+>>>>>
+>>>>> ? ? ? User ? ? ?System verstrichen
+>>>>> ? ? ?5.219 ? ? ? 0.126 ? ? ? 1.111
+>>>>>
+>>>>> However, the socket clusters seem not to use the GOTO_NUM_THREADS:
+>>>>>>
+>>>>>> library (snow)
+>>>>>> cl<- makeCluster(2,type="SOCK")
+>>>>>> tm<- snow.time(clusterEvalQ(cl, {m<- matrix (1:9e6, 3e3); m%*%m;
+>>>>>> NULL}))
+>>>>>> tm
+>>>>>
+>>>>> elapsed ? ?send receive ?node 1 ?node 2
+>>>>> ?9.553 ? 0.001 ? 0.010 ? 9.510 ? 9.543
+>>>>>>
+>>>>>> tm$data
+>>>>>
+>>>>> [[1]]
+>>>>> ? ? send_start send_end recv_start recv_end exec
+>>>>> [1,] ? ? ? ? ?0 ? ?0.001 ? ? ?9.511 ? ?9.512 9.51
+>>>>>
+>>>>> [[2]]
+>>>>> ? ? send_start send_end recv_start recv_end ?exec
+>>>>> [1,] ? ? ?0.001 ? ?0.001 ? ? ?9.544 ? ?9.553 9.543
+>>>>>
+>>>>>> tm$elapsed
+>>>>>
+>>>>> elapsed
+>>>>> ?9.553
+>>>>>>
+>>>>>
+>>>>> CPU usage shows 2 cores working, and the times correspond to that.
+>>>>>
+>>>>> What configuration do I need to do in order to make the blas use more
+>>>>> threads for the worker processes? Anything else I should do
+>>>>> differently?
+>>>>>
+>>>>>
+>>>>>> sessionInfo ()
+>>>>>
+>>>>> R version 2.14.0 (2011-10-31)
+>>>>> Platform: x86_64-unknown-linux-gnu (64-bit)
+>>>>>
+>>>>> locale:
+>>>>> ?[1] LC_CTYPE=de_DE.UTF-8 ? ? ? LC_NUMERIC=C
+>>>>> ?[3] LC_TIME=de_DE.UTF-8 ? ? ? ?LC_COLLATE=de_DE.UTF-8
+>>>>> ?[5] LC_MONETARY=de_DE.UTF-8 ? ?LC_MESSAGES=de_DE.UTF-8
+>>>>> ?[7] LC_PAPER=C ? ? ? ? ? ? ? ? LC_NAME=C
+>>>>> ?[9] LC_ADDRESS=C ? ? ? ? ? ? ? LC_TELEPHONE=C
+>>>>> [11] LC_MEASUREMENT=de_DE.UTF-8 LC_IDENTIFICATION=C
+>>>>>
+>>>>> attached base packages:
+>>>>> [1] stats ? ? graphics ?grDevices utils ? ? datasets ?methods ? base
+>>>>>
+>>>>> other attached packages:
+>>>>> [1] snow_0.3-8
+>>>>>
+>>>>> Additional questions:
+>>>>> - Is there some command like sessionInfo () that yields information
+>>>>> about
+>>>>> the blas (particularly NUM_THREADS)?
+>>>>> - Is there some command that I can use to tell the blas how many
+>>>>> threads
+>>>>> to
+>>>>> use during an R session? Can I set environment variables from within R?
+>>>>> Searching didn't help as I got only info about R environments...) Would
+>>>>> that
+>>>>> actually help here?
+>>>>>
+>>>>> Thanks a lot for your help.
+>>>>>
+>>>>> Claudia
+>>>>>
+>>>>> --
+>>>>> Claudia Beleites
+>>>>> Spectroscopy/Imaging
+>>>>> Institute of Photonic Technology
+>>>>> Albert-Einstein-Str. 9
+>>>>> 07745 Jena
+>>>>> Germany
+>>>>>
+>>>>> email: claudia.beleites at ipht-jena.de
+>>>>> phone: +49 3641 206-133
+>>>>> fax: ? +49 2641 206-399
+>>>>>
+>>>>> _______________________________________________
+>>>>> R-sig-hpc mailing list
+>>>>> R-sig-hpc at r-project.org
+>>>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>>>
+>>>
+>>>
+>>> --
+>>> Claudia Beleites
+>>> Spectroscopy/Imaging
+>>> Institute of Photonic Technology
+>>> Albert-Einstein-Str. 9
+>>> 07745 Jena
+>>> Germany
+>>>
+>>> email: claudia.beleites at ipht-jena.de
+>>> phone: +49 3641 206-133
+>>> fax: ? +49 2641 206-399
+>>>
+>>>
+>>>
+>>>
+>>>
+>
+>
+> --
+> Claudia Beleites
+> Spectroscopy/Imaging
+> Institute of Photonic Technology
+> Albert-Einstein-Str. 9
+> 07745 Jena
+> Germany
+>
+> email: claudia.beleites at ipht-jena.de
+> phone: +49 3641 206-133
+> fax: ? +49 2641 206-399
+>
+>
+>
+>
+>
+
+
+From claudia.beleites at ipht-jena.de  Mon Nov 28 17:59:59 2011
+From: claudia.beleites at ipht-jena.de (Claudia Beleites)
+Date: Mon, 28 Nov 2011 17:59:59 +0100
+Subject: [R-sig-hpc] socket cluster/gotoblas2 configuration confusion
+In-Reply-To: <CALh21iKrs4-YBV-fKmjnTgL=8WdUD1rRFZ-VKPAauw1Roe5bkw@mail.gmail.com>
+References: <4ECD06DD.3010403@ipht-jena.de>
+	<CALh21iLkwAWn81P4QUK4ABJ7_X0oaWPjqaVhrpkLD2O3TWmNww@mail.gmail.com>
+	<4ECD1A9D.2000502@ipht-jena.de>
+	<CALh21iL36ypwQcJVU7L--XLh7qoKHUkxi8tqDSEoUudv83jVUw@mail.gmail.com>
+	<4ECE4762.1040901@ipht-jena.de>
+	<CALh21iKrs4-YBV-fKmjnTgL=8WdUD1rRFZ-VKPAauw1Roe5bkw@mail.gmail.com>
+Message-ID: <4ED3BE0F.7030802@ipht-jena.de>
+
+  > system(sprintf('taskset -p 0xffffffff %d', Sys.getpid()))
+works for me, too.
+
+BTW: I didn't find the previous questions - but maybe I shouldn't have 
+restricted to gotoblas2.
+
+Thinking about the behaviour I observed, the interesting thing is that 
+this restriction can only be half of the truth - but I still don't have 
+any idea where it comes from.
+
+- With the execution restricted to core 1(indicated by cpus_allowed), I 
+could still use multiple cores via multicore.
+- snow socket clusters sometimes used one core per cluster node, but not 
+more. Sometimes, really only core 1 is used (for all cluster nodes:  top 
+tells me e.g. that 12 processes consume 9 % of CPU usage each and only 
+core 1 is working).
+
+
+Claudia
+
+
+
+
+Am 28.11.2011 17:19, schrieb Stephen Weston:
+> I ran some tests on my Linux machine, and I was able to
+> undo a cpuset restriction from within an R session using:
+>
+>      >  system(sprintf('taskset -p 0xffffffff %d', Sys.getpid()))
+>
+> I was also able to start an unrestricted R session from a
+> restricted shell session using:
+>
+>      $ taskset 0xffffffff R
+>
+> or
+>
+>      $ numactl -C 0-3 R
+>
+> I have no idea how your R sessions are becoming restricted, so
+> I have no idea if this will work, but it's worth a try.
+>
+> - Steve
+>
+>
+> On Thu, Nov 24, 2011 at 8:32 AM, Claudia Beleites
+> <claudia.beleites at ipht-jena.de>  wrote:
+>> Dear Steve,
+>>
+>>> This is really a shot in the dark, but you could try executing:
+>>>
+>>>    clusterEvalQ(cl, readLines(sprintf('/proc/%d/status', Sys.getpid())))
+>>>
+>>> and look for the lines that mention "Cpus_allowed".  It's
+>>> conceivable that your snow workers have been restricted to
+>>> execute on a subset of the node's cores.  But that seems
+>>> rather unlikely since you're using a socket cluster.
+>>
+>> It's getting even more weird - I don't seem to be able to reproduce the
+>> behaviour ...
+>>
+>> I was able (twice, but not reproducibly) to get it working as I want:
+>>
+>> I opened terminal (xfce4-term) on my desktop and log into the server with
+>> ssh -X -C claudia at 172.17.42.86
+>> and start an R session there,
+>> all worked well: 2 workers using 6 cores each for the multiplication.
+>>
+>> proc status output:
+>>
+>>> cat (readLines(sprintf('/proc/%d/status', Sys.getpid())), sep = "\n")
+>> Name:   R
+>> State:  R (running)
+>> SleepAVG:       98%
+>> Tgid:   31571
+>> Pid:    31571
+>> PPid:   7664
+>> TracerPid:      0
+>> Uid:    508     508     508     508
+>> Gid:    509     509     509     509
+>> FDSize: 256
+>> Groups: 509
+>> VmPeak:   560904 kB
+>> VmSize:   560904 kB
+>> VmLck:         0 kB
+>> VmHWM:    276500 kB
+>> VmRSS:    276496 kB
+>> VmData:   405528 kB
+>> VmStk:       140 kB
+>> VmExe:      2856 kB
+>> VmLib:     18248 kB
+>> VmPTE:       916 kB
+>> StaBrk: 19587000 kB
+>> Brk:    22682000 kB
+>> StaStk: 7fffabd50130 kB
+>> Threads:        6
+>> SigQ:   1/79872
+>> SigPnd: 0000000000000000
+>> ShdPnd: 0000000000000000
+>> SigBlk: 0000000000000000
+>> SigIgn: 0000000000000000
+>> SigCgt: 0000000180001e4a
+>> CapInh: 0000000000000000
+>> CapPrm: 0000000000000000
+>> CapEff: 0000000000000000
+>> Cpus_allowed:
+>> 00000000,00000000,00000000,00000000,00000000,00000000,00000000,00ffffff
+>> Mems_allowed:   00000000,00000001
+>>
+>> For the other processes,
+>> either via
+>> * terminal ->  ssh ->  R
+>> * terminal ->  emacs ->  ess ->  R
+>> * terminal ->  ssh ->  xfce4-panel ->  terminal ->  R
+>> * terminal ->  ssh ->  xfce4-panel ->  emacs ->  ess ->  R
+>> I sometimes get 2 cores working in parallel as shown by the cpu graph
+>> applet, sometimes the applet indicates only one core and the snow timing
+>> plot indicates both workers worked at the same time, but took twice as long
+>> as system.time of the matrix multiplication
+>>
+>> The proc status is different for those:
+>>
+>>
+>>> cat (readLines(sprintf('/proc/%d/status', Sys.getpid())), sep = "\n")
+>> Name:   R
+>> State:  R (running)
+>> SleepAVG:       98%
+>> Tgid:   2983
+>> Pid:    2983
+>> PPid:   2956
+>> TracerPid:      0
+>> Uid:    508     508     508     508
+>> Gid:    509     509     509     509
+>> FDSize: 256
+>> Groups: 509
+>> VmPeak:   560768 kB
+>> VmSize:   545148 kB
+>> VmLck:         0 kB
+>> VmHWM:    342960 kB
+>> VmRSS:    327336 kB
+>> VmData:   389768 kB
+>> VmStk:       144 kB
+>> VmExe:      2856 kB
+>> VmLib:     18248 kB
+>> VmPTE:      1012 kB
+>> StaBrk: 121ab000 kB
+>> Brk:    1a342000 kB
+>> StaStk: 7fffa9d4aa10 kB
+>> Threads:        6
+>> SigQ:   2/79872
+>> SigPnd: 0000000000000000
+>> ShdPnd: 0000000000000000
+>> SigBlk: 0000000000000000
+>> SigIgn: 0000000000000004
+>> SigCgt: 0000000180001e4a
+>> CapInh: 0000000000000000
+>> CapPrm: 0000000000000000
+>> CapEff: 0000000000000000
+>> Cpus_allowed:
+>> 00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000001
+>> Mems_allowed:   00000000,00000001
+>>
+>> So the last part of cpus_allowed is 00000001 instead of 00ffffff.
+>>
+>> What exactly does that tell me? The man page was not particularly
+>> enlightning...
+>>
+>> How can I change that restriction?
+>>
+>> Thanks a lot for your help,
+>>
+>> Claudia
+>>
+>> PS: I have to leave soon for a seminar over the weekend, so I won't be able
+>> to try out things again before Monday.
+>>
+>>
+>>
+>>
+>>
+>>
+>>
+>>
+>>
+>>
+>>
+>>
+>>
+>>
+>>
+>>
+>>
+>>
+>>
+>>
+>>
+>>
+>>
+>>
+>>
+>>
+>>
+>>
+>>
+>>>
+>>> - Steve
+>>>
+>>>
+>>> On Wed, Nov 23, 2011 at 11:09 AM, Claudia Beleites
+>>> <claudia.beleites at ipht-jena.de>    wrote:
+>>>>
+>>>> Steve,
+>>>>
+>>>>> You don't say how you set GOTO_NUM_THREADS to 6.
+>>>>
+>>>> sorry, I forgot to tell you all:
+>>>>
+>>>> I used
+>>>> export GOTO_NUM_THREADS=6
+>>>> in the shell before starting R.
+>>>>
+>>>> and I did check by
+>>>>>
+>>>>>       clusterEvalQ(cl, system ("echo $GOTO_NUM_THREADS"))
+>>>>
+>>>> which gave me 6 for both workers.
+>>>>
+>>>> so does:
+>>>>>
+>>>>>    clusterEvalQ(cl, Sys.getenv('GOTO_NUM_THREADS'))
+>>>>
+>>>> [[1]]
+>>>> [1] "6"
+>>>>
+>>>> [[2]]
+>>>> [1] "6"
+>>>>
+>>>> I did not know the Sys.getenv/Sys.setenv functions, though.
+>>>>
+>>>> Thanks,
+>>>>
+>>>> Claudia
+>>>>
+>>>>> You
+>>>>> might want to verify that it did get set in each of the snow worker
+>>>>> processes by using the command:
+>>>>>
+>>>>>      clusterEvalQ(cl, Sys.getenv('GOTO_NUM_THREADS'))
+>>>>>
+>>>>> If it returns any empty strings in the resulting list, then the
+>>>>> environment variable is not set in the corresponding worker.
+>>>>>
+>>>>> You probably should set this variable through an appropriate
+>>>>> shell startup file, but you could at least temporarily use:
+>>>>>
+>>>>>      clusterEvalQ(cl, Sys.setenv(GOTO_NUM_THREADS=6))
+>>>>
+>>>>
+>>>>>
+>>>>> - Steve
+>>>>>
+>>>>>
+>>>>> On Wed, Nov 23, 2011 at 9:44 AM, Claudia Beleites
+>>>>> <claudia.beleites at ipht-jena.de>      wrote:
+>>>>>>
+>>>>>> Dear all,
+>>>>>>
+>>>>>> I'm just doing my first steps with parallelized calculations and got
+>>>>>> quite
+>>>>>> confused.
+>>>>>>
+>>>>>> Here's what I want, what I have and what I did:
+>>>>>>
+>>>>>> - I want to parallelize calculations on a Centos server with 2 x 6
+>>>>>> cores
+>>>>>> and
+>>>>>> 8 GB RAM (it is actually part of a cluster, but I have access only to
+>>>>>> this
+>>>>>> node, and the other nodes do not (yet) have R installed).
+>>>>>>
+>>>>>> - My Data is too large to work with in one piece.
+>>>>>> But it comes in separate files of suitable size: I can work nicely with
+>>>>>> 2
+>>>>>> to
+>>>>>> 3 samples in memory at the same time.
+>>>>>>
+>>>>>> - So my idea was to start up a snow socket cluster with 2 or 3 workers.
+>>>>>>
+>>>>>> - In addition I want to use an optimized and blas. Linear algebra is
+>>>>>> only
+>>>>>> a
+>>>>>> small part of the analysis so it does make sense to have the socket
+>>>>>> cluster
+>>>>>> with as many workers as possible and have the linear algebra parts use
+>>>>>> up
+>>>>>> to
+>>>>>> n / nworkers cores.
+>>>>>>
+>>>>>> So I built R 2.14.0 using gotoblas2 and set $GOTO_NUM_THREADS to 6.
+>>>>>> Matrix
+>>>>>> multiplication in a fresh R session now is much faster and CPU usage
+>>>>>> shows
+>>>>>> the expected 6 cores working:
+>>>>>>
+>>>>>>> system.time ({m<- matrix (1:9e6, 3e3); m%*%m; NULL})
+>>>>>>
+>>>>>>        User      System verstrichen
+>>>>>>       5.219       0.126       1.111
+>>>>>>
+>>>>>> However, the socket clusters seem not to use the GOTO_NUM_THREADS:
+>>>>>>>
+>>>>>>> library (snow)
+>>>>>>> cl<- makeCluster(2,type="SOCK")
+>>>>>>> tm<- snow.time(clusterEvalQ(cl, {m<- matrix (1:9e6, 3e3); m%*%m;
+>>>>>>> NULL}))
+>>>>>>> tm
+>>>>>>
+>>>>>> elapsed    send receive  node 1  node 2
+>>>>>>   9.553   0.001   0.010   9.510   9.543
+>>>>>>>
+>>>>>>> tm$data
+>>>>>>
+>>>>>> [[1]]
+>>>>>>      send_start send_end recv_start recv_end exec
+>>>>>> [1,]          0    0.001      9.511    9.512 9.51
+>>>>>>
+>>>>>> [[2]]
+>>>>>>      send_start send_end recv_start recv_end  exec
+>>>>>> [1,]      0.001    0.001      9.544    9.553 9.543
+>>>>>>
+>>>>>>> tm$elapsed
+>>>>>>
+>>>>>> elapsed
+>>>>>>   9.553
+>>>>>>>
+>>>>>>
+>>>>>> CPU usage shows 2 cores working, and the times correspond to that.
+>>>>>>
+>>>>>> What configuration do I need to do in order to make the blas use more
+>>>>>> threads for the worker processes? Anything else I should do
+>>>>>> differently?
+>>>>>>
+>>>>>>
+>>>>>>> sessionInfo ()
+>>>>>>
+>>>>>> R version 2.14.0 (2011-10-31)
+>>>>>> Platform: x86_64-unknown-linux-gnu (64-bit)
+>>>>>>
+>>>>>> locale:
+>>>>>>   [1] LC_CTYPE=de_DE.UTF-8       LC_NUMERIC=C
+>>>>>>   [3] LC_TIME=de_DE.UTF-8        LC_COLLATE=de_DE.UTF-8
+>>>>>>   [5] LC_MONETARY=de_DE.UTF-8    LC_MESSAGES=de_DE.UTF-8
+>>>>>>   [7] LC_PAPER=C                 LC_NAME=C
+>>>>>>   [9] LC_ADDRESS=C               LC_TELEPHONE=C
+>>>>>> [11] LC_MEASUREMENT=de_DE.UTF-8 LC_IDENTIFICATION=C
+>>>>>>
+>>>>>> attached base packages:
+>>>>>> [1] stats     graphics  grDevices utils     datasets  methods   base
+>>>>>>
+>>>>>> other attached packages:
+>>>>>> [1] snow_0.3-8
+>>>>>>
+>>>>>> Additional questions:
+>>>>>> - Is there some command like sessionInfo () that yields information
+>>>>>> about
+>>>>>> the blas (particularly NUM_THREADS)?
+>>>>>> - Is there some command that I can use to tell the blas how many
+>>>>>> threads
+>>>>>> to
+>>>>>> use during an R session? Can I set environment variables from within R?
+>>>>>> Searching didn't help as I got only info about R environments...) Would
+>>>>>> that
+>>>>>> actually help here?
+>>>>>>
+>>>>>> Thanks a lot for your help.
+>>>>>>
+>>>>>> Claudia
+>>>>>>
+>>>>>> --
+>>>>>> Claudia Beleites
+>>>>>> Spectroscopy/Imaging
+>>>>>> Institute of Photonic Technology
+>>>>>> Albert-Einstein-Str. 9
+>>>>>> 07745 Jena
+>>>>>> Germany
+>>>>>>
+>>>>>> email: claudia.beleites at ipht-jena.de
+>>>>>> phone: +49 3641 206-133
+>>>>>> fax:   +49 2641 206-399
+>>>>>>
+>>>>>> _______________________________________________
+>>>>>> R-sig-hpc mailing list
+>>>>>> R-sig-hpc at r-project.org
+>>>>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>>>>>
+>>>>
+>>>>
+>>>> --
+>>>> Claudia Beleites
+>>>> Spectroscopy/Imaging
+>>>> Institute of Photonic Technology
+>>>> Albert-Einstein-Str. 9
+>>>> 07745 Jena
+>>>> Germany
+>>>>
+>>>> email: claudia.beleites at ipht-jena.de
+>>>> phone: +49 3641 206-133
+>>>> fax:   +49 2641 206-399
+>>>>
+>>>>
+>>>>
+>>>>
+>>>>
+>>
+>>
+>> --
+>> Claudia Beleites
+>> Spectroscopy/Imaging
+>> Institute of Photonic Technology
+>> Albert-Einstein-Str. 9
+>> 07745 Jena
+>> Germany
+>>
+>> email: claudia.beleites at ipht-jena.de
+>> phone: +49 3641 206-133
+>> fax:   +49 2641 206-399
+>>
+>>
+>>
+>>
+>>
+
+
+-- 
+Claudia Beleites
+Spectroscopy/Imaging
+Institute of Photonic Technology
+Albert-Einstein-Str. 9
+07745 Jena
+Germany
+
+email: claudia.beleites at ipht-jena.de
+phone: +49 3641 206-133
+fax:   +49 2641 206-399
+
+
+From reuben at deltamotion.com  Mon Nov 28 21:36:50 2011
+From: reuben at deltamotion.com (Reuben Bellika)
+Date: Mon, 28 Nov 2011 20:36:50 +0000
+Subject: [R-sig-hpc] Problems with Exporting Functions with Foreach/DoSNOW
+Message-ID: <AF27C4812DD6D242A420A3796258800503332DF8@server8.delta.deltacompsys.com>
+
+Hello,
+
+I am currently using the "foreach" and "doSNOW" packages to run calculations on our cluster (using SNOW over sockets). Sometimes things get rather complex with multiple functions being called inside the foreach loop. There seems to be a limitation on how I can pass functions to the SNOW cluster workers. If one main function gets evaluated multiple times inside the foreach loop, and this function calls several helper functions, I get an error saying that these helper functions are undefined, even if they are included in the export option.
+
+Here's an example of what I'm talking about:
+
+
+library(foreach)
+library(snow)
+library(doSNOW)
+
+# Two helper functions
+helper1 <- function(i) { return(i + 1) }
+helper2 <- function(i) { return(i + 2) }
+
+# The main function called once each loop
+main.fun <- function(i)
+{
+    # Call two other functions
+    return(helper1(i) + helper2(i))
+}
+
+# Compute the values (odd numbers from 5 to 23) using a for loop
+compute.local <- function()
+{
+    values <- c()
+    for (i in 1:10)
+    {
+        values <- c(values, main.fun(i))
+    }
+    
+    return(values)
+}
+
+# Compute the values (odd numbers from 5 to 23) using a foreach loop
+compute.cluster <- function()
+{
+    values <- foreach(i = 1:10,
+                      .export = c("main.fun", "helper1", "helper2"),
+                      .combine = "c") %dopar%
+    {
+        main.fun(i)
+    }
+    
+    return(values)
+}
+
+# Start the cluster and register with doSNOW (node names are just examples)
+cl <- makeCluster(c("r-node-001", "r-node-002"), type = "SOCK")
+registerDoSNOW(cl)
+
+print(compute.local())
+print(compute.cluster())
+
+# Stop the cluster
+stopCluster(cl)
+
+
+When I run this example on our cluster, I get the expected output from the compute.local() function:
+[1]  5  7  9 11 13 15 17 19 21 23
+
+The compute.cluster() function, however, terminates with an error:
+Error in { : task 1 failed - "could not find function "helper1""
+
+Note that there was no problem with exporting main.fun, only helper1 and helper2.
+
+So, what I am wondering, is there something I don't understand about the initialization of the foreach loop, or is there a bug of some type with the doSNOW package? I've tried running this same example using doMC to evaluate the foreach loop instead of doSNOW, and it works perfectly, with no errors. I can work around the error by defining helper1 and helper2 inside the body of main.fun, but this gets awkward in real cases where the helper functions themselves are very complex and I want to reuse them in other places.
+
+The cluster master and worker nodes are running R 2.14.0 on Debian "Lenny" i386.
+
+Any ideas?
+
+Thank you,
+Reuben Bellika
+
+
+From stephen.b.weston at gmail.com  Mon Nov 28 22:59:22 2011
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Mon, 28 Nov 2011 16:59:22 -0500
+Subject: [R-sig-hpc] Problems with Exporting Functions with
+	Foreach/DoSNOW
+In-Reply-To: <AF27C4812DD6D242A420A3796258800503332DF8@server8.delta.deltacompsys.com>
+References: <AF27C4812DD6D242A420A3796258800503332DF8@server8.delta.deltacompsys.com>
+Message-ID: <CALh21iJy-tCeoSGcNT+dpJv-yY2iZFGMGxCmsnK6tXT36AL-yQ@mail.gmail.com>
+
+Hi Reuben,
+
+The problem is that main.fun expects to find helper1 and helper2
+in the global environment, but the foreach .export argument is
+exporting them to a temporary environment that is only used for
+the duration of that foreach operation.  Thus, foreach is able
+to find main.fun, but main.fun can't find helper1 or helper2
+since main.fun is only looking in the global environment and the
+currently loaded packages.
+
+You don't have this problem with doMC, since the workers are
+dynamically forked by the multicore package, so they actually
+have helper1 and helper2 defined in the global environment, just
+like your R session.  doSNOW tries to help by automatic and
+manual exporting tricks, but it's far from perfect, as your
+example aptly demonstrates.
+
+To avoid this problem, foreach would either have to export the
+functions to the global environment, or modify main.fun to
+include the temporary environment in its scope.  Both of those
+options seem to have problems.
+
+In general, I prefer to put these kinds of functions into a
+package.  Then you just need to use the foreach .packages
+argument to load that package on the workers.
+
+A simple alternative is to use the snow clusterExport function
+to export main.fun, helper1, and helper2 to the snow workers.
+Then they really will be defined in the global environment as
+main.fun expects.  That isn't portable between different
+parallel backends, of course.  That's why I think that putting
+them in a package is a better option.
+
+Here's a modified version of your example that uses the
+clusterExport function to fix the problem:
+
+
+library(foreach)
+library(snow)
+library(doSNOW)
+
+# Two helper functions
+helper1 <- function(i) { return(i + 1) }
+helper2 <- function(i) { return(i + 2) }
+
+# The main function called once each loop
+main.fun <- function(i)
+{
+   # Call two other functions
+   return(helper1(i) + helper2(i))
+}
+
+# Compute the values (odd numbers from 5 to 23) using a for loop
+compute.local <- function()
+{
+   values <- c()
+   for (i in 1:10)
+   {
+       values <- c(values, main.fun(i))
+   }
+
+   return(values)
+}
+
+# Compute the values (odd numbers from 5 to 23) using a foreach loop
+compute.cluster <- function()
+{
+   values <- foreach(i = 1:10,
+                     .combine = "c") %dopar%
+   {
+       main.fun(i)
+   }
+
+   return(values)
+}
+
+# Start the cluster and register with doSNOW (node names are just examples)
+cl <- makeCluster(2, type = "SOCK")
+clusterExport(cl, c("main.fun", "helper1", "helper2"))
+registerDoSNOW(cl)
+
+print(compute.local())
+print(compute.cluster())
+
+# Stop the cluster
+stopCluster(cl)
+
+
+And thanks for the excellent test program.
+
+- Steve
+
+
+On Mon, Nov 28, 2011 at 3:36 PM, Reuben Bellika <reuben at deltamotion.com> wrote:
+> Hello,
+>
+> I am currently using the "foreach" and "doSNOW" packages to run calculations on our cluster (using SNOW over sockets). Sometimes things get rather complex with multiple functions being called inside the foreach loop. There seems to be a limitation on how I can pass functions to the SNOW cluster workers. If one main function gets evaluated multiple times inside the foreach loop, and this function calls several helper functions, I get an error saying that these helper functions are undefined, even if they are included in the export option.
+>
+> Here's an example of what I'm talking about:
+>
+>
+> library(foreach)
+> library(snow)
+> library(doSNOW)
+>
+> # Two helper functions
+> helper1 <- function(i) { return(i + 1) }
+> helper2 <- function(i) { return(i + 2) }
+>
+> # The main function called once each loop
+> main.fun <- function(i)
+> {
+> ? ?# Call two other functions
+> ? ?return(helper1(i) + helper2(i))
+> }
+>
+> # Compute the values (odd numbers from 5 to 23) using a for loop
+> compute.local <- function()
+> {
+> ? ?values <- c()
+> ? ?for (i in 1:10)
+> ? ?{
+> ? ? ? ?values <- c(values, main.fun(i))
+> ? ?}
+>
+> ? ?return(values)
+> }
+>
+> # Compute the values (odd numbers from 5 to 23) using a foreach loop
+> compute.cluster <- function()
+> {
+> ? ?values <- foreach(i = 1:10,
+> ? ? ? ? ? ? ? ? ? ? ?.export = c("main.fun", "helper1", "helper2"),
+> ? ? ? ? ? ? ? ? ? ? ?.combine = "c") %dopar%
+> ? ?{
+> ? ? ? ?main.fun(i)
+> ? ?}
+>
+> ? ?return(values)
+> }
+>
+> # Start the cluster and register with doSNOW (node names are just examples)
+> cl <- makeCluster(c("r-node-001", "r-node-002"), type = "SOCK")
+> registerDoSNOW(cl)
+>
+> print(compute.local())
+> print(compute.cluster())
+>
+> # Stop the cluster
+> stopCluster(cl)
+>
+>
+> When I run this example on our cluster, I get the expected output from the compute.local() function:
+> [1] ?5 ?7 ?9 11 13 15 17 19 21 23
+>
+> The compute.cluster() function, however, terminates with an error:
+> Error in { : task 1 failed - "could not find function "helper1""
+>
+> Note that there was no problem with exporting main.fun, only helper1 and helper2.
+>
+> So, what I am wondering, is there something I don't understand about the initialization of the foreach loop, or is there a bug of some type with the doSNOW package? I've tried running this same example using doMC to evaluate the foreach loop instead of doSNOW, and it works perfectly, with no errors. I can work around the error by defining helper1 and helper2 inside the body of main.fun, but this gets awkward in real cases where the helper functions themselves are very complex and I want to reuse them in other places.
+>
+> The cluster master and worker nodes are running R 2.14.0 on Debian "Lenny" i386.
+>
+> Any ideas?
+>
+> Thank you,
+> Reuben Bellika
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+From reuben at deltamotion.com  Tue Nov 29 00:10:38 2011
+From: reuben at deltamotion.com (Reuben Bellika)
+Date: Mon, 28 Nov 2011 23:10:38 +0000
+Subject: [R-sig-hpc] Problems with Exporting Functions with
+ Foreach/DoSNOW
+In-Reply-To: <CALh21iJy-tCeoSGcNT+dpJv-yY2iZFGMGxCmsnK6tXT36AL-yQ@mail.gmail.com>
+References: <AF27C4812DD6D242A420A3796258800503332DF8@server8.delta.deltacompsys.com>
+	<CALh21iJy-tCeoSGcNT+dpJv-yY2iZFGMGxCmsnK6tXT36AL-yQ@mail.gmail.com>
+Message-ID: <AF27C4812DD6D242A420A3796258800503334E34@server8.delta.deltacompsys.com>
+
+Hi Steve,
+
+Thanks for your reply.
+
+That all makes sense. I have noticed that functions in packages get loaded just fine, and I'm intending to go that route at some point.
+
+I think I will look into clusterExport for the time being - it's simpler for development.
+
+Thank you,
+Reuben
+
+-----Original Message-----
+From: Stephen Weston [mailto:stephen.b.weston at gmail.com] 
+Sent: Monday, November 28, 2011 1:59 PM
+To: Reuben Bellika
+Cc: r-sig-hpc at r-project.org
+Subject: Re: [R-sig-hpc] Problems with Exporting Functions with Foreach/DoSNOW
+
+Hi Reuben,
+
+The problem is that main.fun expects to find helper1 and helper2 in the global environment, but the foreach .export argument is exporting them to a temporary environment that is only used for the duration of that foreach operation.  Thus, foreach is able to find main.fun, but main.fun can't find helper1 or helper2 since main.fun is only looking in the global environment and the currently loaded packages.
+
+You don't have this problem with doMC, since the workers are dynamically forked by the multicore package, so they actually have helper1 and helper2 defined in the global environment, just like your R session.  doSNOW tries to help by automatic and manual exporting tricks, but it's far from perfect, as your example aptly demonstrates.
+
+To avoid this problem, foreach would either have to export the functions to the global environment, or modify main.fun to include the temporary environment in its scope.  Both of those options seem to have problems.
+
+In general, I prefer to put these kinds of functions into a package.  Then you just need to use the foreach .packages argument to load that package on the workers.
+
+A simple alternative is to use the snow clusterExport function to export main.fun, helper1, and helper2 to the snow workers.
+Then they really will be defined in the global environment as main.fun expects.  That isn't portable between different parallel backends, of course.  That's why I think that putting them in a package is a better option.
+
+Here's a modified version of your example that uses the clusterExport function to fix the problem:
+
+
+library(foreach)
+library(snow)
+library(doSNOW)
+
+# Two helper functions
+helper1 <- function(i) { return(i + 1) }
+helper2 <- function(i) { return(i + 2) }
+
+# The main function called once each loop main.fun <- function(i) {
+   # Call two other functions
+   return(helper1(i) + helper2(i))
+}
+
+# Compute the values (odd numbers from 5 to 23) using a for loop compute.local <- function() {
+   values <- c()
+   for (i in 1:10)
+   {
+       values <- c(values, main.fun(i))
+   }
+
+   return(values)
+}
+
+# Compute the values (odd numbers from 5 to 23) using a foreach loop compute.cluster <- function() {
+   values <- foreach(i = 1:10,
+                     .combine = "c") %dopar%
+   {
+       main.fun(i)
+   }
+
+   return(values)
+}
+
+# Start the cluster and register with doSNOW (node names are just examples) cl <- makeCluster(2, type = "SOCK") clusterExport(cl, c("main.fun", "helper1", "helper2"))
+registerDoSNOW(cl)
+
+print(compute.local())
+print(compute.cluster())
+
+# Stop the cluster
+stopCluster(cl)
+
+
+And thanks for the excellent test program.
+
+- Steve
+
+
+On Mon, Nov 28, 2011 at 3:36 PM, Reuben Bellika <reuben at deltamotion.com> wrote:
+> Hello,
+>
+> I am currently using the "foreach" and "doSNOW" packages to run calculations on our cluster (using SNOW over sockets). Sometimes things get rather complex with multiple functions being called inside the foreach loop. There seems to be a limitation on how I can pass functions to the SNOW cluster workers. If one main function gets evaluated multiple times inside the foreach loop, and this function calls several helper functions, I get an error saying that these helper functions are undefined, even if they are included in the export option.
+>
+> Here's an example of what I'm talking about:
+>
+>
+> library(foreach)
+> library(snow)
+> library(doSNOW)
+>
+> # Two helper functions
+> helper1 <- function(i) { return(i + 1) }
+> helper2 <- function(i) { return(i + 2) }
+>
+> # The main function called once each loop main.fun <- function(i) {
+> ? ?# Call two other functions
+> ? ?return(helper1(i) + helper2(i))
+> }
+>
+> # Compute the values (odd numbers from 5 to 23) using a for loop 
+> compute.local <- function() {
+> ? ?values <- c()
+> ? ?for (i in 1:10)
+> ? ?{
+> ? ? ? ?values <- c(values, main.fun(i))
+> ? ?}
+>
+> ? ?return(values)
+> }
+>
+> # Compute the values (odd numbers from 5 to 23) using a foreach loop 
+> compute.cluster <- function() {
+> ? ?values <- foreach(i = 1:10,
+> ? ? ? ? ? ? ? ? ? ? ?.export = c("main.fun", "helper1", "helper2"),
+> ? ? ? ? ? ? ? ? ? ? ?.combine = "c") %dopar%
+> ? ?{
+> ? ? ? ?main.fun(i)
+> ? ?}
+>
+> ? ?return(values)
+> }
+>
+> # Start the cluster and register with doSNOW (node names are just 
+> examples) cl <- makeCluster(c("r-node-001", "r-node-002"), type = 
+> "SOCK")
+> registerDoSNOW(cl)
+>
+> print(compute.local())
+> print(compute.cluster())
+>
+> # Stop the cluster
+> stopCluster(cl)
+>
+>
+> When I run this example on our cluster, I get the expected output from the compute.local() function:
+> [1] ?5 ?7 ?9 11 13 15 17 19 21 23
+>
+> The compute.cluster() function, however, terminates with an error:
+> Error in { : task 1 failed - "could not find function "helper1""
+>
+> Note that there was no problem with exporting main.fun, only helper1 and helper2.
+>
+> So, what I am wondering, is there something I don't understand about the initialization of the foreach loop, or is there a bug of some type with the doSNOW package? I've tried running this same example using doMC to evaluate the foreach loop instead of doSNOW, and it works perfectly, with no errors. I can work around the error by defining helper1 and helper2 inside the body of main.fun, but this gets awkward in real cases where the helper functions themselves are very complex and I want to reuse them in other places.
+>
+> The cluster master and worker nodes are running R 2.14.0 on Debian "Lenny" i386.
+>
+> Any ideas?
+>
+> Thank you,
+> Reuben Bellika
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+

@@ -1,0 +1,121 @@
+{
+  "list": "r-sig-hpc",
+  "description": "",
+  "month": "2015-10",
+  "messages": [
+    {
+      "id": "msg-4564a2278df5",
+      "message_id": "<FF9DB805FC41CC4E95825A50F6806302B48FC97F@challenger.uhd.campus>",
+      "from_name": "Hodgess, Erin",
+      "from_email_hash": "9a43d72d3c5a93c98a7b509fb8aef328797f49fac98830a099e885b965325eac",
+      "date": "2015-10-03T15:41:38Z",
+      "subject": "[R-sig-hpc] Running Rmpi with a Fortran program",
+      "subject_clean": "Running Rmpi with a Fortran program",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Hello!\n\nI'm experimenting with using MPI with Fortran rather than C.  However, mpiexec does not appear to be working.\n\nHere are my various input files (note:  these are VERY simple-minded until I get things running)\nFortran:\n\n   subroutine hellosub(size)\n\n      include '/usr/local/bin/include/mpif.h'\n\n      integer rank,size,ierror,tag,status(MPI_STATUS_SIZE)\n\n\n      call MPI_INIT(ierror)\n\n      call MPI_COMM_SIZE(MPI_COMM_WORLD,size,ierror)\n\n      call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierror)\n\n      call MPI_FINALIZE(ierror)\n\n      end\n\n\nCompilation statement:\n\nmpif90 -shared -o hellosub.so hellosub.o\n\n\n(no errors)\n\n\nR code: (e4.in)\n\nsource(\"rmpi.test.R)\n\nlibrary(Rmpi)\n\ndyn.load(\"hellousub.so\")\n\nrmpi.test(1)\n\n\nrmpi.test.R\n\n\nrmpi.test <-function(size) {\n\ndyn.load(\"hellosub.so\")\n\nxplanet <- .Fortran(\"hellosub\",size=as.integer(1))$size\n\ncat(\"There are \", xplanet,\" planets in our universe\\n\")\n\n}\n\n\nFinal run:\n\n mpiexec -np 4 R CMD BATCH e4.in e4.in\n\n\n===================================================================================\n\n=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES\n\n=   PID 606 RUNNING AT Es-MacBook-Air.local\n\n=   EXIT CODE: 1\n\n=   CLEANING UP REMAINING PROCESSES\n\n=   YOU CAN IGNORE THE BELOW CLEANUP MESSAGES\n\n===================================================================================\n\n\nThis is run on a MacBook Air, with R Version 3.2.2.  The OS on the Mac is Yosemite, Version 10.10.5\n  The mpif90 compiler is version 5.1.0.\n\nIs it possible/plausible that R doesn't like the Fortran version of the MPI, please?\n\nThanks for any help!\n\nSincerely,\nErin\n\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "Hello!\n\nI'm experimenting with using MPI with Fortran rather than C.  However, mpiexec does not appear to be working.\n\nHere are my various input files (note:  these are VERY simple-minded until I get ",
+      "thread_id": "thread-4564a2278df5",
+      "thread_depth": 0,
+      "month": "2015-10"
+    },
+    {
+      "id": "msg-797bf9fae727",
+      "message_id": "<CAJqeyYZGC65wpVqd6pBRKvO_PLzSX9_UBVXVP2vpFYBDjGyHXg@mail.gmail.com>",
+      "from_name": "Ei-ji Nakama",
+      "from_email_hash": "287a261a23e709ca3530a6c601118b8b3e722caf557d2663cc59d766c87e025a",
+      "date": "2015-10-13T21:52:16+09:00",
+      "subject": "[R-sig-hpc] Running Rmpi with a Fortran program",
+      "subject_clean": "Running Rmpi with a Fortran program",
+      "in_reply_to": "<FF9DB805FC41CC4E95825A50F6806302B48FC97F@challenger.uhd.campus>",
+      "references": [
+        "<FF9DB805FC41CC4E95825A50F6806302B48FC97F@challenger.uhd.campus>"
+      ],
+      "body_plain": "hi,\n`library(Rmpi)' does MPI_Init inside.\nyour program, it is a MPI_Init call again in fortran subrutine.\nsince Rmpi has an array of the communicator of c inside, in the case\nof cooperation with external programs, you will need the exchange of\ncommunicator.\nplease omit call MPI_Init and MPI_Finalize.\n\nc.f.\n$ cat hellosub1.f\n      subroutine hellosub(comm,rank,size)\n      include 'mpif.h'\n      integer comm,rank,size,ierror,tag,status(MPI_STATUS_SIZE)\nC     call MPI_INIT(ierror)\n      call MPI_COMM_SIZE(comm,size,ierror)\n      call MPI_COMM_RANK(comm,rank,ierror)\nC     call MPI_FINALIZE(ierror)\n      end\n\n$ mpif77 -fPIC -shared -o hellosub1.so  hellosub1.f\n$ cat rmpi.test1.R\nrmpitest <-function(comm) {\n    dyn.load(\"hellosub1.so\")\n    xplanet <- .Fortran(\"hellosub\",comm=as.integer(comm),rank=as.integer(0),size=as.integer(0))\n    cat(\"There are \", xplanet$rank, xplanet$size,\" planets in our universe\\n\")\n    dyn.unload(\"hellosub1.so\")\n    xplanet$rank\n}\nlibrary(\"Rmpi\")\nrmpitest(mpi.comm.c2f(0)) # number 0 is MPI_COMM_WORLD in Rmpi\n\n$ mpiexec  -np 4 Rscript rmpi.test1.R\n\nIf other languages, it would be even more should you use MPI_Comm_f2c...\n\n\n\n2015-10-04 0:41 GMT+09:00 Hodgess, Erin <HodgessE at uhd.edu>:\n> Hello!\n>\n> I'm experimenting with using MPI with Fortran rather than C.  However, mpiexec does not appear to be working.\n>\n> Here are my various input files (note:  these are VERY simple-minded until I get things running)\n> Fortran:\n>\n>    subroutine hellosub(size)\n>\n>       include '/usr/local/bin/include/mpif.h'\n>\n>       integer rank,size,ierror,tag,status(MPI_STATUS_SIZE)\n>\n>\n>       call MPI_INIT(ierror)\n>\n>       call MPI_COMM_SIZE(MPI_COMM_WORLD,size,ierror)\n>\n>       call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierror)\n>\n>       call MPI_FINALIZE(ierror)\n>\n>       end\n>\n>\n> Compilation statement:\n>\n> mpif90 -shared -o hellosub.so hellosub.o\n>\n>\n> (no errors)\n>\n>\n> R code: (e4.in)\n>\n> source(\"rmpi.test.R)\n>\n> library(Rmpi)\n>\n> dyn.load(\"hellousub.so\")\n>\n> rmpi.test(1)\n>\n>\n> rmpi.test.R\n>\n>\n> rmpi.test <-function(size) {\n>\n> dyn.load(\"hellosub.so\")\n>\n> xplanet <- .Fortran(\"hellosub\",size=as.integer(1))$size\n>\n> cat(\"There are \", xplanet,\" planets in our universe\\n\")\n>\n> }\n>\n>\n> Final run:\n>\n>  mpiexec -np 4 R CMD BATCH e4.in e4.in\n>\n>\n> ===================================================================================\n>\n> =   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES\n>\n> =   PID 606 RUNNING AT Es-MacBook-Air.local\n>\n> =   EXIT CODE: 1\n>\n> =   CLEANING UP REMAINING PROCESSES\n>\n> =   YOU CAN IGNORE THE BELOW CLEANUP MESSAGES\n>\n> ===================================================================================\n>\n>\n> This is run on a MacBook Air, with R Version 3.2.2.  The OS on the Mac is Yosemite, Version 10.10.5\n>   The mpif90 compiler is version 5.1.0.\n>\n> Is it possible/plausible that R doesn't like the Fortran version of the MPI, please?\n>\n> Thanks for any help!\n>\n> Sincerely,\n> Erin\n>\n>\n>         [[alternative HTML version deleted]]\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n\n\n\n-- \nBest Regards,\n--\nEiji NAKAMA <nakama (a) ki.rim.or.jp>\n\"\\u4e2d\\u9593\\u6804\\u6cbb\"  <nakama (a) ki.rim.or.jp>",
+      "body_snippet": "hi,\n`library(Rmpi)' does MPI_Init inside.\nyour program, it is a MPI_Init call again in fortran subrutine.\nsince Rmpi has an array of the communicator of c inside, in the case\nof cooperation with exter",
+      "thread_id": "thread-4564a2278df5",
+      "thread_depth": 1,
+      "month": "2015-10"
+    },
+    {
+      "id": "msg-67defaa0195c",
+      "message_id": "<FF9DB805FC41CC4E95825A50F6806302B4902DDF@challenger.uhd.campus>",
+      "from_name": "Hodgess, Erin",
+      "from_email_hash": "9a43d72d3c5a93c98a7b509fb8aef328797f49fac98830a099e885b965325eac",
+      "date": "2015-10-13T13:12:40Z",
+      "subject": "[R-sig-hpc] Running Rmpi with a Fortran program",
+      "subject_clean": "Running Rmpi with a Fortran program",
+      "in_reply_to": "<CAJqeyYZGC65wpVqd6pBRKvO_PLzSX9_UBVXVP2vpFYBDjGyHXg@mail.gmail.com>",
+      "references": [
+        "<FF9DB805FC41CC4E95825A50F6806302B48FC97F@challenger.uhd.campus>",
+        "<CAJqeyYZGC65wpVqd6pBRKvO_PLzSX9_UBVXVP2vpFYBDjGyHXg@mail.gmail.com>"
+      ],
+      "body_plain": "This is great!  Thanks for the good info!\n\nI wondered about the finalize, but the INIT never occurred to me.\n\n\n________________________________________\nFrom: rim.nakama at gmail.com [rim.nakama at gmail.com] on behalf of Ei-ji Nakama [nakama at ki.rim.or.jp]\nSent: Tuesday, October 13, 2015 7:52 AM\nTo: Hodgess, Erin\nCc: r-sig-hpc at r-project.org\nSubject: Re: [R-sig-hpc] Running Rmpi with a Fortran program\n\nhi,\n`library(Rmpi)' does MPI_Init inside.\nyour program, it is a MPI_Init call again in fortran subrutine.\nsince Rmpi has an array of the communicator of c inside, in the case\nof cooperation with external programs, you will need the exchange of\ncommunicator.\nplease omit call MPI_Init and MPI_Finalize.\n\nc.f.\n$ cat hellosub1.f\n      subroutine hellosub(comm,rank,size)\n      include 'mpif.h'\n      integer comm,rank,size,ierror,tag,status(MPI_STATUS_SIZE)\nC     call MPI_INIT(ierror)\n      call MPI_COMM_SIZE(comm,size,ierror)\n      call MPI_COMM_RANK(comm,rank,ierror)\nC     call MPI_FINALIZE(ierror)\n      end\n\n$ mpif77 -fPIC -shared -o hellosub1.so  hellosub1.f\n$ cat rmpi.test1.R\nrmpitest <-function(comm) {\n    dyn.load(\"hellosub1.so\")\n    xplanet <- .Fortran(\"hellosub\",comm=as.integer(comm),rank=as.integer(0),size=as.integer(0))\n    cat(\"There are \", xplanet$rank, xplanet$size,\" planets in our universe\\n\")\n    dyn.unload(\"hellosub1.so\")\n    xplanet$rank\n}\nlibrary(\"Rmpi\")\nrmpitest(mpi.comm.c2f(0)) # number 0 is MPI_COMM_WORLD in Rmpi\n\n$ mpiexec  -np 4 Rscript rmpi.test1.R\n\nIf other languages, it would be even more should you use MPI_Comm_f2c...\n\n\n\n2015-10-04 0:41 GMT+09:00 Hodgess, Erin <HodgessE at uhd.edu>:\n> Hello!\n>\n> I'm experimenting with using MPI with Fortran rather than C.  However, mpiexec does not appear to be working.\n>\n> Here are my various input files (note:  these are VERY simple-minded until I get things running)\n> Fortran:\n>\n>    subroutine hellosub(size)\n>\n>       include '/usr/local/bin/include/mpif.h'\n>\n>       integer rank,size,ierror,tag,status(MPI_STATUS_SIZE)\n>\n>\n>       call MPI_INIT(ierror)\n>\n>       call MPI_COMM_SIZE(MPI_COMM_WORLD,size,ierror)\n>\n>       call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierror)\n>\n>       call MPI_FINALIZE(ierror)\n>\n>       end\n>\n>\n> Compilation statement:\n>\n> mpif90 -shared -o hellosub.so hellosub.o\n>\n>\n> (no errors)\n>\n>\n> R code: (e4.in)\n>\n> source(\"rmpi.test.R)\n>\n> library(Rmpi)\n>\n> dyn.load(\"hellousub.so\")\n>\n> rmpi.test(1)\n>\n>\n> rmpi.test.R\n>\n>\n> rmpi.test <-function(size) {\n>\n> dyn.load(\"hellosub.so\")\n>\n> xplanet <- .Fortran(\"hellosub\",size=as.integer(1))$size\n>\n> cat(\"There are \", xplanet,\" planets in our universe\\n\")\n>\n> }\n>\n>\n> Final run:\n>\n>  mpiexec -np 4 R CMD BATCH e4.in e4.in\n>\n>\n> ===================================================================================\n>\n> =   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES\n>\n> =   PID 606 RUNNING AT Es-MacBook-Air.local\n>\n> =   EXIT CODE: 1\n>\n> =   CLEANING UP REMAINING PROCESSES\n>\n> =   YOU CAN IGNORE THE BELOW CLEANUP MESSAGES\n>\n> ===================================================================================\n>\n>\n> This is run on a MacBook Air, with R Version 3.2.2.  The OS on the Mac is Yosemite, Version 10.10.5\n>   The mpif90 compiler is version 5.1.0.\n>\n> Is it possible/plausible that R doesn't like the Fortran version of the MPI, please?\n>\n> Thanks for any help!\n>\n> Sincerely,\n> Erin\n>\n>\n>         [[alternative HTML version deleted]]\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n\n\n\n--\nBest Regards,\n--\nEiji NAKAMA <nakama (a) ki.rim.or.jp>\n\"\\u4e2d\\u9593\\u6804\\u6cbb\"  <nakama (a) ki.rim.or.jp>",
+      "body_snippet": "This is great!  Thanks for the good info!\n\nI wondered about the finalize, but the INIT never occurred to me.\n\n\n________________________________________\nFrom: rim.nakama at gmail.com [rim.nakama at gma",
+      "thread_id": "thread-4564a2278df5",
+      "thread_depth": 2,
+      "month": "2015-10"
+    },
+    {
+      "id": "msg-6db5eed5d13c",
+      "message_id": "<CAJqeyYZc-a6+t7QdXrF2jwJLqch-VgmyhFkd952gscRVX5WF5w@mail.gmail.com>",
+      "from_name": "Ei-ji Nakama",
+      "from_email_hash": "287a261a23e709ca3530a6c601118b8b3e722caf557d2663cc59d766c87e025a",
+      "date": "2015-10-13T23:41:01+09:00",
+      "subject": "[R-sig-hpc] Running Rmpi with a Fortran program",
+      "subject_clean": "Running Rmpi with a Fortran program",
+      "in_reply_to": "<FF9DB805FC41CC4E95825A50F6806302B4902DDF@challenger.uhd.campus>",
+      "references": [
+        "<FF9DB805FC41CC4E95825A50F6806302B48FC97F@challenger.uhd.campus>",
+        "<CAJqeyYZGC65wpVqd6pBRKvO_PLzSX9_UBVXVP2vpFYBDjGyHXg@mail.gmail.com>",
+        "<FF9DB805FC41CC4E95825A50F6806302B4902DDF@challenger.uhd.campus>"
+      ],
+      "body_plain": "hi,\n\n2015-10-13 22:12 GMT+09:00 Hodgess, Erin <HodgessE at uhd.edu>:\n> This is great!  Thanks for the good info!\n>\n> I wondered about the finalize, but the INIT never occurred to me.\n\noops, mpi.finalize() is required at the end of the R.\n\ndocument http://www.hpl.hp.com/research/systems-research/R-workshop/Junji-talk2.pdf#26\nexamples http://prs.ism.ac.jp/~nakama/Rhpc/examples/HowToUseRhpc_worker_noback/\n\n-- \nBest Regards,\n--\nEiji NAKAMA <nakama (a) ki.rim.or.jp>\n\"\\u4e2d\\u9593\\u6804\\u6cbb\"  <nakama (a) ki.rim.or.jp>",
+      "body_snippet": "hi,\n\n2015-10-13 22:12 GMT+09:00 Hodgess, Erin <HodgessE at uhd.edu>:\n> This is great!  Thanks for the good info!\n>\n> I wondered about the finalize, but the INIT never occurred to me.\n\noops, mpi.finali",
+      "thread_id": "thread-4564a2278df5",
+      "thread_depth": 3,
+      "month": "2015-10"
+    },
+    {
+      "id": "msg-e32be85bdcd8",
+      "message_id": "<CAByykUA=8Rwb4MuaCLToXztAD0H8AHa4yVcEcTVxddDfUR00DQ@mail.gmail.com>",
+      "from_name": "陳慶全",
+      "from_email_hash": "6bb98600518b716b29c51d61e3f69147526d7b499f1f9b839740a2c4d4857cec",
+      "date": "2015-10-17T16:52:45+08:00",
+      "subject": "[R-sig-hpc] A question about merge",
+      "subject_clean": "A question about merge",
+      "in_reply_to": null,
+      "references": [],
+      "body_plain": "Hello!\n\nI am solving a problem about merging more than 2 data.frames. I know\nthat I can do this by\n\n` R\n\nReduce(function(x,y) merge(x,y), listOfDataFrames)\n\n`\n\nBut if my data.frames contains the variables shared the same name, it\nwould rename it with varibleName.x, varibleName.y.... Example:\n\n\n\n   1. df1 = data.frame(x=1:5, y=rnorm(5))\n   2. df2 = data.frame(x=1:5, y=rnorm(5))\n   3. merge(df1, df2, by = \"x\")\n\nit return a data.frame containing x, y.x, y.y.\n\nBut what I want is summing the variables shared the same name.\n\nex:\n\n\n   1. library(plyr)\n   2. library(dplyr)\n   3.   wide_table = rbind.fill(list(df1,df2)) %>% tbl_dt(FALSE)\n   4.   sum_without_na = function(vec) ifelse(all(is.na(vec)),\nNA_integer_, sum(vec, na.rm = TRUE))\n   5.   out = wide_table %>% group_by(y) %>%\nsummarise_each(funs(sum_without_na))\n\n\nAlthough it can be done with above scripts, I can't accept the speed\nwhen there are morecolumns in df1 and df2 or more data.frame.\n\nI want to know whether R base or packages have a faster function to do\nit and it can merge data.frames at once.\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "Hello!\n\nI am solving a problem about merging more than 2 data.frames. I know\nthat I can do this by\n\n` R\n\nReduce(function(x,y) merge(x,y), listOfDataFrames)\n\n`\n\nBut if my data.frames contains the varia",
+      "thread_id": "thread-e32be85bdcd8",
+      "thread_depth": 0,
+      "month": "2015-10"
+    }
+  ],
+  "threads": [
+    {
+      "id": "thread-4564a2278df5",
+      "subject": "Running Rmpi with a Fortran program",
+      "message_count": 4,
+      "participants": [
+        "Ei-ji Nakama",
+        "Hodgess, Erin"
+      ],
+      "started": "2015-10-03T15:41:38+00:00",
+      "last_reply": "2015-10-13T23:41:01+09:00",
+      "root_message_id": "msg-4564a2278df5"
+    },
+    {
+      "id": "thread-e32be85bdcd8",
+      "subject": "A question about merge",
+      "message_count": 1,
+      "participants": [
+        "陳慶全"
+      ],
+      "started": "2015-10-17T16:52:45+08:00",
+      "last_reply": "2015-10-17T16:52:45+08:00",
+      "root_message_id": "msg-e32be85bdcd8"
+    }
+  ]
+}

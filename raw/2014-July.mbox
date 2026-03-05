@@ -1,0 +1,97 @@
+From stephen.b.weston at gmail.com  Tue Jul  1 16:13:13 2014
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Tue, 1 Jul 2014 10:13:13 -0400
+Subject: [R-sig-hpc] Rmpi not spawning across nodes
+In-Reply-To: <CALXon6VjB9CB+Wsm5aSkd94XZc5V3SAwjLTYTGwsyWLgmTjxQQ@mail.gmail.com>
+References: <CALXon6VjB9CB+Wsm5aSkd94XZc5V3SAwjLTYTGwsyWLgmTjxQQ@mail.gmail.com>
+Message-ID: <CALh21iKx-fOkXVUqvoUwGYuQABdm2rwm05NEa8mNUqTMicX-4w@mail.gmail.com>
+
+We have a similar cluster to yours, and I am able to spawn workers on
+multiple nodes using the procedure that you describe (except that I
+don't use the qsub "-V" option). I'm using R 3.0.2, Rmpi 0.6.3, and
+Open MPI 1.6.5 on a RHEL 6.2 cluster, however, we didn't use the nopsm
+option when building Open MPI. (Note that I eventually installed Rmpi
+using the "--no-test-load" option to avoid the "error obtaining unique
+transport key" problem.)
+
+We configured Open MPI 1.6.5 using the options:
+
+  --enable-shared --enable-static --with-tm --with-openib --with-hwloc=internal
+
+Since you appear to be using a PBS-derived system, you might want to
+try using "--with-tm" (if you're not already) to see if that makes a
+difference. That option does relate to remote execution, so it seems
+worth trying.
+
+In any case, I'd be very interested to hear if and how you solve the problem.
+
+- Steve
+
+On Thu, Jun 26, 2014 at 10:30 AM, Russell Pierce
+<russell.s.pierce at gmail.com> wrote:
+> I am having difficulty getting Rmpi to spawn across nodes.  My system
+> administrator is knowledgable, but unfamilar with R.  Other jobs are
+> able to run across nodes on the cluster without difficulty.  The
+> system I am working on has multiple nodes running R 3.0.2 on
+> x86_64-redhat-linux-gnu (64-bit) with Rmpi_0.6-3  with a openmpi
+> version 1.6.5 complied with a nopsm option.  nopsm was set while
+> tracking down another error message on the basis of another post
+> elsewhere (http://www.open-mpi.org/community/lists/users/2011/10/17660.php)
+> and seemed to help get Rmpi to compile and run on the remote node.
+> Rmpi was specifically R CMD INSTALLed against this nopsm version of
+> openmpi.
+>
+> What I'd like to be able to do, as a proof of concept, is run R
+> interactively with access to the multiple nodes on the cluster.  Here
+> is my minimal example...
+>
+> >From the login node I can run:
+> qsub -I -V -l nodes=2:ppn=12
+>
+> I am transferred to one of the computation nodes, and I can tell that
+> I?ve been assigned two nodes to work on using the ?mynodes? command in
+> bash.  When I ?cat $PBS_NODEFILE I get a list of each node name
+> repeated 16 times.  Therefore, I am reasonably sure I was actually
+> assigned distinct nodes.
+>
+> I launch R with the bash command:
+> mpirun -np 1 -hostfile $PBS_NODEFILE R --interactive ?-vanilla
+>
+> I've also tried using the -n option rather than -np as I've seen in
+> some other sample scripts with similar results.
+>
+> Within R on one of the computation node I type the following commands:
+> library(Rmpi)
+> mpi.spawn.Rslaves()
+> mpi.remote.exec(paste(Sys.info()[c("nodename")],"checking in
+> as",mpi.comm.rank(),"of",mpi.comm.size()))
+>
+> ... the results of these commands indicate that all of the slaves
+> started on the same node.
+>
+> I saw the "Rmpi spawning across nodes" topic from March of 2012.
+> "Snow Not Distributing" from 2012 demonstrates a similar problem.  I
+> tried Ex60-HelloWorldSnow from that source, but all results indicate
+> that they were generated from the same node.
+>
+> Is what I am aiming to do possible?  If so, is there something I am
+> doing incorrectly or that I need to check/report to help diagnose the
+> problem?
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From jeff.n.marcus at gmail.com  Sun Jul 13 20:24:06 2014
+From: jeff.n.marcus at gmail.com (Jeff Marcus)
+Date: Sun, 13 Jul 2014 14:24:06 -0400
+Subject: [R-sig-hpc] How can I get line number where error is thrown using
+	doParallel?
+Message-ID: <CAHAP1TAxZSDCr8N3nLmCyfhjCeSawCz9Twuwn9rrfoi_ta521Q@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20140713/63ee4568/attachment.pl>
+

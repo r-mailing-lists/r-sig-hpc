@@ -1,0 +1,772 @@
+From |r@nk@weber @end|ng |rom tu-dortmund@de  Tue Feb  4 10:46:49 2020
+From: |r@nk@weber @end|ng |rom tu-dortmund@de (Frank Weber)
+Date: Tue, 4 Feb 2020 10:46:49 +0100
+Subject: [R-sig-hpc] doMPI: Issues for RNG and finalizing
+Message-ID: <2f7b9045215f32e694daba4b6a1aec82.squirrel@webmail.tu-dortmund.de>
+
+Hi everyone,
+
+I would like to start using the package doMPI, but I am having trouble
+setting a seed for random number generation (RNG) in doMPI. If I run the
+following code:
+
+### Start R code
+library(doMPI)
+
+cl_obj <- startMPIcluster(
+  defaultopts = list(seed = 27510L)
+)
+registerDoMPI(cl_obj)
+n_slaves <- clusterSize(cl_obj)
+
+unif_res <- foreach(
+  icount(n_slaves),
+  .combine = "c"
+) %dopar% {
+  runif(1)
+}
+print(unif_res)
+
+closeCluster(cl_obj)
+mpi.quit()
+### End R code
+
+then I get the following error message:
+
+### Start error message
+Error in nextRNGSubStream(chunkseed) : invalid value of 'seed'
+Calls: %dopar% ... <Anonymous> -> master -> submitTaskChunk ->
+nextRNGSubStream
+### End error message
+
+However, if I use
+
+### Start R code
+library(doMPI)
+
+cl_obj <- startMPIcluster()
+registerDoMPI(cl_obj)
+n_slaves <- clusterSize(cl_obj)
+
+unif_res <- foreach(
+  icount(n_slaves),
+  .combine = "c",
+  .options.mpi = list(seed = 27510L)
+) %dopar% {
+  runif(1)
+}
+print(unif_res)
+
+closeCluster(cl_obj)
+mpi.quit()
+### End R code
+
+then this error does not occur anymore and I get the desired random
+numbers as a result. Thus, my question is why the first approach does not
+work. From the documentation (?doMPI::`doMPI-package` and
+?doMPI::startMPIcluster), I thought that it should be working this way.
+Note that there is also the function setRngDoMPI(), but I understood the
+doMPI documentation in the way that:
+
+  - setRngDoMPI() does guarantee different RNG streams for the workers,
+but the results are not reproducible
+  - option "seed" (in argument "defaultopts" of startMPIcluster() as well
+as in argument ".options.mpi" of foreach()) guarantees different RNG
+streams for the workers and the results are reproducible.
+
+Since I want to have reproducible results, I chose option "seed" instead
+of setRngDoMPI(). But correct me if I did not understood the documentation
+correctly.
+
+Another issue I am having is when finalizing the MPI cluster: The code
+
+### Start R code
+closeCluster(cl_obj)
+mpi.quit()
+### End R code
+
+does not work for me as the R code after closeCluster(cl_obj) is not
+executed anymore. Thus, the MPI cluster continues to run until the
+time-out of the job. Using
+
+### Start R code
+mpi.exit()
+closeCluster(cl_obj)
+### End R code
+
+does not work neither as the following error is thrown:
+
+### Start error message
+Error: package ?Rmpi? is required by ?doMPI? so will not be detached
+### End error message
+
+Help for both issues (but primarily the first one) would be very appreciated.
+
+Thanks and best regards,
+Frank Weber
+
+
+From |r@nk@weber @end|ng |rom tu-dortmund@de  Thu Feb  6 10:59:38 2020
+From: |r@nk@weber @end|ng |rom tu-dortmund@de (Frank Weber)
+Date: Thu, 6 Feb 2020 10:59:38 +0100
+Subject: [R-sig-hpc] doParallel: RNG not reproducible
+References: In-Reply-To: 
+Message-ID: <803596293071c32601f98737393aa325.squirrel@webmail.tu-dortmund.de>
+
+Hi everyone,
+
+I am uncertain how to correctly set up the package "doParallel" for
+getting reproducible results in random number generation (RNG). If I run
+the following code repeatedly in a fresh R session, then at some point,
+the stopifnot() check produces an error (indicating the results have
+changed):
+
+### Start R code
+library(doParallel)
+
+n_slaves <- 8L
+cl_obj <- makeCluster(n_slaves)
+registerDoParallel(cl_obj)
+clusterSetRNGStream(cl_obj, iseed = 2373632L)
+
+rng_res <- foreach(
+  icount(as.integer(n_slaves + floor(n_slaves / 2))),
+  .combine = "cbind"
+) %dopar% {
+  c(runif(1), rnorm(1))
+}
+if(!file.exists("rng_res.rds")){
+  saveRDS(rng_res, file = "rng_res.rds")
+} else{
+  rng_res_old <- readRDS(file = "rng_res.rds")
+  stopifnot(identical(rng_res, rng_res_old))
+}
+### End R code
+
+When inspecting the results in detail (between two runs with differing
+results), it seems that the allocation of computational tasks (i.e. loop
+iterations) to cluster workers is swapped. For example, in one run, I get:
+
+### Start output
+      result.1   result.2  result.3   result.4   result.5  result.6  
+result.7  result.8  result.9 result.10  result.11
+[1,] 0.8720487  0.4791119 0.7671285  0.2306335  0.2470827 0.7042595 
+0.2103175 0.6149857 0.2153797 0.5944501  0.1431205
+[2,] 1.3970093 -2.1914685 0.2847861 -2.1083101 -1.0850567 0.1582748
+-1.2820137 0.2153303 0.9401810 0.5049244 -1.1084520
+       result.12
+[1,]  0.53079192
+[2,] -0.05597698
+### End output
+
+and in another run, I get:
+
+### Start output
+      result.1   result.2  result.3   result.4   result.5  result.6  
+result.7  result.8  result.9 result.10   result.11
+[1,] 0.8720487  0.4791119 0.7671285  0.2306335  0.2470827 0.7042595 
+0.2103175 0.6149857 0.2153797 0.5944501  0.53079192
+[2,] 1.3970093 -2.1914685 0.2847861 -2.1083101 -1.0850567 0.1582748
+-1.2820137 0.2153303 0.9401810 0.5049244 -0.05597698
+      result.12
+[1,]  0.1431205
+[2,] -1.1084520
+### End output
+
+As one can see, columns 11 and 12 are swapped. Thus, it seems to me that
+the allocation of computational tasks to cluster workers is not fixed. In
+the package "doMPI", the documentation states that this fixation is
+handled by argument "defaultopts$seed" in startMPIcluster(). Is there a
+similar function/argument/option in "doParallel"? According to the
+documentation of "doParallel", such a function/argument/option does not
+exist. But then, how do I get reproducible results in "doParallel"?
+
+My sessionInfo():
+
+### Start output
+R version 3.6.2 (2019-12-12)
+Platform: x86_64-w64-mingw32/x64 (64-bit)
+Running under: Windows 10 x64 (build 18363)
+
+Matrix products: default
+
+locale:
+[1] LC_COLLATE=German_Germany.1252  LC_CTYPE=German_Germany.1252   
+LC_MONETARY=German_Germany.1252
+[4] LC_NUMERIC=C                    LC_TIME=German_Germany.1252
+
+attached base packages:
+[1] parallel  stats     graphics  grDevices utils     datasets  methods  
+base
+
+other attached packages:
+[1] doParallel_1.0.15 iterators_1.0.12  foreach_1.4.7
+
+loaded via a namespace (and not attached):
+[1] compiler_3.6.2   tools_3.6.2      codetools_0.2-16
+### End output
+
+Note: I am using RStudio. Perhaps this might be important.
+
+Thanks in advance and best regards,
+Frank Weber
+
+
+From CBo|og@ @end|ng |rom @@|ud@unm@edu  Thu Feb  6 16:41:32 2020
+From: CBo|og@ @end|ng |rom @@|ud@unm@edu (Cristian Bologa)
+Date: Thu, 6 Feb 2020 15:41:32 +0000
+Subject: [R-sig-hpc] doParallel: RNG not reproducible
+In-Reply-To: <803596293071c32601f98737393aa325.squirrel@webmail.tu-dortmund.de>
+References: In-Reply-To:
+ <803596293071c32601f98737393aa325.squirrel@webmail.tu-dortmund.de>
+Message-ID: <162404c4d32d4f88af6f48d510a225a9@UH-XCHMBX10.hsc.ad.unm.edu>
+
+Hi Frank,
+
+Please have a look at the doRNG package.
+
+https://cran.r-project.org/web/packages/doRNG/vignettes/doRNG.pdf
+
+Regards,
+Cristian
+
+
+Cristian Bologa, Ph.D.
+Research Professor,
+Div. of Translational Informatics, 
+Dept. of Internal Medicine,
+Univ. of New Mexico, School of Medicine,
+Innovation Discovery&Training Center, MSC09 5025, 
+700 Camino de Salud NE, Albuquerque, NM 87131
+Phone: +1 (505) 925-7534
+Fax:+1 (505) 925-7625
+--------------------------
+"True (artificial) intelligence is not the ability to give an answer, but to ask the right question"
+
+
+
+-----Original Message-----
+From: R-sig-hpc [mailto:r-sig-hpc-bounces at r-project.org] On Behalf Of Frank Weber
+Sent: Thursday, February 06, 2020 3:00 AM
+To: r-sig-hpc at r-project.org
+Subject: [R-sig-hpc] doParallel: RNG not reproducible
+
+[[-- External - this message has been sent from outside the University --]]
+
+Hi everyone,
+
+I am uncertain how to correctly set up the package "doParallel" for getting reproducible results in random number generation (RNG). If I run the following code repeatedly in a fresh R session, then at some point, the stopifnot() check produces an error (indicating the results have
+changed):
+
+### Start R code
+library(doParallel)
+
+n_slaves <- 8L
+cl_obj <- makeCluster(n_slaves)
+registerDoParallel(cl_obj)
+clusterSetRNGStream(cl_obj, iseed = 2373632L)
+
+rng_res <- foreach(
+  icount(as.integer(n_slaves + floor(n_slaves / 2))),
+  .combine = "cbind"
+) %dopar% {
+  c(runif(1), rnorm(1))
+}
+if(!file.exists("rng_res.rds")){
+  saveRDS(rng_res, file = "rng_res.rds") } else{
+  rng_res_old <- readRDS(file = "rng_res.rds")
+  stopifnot(identical(rng_res, rng_res_old)) } ### End R code
+
+When inspecting the results in detail (between two runs with differing results), it seems that the allocation of computational tasks (i.e. loop
+iterations) to cluster workers is swapped. For example, in one run, I get:
+
+### Start output
+      result.1   result.2  result.3   result.4   result.5  result.6  
+result.7  result.8  result.9 result.10  result.11 [1,] 0.8720487  0.4791119 0.7671285  0.2306335  0.2470827 0.7042595
+0.2103175 0.6149857 0.2153797 0.5944501  0.1431205 [2,] 1.3970093 -2.1914685 0.2847861 -2.1083101 -1.0850567 0.1582748
+-1.2820137 0.2153303 0.9401810 0.5049244 -1.1084520
+       result.12
+[1,]  0.53079192
+[2,] -0.05597698
+### End output
+
+and in another run, I get:
+
+### Start output
+      result.1   result.2  result.3   result.4   result.5  result.6  
+result.7  result.8  result.9 result.10   result.11
+[1,] 0.8720487  0.4791119 0.7671285  0.2306335  0.2470827 0.7042595
+0.2103175 0.6149857 0.2153797 0.5944501  0.53079192 [2,] 1.3970093 -2.1914685 0.2847861 -2.1083101 -1.0850567 0.1582748
+-1.2820137 0.2153303 0.9401810 0.5049244 -0.05597698
+      result.12
+[1,]  0.1431205
+[2,] -1.1084520
+### End output
+
+As one can see, columns 11 and 12 are swapped. Thus, it seems to me that the allocation of computational tasks to cluster workers is not fixed. In the package "doMPI", the documentation states that this fixation is handled by argument "defaultopts$seed" in startMPIcluster(). Is there a similar function/argument/option in "doParallel"? According to the documentation of "doParallel", such a function/argument/option does not exist. But then, how do I get reproducible results in "doParallel"?
+
+My sessionInfo():
+
+### Start output
+R version 3.6.2 (2019-12-12)
+Platform: x86_64-w64-mingw32/x64 (64-bit) Running under: Windows 10 x64 (build 18363)
+
+Matrix products: default
+
+locale:
+[1] LC_COLLATE=German_Germany.1252  LC_CTYPE=German_Germany.1252   
+LC_MONETARY=German_Germany.1252
+[4] LC_NUMERIC=C                    LC_TIME=German_Germany.1252
+
+attached base packages:
+[1] parallel  stats     graphics  grDevices utils     datasets  methods  
+base
+
+other attached packages:
+[1] doParallel_1.0.15 iterators_1.0.12  foreach_1.4.7
+
+loaded via a namespace (and not attached):
+[1] compiler_3.6.2   tools_3.6.2      codetools_0.2-16
+### End output
+
+Note: I am using RStudio. Perhaps this might be important.
+
+Thanks in advance and best regards,
+Frank Weber
+
+_______________________________________________
+R-sig-hpc mailing list
+R-sig-hpc at r-project.org
+https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From |r@nk@weber @end|ng |rom tu-dortmund@de  Fri Feb  7 07:43:19 2020
+From: |r@nk@weber @end|ng |rom tu-dortmund@de (Frank Weber)
+Date: Fri, 7 Feb 2020 07:43:19 +0100
+Subject: [R-sig-hpc] doParallel: RNG not reproducible
+In-Reply-To: <162404c4d32d4f88af6f48d510a225a9@UH-XCHMBX10.hsc.ad.unm.edu>
+References: In-Reply-To:
+ <803596293071c32601f98737393aa325.squirrel@webmail.tu-dortmund.de>
+ <162404c4d32d4f88af6f48d510a225a9@UH-XCHMBX10.hsc.ad.unm.edu>
+Message-ID: <9c630c33c87a62c6c147014bc56dd6fb.squirrel@webmail.tu-dortmund.de>
+
+Hi Christian,
+
+thanks a lot for your reply. I was aware of the "doRNG" package but due to
+the fact that it supports nested foreach() loops only using a workaround,
+I preferred to stick to the original "doParallel" package. Besides, I
+posted this issue since I thought it might be worth a bug fix (or a new
+feature) in "doParallel". As the non-reproducibility is only subtle
+(occuring only sometimes when workers seem to be assigned different
+tasks), I thought it might not have come to the package authors' attention
+yet. (In the doRNG package's vignette, the function set.seed() is used
+when demonstrating that results aren't reproducible, so I thought it might
+be worth showing that the non-reproducibility also occurs with
+clusterSetRNGStream().)
+
+Nevertheless, if this is a known issue and a bug fix (or a new feature)
+for "doParallel" is not planned, I might have to use the workaround for
+nested loops shown in the vignette of "doRNG".
+
+Thanks again and best regards,
+Frank Weber
+
+> Hi Frank,
+>
+> Please have a look at the doRNG package.
+>
+> https://cran.r-project.org/web/packages/doRNG/vignettes/doRNG.pdf
+>
+> Regards,
+> Cristian
+>
+>
+> Cristian Bologa, Ph.D.
+> Research Professor,
+> Div. of Translational Informatics,
+> Dept. of Internal Medicine,
+> Univ. of New Mexico, School of Medicine,
+> Innovation Discovery&Training Center, MSC09 5025,
+> 700 Camino de Salud NE, Albuquerque, NM 87131
+> Phone: +1 (505) 925-7534
+> Fax:+1 (505) 925-7625
+> --------------------------
+> "True (artificial) intelligence is not the ability to give an answer, but
+> to ask the right question"
+>
+>
+>
+> -----Original Message-----
+> From: R-sig-hpc [mailto:r-sig-hpc-bounces at r-project.org] On Behalf Of
+> Frank Weber
+> Sent: Thursday, February 06, 2020 3:00 AM
+> To: r-sig-hpc at r-project.org
+> Subject: [R-sig-hpc] doParallel: RNG not reproducible
+>
+> [[-- External - this message has been sent from outside the University
+> --]]
+>
+> Hi everyone,
+>
+> I am uncertain how to correctly set up the package "doParallel" for
+> getting reproducible results in random number generation (RNG). If I run
+> the following code repeatedly in a fresh R session, then at some point,
+> the stopifnot() check produces an error (indicating the results have
+> changed):
+>
+> ### Start R code
+> library(doParallel)
+>
+> n_slaves <- 8L
+> cl_obj <- makeCluster(n_slaves)
+> registerDoParallel(cl_obj)
+> clusterSetRNGStream(cl_obj, iseed = 2373632L)
+>
+> rng_res <- foreach(
+>   icount(as.integer(n_slaves + floor(n_slaves / 2))),
+>   .combine = "cbind"
+> ) %dopar% {
+>   c(runif(1), rnorm(1))
+> }
+> if(!file.exists("rng_res.rds")){
+>   saveRDS(rng_res, file = "rng_res.rds") } else{
+>   rng_res_old <- readRDS(file = "rng_res.rds")
+>   stopifnot(identical(rng_res, rng_res_old)) } ### End R code
+>
+> When inspecting the results in detail (between two runs with differing
+> results), it seems that the allocation of computational tasks (i.e. loop
+> iterations) to cluster workers is swapped. For example, in one run, I get:
+>
+> ### Start output
+>       result.1   result.2  result.3   result.4   result.5  result.6
+> result.7  result.8  result.9 result.10  result.11 [1,] 0.8720487
+> 0.4791119 0.7671285  0.2306335  0.2470827 0.7042595
+> 0.2103175 0.6149857 0.2153797 0.5944501  0.1431205 [2,] 1.3970093
+> -2.1914685 0.2847861 -2.1083101 -1.0850567 0.1582748
+> -1.2820137 0.2153303 0.9401810 0.5049244 -1.1084520
+>        result.12
+> [1,]  0.53079192
+> [2,] -0.05597698
+> ### End output
+>
+> and in another run, I get:
+>
+> ### Start output
+>       result.1   result.2  result.3   result.4   result.5  result.6
+> result.7  result.8  result.9 result.10   result.11
+> [1,] 0.8720487  0.4791119 0.7671285  0.2306335  0.2470827 0.7042595
+> 0.2103175 0.6149857 0.2153797 0.5944501  0.53079192 [2,] 1.3970093
+> -2.1914685 0.2847861 -2.1083101 -1.0850567 0.1582748
+> -1.2820137 0.2153303 0.9401810 0.5049244 -0.05597698
+>       result.12
+> [1,]  0.1431205
+> [2,] -1.1084520
+> ### End output
+>
+> As one can see, columns 11 and 12 are swapped. Thus, it seems to me that
+> the allocation of computational tasks to cluster workers is not fixed. In
+> the package "doMPI", the documentation states that this fixation is
+> handled by argument "defaultopts$seed" in startMPIcluster(). Is there a
+> similar function/argument/option in "doParallel"? According to the
+> documentation of "doParallel", such a function/argument/option does not
+> exist. But then, how do I get reproducible results in "doParallel"?
+>
+> My sessionInfo():
+>
+> ### Start output
+> R version 3.6.2 (2019-12-12)
+> Platform: x86_64-w64-mingw32/x64 (64-bit) Running under: Windows 10 x64
+> (build 18363)
+>
+> Matrix products: default
+>
+> locale:
+> [1] LC_COLLATE=German_Germany.1252  LC_CTYPE=German_Germany.1252
+> LC_MONETARY=German_Germany.1252
+> [4] LC_NUMERIC=C                    LC_TIME=German_Germany.1252
+>
+> attached base packages:
+> [1] parallel  stats     graphics  grDevices utils     datasets  methods
+> base
+>
+> other attached packages:
+> [1] doParallel_1.0.15 iterators_1.0.12  foreach_1.4.7
+>
+> loaded via a namespace (and not attached):
+> [1] compiler_3.6.2   tools_3.6.2      codetools_0.2-16
+> ### End output
+>
+> Note: I am using RStudio. Perhaps this might be important.
+>
+> Thanks in advance and best regards,
+> Frank Weber
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+>
+
+
+From cg| @end|ng |rom |@ep@|pp@pt  Tue Feb 11 00:32:27 2020
+From: cg| @end|ng |rom |@ep@|pp@pt (Carlos Ferreira)
+Date: Mon, 10 Feb 2020 23:32:27 +0000
+Subject: [R-sig-hpc] CFP: SBAC - PAD 2020 - IEEE International Symposium on
+ Computer Architecture and High Performance Computing
+Message-ID: <032d815c-f26f-f8b3-43e7-11c3665be36e@isep.ipp.pt>
+
+
+  SBAC-PAD 2020
+
+Department of Computer Science, School of Sciences, University of Porto
+
+Porto, Portugal
+
+https://sbac2020.dcc.fc.up.pt <https://sbac2020.dcc.fc.up.pt/>
+
+sbac2020 at dcc.fc.up.pt <mailto:sbac2020 at dcc.fc.up.pt>
+
+
+  Call for Papers
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+SBAC-PAD is an international symposium, started in 1987, which has continuously presented an overview of new developments, applications, and trends in parallel and distributed computing technologies. SBAC-PAD is open for faculty members, researchers, specialists and graduate students around the world.
+
+In this edition, the symposium will be held at the University of Porto, Porto, Portugal. The city of Porto is famous for its Port wine and beautiful scenery, architecture and cultural events.
+
+Authors are invited to submit manuscripts on a wide range of high-performance and distributed computing areas. Topics of interest include (but are not limited to):
+
+  *
+
+    Application-specific systems
+
+  *
+
+    Architecture and programming support for emerging domains (Big Data, Deep Learning, Machine learning, Cognitive Systems)
+
+  *
+
+    Benchmarking, performance measurements, and analysis
+
+  *
+
+    Cloud, cluster, and edge/fog computing systems
+
+  *
+
+    Embedded and pervasive systems
+
+  *
+
+    GPUs, FPGAs and accelerator architectures
+
+  *
+
+    Languages, compilers, and tools for parallel and distributed programming
+
+  *
+
+    Modeling and simulation methodology
+
+  *
+
+    Operating systems and virtualization
+
+  *
+
+    Parallel and distributed systems, algorithms, and applications
+
+  *
+
+    Power and energy-efficient systems
+
+  *
+
+    Processor, cache, memory, storage, and network architecture
+
+  *
+
+    Real-world applications and case studies
+
+  *
+
+    Reconfigurable, resilient and fault-tolerant systems
+
+
+    Paper Submission
+
+Submissions must be in English, 8 pages maximum, following the IEEE conference formatting guidelines. To be published in the conference proceedings and to be eligible for publication at the IEEE Xplore, at least one of the authors must register at the full rate and present her/his work.
+
+Authors may not use a single registration for multiple papers. Authors of accepted papers will be invited to submit extended versions of their papers for publication on the Journal of Parallel and Distributed Computing. The call will be open and will follow the normal journal submission procedure.
+
+
+    Important Dates
+
+Abstract deadline:
+
+
+
+*May 15th, 2020*
+
+Paper deadline:
+
+
+
+*May 22nd, 2020*
+
+Reviewing period:
+
+
+
+*May 24-Jun 21, 2020*
+
+Author notification:
+
+
+
+*June 26th, 2020*
+
+Camera-ready submission:
+
+
+
+*July 3rd, 2020*
+
+
+    Organizing Committee
+
+
+      General Chairs
+
+  *
+
+    In?sDutra.ines at dcc.fc.up.pt <mailto:ines at dcc.fc.up.pt>(University of Porto, Portugal)
+
+  *
+
+    Jorge Barbosa,jbarbosa at fe.up.pt <mailto:jbarbosa at fe.up.pt>(University of Porto, Portugal)
+
+  *
+
+    Miguel Areias,miguel-areias at dcc.fc.up.pt <mailto:miguel-areias at dcc.fc.up.pt>(University of Porto, Portugal)
+
+
+      Program Co-chairs
+
+  *
+
+    Jorge Barbosa (University of Porto, Portugal)
+
+  *
+
+    Laurent Lef?vre (Inria, ENS Lyon, University of Lyon, France)
+
+  *
+
+    Lucia Drummond (Universidade Federal Fluminense, Brazil)
+
+
+      Track Chairs
+
+  *
+
+    /*Computer Architecture*///
+
+      o
+
+        *Chair*: Jos? Moreira (IBM Thomas J. Watson Research Center, USA)
+
+  *
+
+    *Networking and Distributed Systems*
+
+      o
+
+        *Chair*: Jes?s Carretero (University Carlos III of Madrid, Spain)
+
+  *
+
+    *Parallel Applications and Algorithms*
+
+      o
+
+        *Chair*: Alba Melo (Universidade de Bras?lia, Brazil)
+
+  *
+
+    *Performance Evaluation*
+
+      o
+
+        *Chair*: Ariel Oleksiak (Pozna? Supercomputing and Networking Cente, Poland)
+
+  *
+
+    *System Software*
+
+      o
+
+        *Chair*: Jidong Zhai (Tsinghua University, China)
+
+
+      Publicity Chairs
+
+  *
+
+    Carlos Ferreira, Instituto Superior de Engenharia, Portugal
+
+  *
+
+    Miguel Areias, University of Porto, Portugal
+
+  *
+
+    Feng Zhang, Renmin University of China
+
+
+      Workshop Chairs
+
+  *
+
+    Miguel Areias, University of Porto, Portugal
+
+  *
+
+    Iv?n Carrera, Escuela Polit?cnica Nacional, Quito, Equador and University of Porto, Portugal
+
+
+      Publications Chairs
+
+  *
+
+    IEEE - Proceedings
+
+      o
+
+        Rui Camacho, University of Porto, Portugal
+
+      o
+
+        Iv?n Carrera, Escuela Polit?cnica Nacional, Quito, Equador and University of Porto, Portugal
+
+  *
+
+    JPDC - Special Issue
+
+      o
+
+        Jorge Barbosa, University of Porto, Portugal
+
+
+Carlos Ferreira
+
+
+ISEP | Instituto Superior de Engenharia do Porto
+Rua Dr. Ant?nio Bernardino de Almeida, 431
+4249-015 Porto - PORTUGAL
+tel. +351 228 340 500 | fax +351 228 321 159
+mail at isep.ipp.pt | www.isep.ipp.pt
+
+

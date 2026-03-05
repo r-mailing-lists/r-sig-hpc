@@ -1,0 +1,1740 @@
+From richcalaway at revolutionanalytics.com  Fri Feb  1 22:20:37 2013
+From: richcalaway at revolutionanalytics.com (Rich Calaway)
+Date: Fri, 1 Feb 2013 13:20:37 -0800
+Subject: [R-sig-hpc] cluster works with parallel but not foreach
+In-Reply-To: <1686380042.28463387.1358841295954.JavaMail.root@inria.fr>
+References: <CA+_ZbMaRpB=M1BOrwmwMZsd8sZc4TD_FnYDAD=6csGmszRftUg@mail.gmail.com>
+	<1686380042.28463387.1358841295954.JavaMail.root@inria.fr>
+Message-ID: <CA+_ZbMaijv3y6s90J8qVuDjM0+=Ytr6fN0yLgrMovpzpJ3wpiA@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130201/4df4e472/attachment.pl>
+
+From debmidya at yahoo.com  Sat Feb  2 06:36:14 2013
+From: debmidya at yahoo.com (Deb Midya)
+Date: Fri, 1 Feb 2013 21:36:14 -0800 (PST)
+Subject: [R-sig-hpc] Hi
+Message-ID: <1359783374.87567.YahooMailNeo@web141405.mail.bf1.yahoo.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130201/e970c752/attachment.pl>
+
+From jgrn at illinois.edu  Sat Feb  2 18:19:34 2013
+From: jgrn at illinois.edu (Jonathan Greenberg)
+Date: Sat, 2 Feb 2013 11:19:34 -0600
+Subject: [R-sig-hpc] foreach error checking (when a cluster stops)
+Message-ID: <CABG0rft-EimTyXTbkKQn8Xm=DMVQjzwZ=-Hd_X8t+KV1khwUxQ@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130202/08409b17/attachment.pl>
+
+From stephen.b.weston at gmail.com  Sat Feb  2 21:02:00 2013
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Sat, 2 Feb 2013 15:02:00 -0500
+Subject: [R-sig-hpc] foreach error checking (when a cluster stops)
+In-Reply-To: <CABG0rft-EimTyXTbkKQn8Xm=DMVQjzwZ=-Hd_X8t+KV1khwUxQ@mail.gmail.com>
+References: <CABG0rft-EimTyXTbkKQn8Xm=DMVQjzwZ=-Hd_X8t+KV1khwUxQ@mail.gmail.com>
+Message-ID: <CALh21iKs1cRvmqgxWE1ssAec=MZEvkAfHXnpbvPKxCDJtkjieA@mail.gmail.com>
+
+Hi Jonathan,
+
+Sorry, there's is nothing like that in foreach.  The functions that
+are used to provide information about the parallel backend include:
+
+  getDoParWorkers()
+  getDoParName()
+  getDoParVersion()
+  getDoParRegistered()
+
+but no "health check" functions.  It's a good idea, though.  I believe
+they include that sort of thing in database frameworks.
+
+By the way, I had no idea that you could use the doSNOW package
+with snowfall, although I guess it makes sense since they give you
+access to the cluster object.  But I've only ever tested doSNOW with
+snow.
+
+- Steve
+
+
+On Sat, Feb 2, 2013 at 12:19 PM, Jonathan Greenberg <jgrn at illinois.edu> wrote:
+> R-sig-hpc'ers:
+>
+> I've been modding some code lately to take advantage of the foreach
+> generalization (so I don't have to write multiple statements depending on
+> the parallel backend that I have running), but I'm trying to figure out how
+> to check for a registered, but no longer running, parallel backend, e.g.:
+>
+> require("foreach")
+> require("snowfall")
+> require("doSNOW")
+> # Start a snowfall cluster and register it with foreach
+> sfInit(cpu=2,parallel=TRUE)
+> cl <- sfGetCluster()
+> registerDoSNOW(cl)
+>
+> # Some foreach statement:
+> d <- data.frame(x=1:10, y=rnorm(10))
+> s <- foreach(d=iter(d, by='row'), .combine=rbind) %dopar% d
+>
+> # Works fine.  Now stop the cluster:
+> sfStop()
+> s <- foreach(d=iter(d, by='row'), .combine=rbind) %dopar% d
+> # Doesn't work, because the snow cluster is gone.
+>
+> # I can manually set this, but is there some test I can do
+> # to test for whether the cluster is working and, if not:
+> registerDoSEQ()
+> s <- foreach(d=iter(d, by='row'), .combine=rbind) %dopar% d
+>
+> # e.g.
+> if(checkForWorkingBackend == FALSE)
+> {
+> registerDoSEQ()
+> }
+>
+>
+>
+> --
+> Jonathan A. Greenberg, PhD
+> Assistant Professor
+> Global Environmental Analysis and Remote Sensing (GEARS) Laboratory
+> Department of Geography and Geographic Information Science
+> University of Illinois at Urbana-Champaign
+> 607 South Mathews Avenue, MC 150
+> Urbana, IL 61801
+> Phone: 217-300-1924
+> http://www.geog.illinois.edu/~jgrn/
+> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+>
+>         [[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From richcalaway at revolutionanalytics.com  Sun Feb  3 02:55:58 2013
+From: richcalaway at revolutionanalytics.com (Rich Calaway)
+Date: Sat, 2 Feb 2013 17:55:58 -0800
+Subject: [R-sig-hpc] foreach error checking (when a cluster stops)
+In-Reply-To: <CALh21iKs1cRvmqgxWE1ssAec=MZEvkAfHXnpbvPKxCDJtkjieA@mail.gmail.com>
+References: <CABG0rft-EimTyXTbkKQn8Xm=DMVQjzwZ=-Hd_X8t+KV1khwUxQ@mail.gmail.com>
+	<CALh21iKs1cRvmqgxWE1ssAec=MZEvkAfHXnpbvPKxCDJtkjieA@mail.gmail.com>
+Message-ID: <CA+_ZbMb8BFWWY=wTwF_uxm9mmLxPVBLf44K=tyiEtKaH9dS27w@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130202/6fef5613/attachment.pl>
+
+From toby.hocking at inria.fr  Mon Feb  4 01:16:08 2013
+From: toby.hocking at inria.fr (Toby Hocking)
+Date: Mon, 4 Feb 2013 01:16:08 +0100 (CET)
+Subject: [R-sig-hpc] cluster works with parallel but not foreach
+In-Reply-To: <CA+_ZbMaijv3y6s90J8qVuDjM0+=Ytr6fN0yLgrMovpzpJ3wpiA@mail.gmail.com>
+Message-ID: <619021199.1744956.1359936968835.JavaMail.root@inria.fr>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130204/d404f30e/attachment.pl>
+
+From jgrn at illinois.edu  Mon Feb  4 19:04:56 2013
+From: jgrn at illinois.edu (Jonathan Greenberg)
+Date: Mon, 4 Feb 2013 12:04:56 -0600
+Subject: [R-sig-hpc] foreach error checking (when a cluster stops)
+In-Reply-To: <CA+_ZbMb8BFWWY=wTwF_uxm9mmLxPVBLf44K=tyiEtKaH9dS27w@mail.gmail.com>
+References: <CABG0rft-EimTyXTbkKQn8Xm=DMVQjzwZ=-Hd_X8t+KV1khwUxQ@mail.gmail.com>
+	<CALh21iKs1cRvmqgxWE1ssAec=MZEvkAfHXnpbvPKxCDJtkjieA@mail.gmail.com>
+	<CA+_ZbMb8BFWWY=wTwF_uxm9mmLxPVBLf44K=tyiEtKaH9dS27w@mail.gmail.com>
+Message-ID: <CABG0rftD02C20-Ws9U+wsqpTqQ9twEKEhoA_QRRk0X5q0RkHYA@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130204/d0d72d7a/attachment.pl>
+
+From jgrn at illinois.edu  Thu Feb  7 21:49:26 2013
+From: jgrn at illinois.edu (Jonathan Greenberg)
+Date: Thu, 7 Feb 2013 14:49:26 -0600
+Subject: [R-sig-hpc] snowfall?
+Message-ID: <CABG0rfuAOwFjgHA=Wh6qNFsBPeY0Q-wWk0qAQ7xS2LF=eGk6nQ@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130207/53a16331/attachment.pl>
+
+From lisasolomon at alum.mit.edu  Thu Feb  7 22:05:38 2013
+From: lisasolomon at alum.mit.edu (Lisa Solomon)
+Date: Thu, 7 Feb 2013 16:05:38 -0500
+Subject: [R-sig-hpc] New Webinar Series: The Evolution of Regression From
+ Classical Linear Regression to Modern Ensembles
+Message-ID: <196214187.838.1360271138076.JavaMail.help@alum.mit.edu>
+
+The Evolution of Regression: An Upcoming Webinar Series
+(Hands-on Component)
+
+Registration: 
+http://bit.ly/salford-systems-regression-webinar-series
+
+Regression is one of the most popular modeling methods, but the classical approach has significant problems. This webinar series addresses these problems. Are you working with larger datasets? Is your data challenging? Does your data include missing values, nonlinear relationships, local patterns and interactions? This webinar series is for you! We will cover improvements to conventional and logistic regression, and will include a discussion of classical, regularized, and nonlinear regression, as well as modern ensemble and data mining approaches. This series will be of value to any classically trained statistician or modeler.
+
+Overcoming Linear Regression Limitations
+
+Part 1: March 1 - Regression methods discussed
+?	Classical Regression
+?	Logistic Regression
+?	Regularized Regression: GPS Generalized Path Seeker
+?	Nonlinear Regression: MARS Regression Splines
+
+Part 2: March 15 - Hands-on demonstration of concepts discussed in Part 1
+?	Step-by-step demonstration
+?	Datasets and software available for download
+?	Instructions for reproducing demo at your leisure
+?	For the dedicated student: apply these methods to your own data (optional)
+
+Part 3: March 29 - Regression methods discussed
+*Part 1 is a recommended pre-requisite
+?	Nonlinear Ensemble Approaches: TreeNet Gradient Boosting; Random Forests; Gradient Boosting incorporating RF
+?	Ensemble Post-Processing: ISLE; RuleLearner
+
+Part 4: April 12 - Hands-on demonstration of concepts discussed in Part 3
+?	Step-by-step demonstration
+?	Datasets and software available for download
+?	Instructions for reproducing demo at your leisure
+?	For the dedicated student: apply these methods to your own data (optional)
+
+
+From edd at debian.org  Thu Feb  7 22:11:36 2013
+From: edd at debian.org (Dirk Eddelbuettel)
+Date: Thu, 7 Feb 2013 15:11:36 -0600
+Subject: [R-sig-hpc] snowfall?
+In-Reply-To: <CABG0rfuAOwFjgHA=Wh6qNFsBPeY0Q-wWk0qAQ7xS2LF=eGk6nQ@mail.gmail.com>
+References: <CABG0rfuAOwFjgHA=Wh6qNFsBPeY0Q-wWk0qAQ7xS2LF=eGk6nQ@mail.gmail.com>
+Message-ID: <20756.6280.292604.765189@max.nulle.part>
+
+
+On 7 February 2013 at 14:49, Jonathan Greenberg wrote:
+| R-sig-hpc'ers:
+| 
+| I just realized that I can no longer install snowfall and it appears to be
+| gone from CRAN (
+| http://cran.r-project.org/web/packages/snowfall/index.html)-- is this
+| project dead, or has it been wrapped into something else, or is it just
+| between versions?  Thanks!
+| 
+| > install.packages("snowfall")
+| Installing package(s) into 'D:/Users/jgrn/Documents/R/win-library/2.15'
+| (as 'lib' is unspecified)
+| Warning message:
+| package 'snowfall' is not available (for R version 2.15.2)
+
+Removal from CRAN is something that happens to packages which fail to build
+under R(-release) and the ever changing R-devel (aka R 3.0.0, due out in April).
+
+My CRANberries services monitors removals as well additions and updates to
+CRAN, so yes, I knew.
+
+The package is likely still available in the Archive/ section so you can
+download it from there and install that way.  A little bird told that the
+snowfall author is planning to updated the package "time permitting".
+
+And there are of course the package parallel (in R base), snow, foreach, ...
+
+Dirk
+
+-- 
+Dirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com
+
+
+From jgrn at illinois.edu  Thu Feb  7 22:18:12 2013
+From: jgrn at illinois.edu (Jonathan Greenberg)
+Date: Thu, 7 Feb 2013 15:18:12 -0600
+Subject: [R-sig-hpc] snowfall?
+In-Reply-To: <20756.6280.292604.765189@max.nulle.part>
+References: <CABG0rfuAOwFjgHA=Wh6qNFsBPeY0Q-wWk0qAQ7xS2LF=eGk6nQ@mail.gmail.com>
+	<20756.6280.292604.765189@max.nulle.part>
+Message-ID: <CABG0rfukgFROAOKzSKv=4ccHq0Ju1oPmqmePirtAds+omWaSww@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130207/f63bad89/attachment.pl>
+
+From hanas at uw.edu  Thu Feb  7 22:48:12 2013
+From: hanas at uw.edu (Hana Sevcikova)
+Date: Thu, 07 Feb 2013 13:48:12 -0800
+Subject: [R-sig-hpc] snowfall?
+In-Reply-To: <CABG0rfukgFROAOKzSKv=4ccHq0Ju1oPmqmePirtAds+omWaSww@mail.gmail.com>
+References: <CABG0rfuAOwFjgHA=Wh6qNFsBPeY0Q-wWk0qAQ7xS2LF=eGk6nQ@mail.gmail.com>
+	<20756.6280.292604.765189@max.nulle.part>
+	<CABG0rfukgFROAOKzSKv=4ccHq0Ju1oPmqmePirtAds+omWaSww@mail.gmail.com>
+Message-ID: <5114211C.3070708@uw.edu>
+
+Jonathan,
+
+You might try snowFT instead. The performParallel function will do 
+everything you need.
+
+Hana
+
+
+On 2/7/13 1:18 PM, Jonathan Greenberg wrote:
+> Dirk:
+>
+> Thanks.  I had it installed on my machine from a few months ago, and didn't
+> even realize it had been pulled until I had my RA install it.  I have my
+> own code that uses snowfall as a requirement, which is also an issue.  I'm
+> just starting to work with foreach, but I am teaching a class in the use of
+> R, and snowfall makes dealing with clusters a WHOLE lot easier than the
+> default snow package -- I don't mind using snow for advanced work, but for
+> introducing non-CS students to parallel coding, snowfall help a lot,
+> particularly for starting, finding, and stopping clusters.
+>
+> --jonathan
+>
+>
+>
+>
+>
+> On Thu, Feb 7, 2013 at 3:11 PM, Dirk Eddelbuettel <edd at debian.org> wrote:
+>
+>> On 7 February 2013 at 14:49, Jonathan Greenberg wrote:
+>> | R-sig-hpc'ers:
+>> |
+>> | I just realized that I can no longer install snowfall and it appears to
+>> be
+>> | gone from CRAN (
+>> | http://cran.r-project.org/web/packages/snowfall/index.html)-- is this
+>> | project dead, or has it been wrapped into something else, or is it just
+>> | between versions?  Thanks!
+>> |
+>> | > install.packages("snowfall")
+>> | Installing package(s) into 'D:/Users/jgrn/Documents/R/win-library/2.15'
+>> | (as 'lib' is unspecified)
+>> | Warning message:
+>> | package 'snowfall' is not available (for R version 2.15.2)
+>>
+>> Removal from CRAN is something that happens to packages which fail to build
+>> under R(-release) and the ever changing R-devel (aka R 3.0.0, due out in
+>> April).
+>>
+>> My CRANberries services monitors removals as well additions and updates to
+>> CRAN, so yes, I knew.
+>>
+>> The package is likely still available in the Archive/ section so you can
+>> download it from there and install that way.  A little bird told that the
+>> snowfall author is planning to updated the package "time permitting".
+>>
+>> And there are of course the package parallel (in R base), snow, foreach,
+>> ...
+>>
+>> Dirk
+>>
+>> --
+>> Dirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com
+>>
+>
+>
+
+
+From andy_liaw at merck.com  Fri Feb  8 14:49:50 2013
+From: andy_liaw at merck.com (Liaw, Andy)
+Date: Fri, 8 Feb 2013 08:49:50 -0500
+Subject: [R-sig-hpc] snowfall?
+In-Reply-To: <CABG0rfukgFROAOKzSKv=4ccHq0Ju1oPmqmePirtAds+omWaSww@mail.gmail.com>
+References: <CABG0rfuAOwFjgHA=Wh6qNFsBPeY0Q-wWk0qAQ7xS2LF=eGk6nQ@mail.gmail.com>
+	<20756.6280.292604.765189@max.nulle.part>
+	<CABG0rfukgFROAOKzSKv=4ccHq0Ju1oPmqmePirtAds+omWaSww@mail.gmail.com>
+Message-ID: <D5FA03935F7418419332B61CA255F65F819400BC16@USCTMXP51012.merck.com>
+
+Besides all that, there is at least one package that is still on CRAN that depends on snowfall, but can't be installed because snowfall isn't available.  I suppose if one already has a previous installation of snowfall, then it's not a problem...
+
+(I personally had not used snowfall, until I tried to install this package that depends on it.)
+
+Cheers,
+Andy
+
+-----Original Message-----
+From: r-sig-hpc-bounces at r-project.org [mailto:r-sig-hpc-bounces at r-project.org] On Behalf Of Jonathan Greenberg
+Sent: Thursday, February 07, 2013 4:18 PM
+To: Dirk Eddelbuettel
+Cc: r-sig-hpc at r-project.org
+Subject: Re: [R-sig-hpc] snowfall?
+
+Dirk:
+
+Thanks.  I had it installed on my machine from a few months ago, and didn't
+even realize it had been pulled until I had my RA install it.  I have my
+own code that uses snowfall as a requirement, which is also an issue.  I'm
+just starting to work with foreach, but I am teaching a class in the use of
+R, and snowfall makes dealing with clusters a WHOLE lot easier than the
+default snow package -- I don't mind using snow for advanced work, but for
+introducing non-CS students to parallel coding, snowfall help a lot,
+particularly for starting, finding, and stopping clusters.
+
+--jonathan
+
+
+
+
+
+On Thu, Feb 7, 2013 at 3:11 PM, Dirk Eddelbuettel <edd at debian.org> wrote:
+
+>
+> On 7 February 2013 at 14:49, Jonathan Greenberg wrote:
+> | R-sig-hpc'ers:
+> |
+> | I just realized that I can no longer install snowfall and it appears to
+> be
+> | gone from CRAN (
+> | http://cran.r-project.org/web/packages/snowfall/index.html)-- is this
+> | project dead, or has it been wrapped into something else, or is it just
+> | between versions?  Thanks!
+> |
+> | > install.packages("snowfall")
+> | Installing package(s) into 'D:/Users/jgrn/Documents/R/win-library/2.15'
+> | (as 'lib' is unspecified)
+> | Warning message:
+> | package 'snowfall' is not available (for R version 2.15.2)
+>
+> Removal from CRAN is something that happens to packages which fail to build
+> under R(-release) and the ever changing R-devel (aka R 3.0.0, due out in
+> April).
+>
+> My CRANberries services monitors removals as well additions and updates to
+> CRAN, so yes, I knew.
+>
+> The package is likely still available in the Archive/ section so you can
+> download it from there and install that way.  A little bird told that the
+> snowfall author is planning to updated the package "time permitting".
+>
+> And there are of course the package parallel (in R base), snow, foreach,
+> ...
+>
+> Dirk
+>
+> --
+> Dirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com
+>
+
+
+
+-- 
+Jonathan A. Greenberg, PhD
+Assistant Professor
+Global Environmental Analysis and Remote Sensing (GEARS) Laboratory
+Department of Geography and Geographic Information Science
+University of Illinois at Urbana-Champaign
+607 South Mathews Avenue, MC 150
+Urbana, IL 61801
+Phone: 217-300-1924
+http://www.geog.illinois.edu/~jgrn/
+AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+
+	[[alternative HTML version deleted]]
+
+_______________________________________________
+R-sig-hpc mailing list
+R-sig-hpc at r-project.org
+https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+Notice:  This e-mail message, together with any attachme...{{dropped:11}}
+
+
+From jo at imbi.uni-freiburg.de  Mon Feb 11 10:04:52 2013
+From: jo at imbi.uni-freiburg.de (Jochen Knaus)
+Date: Mon, 11 Feb 2013 10:04:52 +0100
+Subject: [R-sig-hpc] R-sig-hpc Digest, Vol 53, Issue 6
+In-Reply-To: <mailman.29.1360407609.2741.r-sig-hpc@r-project.org>
+References: <mailman.29.1360407609.2741.r-sig-hpc@r-project.org>
+Message-ID: <5118B434.5060104@imbi.uni-freiburg.de>
+
+Hi Andy,
+
+snowfall is back on CRAN.
+
+Just a sentence to this: I was not involved with the decision of 
+removing it - as I knew it would break a lot of packages on either Cran 
+and Bioconductor. The Cran team told me they had "discussions" about it 
+- without communicating the contents of these discussions. Most likely 
+it was a warning in the R 3.0.0 beta checker. Removing the package 
+completely (and therefore for all stable R 2.x version) was a bit 
+unlucky in my opinion.
+
+Best regards, Jochen
+
+> Send R-sig-hpc mailing list submissions to
+> 	r-sig-hpc at r-project.org
+>
+> To subscribe or unsubscribe via the World Wide Web, visit
+> 	https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> or, via email, send a message with subject or body 'help' to
+> 	r-sig-hpc-request at r-project.org
+>
+> You can reach the person managing the list at
+> 	r-sig-hpc-owner at r-project.org
+>
+> When replying, please edit your Subject line so it is more specific
+> than "Re: Contents of R-sig-hpc digest..."
+>
+>
+> Today's Topics:
+>
+>     1. Re: snowfall? (Liaw, Andy)
+>
+>
+> ----------------------------------------------------------------------
+>
+> Message: 1
+> Date: Fri, 8 Feb 2013 08:49:50 -0500
+> From: "Liaw, Andy" <andy_liaw at merck.com>
+> To: Jonathan Greenberg <jgrn at illinois.edu>, Dirk Eddelbuettel
+> 	<edd at debian.org>
+> Cc: "r-sig-hpc at r-project.org" <r-sig-hpc at r-project.org>
+> Subject: Re: [R-sig-hpc] snowfall?
+> Message-ID:
+> 	<D5FA03935F7418419332B61CA255F65F819400BC16 at USCTMXP51012.merck.com>
+> Content-Type: text/plain; charset="us-ascii"
+>
+> Besides all that, there is at least one package that is still on CRAN that depends on snowfall, but can't be installed because snowfall isn't available.  I suppose if one already has a previous installation of snowfall, then it's not a problem...
+>
+> (I personally had not used snowfall, until I tried to install this package that depends on it.)
+>
+> Cheers,
+> Andy
+>
+> -----Original Message-----
+> From: r-sig-hpc-bounces at r-project.org [mailto:r-sig-hpc-bounces at r-project.org] On Behalf Of Jonathan Greenberg
+> Sent: Thursday, February 07, 2013 4:18 PM
+> To: Dirk Eddelbuettel
+> Cc: r-sig-hpc at r-project.org
+> Subject: Re: [R-sig-hpc] snowfall?
+>
+> Dirk:
+>
+> Thanks.  I had it installed on my machine from a few months ago, and didn't
+> even realize it had been pulled until I had my RA install it.  I have my
+> own code that uses snowfall as a requirement, which is also an issue.  I'm
+> just starting to work with foreach, but I am teaching a class in the use of
+> R, and snowfall makes dealing with clusters a WHOLE lot easier than the
+> default snow package -- I don't mind using snow for advanced work, but for
+> introducing non-CS students to parallel coding, snowfall help a lot,
+> particularly for starting, finding, and stopping clusters.
+>
+> --jonathan
+>
+>
+>
+>
+>
+> On Thu, Feb 7, 2013 at 3:11 PM, Dirk Eddelbuettel <edd at debian.org> wrote:
+>
+>> On 7 February 2013 at 14:49, Jonathan Greenberg wrote:
+>> | R-sig-hpc'ers:
+>> |
+>> | I just realized that I can no longer install snowfall and it appears to
+>> be
+>> | gone from CRAN (
+>> | http://cran.r-project.org/web/packages/snowfall/index.html)-- is this
+>> | project dead, or has it been wrapped into something else, or is it just
+>> | between versions?  Thanks!
+>> |
+>> | > install.packages("snowfall")
+>> | Installing package(s) into 'D:/Users/jgrn/Documents/R/win-library/2.15'
+>> | (as 'lib' is unspecified)
+>> | Warning message:
+>> | package 'snowfall' is not available (for R version 2.15.2)
+>>
+>> Removal from CRAN is something that happens to packages which fail to build
+>> under R(-release) and the ever changing R-devel (aka R 3.0.0, due out in
+>> April).
+>>
+>> My CRANberries services monitors removals as well additions and updates to
+>> CRAN, so yes, I knew.
+>>
+>> The package is likely still available in the Archive/ section so you can
+>> download it from there and install that way.  A little bird told that the
+>> snowfall author is planning to updated the package "time permitting".
+>>
+>> And there are of course the package parallel (in R base), snow, foreach,
+>> ...
+>>
+>> Dirk
+>>
+>> --
+>> Dirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com
+>>
+>
+>
+
+
+From sprint at ed.ac.uk  Mon Feb 11 17:34:56 2013
+From: sprint at ed.ac.uk (SPRINT)
+Date: Mon, 11 Feb 2013 16:34:56 +0000
+Subject: [R-sig-hpc] SPRINT - High Performance Computing and R analyses
+Message-ID: <DC7B3DC8-5BB7-4175-B9A7-88337A56E6FA@ed.ac.uk>
+
+Dear List Member,
+A brief announcement and request for help re. R and High Performance Computing.
+
+Over the past 3 years, the open-source SPRINT project has focussed on the parallelisation of R functions used by biostatisticians and other data analysts. 
+
+On the basis of feedback from the biostatistical community in 2010, the SPRINT team at the University of Edinburgh developed 7 parallelised functions of generic utility in the analysis of large data matrices. More information can be found here: www.r-sprint.org .
+
+The latest version of SPRINT (v1.0.4) is now available from CRAN and includes, for the first time, the ability to run the software on Apple OS X. SPRINT has always been scalable from desktop to cluster to HPC facility, however, it can now take advantage of multi-core hardware in both Linux and OS X environments.
+
+SPRINT v1.0.4 software and documentation is available here:
+http://cran.r-project.org/web/packages/sprint/index.html
+
+A request for help?
+
+The SPRINT team would like to revise and refresh our understanding of  the needs and requirements of the R community for High Performance computing. To achieve this, we've written a brief questionnaire (no more than 15 mins) which we hope will allow us to capture needs and prioritise SPRINT development over the next 18 months.
+
+It would be incredibly helpful if you could take a few moments to complete this questionnaire and tell us more about your R/HPC usage and/ or problems you may have with large and demanding data analyses.
+
+The questionnaire can be found at the link below and will be open until 4th March. 
+
+After the questionnaire has closed, we'll analyse the data, make the results available (most likely via r-sprint.org) and prioritise our development of new functionality for SPRINT.
+
+https://www.survey.ed.ac.uk/2013_sprint/
+
+Thanks very much in advance for your help with our requirements analysis! My apologies if you subsequently receive a similar request from us via mailing lists etc. to which you subscribe.
+
+If you have any queries regarding the use of SPRINT (including installation), please feel free to contact us at: sprint at ed.ac.uk
+
+All the best,
+
+Kevin Robertson
+
+------------------------------------------------
+SPRINT - A parallel framework for R
+sprint at ed.ac.uk
+www.r-sprint.org
+
+
+-- 
+The University of Edinburgh is a charitable body, registered in
+Scotland, with registration number SC005336.
+
+
+From jgrn at illinois.edu  Tue Feb 12 20:21:17 2013
+From: jgrn at illinois.edu (Jonathan Greenberg)
+Date: Tue, 12 Feb 2013 13:21:17 -0600
+Subject: [R-sig-hpc] Forcing a snow cluster to stop
+Message-ID: <CABG0rfuqmbobEV798PuyNt=d7LrFDB5+bm+CXZ9uhoRm=--oJA@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130212/51a11033/attachment.pl>
+
+From mxkuhn at gmail.com  Tue Feb 19 14:16:25 2013
+From: mxkuhn at gmail.com (Max Kuhn)
+Date: Tue, 19 Feb 2013 08:16:25 -0500
+Subject: [R-sig-hpc] communicating memory requirments
+Message-ID: <CAJ9CoWmT5s0WKT7W4yPUCz5Gt_-Dv=fW3afUfqtmGhV7cw4BJg@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130219/285b996e/attachment.pl>
+
+From Claudia.Beleites at ipht-jena.de  Tue Feb 19 15:57:27 2013
+From: Claudia.Beleites at ipht-jena.de (Claudia Beleites)
+Date: Tue, 19 Feb 2013 15:57:27 +0100
+Subject: [R-sig-hpc] communicating memory requirments
+In-Reply-To: <CAJ9CoWmT5s0WKT7W4yPUCz5Gt_-Dv=fW3afUfqtmGhV7cw4BJg@mail.gmail.com>
+References: <CAJ9CoWmT5s0WKT7W4yPUCz5Gt_-Dv=fW3afUfqtmGhV7cw4BJg@mail.gmail.com>
+Message-ID: <20130219155727.6daa7b71@cb-t61p>
+
+Hi Max,
+
+> I have some scripts for a book that I will be publishing and they use
+> parallel processing (via foreach). Some of the analyses use more
+> memory than some users will have on hand and, as the number of
+> workers increases, so do the memory demands.
+> 
+> I'd like to report the memory requirements in a way that most people
+> will understand (including me).
+> 
+> On OS X, I've run the scripts and did a roiling append of 'top' to
+> capture the memory used by the master process and the workers over
+> time.
+> 
+> Can anyone suggest which parameters I should report (e.g. VSIZE)? Is
+> the situation appreciably different on Windows?
+
+I guess I'd report (graph) mem used + swap used in human-readable
+units, and maybe indicate total RAM and total RAM + SWAP in the graph.
+
+> I admit to being fairly ignorant on this (complicated) subject so any
+> approach to informing the users would be very welcome.
+
+The remainder is no direct answer to your question, but here's what I
+usually do:
+
+I use a custom function to list object sizes: 
+https://r-forge.r-project.org/scm/viewvc.php/pkg/cbmisc/R/lscb.R?view=markup&root=hyperspec
+
+According to ? object.size, this is not 100% correct, but it gives a
+good overview what is going on, and it yields numbers that people
+understand. 
+
+I tell my colleagues to multiply this with the number of explicitly
+parallel threads, and that the rule of thumb is that they should expect
+to need something between 3 times that much and 3 times the size of the
+largest single object available. 
+
+This has the advantage that people can estimate whether their number of
+parallel threads has a chance, before they run into heavy swapping
+(which of course means huge response times of the server).
+
+HTH,
+
+Claudia
+
+> 
+> Thanks,
+> 
+> Max
+> 
+> 	[[alternative HTML version deleted]]
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+
+-- 
+Claudia Beleites
+Spectroscopy/Imaging
+Institute of Photonic Technology 
+Albert-Einstein-Str. 9
+07745 Jena
+Germany
+
+email: claudia.beleites at ipht-jena.de
+phone: +49 3641 206-133
+fax:   +49 2641 206-399
+
+
+From mtmorgan at fhcrc.org  Tue Feb 19 19:11:53 2013
+From: mtmorgan at fhcrc.org (Martin Morgan)
+Date: Tue, 19 Feb 2013 10:11:53 -0800
+Subject: [R-sig-hpc] communicating memory requirments
+In-Reply-To: <CAJ9CoWmT5s0WKT7W4yPUCz5Gt_-Dv=fW3afUfqtmGhV7cw4BJg@mail.gmail.com>
+References: <CAJ9CoWmT5s0WKT7W4yPUCz5Gt_-Dv=fW3afUfqtmGhV7cw4BJg@mail.gmail.com>
+Message-ID: <5123C069.6030100@fhcrc.org>
+
+On 02/19/2013 05:16 AM, Max Kuhn wrote:
+> I have some scripts for a book that I will be publishing and they use
+> parallel processing (via foreach). Some of the analyses use more memory
+> than some users will have on hand and, as the number of workers increases,
+> so do the memory demands.
+>
+> I'd like to report the memory requirements in a way that most people will
+> understand (including me).
+
+not really answering your question, but it seems like parallel evaluation in 
+shared memory computers comes with an implicit need to manage memory, and that 
+one would rather strive to implement algorithms that do their job in a memory 
+efficient way. Probably this means iterating through data and aggregating 
+results, which is the approach of biglm. The user shouldn't really be exposed to 
+the need to choose a computer (or package) based on memory consumption of 
+algorithms. I'm not throwing stones, having seldom managed this myself.
+
+Martin
+
+>
+> On OS X, I've run the scripts and did a roiling append of 'top' to capture
+> the memory used by the master process and the workers over time.
+>
+> Can anyone suggest which parameters I should report (e.g. VSIZE)? Is the
+> situation appreciably different on Windows?
+>
+> I admit to being fairly ignorant on this (complicated) subject so any
+> approach to informing the users would be very welcome.
+>
+> Thanks,
+>
+> Max
+>
+> 	[[alternative HTML version deleted]]
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+
+
+-- 
+Computational Biology / Fred Hutchinson Cancer Research Center
+1100 Fairview Ave. N.
+PO Box 19024 Seattle, WA 98109
+
+Location: Arnold Building M1 B861
+Phone: (206) 667-2793
+
+
+From mxkuhn at gmail.com  Tue Feb 19 20:00:10 2013
+From: mxkuhn at gmail.com (Max Kuhn)
+Date: Tue, 19 Feb 2013 14:00:10 -0500
+Subject: [R-sig-hpc] communicating memory requirments
+In-Reply-To: <5123C069.6030100@fhcrc.org>
+References: <CAJ9CoWmT5s0WKT7W4yPUCz5Gt_-Dv=fW3afUfqtmGhV7cw4BJg@mail.gmail.com>
+	<5123C069.6030100@fhcrc.org>
+Message-ID: <CAJ9CoWk0mWAu6ez-WNA7th-eK40ra-7sqZL4+9KXn5xNYsrAMA@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130219/20ac662d/attachment.pl>
+
+From jens.oehlschlaegel at truecluster.com  Wed Feb 20 19:14:39 2013
+From: jens.oehlschlaegel at truecluster.com (jens.oehlschlaegel at truecluster.com)
+Date: Wed, 20 Feb 2013 19:14:39 +0100 (CET)
+Subject: [R-sig-hpc] communicating memory requirments
+In-Reply-To: <CAJ9CoWk0mWAu6ez-WNA7th-eK40ra-7sqZL4+9KXn5xNYsrAMA@mail.gmail.com>
+References: <CAJ9CoWmT5s0WKT7W4yPUCz5Gt_-Dv=fW3afUfqtmGhV7cw4BJg@mail.gmail.com>
+	<5123C069.6030100@fhcrc.org>,
+	<CAJ9CoWk0mWAu6ez-WNA7th-eK40ra-7sqZL4+9KXn5xNYsrAMA@mail.gmail.com>
+Message-ID: <trinity-69b22bba-b97f-4f58-b5d1-6e6b9157019a-1361384079195@3capp-webde-bs52>
+
+An HTML attachment was scrubbed...
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130220/d8127967/attachment.html>
+
+From jgrn at illinois.edu  Sat Feb 23 21:51:08 2013
+From: jgrn at illinois.edu (Jonathan Greenberg)
+Date: Sat, 23 Feb 2013 14:51:08 -0600
+Subject: [R-sig-hpc] Any way to query the setDefaultCluster?
+Message-ID: <CABG0rfuPz7NehH8L5WcPz4SAYx4_rjSvSLpd2SshLMnppgFAtQ@mail.gmail.com>
+
+R-sig-hpc'ers:
+
+If I set a parallel cluster object using setDefaultCluster, is there
+any way to recover that object (basically a "getDefaultCluster"
+function)?
+
+--j
+
+
+--
+Jonathan A. Greenberg, PhD
+Assistant Professor
+Global Environmental Analysis and Remote Sensing (GEARS) Laboratory
+Department of Geography and Geographic Information Science
+University of Illinois at Urbana-Champaign
+607 South Mathews Avenue, MC 150
+Urbana, IL 61801
+Phone: 217-300-1924
+http://www.geog.illinois.edu/~jgrn/
+AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+
+
+From jgrn at illinois.edu  Sat Feb 23 22:03:43 2013
+From: jgrn at illinois.edu (Jonathan Greenberg)
+Date: Sat, 23 Feb 2013 15:03:43 -0600
+Subject: [R-sig-hpc] Any way to query the setDefaultCluster?
+In-Reply-To: <CABG0rfuPz7NehH8L5WcPz4SAYx4_rjSvSLpd2SshLMnppgFAtQ@mail.gmail.com>
+References: <CABG0rfuPz7NehH8L5WcPz4SAYx4_rjSvSLpd2SshLMnppgFAtQ@mail.gmail.com>
+Message-ID: <CABG0rft_-K9+0D=EPxwib9KLybOVTG2F8pqY5K-76amaUcMzaQ@mail.gmail.com>
+
+To clarify: if I "forget" to store a cluster object:
+
+myfunction <- function()
+{
+library("parallel")
+cl <- makeCluster(2,type="PSOCK")
+setDefaultCluster(cl)
+return(cl)
+}
+
+myfunction()
+
+Is there any way to stop this running cluster short of quitting out of R?
+
+--j
+
+
+
+On Sat, Feb 23, 2013 at 2:51 PM, Jonathan Greenberg <jgrn at illinois.edu> wrote:
+> R-sig-hpc'ers:
+>
+> If I set a parallel cluster object using setDefaultCluster, is there
+> any way to recover that object (basically a "getDefaultCluster"
+> function)?
+>
+> --j
+>
+>
+> --
+> Jonathan A. Greenberg, PhD
+> Assistant Professor
+> Global Environmental Analysis and Remote Sensing (GEARS) Laboratory
+> Department of Geography and Geographic Information Science
+> University of Illinois at Urbana-Champaign
+> 607 South Mathews Avenue, MC 150
+> Urbana, IL 61801
+> Phone: 217-300-1924
+> http://www.geog.illinois.edu/~jgrn/
+> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+
+
+
+--
+Jonathan A. Greenberg, PhD
+Assistant Professor
+Global Environmental Analysis and Remote Sensing (GEARS) Laboratory
+Department of Geography and Geographic Information Science
+University of Illinois at Urbana-Champaign
+607 South Mathews Avenue, MC 150
+Urbana, IL 61801
+Phone: 217-300-1924
+http://www.geog.illinois.edu/~jgrn/
+AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+
+
+From etiennebr at gmail.com  Sat Feb 23 22:14:37 2013
+From: etiennebr at gmail.com (Etienne B. Racine)
+Date: Sat, 23 Feb 2013 16:14:37 -0500
+Subject: [R-sig-hpc] Any way to query the setDefaultCluster?
+In-Reply-To: <CABG0rft_-K9+0D=EPxwib9KLybOVTG2F8pqY5K-76amaUcMzaQ@mail.gmail.com>
+References: <CABG0rfuPz7NehH8L5WcPz4SAYx4_rjSvSLpd2SshLMnppgFAtQ@mail.gmail.com>
+	<CABG0rft_-K9+0D=EPxwib9KLybOVTG2F8pqY5K-76amaUcMzaQ@mail.gmail.com>
+Message-ID: <CALjAYt6RDWgvJYN-3Jh_-YU2duczEKqwPc7i5BqAXxgNuH-rwg@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130223/db1fcfdb/attachment.pl>
+
+From jgrn at illinois.edu  Sun Feb 24 14:15:37 2013
+From: jgrn at illinois.edu (Jonathan Greenberg)
+Date: Sun, 24 Feb 2013 07:15:37 -0600
+Subject: [R-sig-hpc] Any way to query the setDefaultCluster?
+In-Reply-To: <CALjAYt6RDWgvJYN-3Jh_-YU2duczEKqwPc7i5BqAXxgNuH-rwg@mail.gmail.com>
+References: <CABG0rfuPz7NehH8L5WcPz4SAYx4_rjSvSLpd2SshLMnppgFAtQ@mail.gmail.com>
+	<CABG0rft_-K9+0D=EPxwib9KLybOVTG2F8pqY5K-76amaUcMzaQ@mail.gmail.com>
+	<CALjAYt6RDWgvJYN-3Jh_-YU2duczEKqwPc7i5BqAXxgNuH-rwg@mail.gmail.com>
+Message-ID: <CABG0rfsuSjSrXP+t9TDR0ppt1C+6nnY6gxyMhMOinYQtVnfzpQ@mail.gmail.com>
+
+This would only work immediately afterwards, right?  What about a few
+pages of code later?  Basically: if you start a parallel or snow
+cluster without preserving the cluster object, it will run with no way
+to shut it down, right?  In other words, is there any easy way to
+accomplish what snowfall does using parallel and snow?  i.e.:
+
+sfInit()
+sfStop()
+
+--j
+
+On Sat, Feb 23, 2013 at 3:14 PM, Etienne B. Racine <etiennebr at gmail.com> wrote:
+> Jonathan, maybe .Last.value ?
+>
+> Etienne
+>
+>
+> 2013/2/23 Jonathan Greenberg <jgrn at illinois.edu>
+>>
+>> To clarify: if I "forget" to store a cluster object:
+>>
+>> myfunction <- function()
+>> {
+>> library("parallel")
+>> cl <- makeCluster(2,type="PSOCK")
+>> setDefaultCluster(cl)
+>> return(cl)
+>> }
+>>
+>> myfunction()
+>>
+>> Is there any way to stop this running cluster short of quitting out of R?
+>>
+>> --j
+>>
+>>
+>>
+>> On Sat, Feb 23, 2013 at 2:51 PM, Jonathan Greenberg <jgrn at illinois.edu>
+>> wrote:
+>> > R-sig-hpc'ers:
+>> >
+>> > If I set a parallel cluster object using setDefaultCluster, is there
+>> > any way to recover that object (basically a "getDefaultCluster"
+>> > function)?
+>> >
+>> > --j
+>> >
+>> >
+>> > --
+>> > Jonathan A. Greenberg, PhD
+>> > Assistant Professor
+>> > Global Environmental Analysis and Remote Sensing (GEARS) Laboratory
+>> > Department of Geography and Geographic Information Science
+>> > University of Illinois at Urbana-Champaign
+>> > 607 South Mathews Avenue, MC 150
+>> > Urbana, IL 61801
+>> > Phone: 217-300-1924
+>> > http://www.geog.illinois.edu/~jgrn/
+>> > AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+>>
+>>
+>>
+>> --
+>> Jonathan A. Greenberg, PhD
+>> Assistant Professor
+>> Global Environmental Analysis and Remote Sensing (GEARS) Laboratory
+>> Department of Geography and Geographic Information Science
+>> University of Illinois at Urbana-Champaign
+>> 607 South Mathews Avenue, MC 150
+>> Urbana, IL 61801
+>> Phone: 217-300-1924
+>> http://www.geog.illinois.edu/~jgrn/
+>> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>
+>
+
+
+
+--
+Jonathan A. Greenberg, PhD
+Assistant Professor
+Global Environmental Analysis and Remote Sensing (GEARS) Laboratory
+Department of Geography and Geographic Information Science
+University of Illinois at Urbana-Champaign
+607 South Mathews Avenue, MC 150
+Urbana, IL 61801
+Phone: 217-300-1924
+http://www.geog.illinois.edu/~jgrn/
+AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+
+
+From simon.urbanek at r-project.org  Sun Feb 24 14:28:37 2013
+From: simon.urbanek at r-project.org (Simon Urbanek)
+Date: Sun, 24 Feb 2013 08:28:37 -0500
+Subject: [R-sig-hpc] Any way to query the setDefaultCluster?
+In-Reply-To: <CABG0rfuPz7NehH8L5WcPz4SAYx4_rjSvSLpd2SshLMnppgFAtQ@mail.gmail.com>
+References: <CABG0rfuPz7NehH8L5WcPz4SAYx4_rjSvSLpd2SshLMnppgFAtQ@mail.gmail.com>
+Message-ID: <EC97EB1E-3180-4AFD-A016-EDD943D7FCAF@r-project.org>
+
+On Feb 23, 2013, at 3:51 PM, Jonathan Greenberg wrote:
+
+> R-sig-hpc'ers:
+> 
+> If I set a parallel cluster object using setDefaultCluster, is there
+> any way to recover that object (basically a "getDefaultCluster"
+> function)?
+> 
+
+parallel:::defaultCluster()
+
+Cheers,
+S
+
+
+> --j
+> 
+> 
+> --
+> Jonathan A. Greenberg, PhD
+> Assistant Professor
+> Global Environmental Analysis and Remote Sensing (GEARS) Laboratory
+> Department of Geography and Geographic Information Science
+> University of Illinois at Urbana-Champaign
+> 607 South Mathews Avenue, MC 150
+> Urbana, IL 61801
+> Phone: 217-300-1924
+> http://www.geog.illinois.edu/~jgrn/
+> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+>
+
+
+From jgrn at illinois.edu  Sun Feb 24 14:42:22 2013
+From: jgrn at illinois.edu (Jonathan Greenberg)
+Date: Sun, 24 Feb 2013 07:42:22 -0600
+Subject: [R-sig-hpc] Any way to query the setDefaultCluster?
+In-Reply-To: <EC97EB1E-3180-4AFD-A016-EDD943D7FCAF@r-project.org>
+References: <CABG0rfuPz7NehH8L5WcPz4SAYx4_rjSvSLpd2SshLMnppgFAtQ@mail.gmail.com>
+	<EC97EB1E-3180-4AFD-A016-EDD943D7FCAF@r-project.org>
+Message-ID: <CABG0rfuH_N6B5v26AjG0Yo-ZX5LgtvyYDaXFPd59seA7AsZzjA@mail.gmail.com>
+
+Simon:
+
+That's a REALLY helpful function -- is there a reason its undocumented
+and hidden from the namespace?  Would you consider making it more
+visible?
+
+--j
+
+On Sun, Feb 24, 2013 at 7:28 AM, Simon Urbanek
+<simon.urbanek at r-project.org> wrote:
+> On Feb 23, 2013, at 3:51 PM, Jonathan Greenberg wrote:
+>
+>> R-sig-hpc'ers:
+>>
+>> If I set a parallel cluster object using setDefaultCluster, is there
+>> any way to recover that object (basically a "getDefaultCluster"
+>> function)?
+>>
+>
+> parallel:::defaultCluster()
+>
+> Cheers,
+> S
+>
+>
+>> --j
+>>
+>>
+>> --
+>> Jonathan A. Greenberg, PhD
+>> Assistant Professor
+>> Global Environmental Analysis and Remote Sensing (GEARS) Laboratory
+>> Department of Geography and Geographic Information Science
+>> University of Illinois at Urbana-Champaign
+>> 607 South Mathews Avenue, MC 150
+>> Urbana, IL 61801
+>> Phone: 217-300-1924
+>> http://www.geog.illinois.edu/~jgrn/
+>> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+>>
+>> _______________________________________________
+>> R-sig-hpc mailing list
+>> R-sig-hpc at r-project.org
+>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>
+>>
+>
+
+
+
+--
+Jonathan A. Greenberg, PhD
+Assistant Professor
+Global Environmental Analysis and Remote Sensing (GEARS) Laboratory
+Department of Geography and Geographic Information Science
+University of Illinois at Urbana-Champaign
+607 South Mathews Avenue, MC 150
+Urbana, IL 61801
+Phone: 217-300-1924
+http://www.geog.illinois.edu/~jgrn/
+AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+
+
+From simon.urbanek at r-project.org  Sun Feb 24 15:55:40 2013
+From: simon.urbanek at r-project.org (Simon Urbanek)
+Date: Sun, 24 Feb 2013 09:55:40 -0500
+Subject: [R-sig-hpc] Any way to query the setDefaultCluster?
+In-Reply-To: <CABG0rfuH_N6B5v26AjG0Yo-ZX5LgtvyYDaXFPd59seA7AsZzjA@mail.gmail.com>
+References: <CABG0rfuPz7NehH8L5WcPz4SAYx4_rjSvSLpd2SshLMnppgFAtQ@mail.gmail.com>
+	<EC97EB1E-3180-4AFD-A016-EDD943D7FCAF@r-project.org>
+	<CABG0rfuH_N6B5v26AjG0Yo-ZX5LgtvyYDaXFPd59seA7AsZzjA@mail.gmail.com>
+Message-ID: <B2263846-06A1-4DBA-9D35-851AFAADA474@r-project.org>
+
+On Feb 24, 2013, at 8:42 AM, Jonathan Greenberg wrote:
+
+> Simon:
+> 
+> That's a REALLY helpful function -- is there a reason its undocumented
+> and hidden from the namespace?  Would you consider making it more
+> visible?
+> 
+
+You'll have to ask the author ...
+
+Cheers,
+S
+
+
+> --j
+> 
+> On Sun, Feb 24, 2013 at 7:28 AM, Simon Urbanek
+> <simon.urbanek at r-project.org> wrote:
+>> On Feb 23, 2013, at 3:51 PM, Jonathan Greenberg wrote:
+>> 
+>>> R-sig-hpc'ers:
+>>> 
+>>> If I set a parallel cluster object using setDefaultCluster, is there
+>>> any way to recover that object (basically a "getDefaultCluster"
+>>> function)?
+>>> 
+>> 
+>> parallel:::defaultCluster()
+>> 
+>> Cheers,
+>> S
+>> 
+>> 
+>>> --j
+>>> 
+>>> 
+>>> --
+>>> Jonathan A. Greenberg, PhD
+>>> Assistant Professor
+>>> Global Environmental Analysis and Remote Sensing (GEARS) Laboratory
+>>> Department of Geography and Geographic Information Science
+>>> University of Illinois at Urbana-Champaign
+>>> 607 South Mathews Avenue, MC 150
+>>> Urbana, IL 61801
+>>> Phone: 217-300-1924
+>>> http://www.geog.illinois.edu/~jgrn/
+>>> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+>>> 
+>>> _______________________________________________
+>>> R-sig-hpc mailing list
+>>> R-sig-hpc at r-project.org
+>>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+>>> 
+>>> 
+>> 
+> 
+> 
+> 
+> --
+> Jonathan A. Greenberg, PhD
+> Assistant Professor
+> Global Environmental Analysis and Remote Sensing (GEARS) Laboratory
+> Department of Geography and Geographic Information Science
+> University of Illinois at Urbana-Champaign
+> 607 South Mathews Avenue, MC 150
+> Urbana, IL 61801
+> Phone: 217-300-1924
+> http://www.geog.illinois.edu/~jgrn/
+> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+> 
+>
+
+
+From jgrn at illinois.edu  Sun Feb 24 19:08:31 2013
+From: jgrn at illinois.edu (Jonathan Greenberg)
+Date: Sun, 24 Feb 2013 12:08:31 -0600
+Subject: [R-sig-hpc] Any way to query the setDefaultCluster?
+In-Reply-To: <B2263846-06A1-4DBA-9D35-851AFAADA474@r-project.org>
+References: <CABG0rfuPz7NehH8L5WcPz4SAYx4_rjSvSLpd2SshLMnppgFAtQ@mail.gmail.com>
+	<EC97EB1E-3180-4AFD-A016-EDD943D7FCAF@r-project.org>
+	<CABG0rfuH_N6B5v26AjG0Yo-ZX5LgtvyYDaXFPd59seA7AsZzjA@mail.gmail.com>
+	<B2263846-06A1-4DBA-9D35-851AFAADA474@r-project.org>
+Message-ID: <CABG0rfsLN3K80-YAbMEvdxZSkauhNKoBWHqeEDCTQGoSbqoKrw@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130224/2fb233b0/attachment.pl>
+
+From jgrn at illinois.edu  Mon Feb 25 20:17:08 2013
+From: jgrn at illinois.edu (Jonathan Greenberg)
+Date: Mon, 25 Feb 2013 13:17:08 -0600
+Subject: [R-sig-hpc] foreach progress bar?
+Message-ID: <CABG0rfvpRokZQjAMnaqqCfCpHO-TtOKmdB4Q4JUtPX3sVBzG3w@mail.gmail.com>
+
+Folks:
+
+Has anyone figured out a general solution to create a foreach progress
+bar, updated as each iteration is completed?
+
+--j
+
+--
+Jonathan A. Greenberg, PhD
+Assistant Professor
+Global Environmental Analysis and Remote Sensing (GEARS) Laboratory
+Department of Geography and Geographic Information Science
+University of Illinois at Urbana-Champaign
+607 South Mathews Avenue, MC 150
+Urbana, IL 61801
+Phone: 217-300-1924
+http://www.geog.illinois.edu/~jgrn/
+AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+
+
+From stephen.b.weston at gmail.com  Mon Feb 25 22:49:39 2013
+From: stephen.b.weston at gmail.com (Stephen Weston)
+Date: Mon, 25 Feb 2013 16:49:39 -0500
+Subject: [R-sig-hpc] foreach progress bar?
+In-Reply-To: <CABG0rfvpRokZQjAMnaqqCfCpHO-TtOKmdB4Q4JUtPX3sVBzG3w@mail.gmail.com>
+References: <CABG0rfvpRokZQjAMnaqqCfCpHO-TtOKmdB4Q4JUtPX3sVBzG3w@mail.gmail.com>
+Message-ID: <CALh21i+U8Y=LJ59h4QO72a1OfoSHRueABD=hbd2O+fxNhWMi0w@mail.gmail.com>
+
+I've never done anything quite like that.  To get progress information
+from foreach I've either used the foreach ".verbose=TRUE" option,
+or displayed progress messages from a custom ".combine" function.
+However, the ".combine" approach is only useful if you're using
+a parallel backend that returns worker results on the fly, such as doMPI.
+Using backends like doSNOW or doMC, the .combine function is
+only called once, which isn't very useful for progress messages.
+
+- Steve
+
+
+On Mon, Feb 25, 2013 at 2:17 PM, Jonathan Greenberg <jgrn at illinois.edu> wrote:
+> Folks:
+>
+> Has anyone figured out a general solution to create a foreach progress
+> bar, updated as each iteration is completed?
+>
+> --j
+>
+> --
+> Jonathan A. Greenberg, PhD
+> Assistant Professor
+> Global Environmental Analysis and Remote Sensing (GEARS) Laboratory
+> Department of Geography and Geographic Information Science
+> University of Illinois at Urbana-Champaign
+> 607 South Mathews Avenue, MC 150
+> Urbana, IL 61801
+> Phone: 217-300-1924
+> http://www.geog.illinois.edu/~jgrn/
+> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From skr3007 at gmail.com  Mon Feb 25 23:24:52 2013
+From: skr3007 at gmail.com (Sashi)
+Date: Mon, 25 Feb 2013 22:24:52 +0000
+Subject: [R-sig-hpc] foreach progress bar?
+In-Reply-To: <CABG0rfvpRokZQjAMnaqqCfCpHO-TtOKmdB4Q4JUtPX3sVBzG3w@mail.gmail.com>
+References: <CABG0rfvpRokZQjAMnaqqCfCpHO-TtOKmdB4Q4JUtPX3sVBzG3w@mail.gmail.com>
+Message-ID: <CAOmx5=-kv-PQhv5Gt2nwb-NvXMCbu7FLS_Wg_pYZpHpF_nbUMA@mail.gmail.com>
+
+An embedded and charset-unspecified text was scrubbed...
+Name: not available
+URL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130225/cac393b5/attachment.pl>
+
+From matloff at cs.ucdavis.edu  Tue Feb 26 00:47:03 2013
+From: matloff at cs.ucdavis.edu (Norm Matloff)
+Date: Mon, 25 Feb 2013 15:47:03 -0800
+Subject: [R-sig-hpc] foreach progress bar?
+In-Reply-To: <CAOmx5=-kv-PQhv5Gt2nwb-NvXMCbu7FLS_Wg_pYZpHpF_nbUMA@mail.gmail.com>
+References: <CABG0rfvpRokZQjAMnaqqCfCpHO-TtOKmdB4Q4JUtPX3sVBzG3w@mail.gmail.com>
+	<CAOmx5=-kv-PQhv5Gt2nwb-NvXMCbu7FLS_Wg_pYZpHpF_nbUMA@mail.gmail.com>
+Message-ID: <20130225234703.GE9730@laura>
+
+The following isn't pretty either, but once established, it would make
+things more convenient:
+
+Create an "out of band channel," meaning in this case a socket
+connection between the manager and the workers.  Each time a worker
+finished a task, it would send a message to the manager via the socket,
+and the manager could report it.  The latter would be in a terminal
+window, or some ambitious text-challenged person could develop a GUI for
+it.
+
+Norm
+
+On Mon, Feb 25, 2013 at 10:24:52PM +0000, Sashi wrote:
+> One simple thing I do to keep track of the progress is to include a
+> statement (in the function that is being executed in parallel) which
+> creates a text file [the name of which indicates which iteration it came
+> from] and stores it to a folder. I just refresh the folder and figure out
+> the progress. not pretty but get's the job done for me.
+> 
+> I've posted this to Stackoverflow some time ago (
+> http://stackoverflow.com/questions/10903787/how-can-i-print-when-using-dopar/11377579#11377579
+> )
+> 
+> On Mon, Feb 25, 2013 at 7:17 PM, Jonathan Greenberg <jgrn at illinois.edu>wrote:
+> 
+> > Folks:
+> >
+> > Has anyone figured out a general solution to create a foreach progress
+> > bar, updated as each iteration is completed?
+> >
+> > --j
+> >
+> > --
+> > Jonathan A. Greenberg, PhD
+> > Assistant Professor
+> > Global Environmental Analysis and Remote Sensing (GEARS) Laboratory
+> > Department of Geography and Geographic Information Science
+> > University of Illinois at Urbana-Champaign
+> > 607 South Mathews Avenue, MC 150
+> > Urbana, IL 61801
+> > Phone: 217-300-1924
+> > http://www.geog.illinois.edu/~jgrn/
+> > AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+> >
+> > _______________________________________________
+> > R-sig-hpc mailing list
+> > R-sig-hpc at r-project.org
+> > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> >
+> 
+> 	[[alternative HTML version deleted]]
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+From jgrn at illinois.edu  Tue Feb 26 15:49:14 2013
+From: jgrn at illinois.edu (Jonathan Greenberg)
+Date: Tue, 26 Feb 2013 08:49:14 -0600
+Subject: [R-sig-hpc] Seeing some memory leak with foreach...
+Message-ID: <CABG0rfv2a-VYeeurGCkmSN+_0u7n1dGF8s=-etCwna0Mw_cH4w@mail.gmail.com>
+
+r-sig-geo'ers:
+
+I always hate doing this, but the test function/dataset is going to be
+hard to pass along to the list.  Basically: I have a foreach call that
+has no superassignments or strange environmental manipulations, but
+resulted in the nodes showing a slow but steady memory creep over
+time.  I was using a parallel backend for foreach via doParallel.  Has
+anyone else seen this behavior (unexplained memory creep)?  Is there a
+good way to "flush" a node?  I'm trying to embed gc() at the top of my
+foreach function, but this process took about 24 hours to get to a
+memory overuse stage (multiple iterations would have passed, e.g. the
+function would have been called more than one time on a single node)
+so I'm not sure if this will work so I figured I'd ask the group about
+it.  I've seen other people post about this on various boards with no
+clear response/solution to it (gc() apparently didn't work).
+
+Some other notes: there should be no resultant output of data, because
+the output is being written from within the foreach function (e.g. the
+output of the function that foreach executes is NULL).
+
+I'll see if I can work up a faster executing example later, but wanted
+to see if there are some general pointers for dealing with memory
+leaks using a parallel system.
+
+--j
+
+-- 
+Jonathan A. Greenberg, PhD
+Assistant Professor
+Global Environmental Analysis and Remote Sensing (GEARS) Laboratory
+Department of Geography and Geographic Information Science
+University of Illinois at Urbana-Champaign
+607 South Mathews Avenue, MC 150
+Urbana, IL 61801
+Phone: 217-300-1924
+http://www.geog.illinois.edu/~jgrn/
+AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+
+
+From simon.urbanek at r-project.org  Tue Feb 26 22:18:38 2013
+From: simon.urbanek at r-project.org (Simon Urbanek)
+Date: Tue, 26 Feb 2013 16:18:38 -0500
+Subject: [R-sig-hpc] Seeing some memory leak with foreach...
+In-Reply-To: <CABG0rfv2a-VYeeurGCkmSN+_0u7n1dGF8s=-etCwna0Mw_cH4w@mail.gmail.com>
+References: <CABG0rfv2a-VYeeurGCkmSN+_0u7n1dGF8s=-etCwna0Mw_cH4w@mail.gmail.com>
+Message-ID: <F106A537-4F55-4C82-A793-96100DA519E1@r-project.org>
+
+
+On Feb 26, 2013, at 9:49 AM, Jonathan Greenberg wrote:
+
+> r-sig-geo'ers:
+> 
+> I always hate doing this, but the test function/dataset is going to be
+> hard to pass along to the list.  Basically: I have a foreach call that
+> has no superassignments or strange environmental manipulations, but
+> resulted in the nodes showing a slow but steady memory creep over
+> time.  I was using a parallel backend for foreach via doParallel.  Has
+> anyone else seen this behavior (unexplained memory creep)?  Is there a
+> good way to "flush" a node?  I'm trying to embed gc() at the top of my
+> foreach function, but this process took about 24 hours to get to a
+> memory overuse stage (multiple iterations would have passed, e.g. the
+> function would have been called more than one time on a single node)
+> so I'm not sure if this will work so I figured I'd ask the group about
+> it.  I've seen other people post about this on various boards with no
+> clear response/solution to it (gc() apparently didn't work).
+> 
+> Some other notes: there should be no resultant output of data, because
+> the output is being written from within the foreach function (e.g. the
+> output of the function that foreach executes is NULL).
+> 
+> I'll see if I can work up a faster executing example later, but wanted
+> to see if there are some general pointers for dealing with memory
+> leaks using a parallel system.
+> 
+
+Just some general technical notes on memory management:
+
+a) R is pretty good at releasing all objects on gc() - that is typically not a problem (in my experience). If you use 3rd party packages with native code especially accessing external libraries, it is more likely that memory leaks in such packages can become an issue. Second thing to be aware of are environments that are holding objects you'd rather not have them hold. This can be the global workspace or other objects stashed away (models typically contain environments with the data etc.). 
+
+b) Note that gc() alone is of little use unless you make sure unused objects are out of scope. If you run gc() in the middle of a function (or at the end), it will only clear out temporary objects but not objects that have been assigned locally but are unused later. So to make sure you're doing the right thing you may want to split some heavy-lifting into chunks run in a local environment that gets out of scope and you only retain the intermediate result and run gc(). Also this is true even without explicit gc() because there will be implicit GC calls anyway.
+
+c) Even if R releases memory, the OS is often unable to claim it back. This should in theory be no big problem as the memory gets re-used later, but it can grow into a problem if the general memory usage is high or when for some reason the memory gets fragmented a lot (again, for a function call without side-effect that should not be the case, but beware of the side-effects).
+
+Cheers,
+Simon
+
+
+> --j
+> 
+> -- 
+> Jonathan A. Greenberg, PhD
+> Assistant Professor
+> Global Environmental Analysis and Remote Sensing (GEARS) Laboratory
+> Department of Geography and Geographic Information Science
+> University of Illinois at Urbana-Champaign
+> 607 South Mathews Avenue, MC 150
+> Urbana, IL 61801
+> Phone: 217-300-1924
+> http://www.geog.illinois.edu/~jgrn/
+> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+> 
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+> 
+> 
+
+
+From lisasolomon at alum.mit.edu  Tue Feb 26 22:35:53 2013
+From: lisasolomon at alum.mit.edu (Lisa Solomon)
+Date: Tue, 26 Feb 2013 16:35:53 -0500
+Subject: [R-sig-hpc] Reminder: Webinar Series: The Evolution of Regression
+ from Classical Linear Regression to Modern Ensembles (Hands-on Component)
+Message-ID: <1280778321.13116.1361914553353.JavaMail.help@alum.mit.edu>
+
+Begins Friday (no charge) 
+The Evolution of Regression: An Upcoming Webinar Series 
+(Hands-on Component) 
+
+Registration: http://bit.ly/salford-systems-regression-webinar-series 
+
+Regression is one of the most popular modeling methods, but the classical approach has significant problems. This webinar series address these problems. Are you are working with larger datasets? Is your data challenging? Does your data include missing values, nonlinear relationships, local patterns and interactions? This webinar series is for you! We will cover improvements to conventional and logistic regression, and will include a discussion of classical, regularized, and nonlinear regression, as well as modern ensemble and data mining approaches. This series will be of value to any classically trained statistician or modeler.
+ 
+Overcoming Linear Regression Limitations 
+
+Part 1: March 1 - Regression methods discussed 
+? Classical Regression 
+? Logistic Regression 
+? Regularized Regression: GPS Generalized Path Seeker 
+? Nonlinear Regression: MARS Regression Splines 
+
+Part 2: March 15 - Hands-on demonstration of concepts discussed in Part 1 
+? Step-by-step demonstration 
+? Datasets and software available for download 
+? Instructions for reproducing demo at your leisure 
+? For the dedicated student: apply these methods to your own data (optional) 
+
+Part 3: March 29 - Regression methods discussed 
+*Part 1 is a recommended pre-requisite 
+? Nonlinear Ensemble Approaches: TreeNet Gradient Boosting; Random Forests; Gradient Boosting incorporating RF
+ ? Ensemble Post-Processing: ISLE; RuleLearner 
+
+Part 4: April 12 - Hands-on demonstration of concepts discussed in Part 3 
+? Step-by-step demonstration 
+? Datasets and software available for download 
+? Instructions for reproducing demo at your leisure 
+? For the dedicated student: apply these methods to your own data (optional)
+
+From kingaa at umich.edu  Wed Feb 27 19:05:22 2013
+From: kingaa at umich.edu (Aaron King)
+Date: Wed, 27 Feb 2013 13:05:22 -0500
+Subject: [R-sig-hpc] Seeing some memory leak with foreach...
+In-Reply-To: <CABG0rfv2a-VYeeurGCkmSN+_0u7n1dGF8s=-etCwna0Mw_cH4w@mail.gmail.com>
+References: <CABG0rfv2a-VYeeurGCkmSN+_0u7n1dGF8s=-etCwna0Mw_cH4w@mail.gmail.com>
+Message-ID: <CAGPRvNBB_YJJM6WbE4XJWHMN0uRx2U8sc2_tzyFQXHmPRe51qA@mail.gmail.com>
+
+Hi Jonathan,
+
+I've run into a similar problem before.  It took more than 2 weeks to
+track down, but when I did, it turned out to be associated with
+resolving dynamically-linked symbols ('getNativeSymbolInfo').  My code
+was doing a lot of this very frequently, which led to memory leak.
+Once I found the source of the problem, I reworked my code to avoid
+this (a good idea anyway since the symbol-resolution was largely
+redundant) and never got to the very bottom of the problem, which may
+very well have been in the linux kernel rather than in R itself.  This
+may have nothing to do with the problem you're experiencing: if it
+does, I hope this note will save you some time.  It would be
+interesting to hear about the source of the memory leaks, whatever it
+turns out to be.
+
+Have you tried another parallel backend or a parallelization approach
+other than 'foreach'?
+
+Aaron
+
+On Tue, Feb 26, 2013 at 9:49 AM, Jonathan Greenberg <jgrn at illinois.edu> wrote:
+> r-sig-geo'ers:
+>
+> I always hate doing this, but the test function/dataset is going to be
+> hard to pass along to the list.  Basically: I have a foreach call that
+> has no superassignments or strange environmental manipulations, but
+> resulted in the nodes showing a slow but steady memory creep over
+> time.  I was using a parallel backend for foreach via doParallel.  Has
+> anyone else seen this behavior (unexplained memory creep)?  Is there a
+> good way to "flush" a node?  I'm trying to embed gc() at the top of my
+> foreach function, but this process took about 24 hours to get to a
+> memory overuse stage (multiple iterations would have passed, e.g. the
+> function would have been called more than one time on a single node)
+> so I'm not sure if this will work so I figured I'd ask the group about
+> it.  I've seen other people post about this on various boards with no
+> clear response/solution to it (gc() apparently didn't work).
+>
+> Some other notes: there should be no resultant output of data, because
+> the output is being written from within the foreach function (e.g. the
+> output of the function that foreach executes is NULL).
+>
+> I'll see if I can work up a faster executing example later, but wanted
+> to see if there are some general pointers for dealing with memory
+> leaks using a parallel system.
+>
+> --j
+>
+> --
+> Jonathan A. Greenberg, PhD
+> Assistant Professor
+> Global Environmental Analysis and Remote Sensing (GEARS) Laboratory
+> Department of Geography and Geographic Information Science
+> University of Illinois at Urbana-Champaign
+> 607 South Mathews Avenue, MC 150
+> Urbana, IL 61801
+> Phone: 217-300-1924
+> http://www.geog.illinois.edu/~jgrn/
+> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+>
+> _______________________________________________
+> R-sig-hpc mailing list
+> R-sig-hpc at r-project.org
+> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc
+
+
+
+-- 
+Aaron A. King, Ph.D.
+Ecology & Evolutionary Biology
+Mathematics
+Center for the Study of Complex Systems
+University of Michigan
+GPG Public Key: 0x15780975
+
+
+From peter.langfelder at gmail.com  Wed Feb 27 19:36:12 2013
+From: peter.langfelder at gmail.com (Peter Langfelder)
+Date: Wed, 27 Feb 2013 10:36:12 -0800
+Subject: [R-sig-hpc] Seeing some memory leak with foreach...
+In-Reply-To: <CABG0rfv2a-VYeeurGCkmSN+_0u7n1dGF8s=-etCwna0Mw_cH4w@mail.gmail.com>
+References: <CABG0rfv2a-VYeeurGCkmSN+_0u7n1dGF8s=-etCwna0Mw_cH4w@mail.gmail.com>
+Message-ID: <CA+hbrhXpaR=Q0QvPkn9iGbEuDa8siMorUZCc+mo3PGKnuA6xLA@mail.gmail.com>
+
+On Tue, Feb 26, 2013 at 6:49 AM, Jonathan Greenberg <jgrn at illinois.edu> wrote:
+> r-sig-geo'ers:
+>
+> I always hate doing this, but the test function/dataset is going to be
+> hard to pass along to the list.  Basically: I have a foreach call that
+> has no superassignments or strange environmental manipulations, but
+> resulted in the nodes showing a slow but steady memory creep over
+> time.  I was using a parallel backend for foreach via doParallel.  Has
+> anyone else seen this behavior (unexplained memory creep)?  Is there a
+> good way to "flush" a node?  I'm trying to embed gc() at the top of my
+> foreach function, but this process took about 24 hours to get to a
+> memory overuse stage (multiple iterations would have passed, e.g. the
+> function would have been called more than one time on a single node)
+> so I'm not sure if this will work so I figured I'd ask the group about
+> it.  I've seen other people post about this on various boards with no
+> clear response/solution to it (gc() apparently didn't work).
+>
+> Some other notes: there should be no resultant output of data, because
+> the output is being written from within the foreach function (e.g. the
+> output of the function that foreach executes is NULL).
+>
+> I'll see if I can work up a faster executing example later, but wanted
+> to see if there are some general pointers for dealing with memory
+> leaks using a parallel system.
+
+Hi Jonathan,
+
+have you tried replacing the foreach(...) by a simple for ... to
+verify that the problem really is in the parallel execution, and not
+simply in the R code?
+
+I second Simon's suggestion to pay careful attention to possible
+side-effects and objects not going out of scope when you think they
+should (for example, if something somewhere references the environment
+of a function that already completed, the environment and all objects
+within it are not out of scope).
+
+Peter
+
+
+From jgrn at illinois.edu  Wed Feb 27 20:25:24 2013
+From: jgrn at illinois.edu (Jonathan Greenberg)
+Date: Wed, 27 Feb 2013 13:25:24 -0600
+Subject: [R-sig-hpc] Seeing some memory leak with foreach...
+In-Reply-To: <CA+hbrhXpaR=Q0QvPkn9iGbEuDa8siMorUZCc+mo3PGKnuA6xLA@mail.gmail.com>
+References: <CABG0rfv2a-VYeeurGCkmSN+_0u7n1dGF8s=-etCwna0Mw_cH4w@mail.gmail.com>
+	<CA+hbrhXpaR=Q0QvPkn9iGbEuDa8siMorUZCc+mo3PGKnuA6xLA@mail.gmail.com>
+Message-ID: <CABG0rfuJuc2tCqMdcpK_PzYqW8ovrVdACs9dMySMhCWX-FoSpQ@mail.gmail.com>
+
+Thanks all -- I'm going to try out these suggestions (running a for
+loop, checking the function a bit more closely, trying some different
+backends) and get back to you!
+
+--j
+
+On Wed, Feb 27, 2013 at 12:36 PM, Peter Langfelder
+<peter.langfelder at gmail.com> wrote:
+> On Tue, Feb 26, 2013 at 6:49 AM, Jonathan Greenberg <jgrn at illinois.edu> wrote:
+>> r-sig-geo'ers:
+>>
+>> I always hate doing this, but the test function/dataset is going to be
+>> hard to pass along to the list.  Basically: I have a foreach call that
+>> has no superassignments or strange environmental manipulations, but
+>> resulted in the nodes showing a slow but steady memory creep over
+>> time.  I was using a parallel backend for foreach via doParallel.  Has
+>> anyone else seen this behavior (unexplained memory creep)?  Is there a
+>> good way to "flush" a node?  I'm trying to embed gc() at the top of my
+>> foreach function, but this process took about 24 hours to get to a
+>> memory overuse stage (multiple iterations would have passed, e.g. the
+>> function would have been called more than one time on a single node)
+>> so I'm not sure if this will work so I figured I'd ask the group about
+>> it.  I've seen other people post about this on various boards with no
+>> clear response/solution to it (gc() apparently didn't work).
+>>
+>> Some other notes: there should be no resultant output of data, because
+>> the output is being written from within the foreach function (e.g. the
+>> output of the function that foreach executes is NULL).
+>>
+>> I'll see if I can work up a faster executing example later, but wanted
+>> to see if there are some general pointers for dealing with memory
+>> leaks using a parallel system.
+>
+> Hi Jonathan,
+>
+> have you tried replacing the foreach(...) by a simple for ... to
+> verify that the problem really is in the parallel execution, and not
+> simply in the R code?
+>
+> I second Simon's suggestion to pay careful attention to possible
+> side-effects and objects not going out of scope when you think they
+> should (for example, if something somewhere references the environment
+> of a function that already completed, the environment and all objects
+> within it are not out of scope).
+>
+> Peter
+
+
+
+--
+Jonathan A. Greenberg, PhD
+Assistant Professor
+Global Environmental Analysis and Remote Sensing (GEARS) Laboratory
+Department of Geography and Geographic Information Science
+University of Illinois at Urbana-Champaign
+607 South Mathews Avenue, MC 150
+Urbana, IL 61801
+Phone: 217-300-1924
+http://www.geog.illinois.edu/~jgrn/
+AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007
+
+
