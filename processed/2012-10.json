@@ -13,11 +13,14 @@
       "subject_clean": "Matrix/Vector Multiplication error with CUDA",
       "in_reply_to": null,
       "references": [],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121001/fd2d526e/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121001/fd2d526e/attachment.pl>",
+      "body_plain": "Hello!\n\nI'm trying to learn CUDA to supplement R.  \n\nHowever, I'm running into a snag.\n\nHere is my code:\n\n    #include<R.h>\n\n//Matrix multiplication kernel - thread specification\n    __global__ void MatrixMulKernel(float *Md, float *Nd, float *Pd, int Width) {\n    int j;\n    int i = (blockIdx.x + threadIdx.x);\n    float t = 0.0f;\n    for (j=0; j<Width; j++) {\n    t += Md[i + j * Width] * Nd[j];\n    }\n    Pd[i] = t;\n    }\n\n\n    extern \"C\" {\n      void MatrixMultiplication(float *M, float *N, float *P) {\n      const int Width= 128;\n      int size = Width*Width*sizeof(float);\n      float *Md, *Nd, *Pd;\n\n    //Transfer M and N to device memory\n\n      cudaMalloc((void**)&Md, size);\n      cudaMemcpy(Md,M,size,cudaMemcpyHostToDevice);\n      cudaMalloc((void**)&Nd, size);\n      cudaMemcpy(Nd,N,size,cudaMemcpyHostToDevice);\n\n    //Allocate P on the device\n      cudaMalloc((void**)&Pd,size);\n\n    //Setup the execution configuration\n\n      dim3 dimBlock(1,1);\n      dim3 dimThread(1,1);\n    \n\n    //Launch the device computation threads!\n      MatrixMulKernel<<<Width,1>>>(Md,Nd,Pd,Width);\n      cudaThreadSynchronize();\n    //Transfer P from device to host\n      cudaMemcpy(P,Pd,size,cudaMemcpyDeviceToHost);\n\n\n\n    //Free device matrices\n      cudaFree(Md);\n      cudaFree(Nd);\n      cudaFree(Pd);\n\n\n  }\n\n  }\n\nand it works fine up to Width of 128.\n\nThen I get a \"Memory not Mapped\"  error from R.\n\nDoes that sound familiar, please?\n\nThanks,\nSincerely,\nErin\n\n\nErin M. Hodgess, PhD\nAssociate Professor\nDepartment of Computer and Mathematical Sciences\nUniversity of Houston - Downtown\nmailto: hodgesse at uhd.edu\n\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "Hello!\n\nI'm trying to learn CUDA to supplement R.  \n\nHowever, I'm running into a snag.\n\nHere is my code:\n\n    #include<R.h>\n\n//Matrix multiplication kernel - thread specification\n    __global__ void M",
       "thread_id": "thread-cc9dd726f93d",
       "thread_depth": 0,
-      "month": "2012-10"
+      "month": "2012-10",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121001/fd2d526e/attachment.pl"
+      ]
     },
     {
       "id": "msg-1c9c435f149a",
@@ -29,11 +32,14 @@
       "subject_clean": "gputools and CULA",
       "in_reply_to": null,
       "references": [],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121002/743bd90a/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121002/743bd90a/attachment.pl>",
+      "body_plain": "Hi all,\n\nI was wondering if any of you succeeded installing the gputools package \nwith CULA enabled. It seems that the package is looking for libcula.so \nin order to determined whether CULA is installed but the are no \nlibcula.so, at least not for the R15, R14 and R13a version of CULA.  The \ncloser file is libcula_core.so.\n\nThanks\n\n-- \n*Pierre Chaussé*\nAssistant Professor\nDepartment of Economics\nUniversity of Waterloo\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "Hi all,\n\nI was wondering if any of you succeeded installing the gputools package \nwith CULA enabled. It seems that the package is looking for libcula.so \nin order to determined whether CULA is install",
       "thread_id": "thread-1c9c435f149a",
       "thread_depth": 0,
-      "month": "2012-10"
+      "month": "2012-10",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121002/743bd90a/attachment.pl"
+      ]
     },
     {
       "id": "msg-a2d130d6cbf9",
@@ -48,11 +54,14 @@
         "<506B2731.4070901@mailservices.uwaterloo.ca>",
         "<CAErODj_Ya64vCZD7qPz6JxJAHt3s3tNeOZzez8Yd1QPB2GpfiA@mail.gmail.com>"
       ],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121004/9041584d/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121004/9041584d/attachment.pl>",
+      "body_plain": "I tried to modify the configure file in the gputools package to match \nwith the new CULA library names:\n\n1) make it check for the existence of libcula_core.so instead of  libcula.so\n2) and change the link -lcula to both -lcula_core and -lcula_lapack as \nsuggested in the reference guide.\n3) also had to add -fpic parameter for the compilation of ica.o and \nsvd.o (it fails to compile otherwise)\n\nWith these change, gputools.so is compiled without error but R fails to \nload it. I get the following error message:\n\nError in dyn.load(file, DLLpath = DLLpath, ...) :\n   unable to load shared object \n'/home/pierre/R/x86_64-pc-linux-gnu-library/2.15/gputools/libs/gputools.so':\n   \n/home/pierre/R/x86_64-pc-linux-gnu-library/2.15/gputools/libs/gputools.so: \nundefined symbol: max\nError: loading failed\nExecution halted\nERROR: loading failed\n\nI don't understand because cula.h is supposed to include all C libraries.\n\nOn 04/10/12 12:43 PM, Paul Johnson wrote:\n> Guy here: http://www.culatools.com/forums/viewtopic.php?f=15&t=1025\n>\n> claims recent CULA does not offer libcula.so and that would explain\n> the trouble you are seeing. Better check on your CULA library versions\n> and where the install libcula.so, if you do have one.\n>\n> pj\n>\n> On Tue, Oct 2, 2012 at 12:41 PM, Pierre Chausse<pchausse at uwaterloo.ca>  wrote:\n>> Hi all,\n>>\n>> I was wondering if any of you succeeded installing the gputools package\n>> with CULA enabled. It seems that the package is looking for libcula.so\n>> in order to determined whether CULA is installed but the are no\n>> libcula.so, at least not for the R15, R14 and R13a version of CULA.  The\n>> closer file is libcula_core.so.\n>>\n>> Thanks\n>>\n>> --\n>> *Pierre Chaussé*\n>> Assistant Professor\n>> Department of Economics\n>> University of Waterloo\n>>\n>>          [[alternative HTML version deleted]]\n>>\n>>\n>> _______________________________________________\n>> R-sig-hpc mailing list\n>> R-sig-hpc at r-project.org\n>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>>\n>\n>\n\n\n-- \n*Pierre Chaussé*\nAssistant Professor\nDepartment of Economics\nUniversity of Waterloo\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "I tried to modify the configure file in the gputools package to match \nwith the new CULA library names:\n\n1) make it check for the existence of libcula_core.so instead of  libcula.so\n2) and change the ",
       "thread_id": "thread-a2d130d6cbf9",
       "thread_depth": 0,
-      "month": "2012-10"
+      "month": "2012-10",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121004/9041584d/attachment.pl"
+      ]
     },
     {
       "id": "msg-72d2e37b6751",
@@ -100,11 +109,14 @@
       "references": [
         "<369E2286-5A0A-4D6D-8890-2349E51D961F@r-project.org>"
       ],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121013/8c7edd00/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121013/8c7edd00/attachment.pl>",
+      "body_plain": "On 15 March 2012 14:09, Simon Urbanek <simon.urbanek at r-project.org> wrote:\n\n> I thought I'll post this here since I could not find an answer anywhere I\n> searched: how to setup R with threaded BLAS on Debian/Ubuntu.\n>\n> First, neither Debian nor Ubuntu come with optimized ATLAS binaries,\n> simply because by definition they need to be optimized for a particular\n> machine. The good news: it is easy to build:\n>\n> apt-get source atlas\n> cd atlas-3.*\n> # less debian/README.Debian # read the docs - it's short\n> # sudo apt-get build-dep atlas # <- you may need this if you don't have\n> all tools installed\n> fakeroot debian/rules custom\n>\n> That will give you (after a long while) a bunch of libatlas*.deb files\n> that you can easily install with sudo dpkg -i\n>\n>\nI tried following these instructions with ATLAS 3.8.4-8 on Ubuntu 12.04,\ngot the .deb files, but I get conflicts with libblas3gf (see below), any\nideas?\n\nThanks,\nGad\n\n$ sudo dpkg -i *.deb\ndpkg: regarding libatlas3-base_3.8.4-8ubuntu1+custom2_amd64.deb containing\nlibatlas3-base:\n libatlas3-base breaks libblas3gf (<< 1.2.20110419-3)\n  libblas3gf (version 1.2.20110419-2ubuntu1) is present and installed.\ndpkg: error processing libatlas3-base_3.8.4-8ubuntu1+custom2_amd64.deb\n(--install):\n installing libatlas3-base would break libblas3gf, and\n deconfiguration is not permitted (--auto-deconfigure might help)\nSelecting previously unselected package libatlas3gf-base.\n(Reading database ... 142932 files and directories currently installed.)\nUnpacking libatlas3gf-base (from\nlibatlas3gf-base_3.8.4-8ubuntu1+custom2_all.deb) ...\ndpkg: regarding libatlas-base-dev_3.8.4-8ubuntu1+custom2_amd64.deb\ncontaining libatlas-base-dev:\n liblapack-dev conflicts with liblapack-3.so\n  libatlas-base-dev provides liblapack-3.so and is to be installed.\ndpkg: error processing libatlas-base-dev_3.8.4-8ubuntu1+custom2_amd64.deb\n(--install):\n conflicting packages - not installing libatlas-base-dev\nSelecting previously unselected package libatlas-dev.\nUnpacking libatlas-dev (from libatlas-dev_3.8.4-8ubuntu1+custom2_all.deb)\n...\nSelecting previously unselected package libatlas-doc.\nUnpacking libatlas-doc (from libatlas-doc_3.8.4-8ubuntu1+custom2_all.deb)\n...\nSelecting previously unselected package libatlas-test.\nUnpacking libatlas-test (from\nlibatlas-test_3.8.4-8ubuntu1+custom2_amd64.deb) ...\ndpkg: dependency problems prevent configuration of libatlas3gf-base:\n libatlas3gf-base depends on libatlas3-base; however:\n  Package libatlas3-base is not installed.\ndpkg: error processing libatlas3gf-base (--install):\n dependency problems - leaving unconfigured\nSetting up libatlas-dev (3.8.4-8ubuntu1+custom2) ...\nSetting up libatlas-doc (3.8.4-8ubuntu1+custom2) ...\nSetting up libatlas-test (3.8.4-8ubuntu1+custom2) ...\nErrors were encountered while processing:\n libatlas3-base_3.8.4-8ubuntu1+custom2_amd64.deb\n libatlas-base-dev_3.8.4-8ubuntu1+custom2_amd64.deb\n libatlas3gf-base\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "On 15 March 2012 14:09, Simon Urbanek <simon.urbanek at r-project.org> wrote:\n\n> I thought I'll post this here since I could not find an answer anywhere I\n> searched: how to setup R with threaded BLAS",
       "thread_id": "thread-2089a90a29b9",
       "thread_depth": 0,
-      "month": "2012-10"
+      "month": "2012-10",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121013/8c7edd00/attachment.pl"
+      ]
     },
     {
       "id": "msg-b0f7f078ab09",
@@ -169,11 +181,14 @@
       "subject_clean": "programming with big data - pbd",
       "in_reply_to": null,
       "references": [],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121017/5f745880/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121017/5f745880/attachment.pl>",
+      "body_plain": "We have just released a collection of new R packages for programming \nwith big data. Thepackages enable high-level distributed data \nparallelism in R through a tight coupling with highly scalable HPC \nlibraries.\n\nPlease check the r-bloggers article \nhttp://www.r-bloggers.com/r-at-12000-cores/ and our web site r-pbd.org.\n\nGeorge\n\n-- \nGeorge Ostrouchov, Ph.D.\nScientific Data Group\nComputer Science and Mathematics Division\nOak Ridge National Laboratory\n(865) 574-3137  http://www.csm.ornl.gov/~ost\n\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "We have just released a collection of new R packages for programming \nwith big data. Thepackages enable high-level distributed data \nparallelism in R through a tight coupling with highly scalable HPC ",
       "thread_id": "thread-a0db98fde3ba",
       "thread_depth": 0,
-      "month": "2012-10"
+      "month": "2012-10",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121017/5f745880/attachment.pl"
+      ]
     },
     {
       "id": "msg-aecff638e1b0",
@@ -185,11 +200,14 @@
       "subject_clean": "Printing error messages from slaves",
       "in_reply_to": null,
       "references": [],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121017/64f7f989/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121017/64f7f989/attachment.pl>",
+      "body_plain": "R-sig-hpc'ers:\n\nI'm working on some cluster code that uses snowfall, and I was wondering if\nthere is any way for a slave to print messages on the master console (while\nexecuting, not after it finishes)?\n\n--j\n\n-- \nJonathan A. Greenberg, PhD\nAssistant Professor\nDepartment of Geography and Geographic Information Science\nUniversity of Illinois at Urbana-Champaign\n607 South Mathews Avenue, MC 150\nUrbana, IL 61801\nPhone: 217-300-1924\nAIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "R-sig-hpc'ers:\n\nI'm working on some cluster code that uses snowfall, and I was wondering if\nthere is any way for a slave to print messages on the master console (while\nexecuting, not after it finishes",
       "thread_id": "thread-aecff638e1b0",
       "thread_depth": 0,
-      "month": "2012-10"
+      "month": "2012-10",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121017/64f7f989/attachment.pl"
+      ]
     },
     {
       "id": "msg-eeae2734a0f0",
@@ -203,11 +221,14 @@
       "references": [
         "<CABG0rfvj-MxF5Q_yNVmKL9hjaBwHHmmvNbh4av3O-6=Ecpvg5g@mail.gmail.com>"
       ],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121017/d2a7195e/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121017/d2a7195e/attachment.pl>",
+      "body_plain": "I should mention I'm trying to using sfCat, but within a clusterMap\nstatement (there remains no equivalent in snowfall, correct?) and nothing\nis being outputted with something like:\n\nsfInit(parallel=TRUE,cpus=6)\nsfLibrary(\"snowfall\",character.only=TRUE)\ncl <- sfGetCluster()\nsfLibrary(\"snowfall\",character.only=TRUE)\ni=1:10\nuselessargs=list(useless=\"yep\")\nclusterMap(cl,\nfunction(i,useless) {\nsfCat(paste(print(useless),i))\n },i,MoreArgs=uselessargs )\nsfStop()\n\n--j\n\nOn Wed, Oct 17, 2012 at 5:47 PM, Jonathan Greenberg <jgrn at illinois.edu>wrote:\n\n> R-sig-hpc'ers:\n>\n> I'm working on some cluster code that uses snowfall, and I was wondering\n> if there is any way for a slave to print messages on the master console\n> (while executing, not after it finishes)?\n>\n> --j\n>\n> --\n> Jonathan A. Greenberg, PhD\n> Assistant Professor\n> Department of Geography and Geographic Information Science\n> University of Illinois at Urbana-Champaign\n> 607 South Mathews Avenue, MC 150\n> Urbana, IL 61801\n> Phone: 217-300-1924\n> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007\n>\n>\n\n\n-- \nJonathan A. Greenberg, PhD\nAssistant Professor\nDepartment of Geography and Geographic Information Science\nUniversity of Illinois at Urbana-Champaign\n607 South Mathews Avenue, MC 150\nUrbana, IL 61801\nPhone: 217-300-1924\nAIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "I should mention I'm trying to using sfCat, but within a clusterMap\nstatement (there remains no equivalent in snowfall, correct?) and nothing\nis being outputted with something like:\n\nsfInit(parallel=T",
       "thread_id": "thread-aecff638e1b0",
       "thread_depth": 1,
-      "month": "2012-10"
+      "month": "2012-10",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121017/d2a7195e/attachment.pl"
+      ]
     },
     {
       "id": "msg-111dbc97633c",
@@ -219,11 +240,14 @@
       "subject_clean": "gputools question",
       "in_reply_to": null,
       "references": [],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121017/9d1cc30e/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121017/9d1cc30e/attachment.pl>",
+      "body_plain": "Does anyone know which CULA library is compatible with this package? The\nnewest CULA libraries appear not to have a library gputools calls for.\n\nhttp://cran.r-project.org/web/packages/gputools/index.html\n\nhttp://www.culatools.com/downloads/dense/\n\nAnyone know of some SVD cuda source or OpenCL SVD?\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "Does anyone know which CULA library is compatible with this package? The\nnewest CULA libraries appear not to have a library gputools calls for.\n\nhttp://cran.r-project.org/web/packages/gputools/index.h",
       "thread_id": "thread-111dbc97633c",
       "thread_depth": 0,
-      "month": "2012-10"
+      "month": "2012-10",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121017/9d1cc30e/attachment.pl"
+      ]
     },
     {
       "id": "msg-e71c6d5eb362",
@@ -256,11 +280,14 @@
         "<CADH1nUwLGMf4KPtQ+fbLTZ2rqqT6y=_8KRuC5XERX0N_Qd11jw@mail.gmail.com>",
         "<508002BB.10105@mailservices.uwaterloo.ca>"
       ],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121018/4ea37c7a/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121018/4ea37c7a/attachment.pl>",
+      "body_plain": "Would you happen to have a config file that fixes this? I dont think the\npackage has been updated recently.\n\nOn Thu, Oct 18, 2012 at 6:23 AM, Pierre Chausse <pchausse at uwaterloo.ca>wrote:\n\n> The gputools package calls the library libcula.so which ceased to exist\n> after version 2.1. In newer versions, CULA changed the library names to\n>  libcula_core.so and libcula_lapack.so.\n>\n> The configure file of gputools needs to be modified accordingly.\n>\n> Pierre\n>\n>\n>\n> On 17/10/12 10:14 PM, Julian Smith wrote:\n>\n>> Does anyone know which CULA library is compatible with this package? The\n>> newest CULA libraries appear not to have a library gputools calls for.\n>>\n>> http://cran.r-project.org/web/**packages/gputools/index.html<http://cran.r-project.org/web/packages/gputools/index.html>\n>>\n>> http://www.culatools.com/**downloads/dense/<http://www.culatools.com/downloads/dense/>\n>>\n>> Anyone know of some SVD cuda source or OpenCL SVD?\n>>\n>>         [[alternative HTML version deleted]]\n>>\n>> ______________________________**_________________\n>> R-sig-hpc mailing list\n>> R-sig-hpc at r-project.org\n>> https://stat.ethz.ch/mailman/**listinfo/r-sig-hpc<https://stat.ethz.ch/mailman/listinfo/r-sig-hpc>\n>>\n>\n> ______________________________**_________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/**listinfo/r-sig-hpc<https://stat.ethz.ch/mailman/listinfo/r-sig-hpc>\n>\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "Would you happen to have a config file that fixes this? I dont think the\npackage has been updated recently.\n\nOn Thu, Oct 18, 2012 at 6:23 AM, Pierre Chausse <pchausse at uwaterloo.ca>wrote:\n\n> The gpu",
       "thread_id": "thread-111dbc97633c",
       "thread_depth": 2,
-      "month": "2012-10"
+      "month": "2012-10",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121018/4ea37c7a/attachment.pl"
+      ]
     },
     {
       "id": "msg-5002bf752975",
@@ -272,11 +299,14 @@
       "subject_clean": "SLEPC / PETSC and R",
       "in_reply_to": null,
       "references": [],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121018/86a51cd9/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121018/86a51cd9/attachment.pl>",
+      "body_plain": "Has anyone had much luck calling SLEPC / PETSC from R? Looking for some\nbinders or help in calling a few functions.\n\nhttp://www.grycap.upv.es/slepc/\n\nhttp://www.mcs.anl.gov/petsc/\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "Has anyone had much luck calling SLEPC / PETSC from R? Looking for some\nbinders or help in calling a few functions.\n\nhttp://www.grycap.upv.es/slepc/\n\nhttp://www.mcs.anl.gov/petsc/\n\n\t[[alternative HTML",
       "thread_id": "thread-5002bf752975",
       "thread_depth": 0,
-      "month": "2012-10"
+      "month": "2012-10",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121018/86a51cd9/attachment.pl"
+      ]
     }
   ],
   "threads": [

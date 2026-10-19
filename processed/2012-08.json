@@ -13,11 +13,14 @@
       "subject_clean": "Difference between HPCS languages and R-packages for High-Performance & Parallel Computing",
       "in_reply_to": null,
       "references": [],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120805/03f8c9fe/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120805/03f8c9fe/attachment.pl>",
+      "body_plain": "Hi HPC Users,\n \nThanks in advance.\n \nI am currently using R-packages for High-Performance and Parallel Computing with R on windows XP.\n \nI have come across 3 High Performance Computing System (HPCS) languages. They are Chapel (Cray), X10 (IBM) and Fortress (Sun).\nMay I request you to assist me how these 3 HPCS languages (Chapel, X10 and Fortress) differ from R-packages dealing with High-Performance and Parallel Computing?\n \nOnce again, thank you very much for the time you have given.\n \nRegards,\n \nDeb\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "Hi HPC Users,\n \nThanks in advance.\n \nI am currently using R-packages for High-Performance and Parallel Computing with R on windows XP.\n \nI have come across 3 High Performance Computing System (HPCS) l",
       "thread_id": "thread-8fc44f440f80",
       "thread_depth": 0,
-      "month": "2012-08"
+      "month": "2012-08",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120805/03f8c9fe/attachment.pl"
+      ]
     },
     {
       "id": "msg-e30274688d58",
@@ -45,11 +48,14 @@
       "subject_clean": "(more?) efficient resampling using foreach and big.matrix/ff",
       "in_reply_to": null,
       "references": [],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120816/a0072469/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120816/a0072469/attachment.pl>",
+      "body_plain": "Dear list members,\n\nI would appreciate your advice on performance improvement of the following.\n\nSystem used: intel core i7, 2.66GHz, 2 cores, 8GB RAM, MacOS 10.6.8, R64:\n2.14.2\n\nStarting with a binary array of n= 9e6 elements in rows versus 100 subjects\nin cols, I would like to do resampling statistics using R=2000 reshuffles\non each row.\nAs result I want to store (a) the original statistic for each element\n(row), (b) the R reshuffled statistics per element, for later calculation\nof false discovery rate, and (c) the p-value of the original statistic\nbased on the null distribution observations.\nIf I did my homework right, for best performance I want to (1) use apply\ninstead of for loops, (2) parallelize the calculations, in (3) quite large\nchunks of data.\nThe question I have mainly concerns (3) for big.matrix or ff objects.\nPlease find an example below, in which I used 9e2 instead of 9e6 elements\nfor convenience. The current code takes 21.9 s for n=9e2, 2638 s for n=9e4.\nA rough estimation would be a ~70 hr run for 9e6 elements... Any ideas of\nperformance improvement are warmly appreciated.\n\nI tried several options:\n(1) using ff instead of big.matrix yields similar performance\n(2) since foreach(i=1:n) seems a bottleneck, I tried the iblkcol example\nfrom the ' Using the foreach package' documentation, intending to iterate\nselected columns of AB, with simiar performance (see 'attempt 2' below).\n(3) another possible bottleneck may be the  %dopar% { get.o(AB[,i]) }, in\nwhich AB is distributed over the slaves at each iterations, but I can't\nfind a way to select sub.matrices for big.matrix or ff more efficiently.\n\nThanks for you time and efforts, Philip\n\n\n### CODE  START ###\n\nlibrary(bigmemory)\nlibrary(foreach)\nlibrary(doMC)\nregisterDoMC(4)\n\n# array AB containing 9e6 elements for 100 subjects into a char (0/1) array\n# now using 9e2 in this code for convenience, some dummy 0/1's used here\nn <- 9e2\nAB <- big.matrix(nrow=100, ncol=n, type='char', init=0)\nforeach(i=1:ncol(AB)) %dopar% { AB[,i] <- round(runif(nrow(AB))) })\n\n# subject 1:50 belong to 'group 1' and subject 51:100 belong to 'group 2'\ngrp.org <- c(rep(1,50),rep(2,50))\n\n# shuffle labels '1' and '2' R, say 2000, times\n# result is grp.rnd holding R rows each containing reshuffle of 100 cols of\ngroup labels 1/2\nR <- 2000\ngrp.rnd <- array(dim=c(R, length(grp.org)))\nfor (i in 1:R) { grp.rnd[i,] <- sample(grp.org, length(grp.org))}\n\n# some functions\nget.o <- function(v,g=grp.org) {\n  # function calculates [o]bservation, here sum of group 1 minus sum of\ngroup 2 for a row of AB as vector\n  # input: [v]ector, [g]roup labels, output: single value\n  return(sum(v[which(g==1)]) - sum(v[which(g==2)]))\n}\nget.d <- function(v,s=grp.rnd) {\n  # function calculates observations for reshuffled observations\n  # input: [v]ector, re[s]huffled array Rx100, output: [d]istribution as\nvector of R reshuffled observations\n  return(apply(s, MARGIN=1, function(a) {get.o(v, a)}))\n}\nget.p <- function(o,d) {\n  # function calculates onse-sided p-value\n  # input: [o]riginal observation and reshuffled null [d]istribution,\noutput: single [p] value\n  r <- sum(d <= o) / length(d)\n  p <- ifelse(r < 0.5, r, 1-r)\n  return(p)\n}\n\n# test on single cols\ntest.o <- get.o(AB[,1]); test.o\ntest.d <- get.d(AB[,1]); test.d\ntest.p <- get.p(test.o,test.d); test.p\n\n# init big matrices for results\noBM <- big.matrix(nrow=n, ncol=1, type='integer', init=NULL)\ndBM <- big.matrix(nrow=R, ncol=n, type='integer', init=NULL)\npBM <- big.matrix(nrow=n, ncol=1, type='double', init=NULL)\n\ngc()\nsystem.time({\n  oBM <- foreach(i=1:n, .combine=c    ) %dopar% { get.o(AB[,i]) }\n  dBM <- foreach(i=1:n, .combine=cbind) %dopar% { get.d(AB[,i]) }\n  pBM <- foreach(i=1:n, .combine=c    ) %dopar% { get.p(oBM[i],dBM[,i]) }\n})\n\n### CODE END ###\n\n\n### ATTEMPT 2: ###\n\niblkcol <- function(a, chunks) {\nn <- ncol(a)\ni <- 1\nnextElem <- function() {\nif (chunks <= 0 || n <= 0) stop('StopIteration')\nm <- ceiling(n / chunks)\nr <- seq(i, length=m)\ni <<- i + m\nn <<- n - m\nchunks <<- chunks - 1\na[,r, drop=FALSE]\n}\nstructure(list(nextElem=nextElem), class=c('iblkcol', 'iter'))\n}\nnextElem.iblkcol <- function(obj) obj$nextElem()\n\nsystem.time({\n  oBM <- foreach(these=iblkcol(AB,chunks=4), .combine=c) %dopar% {\n    foreach(i=1:ncol(these), .combine=c) %do% { get.o(these[,i]) }}\n  dBM <- foreach(these=iblkcol(AB,chunks=4), .combine=cbind) %dopar% {\n   foreach(i=1:ncol(these), .combine=cbind) %do% { get.d(these[,i]) }}\n  pBM <- foreach(i=1:n, .combine=c    ) %dopar% { get.p(oBM[i],dBM[,i]) }\n})\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "Dear list members,\n\nI would appreciate your advice on performance improvement of the following.\n\nSystem used: intel core i7, 2.66GHz, 2 cores, 8GB RAM, MacOS 10.6.8, R64:\n2.14.2\n\nStarting with a binar",
       "thread_id": "thread-3eca2c94ef88",
       "thread_depth": 0,
-      "month": "2012-08"
+      "month": "2012-08",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120816/a0072469/attachment.pl"
+      ]
     },
     {
       "id": "msg-6777af2d2d86",
@@ -184,11 +190,14 @@
       "subject_clean": "Parallel linear model",
       "in_reply_to": null,
       "references": [],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120822/c54a76bc/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120822/c54a76bc/attachment.pl>",
+      "body_plain": "Hello,\n \n \nI wonder if someone has experience with efficient ways of implicit parallel execution of (repeated) linear models (as in the non-parallel example below)? Any suggestions on which way to go?\n \nPatrik Waldmann\n \npval<-c(1:n)\nfor (i in 1:n){\nmod <- lm(y ~ x[,i])\npval[i] <- summary(mod)$coefficients[2,4]\n}\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "Hello,\n \n \nI wonder if someone has experience with efficient ways of implicit parallel execution of (repeated) linear models (as in the non-parallel example below)? Any suggestions on which way to go?",
       "thread_id": "thread-75d7edea0f76",
       "thread_depth": 0,
-      "month": "2012-08"
+      "month": "2012-08",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120822/c54a76bc/attachment.pl"
+      ]
     },
     {
       "id": "msg-0f9900909105",
@@ -200,11 +209,14 @@
       "subject_clean": "Parallel Linear Model",
       "in_reply_to": null,
       "references": [],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120822/c3d7e301/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120822/c3d7e301/attachment.pl>",
+      "body_plain": "Patrik,\n\nYour question (at least from you example) is really about general parallel\ncomputing.  Nothing you want to do with your linear model from your short\nexample requires some special type of parallelism.  I recommend package\n'foreach' with the parallel backends, or else the package 'parallel' that\ncomes with the newer versions of R.  You could also have a look at Dirk's\nHPC page:\n\nhttp://cran.r-project.org/web/views/HighPerformanceComputing.html\n\nJay\n\n-- \nJohn W. Emerson (Jay)\nAssociate Professor of Statistics, Adjunct, and Acting Director of Graduate\nStudies\nDepartment of Statistics\nYale University\nhttp://www.stat.yale.edu/~jay\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "Patrik,\n\nYour question (at least from you example) is really about general parallel\ncomputing.  Nothing you want to do with your linear model from your short\nexample requires some special type of para",
       "thread_id": "thread-0f9900909105",
       "thread_depth": 0,
-      "month": "2012-08"
+      "month": "2012-08",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120822/c3d7e301/attachment.pl"
+      ]
     },
     {
       "id": "msg-cb731120d6d5",
@@ -237,11 +249,14 @@
       "references": [
         "<CALbRwZbrXSK4WOHp4V9d2bMZsx3BKph2T+fEcTAFGEts-ZvXQQ@mail.gmail.com>"
       ],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120822/bcabb5b3/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120822/bcabb5b3/attachment.pl>",
+      "body_plain": "I did not manage to implement this example in foreach, could anyone point me to a similar example?\n \nPatrik\n\n>>> Jay Emerson <jayemerson at gmail.com> 22/08/2012 14:05 >>>\n\nPatrik,\n\nYour question (at least from you example) is really about general parallel computing. Nothing you want to do with your linear model from your short example requires some special type of parallelism. I recommend package 'foreach' with the parallel backends, or else the package 'parallel' that comes with the newer versions of R. You could also have a look at Dirk's HPC page:\n\nhttp://cran.r-project.org/web/views/HighPerformanceComputing.html\n\nJay\n\n-- \nJohn W. Emerson (Jay)\nAssociate Professor of Statistics, Adjunct, and Acting Director of Graduate Studies\nDepartment of Statistics\nYale University\nhttp://www.stat.yale.edu/~jay ( http://www.stat.yale.edu/%7Ejay )\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "I did not manage to implement this example in foreach, could anyone point me to a similar example?\n \nPatrik\n\n>>> Jay Emerson <jayemerson at gmail.com> 22/08/2012 14:05 >>>\n\nPatrik,\n\nYour question (at ",
       "thread_id": "thread-0f9900909105",
       "thread_depth": 1,
-      "month": "2012-08"
+      "month": "2012-08",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120822/bcabb5b3/attachment.pl"
+      ]
     },
     {
       "id": "msg-b6c6e943769d",
@@ -256,11 +271,14 @@
         "<CALbRwZbrXSK4WOHp4V9d2bMZsx3BKph2T+fEcTAFGEts-ZvXQQ@mail.gmail.com>",
         "<50350D30020000F90000ADAC@gwia1.boku.ac.at>"
       ],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120822/d9de3d3e/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120822/d9de3d3e/attachment.pl>",
+      "body_plain": "Patrik,\n\nYour example could be re-written as something like:\n\npval <- foreach (i =1:n, .combine=c) %dopar% {\nmod <- lm(y ~ x[,i])\nsummary(mod)$coefficients[2,4]\n}\n\nBut without a reproducible example I won't be able to help you further.\n\n-Zach\n\nOn Wed, Aug 22, 2012 at 10:47 AM, Patrik Waldmann <\npatrik.waldmann at boku.ac.at> wrote:\n\n> I did not manage to implement this example in foreach, could anyone point\n> me to a similar example?\n>\n> Patrik\n>\n> >>> Jay Emerson <jayemerson at gmail.com> 22/08/2012 14:05 >>>\n>\n> Patrik,\n>\n> Your question (at least from you example) is really about general parallel\n> computing. Nothing you want to do with your linear model from your short\n> example requires some special type of parallelism. I recommend package\n> 'foreach' with the parallel backends, or else the package 'parallel' that\n> comes with the newer versions of R. You could also have a look at Dirk's\n> HPC page:\n>\n> http://cran.r-project.org/web/views/HighPerformanceComputing.html\n>\n> Jay\n>\n> --\n> John W. Emerson (Jay)\n> Associate Professor of Statistics, Adjunct, and Acting Director of\n> Graduate Studies\n> Department of Statistics\n> Yale University\n> http://www.stat.yale.edu/~jay ( http://www.stat.yale.edu/%7Ejay )\n>\n>         [[alternative HTML version deleted]]\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "Patrik,\n\nYour example could be re-written as something like:\n\npval <- foreach (i =1:n, .combine=c) %dopar% {\nmod <- lm(y ~ x[,i])\nsummary(mod)$coefficients[2,4]\n}\n\nBut without a reproducible example I",
       "thread_id": "thread-0f9900909105",
       "thread_depth": 2,
-      "month": "2012-08"
+      "month": "2012-08",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120822/d9de3d3e/attachment.pl"
+      ]
     },
     {
       "id": "msg-dfe0618c6176",
@@ -315,11 +333,14 @@
         "<50350D30020000F90000ADAC@gwia1.boku.ac.at>",
         "<3433F275-E0B1-46FB-BB98-AD8B95CC7B15@r-project.org>"
       ],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120822/c07d58be/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120822/c07d58be/attachment.pl>",
+      "body_plain": "That seems to be a good idea (for 8 cores):\n \ny<-rnorm(1000)\nx<-matrix(rnorm(1000*10000),ncol=10000)\ndimx<-dim(x)\n \nlibrary(doParallel)\nlibrary(foreach)\ncl <- makeCluster(8, methods=FALSE)\nregisterDoParallel(cl)\nprint(system.time(\npval <- foreach (i =1:dimx[2], .combine=c) %dopar% {\nmod <- lm(y ~ x[,i])\nsummary(mod)$coefficients[2,4]\n}\n))\n\n   user  system elapsed \n  12.28    2.75  231.93 \n \nstopCluster(cl)\n \nlibrary(parallel)\ncl <- makeCluster(8, methods=FALSE)\nprint(system.time(\npval <- unlist(mclapply(1:dimx[2], function(i) summary(lm(y ~ x[,i]))$coefficients[2,4]))\n))\n \n   user  system elapsed \n  21.80    1.33   25.78 \n \nstopCluster(cl)\n \n \nPatrik\n \n\n>>> Simon Urbanek <simon.urbanek at r-project.org> 22/08/2012 17:20 >>>\n\nOn Aug 22, 2012, at 10:47 AM, Patrik Waldmann <patrik.waldmann at boku.ac.at> wrote:\n\n> I did not manage to implement this example in foreach, could anyone point me to a similar example?\n> \n\nI would't even both with foreach for something as simple - you can write it trivially as\n\nlibrary(parallel)\n\npval <- unlist(mclapply(1:n, function(i) summary(lm(y ~ x[,i]))$coefficients[2,4]))\n\nCheers,\nSimon\n\n\n> Patrik\n> \n>>>> Jay Emerson <jayemerson at gmail.com> 22/08/2012 14:05 >>>\n> \n> Patrik,\n> \n> Your question (at least from you example) is really about general parallel computing. Nothing you want to do with your linear model from your short example requires some special type of parallelism. I recommend package 'foreach' with the parallel backends, or else the package 'parallel' that comes with the newer versions of R. You could also have a look at Dirk's HPC page:\n> \n> http://cran.r-project.org/web/views/HighPerformanceComputing.html\n> \n> Jay\n> \n> -- \n> John W. Emerson (Jay)\n> Associate Professor of Statistics, Adjunct, and Acting Director of Graduate Studies\n> Department of Statistics\n> Yale University\n> http://www.stat.yale.edu/~jay ( http://www.stat.yale.edu/%7Ejay )\n> \n> [[alternative HTML version deleted]]\n> \n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n> \n> \n\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "That seems to be a good idea (for 8 cores):\n \ny<-rnorm(1000)\nx<-matrix(rnorm(1000*10000),ncol=10000)\ndimx<-dim(x)\n \nlibrary(doParallel)\nlibrary(foreach)\ncl <- makeCluster(8, methods=FALSE)\nregisterDoP",
       "thread_id": "thread-0f9900909105",
       "thread_depth": 3,
-      "month": "2012-08"
+      "month": "2012-08",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120822/c07d58be/attachment.pl"
+      ]
     },
     {
       "id": "msg-fecc90a916b3",
@@ -605,11 +626,14 @@
         "<50357790.1020409@fhcrc.org>",
         "<20533.32494.68724.964680@max.nulle.part>"
       ],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120823/0b27f45a/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120823/0b27f45a/attachment.pl>",
+      "body_plain": "Here's a comparison on Windows based on 8 cores (excluding foreach):\n> y<-rnorm(1000)\n> x<-matrix(rnorm(1000*10000),ncol=10000)\n> dimx<-dim(x)\n> library(rbenchmark)\n> benchmark(pval<-apply(x,2, function(x)summary(lm(y~x))$coeff[2,4]), replications=1)\n                                                             \n1 pval <- apply(x, 2, function(x) summary(lm(y ~ x))$coeff[2, 4])            \ntest replications elapsed relative user.self sys.self user.child sys.child\n1    1   25.16        1     20.46     2.17         NA        NA\n \n> library(parallel)\n> cores<-detectCores()\n> cl <- makeCluster(cores, methods=FALSE)\n> clusterExport(cl,\"y\")\n> benchmark(pval<-parApply(cl, x,2, function(x)summary(lm(y~x))$coeff[2,4]), replications=1)\n1 pval <- parApply(cl, x, 2, function(x) summary(lm(y ~ x))$coeff[2, 4])\n  test replications elapsed relative user.self sys.self user.child sys.child\n1      1    5.52        1      0.74     0.28         NA        NA\n \n> stopCluster(cl)\n \n# More fair\n \n> benchmark({cores<-detectCores()\n+ cl <- makeCluster(cores, methods=FALSE)\n+ clusterExport(cl,\"y\")\n+ pval<-parApply(cl, x,2, function(x)summary(lm(y~x))$coeff[2,4])}, replications=1)\n  test replications elapsed relative user.self sys.self user.child sys.child\n1    {            1    7.11        1      0.65     0.37         NA        NA\nWarning messages:\n1: closing unused connection 10 (<-patwa-PC:10187) \n2: closing unused connection 9 (<-patwa-PC:10187) \n3: closing unused connection 8 (<-patwa-PC:10187) \n4: closing unused connection 7 (<-patwa-PC:10187) \n5: closing unused connection 6 (<-patwa-PC:10187) \n6: closing unused connection 5 (<-patwa-PC:10187) \n7: closing unused connection 4 (<-patwa-PC:10187) \n8: closing unused connection 3 (<-patwa-PC:10187) \n> stopCluster(cl)\n \nWhat does the warnings refer to?\n \nPatrik\n\n>>> Dirk Eddelbuettel <edd at debian.org> 23/08/2012 02:53 >>>\n\nThe difference between user and elapsed is an old hat. Here is a great\nexample (and IIRC first shown here by Simon) with no compute time:\n\n   R> system.time(mclapply(1:8, function(x) Sys.sleep(1)))   ## 2 cores by default\n      user  system elapsed \n     0.000   0.012   4.014 \n   R> system.time(mclapply(1:8, function(x) Sys.sleep(1), mc.cores=8))\n      user  system elapsed \n     0.012   0.020   1.039 \n   R> \n\nso elapsed time is effectively the one second a Sys.sleep(1) takes, plus\noverhead, if we allow for all eight (hyperthreaded) cores here.  By Brian\nRipley's choice a default of two is baked-in, so clueless users only get a\nsmall gain.  \"user time\" is roughly the actual system load _summed over all\nprocesses / threads_.\n\nWith that, could I ask any of the participants in the thread to re-try with a\nproper benchmarking package such as rbenchmark or microbenchmark?  Either one\nbeats to the socks of system.time:\n\n   R> library(rbenchmark)\n   R> benchmark( mclapply(1:8, function(x) Sys.sleep(1)), mclapply(1:8, function(x) Sys.sleep(1), mc.cores=8), replications=1)\n                                                      test replications elapsed relative user.self sys.self user.child sys.child\n   1               mclapply(1:8, function(x) Sys.sleep(1))            1   4.013  3.89612     0.000    0.008      0.000     0.004\n   2 mclapply(1:8, function(x) Sys.sleep(1), mc.cores = 8)            1   1.030  1.00000     0.004    0.008      0.004     0.000\n   R> \n\nand\n\n   R> library(microbenchmark)\n   R> microbenchmark( mclapply(1:8, function(x) Sys.sleep(1)), mclapply(1:8, function(x) Sys.sleep(1), mc.cores=8), times=1)\n   Unit: seconds\n                                                      expr     min      lq  median      uq     max\n   1               mclapply(1:8, function(x) Sys.sleep(1)) 4.01377 4.01377 4.01377 4.01377 4.01377\n   2 mclapply(1:8, function(x) Sys.sleep(1), mc.cores = 8) 1.03457 1.03457 1.03457 1.03457 1.03457\n   R> \n\n(and you normally want to run either with 10 or 100 or ... replications /\ntimes).\n\nDirk\n\n-- \nDirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com\n\n_______________________________________________\nR-sig-hpc mailing list\nR-sig-hpc at r-project.org\nhttps://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "Here's a comparison on Windows based on 8 cores (excluding foreach):\n> y<-rnorm(1000)\n> x<-matrix(rnorm(1000*10000),ncol=10000)\n> dimx<-dim(x)\n> library(rbenchmark)\n> benchmark(pval<-apply(x,2, functi",
       "thread_id": "thread-75d7edea0f76",
       "thread_depth": 5,
-      "month": "2012-08"
+      "month": "2012-08",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120823/0b27f45a/attachment.pl"
+      ]
     },
     {
       "id": "msg-cdafd1cc8132",
@@ -703,11 +727,14 @@
       "references": [
         "<50362972.7090803@opentrades.nl>"
       ],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120823/5a4ad1c0/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120823/5a4ad1c0/attachment.pl>",
+      "body_plain": "Have you tried checking the redis timeout parameter on the sever?\n\nOn Thu, Aug 23, 2012 at 9:00 AM, OpenTrades <jan at opentrades.nl> wrote:\n\n> I have been trying to use the R/Quantstrat applyParameters() function to\n> analyze the performance for 1200 different Moving Average parameter\n> combinations in the \"Luxor\" trading strategy. As I want to test with 6\n> years of GBP/USD pricing info at a 30 minute interval, each individual\n> tests requires 15 minutes or more, so this is where doRedis comes into\n> play.\n>\n> The platform that I am using is Amazon EC2. I configure one Redis server\n> as a master, and from this master I also run the R program. Then I start\n> up a bunch of slaves, containing 8 CPUs and 7GB of memory each\n> (c1.xlarge in Amazon EC2 parlor), which automatically connect to the\n> redis server, so I end up with a range of workers, which is a multiple of\n> 8.\n>\n> Now if I test with only 10 days of data (instead of 6 years), or even 3\n> months, everything is great, whether I use 1 slave or 40 slaves (= 320\n> workers). But whenever I run with more than 1 year of data, I start\n> getting problems, where workers will no longer be assigned a new job\n> after the first one completes, and the worker count decreases in the\n> redis-server window. Whenever this occurs, then if I restart the workers\n> manually, they will log on to the redis server again and get assigned a\n> new job; however once again no new job will be assigned to them after\n> completion.\n>\n> It seems that this has something to do with the amount of time that it\n> takes to complete the task. When renting multiple EC2 machines of the\n> same instance type, they often appear to be slightly different\n> nevertheless. And I found that, when running with 15 months of price\n> data, one particular type (CPU freq = 2.13GHz / cache size=4096MB) gets\n> assigned one job for each of its 8 workers, but then none to any worker\n> anymore, where another much faster type (CPU freq=2.33GHz / cache\n> size=6144MB) runs continuously without a flaw. FYI: all slaves share the\n> same identical disk image.\n>\n> Anyone any ideas how to proceed and fix this? Or test I can do to find out\n> what goes wrong?\n>\n> --\n> Jan Humme - OpenTrades\n>\n> WWW:     http://www.opentrades.nl\n> Email:   jan at opentrades.nl\n> Twitter: @opentrades\n>\n> ______________________________**_________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/**listinfo/r-sig-hpc<https://stat.ethz.ch/mailman/listinfo/r-sig-hpc>\n>\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "Have you tried checking the redis timeout parameter on the sever?\n\nOn Thu, Aug 23, 2012 at 9:00 AM, OpenTrades <jan at opentrades.nl> wrote:\n\n> I have been trying to use the R/Quantstrat applyParamete",
       "thread_id": "thread-cdafd1cc8132",
       "thread_depth": 1,
-      "month": "2012-08"
+      "month": "2012-08",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120823/5a4ad1c0/attachment.pl"
+      ]
     },
     {
       "id": "msg-8b5241052752",
@@ -741,11 +768,14 @@
         "<50362972.7090803@opentrades.nl>",
         "<CAEr64e9Q2Ppu-tAx_hiXux3R50=ps=ghK9cbd0T2+CN5WKQVRQ@mail.gmail.com>"
       ],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120823/048a4d55/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120823/048a4d55/attachment.pl>",
+      "body_plain": "yes i did, both timeout=0 and timeout=86400, but same results\n\nSent from my iPhone\n\nOn 23 aug. 2012, at 15:29, Zachary Mayer <zach.mayer at gmail.com> wrote:\n\n> Have you tried checking the redis timeout parameter on the sever?\n> \n> On Thu, Aug 23, 2012 at 9:00 AM, OpenTrades <jan at opentrades.nl> wrote:\n> I have been trying to use the R/Quantstrat applyParameters() function to\n> analyze the performance for 1200 different Moving Average parameter\n> combinations in the \"Luxor\" trading strategy. As I want to test with 6\n> years of GBP/USD pricing info at a 30 minute interval, each individual\n> tests requires 15 minutes or more, so this is where doRedis comes into\n> play.\n> \n> The platform that I am using is Amazon EC2. I configure one Redis server\n> as a master, and from this master I also run the R program. Then I start\n> up a bunch of slaves, containing 8 CPUs and 7GB of memory each\n> (c1.xlarge in Amazon EC2 parlor), which automatically connect to the\n> redis server, so I end up with a range of workers, which is a multiple of 8.\n> \n> Now if I test with only 10 days of data (instead of 6 years), or even 3\n> months, everything is great, whether I use 1 slave or 40 slaves (= 320\n> workers). But whenever I run with more than 1 year of data, I start\n> getting problems, where workers will no longer be assigned a new job\n> after the first one completes, and the worker count decreases in the\n> redis-server window. Whenever this occurs, then if I restart the workers\n> manually, they will log on to the redis server again and get assigned a\n> new job; however once again no new job will be assigned to them after\n> completion.\n> \n> It seems that this has something to do with the amount of time that it\n> takes to complete the task. When renting multiple EC2 machines of the\n> same instance type, they often appear to be slightly different\n> nevertheless. And I found that, when running with 15 months of price\n> data, one particular type (CPU freq = 2.13GHz / cache size=4096MB) gets\n> assigned one job for each of its 8 workers, but then none to any worker\n> anymore, where another much faster type (CPU freq=2.33GHz / cache\n> size=6144MB) runs continuously without a flaw. FYI: all slaves share the\n> same identical disk image.\n> \n> Anyone any ideas how to proceed and fix this? Or test I can do to find out\n> what goes wrong?\n> \n> -- \n> Jan Humme - OpenTrades\n> \n> WWW:     http://www.opentrades.nl\n> Email:   jan at opentrades.nl\n> Twitter: @opentrades\n> \n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n> \n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "yes i did, both timeout=0 and timeout=86400, but same results\n\nSent from my iPhone\n\nOn 23 aug. 2012, at 15:29, Zachary Mayer <zach.mayer at gmail.com> wrote:\n\n> Have you tried checking the redis timeo",
       "thread_id": "thread-cdafd1cc8132",
       "thread_depth": 2,
-      "month": "2012-08"
+      "month": "2012-08",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120823/048a4d55/attachment.pl"
+      ]
     },
     {
       "id": "msg-e28c476ac463",
@@ -913,11 +943,14 @@
         "<20533.32494.68724.964680@max.nulle.part>",
         "<50361E28020000F90000ADCE@gwia1.boku.ac.at>"
       ],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120824/409727a3/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120824/409727a3/attachment.pl>",
+      "body_plain": "I have some additional questions: I want to add an extra matrix that I keep fixed, but I cannot get the parallel version working, any suggestions?\n \ny<-rnorm(1000)\nx<-matrix(rnorm(1000*10000),ncol=10000)\nfix<-matrix(rnorm(1000*10),ncol=10)\n#Non-parallel version works fine\npval<-apply(x,2, function(x)summary(lm(y~x+fix))$coeff[2,4])\n \nlibrary(parallel)\ncores<-detectCores()\ncl <- makeCluster(cores, methods=FALSE)\nclusterExport(cl,\"y\",\"fix\")\npvalstruct<-parApply(cl, x,2, function(x)summary(lm(y~x+fix))$coeff[2,4])\n \n \nPatrik\n \n\n>>> \"Patrik Waldmann\" <patrik.waldmann at boku.ac.at> 23/08/2012 12:12 >>>\nHere's a comparison on Windows based on 8 cores (excluding foreach):\n> y<-rnorm(1000)\n> x<-matrix(rnorm(1000*10000),ncol=10000)\n> dimx<-dim(x)\n> library(rbenchmark)\n> benchmark(pval<-apply(x,2, function(x)summary(lm(y~x))$coeff[2,4]), replications=1)\n                                                             \n1 pval <- apply(x, 2, function(x) summary(lm(y ~ x))$coeff[2, 4])            \ntest replications elapsed relative user.self sys.self user.child sys.child\n1    1   25.16        1     20.46     2.17         NA        NA\n\n> library(parallel)\n> cores<-detectCores()\n> cl <- makeCluster(cores, methods=FALSE)\n> clusterExport(cl,\"y\")\n> benchmark(pval<-parApply(cl, x,2, function(x)summary(lm(y~x))$coeff[2,4]), replications=1)\n1 pval <- parApply(cl, x, 2, function(x) summary(lm(y ~ x))$coeff[2, 4])\n  test replications elapsed relative user.self sys.self user.child sys.child\n1      1    5.52        1      0.74     0.28         NA        NA\n\n> stopCluster(cl)\n\n# More fair\n\n> benchmark({cores<-detectCores()\n+ cl <- makeCluster(cores, methods=FALSE)\n+ clusterExport(cl,\"y\")\n+ pval<-parApply(cl, x,2, function(x)summary(lm(y~x))$coeff[2,4])}, replications=1)\n  test replications elapsed relative user.self sys.self user.child sys.child\n1    {            1    7.11        1      0.65     0.37         NA        NA\nWarning messages:\n1: closing unused connection 10 (<-patwa-PC:10187) \n2: closing unused connection 9 (<-patwa-PC:10187) \n3: closing unused connection 8 (<-patwa-PC:10187) \n4: closing unused connection 7 (<-patwa-PC:10187) \n5: closing unused connection 6 (<-patwa-PC:10187) \n6: closing unused connection 5 (<-patwa-PC:10187) \n7: closing unused connection 4 (<-patwa-PC:10187) \n8: closing unused connection 3 (<-patwa-PC:10187) \n> stopCluster(cl)\n\nWhat does the warnings refer to?\n\nPatrik\n\n>>> Dirk Eddelbuettel <edd at debian.org> 23/08/2012 02:53 >>>\n\nThe difference between user and elapsed is an old hat. Here is a great\nexample (and IIRC first shown here by Simon) with no compute time:\n\n   R> system.time(mclapply(1:8, function(x) Sys.sleep(1)))   ## 2 cores by default\n      user  system elapsed \n     0.000   0.012   4.014 \n   R> system.time(mclapply(1:8, function(x) Sys.sleep(1), mc.cores=8))\n      user  system elapsed \n     0.012   0.020   1.039 \n   R> \n\nso elapsed time is effectively the one second a Sys.sleep(1) takes, plus\noverhead, if we allow for all eight (hyperthreaded) cores here.  By Brian\nRipley's choice a default of two is baked-in, so clueless users only get a\nsmall gain.  \"user time\" is roughly the actual system load _summed over all\nprocesses / threads_.\n\nWith that, could I ask any of the participants in the thread to re-try with a\nproper benchmarking package such as rbenchmark or microbenchmark?  Either one\nbeats to the socks of system.time:\n\n   R> library(rbenchmark)\n   R> benchmark( mclapply(1:8, function(x) Sys.sleep(1)), mclapply(1:8, function(x) Sys.sleep(1), mc.cores=8), replications=1)\n                                                      test replications elapsed relative user.self sys.self user.child sys.child\n   1               mclapply(1:8, function(x) Sys.sleep(1))            1   4.013  3.89612     0.000    0.008      0.000     0.004\n   2 mclapply(1:8, function(x) Sys.sleep(1), mc.cores = 8)            1   1.030  1.00000     0.004    0.008      0.004     0.000\n   R> \n\nand\n\n   R> library(microbenchmark)\n   R> microbenchmark( mclapply(1:8, function(x) Sys.sleep(1)), mclapply(1:8, function(x) Sys.sleep(1), mc.cores=8), times=1)\n   Unit: seconds\n                                                      expr     min      lq  median      uq     max\n   1               mclapply(1:8, function(x) Sys.sleep(1)) 4.01377 4.01377 4.01377 4.01377 4.01377\n   2 mclapply(1:8, function(x) Sys.sleep(1), mc.cores = 8) 1.03457 1.03457 1.03457 1.03457 1.03457\n   R> \n\n(and you normally want to run either with 10 or 100 or ... replications /\ntimes).\n\nDirk\n\n-- \nDirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com\n\n_______________________________________________\nR-sig-hpc mailing list\nR-sig-hpc at r-project.org\nhttps://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n\n[[alternative HTML version deleted]]\n\n_______________________________________________\nR-sig-hpc mailing list\nR-sig-hpc at r-project.org\nhttps://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "I have some additional questions: I want to add an extra matrix that I keep fixed, but I cannot get the parallel version working, any suggestions?\n \ny<-rnorm(1000)\nx<-matrix(rnorm(1000*10000),ncol=100",
       "thread_id": "thread-75d7edea0f76",
       "thread_depth": 6,
-      "month": "2012-08"
+      "month": "2012-08",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120824/409727a3/attachment.pl"
+      ]
     },
     {
       "id": "msg-650e7443c165",

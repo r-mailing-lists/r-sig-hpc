@@ -31,11 +31,14 @@
       "subject_clean": "Rsge",
       "in_reply_to": null,
       "references": [],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110406/38cf5585/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110406/38cf5585/attachment.pl>",
+      "body_plain": "Hi,\n\nI was trying some of the tests with Rsge. I get an error, and I'm not sure I\nunderstand why. It works ok for a single node, but gives errors when\nmultiple nodes are involved. Any help/comments would be appreciated!\n\n############ code block ###########\n###### r hpc sig\nlibrary(Rsge)\nlibrary(nlme)\n\nncols <- 500\nnrows <- 50\nresponse <- runif(ncols,1,1000)\nd <- matrix(data = runif(n=nrows*ncols,1,1000),\n        ncol=ncols,\n        nrow=nrows,\n        dimnames=list(paste(sep=\"\",\"R\",1:nrows),paste(sep=\"\",\"C\",1:ncols)))\n\nf2x <- as.factor(sample(1:300,500,replace=T))\n\nf1lme <- function(x,y,f2x){\n    lmex <- lme(y~x, random = ~1|factor(f2x))\n    return(lmex)\n}\n\n### Single node and sge\nre    <- apply(d,1,f1lme,y=response,f2x)\nrep <- sge.parRapply(d, f1lme,y=response,f2x, njobs = 3, join.method=c)\n\n############# end code block #########\n\nThis gives the following error:\n\n> re    <- apply(d,1,f1lme,y=response,f2x)\n> rep <- sge.parRapply(d, f1lme,y=response,f2x, njobs = 3, join.method=c)\nCompleted storing environment to disk\nSubmitting  3 jobs...\nAll jobs completed\nError in FUN(newX[, i], ...) : could not find function \"lme\"\nError in FUN(newX[, i], ...) : could not find function \"lme\"\nError in FUN(newX[, i], ...) : could not find function \"lme\"\n[1] \"Not running join method since there are errors\"\nWarning messages:\n1: In FUN(c(\"/home/bs/Rsge_data129dbfec-1.sge.ret\",\n\"/home/pankaj/Rsge_data129dbfec-2.sge.ret\",  :\n  Error(s) encountered in the remote R session\n2: In FUN(c(\"/home/bs/Rsge_data129dbfec-1.sge.ret\",\n\"/home/pankaj/Rsge_data129dbfec-2.sge.ret\",  :\n  Error(s) encountered in the remote R session\n3: In FUN(c(\"/home/bs/Rsge_data129dbfec-1.sge.ret\",\n\"/home/pankaj/Rsge_data129dbfec-2.sge.ret\",  :\n  Error(s) encountered in the remote R session\n>\n\n=========================== sessionInfo =============\n> sessionInfo()\nR version 2.11.1 (2010-05-31)\nx86_64-unknown-linux-gnu\n\nlocale:\n [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C\n [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8\n [5] LC_MONETARY=C              LC_MESSAGES=en_US.UTF-8\n [7] LC_PAPER=en_US.UTF-8       LC_NAME=C\n [9] LC_ADDRESS=C               LC_TELEPHONE=C\n[11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C\n\nattached base packages:\n[1] stats     graphics  grDevices utils     datasets  methods   base\n\nother attached packages:\n[1] nlme_3.1-98 Rsge_0.6.3  snow_0.3-3\n\nloaded via a namespace (and not attached):\n[1] grid_2.11.1    lattice_0.18-8\n>\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "Hi,\n\nI was trying some of the tests with Rsge. I get an error, and I'm not sure I\nunderstand why. It works ok for a single node, but gives errors when\nmultiple nodes are involved. Any help/comments wo",
       "thread_id": "thread-51e6b598a0fd",
       "thread_depth": 0,
-      "month": "2011-04"
+      "month": "2011-04",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110406/38cf5585/attachment.pl"
+      ]
     },
     {
       "id": "msg-c274d8c64cf1",
@@ -49,11 +52,14 @@
       "references": [
         "<BANLkTimnF6MZbCVVTRx1+5ZnCqb3T9oi5A@mail.gmail.com>"
       ],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110406/49bc93a6/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110406/49bc93a6/attachment.pl>",
+      "body_plain": "However, if the package is loaded within the function call, then everything\nseems to be ok. ...?? Where am I going wrong?\n\n###### code #########\n\nlibrary(Rsge)\nlibrary(nlme)\n\nncols <- 500\nnrows <- 50\nresponse <- runif(ncols,1,1000)\nd <- matrix(data = runif(n=nrows*ncols,1,1000),\n        ncol=ncols,\n        nrow=nrows,\n        dimnames=list(paste(sep=\"\",\"R\",1:nrows),paste(sep=\"\",\"C\",1:ncols)))\n\nf2x <- sample(1:300,500,replace=T)\n\nf1lme <- function(x,y,f2x){\n\n### LOAD LIBRARY INSIDE FUNCTION ?!?\n    library(nlme)\n    lmex <- lme(y~x, random = ~1|factor(f2x))\n    return(lmex)\n}\n\n### Single node and sge\nre  <- apply(d,1,f1lme,y=response,f2x)\nrep <- sge.parRapply(d, f1lme,y=response,f2x, njobs = 3, join.method=c)\n\n\n############### output ####\n\n> re  <- apply(d,1,f1lme,y=response,f2x)\n\n> rep <- sge.parRapply(d, f1lme,y=response,f2x, njobs = 3, join.method=c)\nCompleted storing environment to disk\nSubmitting  3 jobs...\nAll jobs completed\n>\n>\n\n\n\nOn Wed, Apr 6, 2011 at 1:32 PM, Brian Smith <bsmith030465 at gmail.com> wrote:\n\n> Hi,\n>\n> I was trying some of the tests with Rsge. I get an error, and I'm not sure\n> I understand why. It works ok for a single node, but gives errors when\n> multiple nodes are involved. Any help/comments would be appreciated!\n>\n> ############ code block ###########\n> ###### r hpc sig\n> library(Rsge)\n> library(nlme)\n>\n> ncols <- 500\n> nrows <- 50\n> response <- runif(ncols,1,1000)\n> d <- matrix(data = runif(n=nrows*ncols,1,1000),\n>         ncol=ncols,\n>         nrow=nrows,\n>         dimnames=list(paste(sep=\"\",\"R\",1:nrows),paste(sep=\"\",\"C\",1:ncols)))\n>\n> f2x <- as.factor(sample(1:300,500,replace=T))\n>\n> f1lme <- function(x,y,f2x){\n>     lmex <- lme(y~x, random = ~1|factor(f2x))\n>     return(lmex)\n> }\n>\n> ### Single node and sge\n> re    <- apply(d,1,f1lme,y=response,f2x)\n> rep <- sge.parRapply(d, f1lme,y=response,f2x, njobs = 3, join.method=c)\n>\n> ############# end code block #########\n>\n> This gives the following error:\n>\n> > re    <- apply(d,1,f1lme,y=response,f2x)\n> > rep <- sge.parRapply(d, f1lme,y=response,f2x, njobs = 3, join.method=c)\n> Completed storing environment to disk\n> Submitting  3 jobs...\n> All jobs completed\n> Error in FUN(newX[, i], ...) : could not find function \"lme\"\n> Error in FUN(newX[, i], ...) : could not find function \"lme\"\n> Error in FUN(newX[, i], ...) : could not find function \"lme\"\n> [1] \"Not running join method since there are errors\"\n>\n> =========================== sessionInfo =============\n> > sessionInfo()\n> R version 2.11.1 (2010-05-31)\n> x86_64-unknown-linux-gnu\n>\n> locale:\n>  [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C\n>  [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8\n>  [5] LC_MONETARY=C              LC_MESSAGES=en_US.UTF-8\n>  [7] LC_PAPER=en_US.UTF-8       LC_NAME=C\n>  [9] LC_ADDRESS=C               LC_TELEPHONE=C\n> [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C\n>\n> attached base packages:\n> [1] stats     graphics  grDevices utils     datasets  methods   base\n>\n> other attached packages:\n> [1] nlme_3.1-98 Rsge_0.6.3  snow_0.3-3\n>\n> loaded via a namespace (and not attached):\n> [1] grid_2.11.1    lattice_0.18-8\n> >\n>\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "However, if the package is loaded within the function call, then everything\nseems to be ok. ...?? Where am I going wrong?\n\n###### code #########\n\nlibrary(Rsge)\nlibrary(nlme)\n\nncols <- 500\nnrows <- 50\n",
       "thread_id": "thread-51e6b598a0fd",
       "thread_depth": 1,
-      "month": "2011-04"
+      "month": "2011-04",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110406/49bc93a6/attachment.pl"
+      ]
     },
     {
       "id": "msg-af642392324d",
@@ -84,11 +90,14 @@
       "subject_clean": "Rsge - specify queue?",
       "in_reply_to": null,
       "references": [],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110407/22403a24/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110407/22403a24/attachment.pl>",
+      "body_plain": "Thanks Brian. That worked.\n\nIs there a way to specify the queue that the job will be submitted to? (e.g.\nqsub -q long.q xx)\n\n\n\nOn Wed, Apr 6, 2011 at 3:16 PM, Brian G. Peterson <brian at braverock.com>wrote:\n\n> On 04/06/2011 01:46 PM, Brian Smith wrote:\n>\n>> However, if the package is loaded within the function call, then\n>> everything\n>> seems to be ok. ...?? Where am I going wrong?\n>>\n>\n> did you try using the 'packages' argument to the sge.parRapply function?\n> --\n> Brian G. Peterson\n> http://braverock.com/brian/\n> Ph: 773-459-4973\n> IM: bgpbraverock\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "Thanks Brian. That worked.\n\nIs there a way to specify the queue that the job will be submitted to? (e.g.\nqsub -q long.q xx)\n\n\n\nOn Wed, Apr 6, 2011 at 3:16 PM, Brian G. Peterson <brian at braverock.com",
       "thread_id": "thread-f4692eae8087",
       "thread_depth": 0,
-      "month": "2011-04"
+      "month": "2011-04",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110407/22403a24/attachment.pl"
+      ]
     },
     {
       "id": "msg-8f49318b3859",

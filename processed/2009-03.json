@@ -104,11 +104,14 @@
       "subject_clean": "Parallelization using 'snow' package",
       "in_reply_to": null,
       "references": [],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090304/0a0142c2/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090304/0a0142c2/attachment.pl>",
+      "body_plain": "Hi all,\n\nI have been working on parallelizing a bootstrap procedure using 'snow' R\npackage. The aim is to bootstrap a bayesian algorithm (e.g. grow-shrink\nalgorithm, available through 'bnlearn' R package). However, I could not get\nparallelization to work the way it should.\n\nIdeally I expected the time required by a regular (no parallelization) code\nto be more than that of the code parallelized using the snow package\nfunctions, but the results were vice versa.\n\nBelow is the parallelized code and the results observed. The data was a\nprotein expression data of 11 genes and 853 time points. Any help or\nsuggestions will be highly appreciated. I would be glad to provide any more\ninformation required.\n\nrm(list = ls(all = TRUE))\nlibrary(snow)\nlibrary(bnlearn)\nlibrary(rlecuyer)\n\n#Create a cluster of 2 on the localhost using sockets\ncl <- makeCluster(c(\"localhost\",\"localhost\"), type = \"SOCK\")\n\n#Load bnlearn on the cluster\nclusterEvalQ(cl, library(bnlearn))\n\nMyfile <- \"/home/shweta/r-snow/dat_schs1.txt\"\n\nclusterSetupRNG(cl)\n\ny <<- read.table(Myfile, header=TRUE, as.is=FALSE)\nnboot <<- 10000\nconfi <<- 0.9\n#Function to send to the different cores/processes\n#Run this first\n\nd <<- dim(y)\nbmat  <<- array(0,c(d[2],d[2]))\nDoBootstrap<-function(y,nboot)\n{\n    for (i in 1:nboot)\n    {\n        r <- sample(d[1], replace = TRUE)\n        xboot <- y[r,]\n        net <<- gs(xboot, cluster = cl, whitelist = NULL, blacklist =\nNULL,test = 'cor', alpha = 0.05, debug = FALSE, optimized = TRUE, strict =\nFALSE, direction = FALSE)\n        tmp <- amat(net)\n        bmat <<- bmat + tmp\n        rm(tmp)\n        rm(r)\n        rm(net)\n    }\nreturn(bmat)\n}\n\ntiming_results <- system.time(bmat <- DoBootstrap(y,nboot))\nprint(bmat)\nbmat <- (bmat/nboot)\nbmat <<- floor(bmat/confi)\nfinalmat <- floor(bmat)\nprint (finalmat)\nstopCluster(cl)\nprint(timing_results)\n\nResults:\n\n--\nparallelized code - 1 cluster 100 runs\nuser  system elapsed\n10.476   0.630  54.115\n\nregular 100 runs\nuser  system elapsed\n24.975   0.011  25.696\n\n--\nparallelized code - 1 cluster 500 runs\nuser  system elapsed\n52.369   3.275 276.548\n\nregular 500 runs\nuser  system elapsed\n128.314   0.197 133.001\n\n----\nparallelized code - 1 cluster 1000 runs\nuser  system elapsed\n103.782   6.427 547.730\n\nregular 1000 runs\nuser  system elapsed\n237.738   0.002 237.884\n\n~Shweta\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "Hi all,\n\nI have been working on parallelizing a bootstrap procedure using 'snow' R\npackage. The aim is to bootstrap a bayesian algorithm (e.g. grow-shrink\nalgorithm, available through 'bnlearn' R pack",
       "thread_id": "thread-96637e43981f",
       "thread_depth": 0,
-      "month": "2009-03"
+      "month": "2009-03",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090304/0a0142c2/attachment.pl"
+      ]
     },
     {
       "id": "msg-9f95c26a65e5",
@@ -293,11 +296,14 @@
       "subject_clean": "Recommended Rig for $/MFlops, Linear Algebra",
       "in_reply_to": null,
       "references": [],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090329/643dfdd8/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090329/643dfdd8/attachment.pl>",
+      "body_plain": "dear readers---following dirk's advice on r-help, let me ask if someone  \nelse has recently done research on what the top performing R platform for  \nthe money is. My needs are for monte-carlo simulations (which therefore are  \neasily parallelizable to multiple cores; I don't think R can use \"core i7\"  \nthreads), mostly linear algebra. I thought I would share what little  \nknowledge I gathered today (and collect any ideas/suggestions that I may  \nhave overlooked).\n\nthe prime candidates would seem to be a dual Shanghai 2.3GHz system  \n($175/processor) + $100/motherboard + DDR2 Reg RAM; or a single core i7 920  \n2.66GHz ($280/processor) + $300/motherboard + DDR3 RAM. These two seem to  \nbe heads and shoulders above their siblings in $/performance. The Intel rig  \nis about 20% more expensive...but being faster in linear non-parallel tasks  \nis nice, too.\n\nIn some benchmarks, Whetstone (on Tom's hardware) in particular, the core  \ni7 is almost twice as fast. More importantly, I found web benchmarks of 160  \nspecfloat for a pair of 2.8GHz Core i7 Xeons vs. 105 for a dual Shanghai  \n2.7. Extrapolating, this would mean that the dual Shanghai 2.3GHz system  \ndoes around 90, while the single core i7 920 does about 80 (including a  \nslight bonus for single-processor use). It also presumes, as I believe,  \nthat specfloat is a good indication of how fast linear algebra will perform  \non R (and Stata). my big unknown here is whether specfloat can use  \nmulti-threading while R and Stata cannot or vice-versa. Does anybody know?\n\nSo, AMD= $5/Specfloat. Intel= $6.75/Specfloat. This is only  \nCPU/motherboard. Other components will cost similarly, and thus bring the  \nrelative ratio of the two closer to one another.\n\nI hope this helps. of course, in about a month, it will be different  \nagain...\n\n/iaw\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "dear readers---following dirk's advice on r-help, let me ask if someone  \nelse has recently done research on what the top performing R platform for  \nthe money is. My needs are for monte-carlo simulat",
       "thread_id": "thread-3521e618d78b",
       "thread_depth": 0,
-      "month": "2009-03"
+      "month": "2009-03",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20090329/643dfdd8/attachment.pl"
+      ]
     },
     {
       "id": "msg-300e3d2f862f",

@@ -16,11 +16,14 @@
         "<CA+_ZbMaRpB=M1BOrwmwMZsd8sZc4TD_FnYDAD=6csGmszRftUg@mail.gmail.com>",
         "<1686380042.28463387.1358841295954.JavaMail.root@inria.fr>"
       ],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130201/4df4e472/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130201/4df4e472/attachment.pl>",
+      "body_plain": "Hi, Toby and all,\n\nI tried again to reproduce this using a freshly spun-up AWS cluster, using\nboth Revolution R Enterprise 6.2 (with R 2.14.2) and R 2.15.2, and again\nwas unable to reproduce. All the relevant packages seem identical on my\nsystems and Toby's. I notice, however, that Toby's setup is\nnon-homogeneous--my systems are homogeneous. That _might_ be the reason for\nthe different behavior, but I'm at a loss to explain why.\n\nCheers,\nRich Calaway\n\n\n\nOn Mon, Jan 21, 2013 at 11:54 PM, Toby Hocking <toby.hocking at inria.fr>wrote:\n\n> For info, I tried with R 2.14.2 on my cluster, but I get the same errors.\n> So I guess there is some problem with the interaction effect (my cluster,\n> doParallel).\n>\n> Rich, do all my package versions match yours?\n>\n>\n> > require(parallel)\n> Loading required package: parallel\n> > cl <- makePSOCKcluster(c(\"sim18.sugi-lab\",\"sim19.sugi-lab\"),\n> +                        user=\"hocking\",\n> +                        rscript=\"/home/hocking/lib64/R/bin/Rscript\",\n> +                        homogeneous=FALSE,\n> +                        master=\"192.168.224.47\")\n> > hostname <- function(...)system(\"hostname\",intern=TRUE)\n> > clusterCall(cl,hostname) #works\n> [[1]]\n> [1] \"sim18\"\n>\n> [[2]]\n> [1] \"sim19\"\n>\n> > clusterApply(cl,1:2,hostname) #works\n> [[1]]\n> [1] \"sim18\"\n>\n> [[2]]\n> [1] \"sim19\"\n>\n> > showConnections()\n>   description           class      mode  text     isopen   can read can\n> write\n> 3 \"<-sim18.local:10187\" \"sockconn\" \"a+b\" \"binary\" \"opened\" \"yes\"\n> \"yes\"\n> 4 \"<-sim19.local:10187\" \"sockconn\" \"a+b\" \"binary\" \"opened\" \"yes\"\n> \"yes\"\n> > require(doParallel)\n> Loading required package: doParallel\n> Loading required package: foreach\n> foreach: simple, scalable parallel programming from Revolution Analytics\n> Use Revolution R for scalability, fault tolerance and more.\n> http://www.revolutionanalytics.com\n> Loading required package: iterators\n> > registerDoParallel(cl)\n> > foreach(i=1:2)%dopar%{\n> +   hostname()\n> + }\n> Error in unserialize(node$con) : error reading from connection\n> > clusterCall(cl,hostname) #doesn't work\n> Error in serialize(data, node$con) : ignoring SIGPIPE signal\n> > clusterCall(cl,hostname) #doesn't work\n> Error in serialize(data, node$con) : error writing to connection\n> > clusterCall(cl,hostname) #doesn't work\n> Error in serialize(data, node$con) : error writing to connection\n> > showConnections()\n>   description           class      mode  text     isopen   can read can\n> write\n> 3 \"<-sim18.local:10187\" \"sockconn\" \"a+b\" \"binary\" \"opened\" \"yes\"\n> \"yes\"\n> 4 \"<-sim19.local:10187\" \"sockconn\" \"a+b\" \"binary\" \"opened\" \"yes\"\n> \"yes\"\n> > cl <- makePSOCKcluster(rep(\"localhost\",2))\n> > clusterCall(cl,hostname) #works\n> [[1]]\n> [1] \"toby-CF-SX2MEKBP\"\n>\n> [[2]]\n> [1] \"toby-CF-SX2MEKBP\"\n>\n> > clusterApply(cl,1:2,hostname) #works\n> [[1]]\n> [1] \"toby-CF-SX2MEKBP\"\n>\n> [[2]]\n> [1] \"toby-CF-SX2MEKBP\"\n>\n> > registerDoParallel(cl)\n> > foreach(i=1:2)%dopar%{\n> +   hostname()\n> + } #works\n> [[1]]\n> [1] \"toby-CF-SX2MEKBP\"\n>\n> [[2]]\n> [1] \"toby-CF-SX2MEKBP\"\n>\n> > clusterCall(cl,hostname) #works\n> [[1]]\n> [1] \"toby-CF-SX2MEKBP\"\n>\n> [[2]]\n> [1] \"toby-CF-SX2MEKBP\"\n>\n> > showConnections()\n>   description           class      mode  text     isopen   can read can\n> write\n> 3 \"<-sim18.local:10187\" \"sockconn\" \"a+b\" \"binary\" \"opened\" \"yes\"\n> \"yes\"\n> 4 \"<-sim19.local:10187\" \"sockconn\" \"a+b\" \"binary\" \"opened\" \"yes\"\n> \"yes\"\n> 5 \"<-localhost:10187\"   \"sockconn\" \"a+b\" \"binary\" \"opened\" \"yes\"\n> \"yes\"\n> 6 \"<-localhost:10187\"   \"sockconn\" \"a+b\" \"binary\" \"opened\" \"yes\"\n> \"yes\"\n> > sessionInfo()\n> R version 2.14.2 (2012-02-29)\n>\n> Platform: x86_64-unknown-linux-gnu (64-bit)\n>\n> locale:\n>  [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C\n>  [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8\n>  [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8\n>  [7] LC_PAPER=C                 LC_NAME=C\n>  [9] LC_ADDRESS=C               LC_TELEPHONE=C\n> [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C\n>\n> attached base packages:\n> [1] parallel  graphics  utils     datasets  stats     grDevices methods\n> [8] base\n>\n> other attached packages:\n> [1] doParallel_1.0.1   iterators_1.0.6    foreach_1.4.0\n> ggplot2_0.9.3\n> [5] RColorBrewer_1.0-5 lattice_0.20-0\n>\n> loaded via a namespace (and not attached):\n>  [1] codetools_0.2-8  colorspace_1.2-0 compiler_2.14.2  dichromat_1.2-4\n>  [5] digest_0.6.0     grid_2.14.2      gtable_0.1.2     labeling_0.1\n>  [9] MASS_7.3-17      munsell_0.4      plyr_1.8         proto_0.3-10\n> [13] reshape2_1.2.2   scales_0.2.3     stringr_0.6.2\n> >\n>\n\n\n\n-- \nRich Calaway\nDocumentation Manager\nRevolution Analytics, Inc.\n1505 Westlake Ave North Suite 300\nSeattle, WA 98109\nrichcalaway at revolutionanalytics.com\n206-456-6086 (Direct Phone)\n855-GET-REVO x6086 (Toll-free)\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "Hi, Toby and all,\n\nI tried again to reproduce this using a freshly spun-up AWS cluster, using\nboth Revolution R Enterprise 6.2 (with R 2.14.2) and R 2.15.2, and again\nwas unable to reproduce. All the ",
       "thread_id": "thread-1fb68f55dffb",
       "thread_depth": 0,
-      "month": "2013-02"
+      "month": "2013-02",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130201/4df4e472/attachment.pl"
+      ]
     },
     {
       "id": "msg-e156d91d8613",
@@ -32,11 +35,14 @@
       "subject_clean": "Hi",
       "in_reply_to": null,
       "references": [],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130201/e970c752/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130201/e970c752/attachment.pl>",
+      "body_plain": "http://www.bensonsuk.com/components/com_content/YaID523.php \n\n\n\n\n\nDeb Midya\n2/2/2013 6:36:13 AM\n.....\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "http://www.bensonsuk.com/components/com_content/YaID523.php \n\n\n\n\n\nDeb Midya\n2/2/2013 6:36:13 AM\n.....\n\t[[alternative HTML version deleted]]",
       "thread_id": "thread-e156d91d8613",
       "thread_depth": 0,
-      "month": "2013-02"
+      "month": "2013-02",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130201/e970c752/attachment.pl"
+      ]
     },
     {
       "id": "msg-38291573083e",
@@ -48,11 +54,14 @@
       "subject_clean": "foreach error checking (when a cluster stops)",
       "in_reply_to": null,
       "references": [],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130202/08409b17/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130202/08409b17/attachment.pl>",
+      "body_plain": "R-sig-hpc'ers:\n\nI've been modding some code lately to take advantage of the foreach\ngeneralization (so I don't have to write multiple statements depending on\nthe parallel backend that I have running), but I'm trying to figure out how\nto check for a registered, but no longer running, parallel backend, e.g.:\n\nrequire(\"foreach\")\nrequire(\"snowfall\")\nrequire(\"doSNOW\")\n# Start a snowfall cluster and register it with foreach\nsfInit(cpu=2,parallel=TRUE)\ncl <- sfGetCluster()\nregisterDoSNOW(cl)\n\n# Some foreach statement:\nd <- data.frame(x=1:10, y=rnorm(10))\ns <- foreach(d=iter(d, by='row'), .combine=rbind) %dopar% d\n\n# Works fine.  Now stop the cluster:\nsfStop()\ns <- foreach(d=iter(d, by='row'), .combine=rbind) %dopar% d\n# Doesn't work, because the snow cluster is gone.\n\n# I can manually set this, but is there some test I can do\n# to test for whether the cluster is working and, if not:\nregisterDoSEQ()\ns <- foreach(d=iter(d, by='row'), .combine=rbind) %dopar% d\n\n# e.g.\nif(checkForWorkingBackend == FALSE)\n{\nregisterDoSEQ()\n}\n\n\n\n-- \nJonathan A. Greenberg, PhD\nAssistant Professor\nGlobal Environmental Analysis and Remote Sensing (GEARS) Laboratory\nDepartment of Geography and Geographic Information Science\nUniversity of Illinois at Urbana-Champaign\n607 South Mathews Avenue, MC 150\nUrbana, IL 61801\nPhone: 217-300-1924\nhttp://www.geog.illinois.edu/~jgrn/\nAIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "R-sig-hpc'ers:\n\nI've been modding some code lately to take advantage of the foreach\ngeneralization (so I don't have to write multiple statements depending on\nthe parallel backend that I have running),",
       "thread_id": "thread-38291573083e",
       "thread_depth": 0,
-      "month": "2013-02"
+      "month": "2013-02",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130202/08409b17/attachment.pl"
+      ]
     },
     {
       "id": "msg-26ca81606b78",
@@ -85,11 +94,14 @@
         "<CABG0rft-EimTyXTbkKQn8Xm=DMVQjzwZ=-Hd_X8t+KV1khwUxQ@mail.gmail.com>",
         "<CALh21iKs1cRvmqgxWE1ssAec=MZEvkAfHXnpbvPKxCDJtkjieA@mail.gmail.com>"
       ],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130202/6fef5613/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130202/6fef5613/attachment.pl>",
+      "body_plain": "Hi, Steve and Jonathan,\n\nIt is a good idea...I'm thinking it might need to be a generic with\nspecific methods for specific backends. Steve, you want to bat some ideas\naround? We could probably put together something useful for the parallel\nfamily (doParallel, doMC, doSNOW) in time for R 3.0...\n\nRich Calaway\n\n\nOn Sat, Feb 2, 2013 at 12:02 PM, Stephen Weston\n<stephen.b.weston at gmail.com>wrote:\n\n> Hi Jonathan,\n>\n> Sorry, there's is nothing like that in foreach.  The functions that\n> are used to provide information about the parallel backend include:\n>\n>   getDoParWorkers()\n>   getDoParName()\n>   getDoParVersion()\n>   getDoParRegistered()\n>\n> but no \"health check\" functions.  It's a good idea, though.  I believe\n> they include that sort of thing in database frameworks.\n>\n> By the way, I had no idea that you could use the doSNOW package\n> with snowfall, although I guess it makes sense since they give you\n> access to the cluster object.  But I've only ever tested doSNOW with\n> snow.\n>\n> - Steve\n>\n>\n> On Sat, Feb 2, 2013 at 12:19 PM, Jonathan Greenberg <jgrn at illinois.edu>\n> wrote:\n> > R-sig-hpc'ers:\n> >\n> > I've been modding some code lately to take advantage of the foreach\n> > generalization (so I don't have to write multiple statements depending on\n> > the parallel backend that I have running), but I'm trying to figure out\n> how\n> > to check for a registered, but no longer running, parallel backend, e.g.:\n> >\n> > require(\"foreach\")\n> > require(\"snowfall\")\n> > require(\"doSNOW\")\n> > # Start a snowfall cluster and register it with foreach\n> > sfInit(cpu=2,parallel=TRUE)\n> > cl <- sfGetCluster()\n> > registerDoSNOW(cl)\n> >\n> > # Some foreach statement:\n> > d <- data.frame(x=1:10, y=rnorm(10))\n> > s <- foreach(d=iter(d, by='row'), .combine=rbind) %dopar% d\n> >\n> > # Works fine.  Now stop the cluster:\n> > sfStop()\n> > s <- foreach(d=iter(d, by='row'), .combine=rbind) %dopar% d\n> > # Doesn't work, because the snow cluster is gone.\n> >\n> > # I can manually set this, but is there some test I can do\n> > # to test for whether the cluster is working and, if not:\n> > registerDoSEQ()\n> > s <- foreach(d=iter(d, by='row'), .combine=rbind) %dopar% d\n> >\n> > # e.g.\n> > if(checkForWorkingBackend == FALSE)\n> > {\n> > registerDoSEQ()\n> > }\n> >\n> >\n> >\n> > --\n> > Jonathan A. Greenberg, PhD\n> > Assistant Professor\n> > Global Environmental Analysis and Remote Sensing (GEARS) Laboratory\n> > Department of Geography and Geographic Information Science\n> > University of Illinois at Urbana-Champaign\n> > 607 South Mathews Avenue, MC 150\n> > Urbana, IL 61801\n> > Phone: 217-300-1924\n> > http://www.geog.illinois.edu/~jgrn/\n> > AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007\n> >\n> >         [[alternative HTML version deleted]]\n> >\n> > _______________________________________________\n> > R-sig-hpc mailing list\n> > R-sig-hpc at r-project.org\n> > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>\n\n\n\n-- \nRich Calaway\nDocumentation Manager\nRevolution Analytics, Inc.\n1505 Westlake Ave North Suite 300\nSeattle, WA 98109\nrichcalaway at revolutionanalytics.com\n206-456-6086 (Direct Phone)\n855-GET-REVO x6086 (Toll-free)\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "Hi, Steve and Jonathan,\n\nIt is a good idea...I'm thinking it might need to be a generic with\nspecific methods for specific backends. Steve, you want to bat some ideas\naround? We could probably put tog",
       "thread_id": "thread-38291573083e",
       "thread_depth": 2,
-      "month": "2013-02"
+      "month": "2013-02",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130202/6fef5613/attachment.pl"
+      ]
     },
     {
       "id": "msg-7aa62d73f036",
@@ -101,11 +113,14 @@
       "subject_clean": "cluster works with parallel but not foreach",
       "in_reply_to": "<CA+_ZbMaijv3y6s90J8qVuDjM0+=Ytr6fN0yLgrMovpzpJ3wpiA@mail.gmail.com>",
       "references": [],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130204/d404f30e/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130204/d404f30e/attachment.pl>",
+      "body_plain": "So weird. Well, thanks for investigating and if I ever get it fixed I'll email and tell you how.\n\n----- Rich Calaway <richcalaway at revolutionanalytics.com> wrote:\n>Hi, Toby and all,\n\nI tried again to reproduce this using a freshly spun-up AWS cluster, using both Revolution R Enterprise 6.2 (with R 2.14.2) and R 2.15.2, and again was unable to reproduce. All the relevant packages seem identical on my systems and Toby's. I notice, however, that Toby's setup is non-homogeneous--my systems are homogeneous. That _might_ be the reason for the different behavior, but I'm at a loss to explain why. \n\n>\nCheers,\nRich Calaway\n\n> \n>\n\n\nOn Mon, Jan 21, 2013 at 11:54 PM, Toby Hocking <toby.hocking at inria.fr> wrote:\n\n>For info, I tried with R 2.14.2 on my cluster, but I get the same errors. So I guess there is some problem with the interaction effect (my cluster, doParallel). \n\n>\nRich, do all my package versions match yours?\n\n> require(parallel)\nLoading required package: parallel\n> cl <- makePSOCKcluster(c(\"sim18.sugi-lab\",\"sim19.sugi-lab\"),\n\n> +                        user=\"hocking\",\n+                        rscript=\"/home/hocking/lib64/R/bin/Rscript\",\n+                        homogeneous=FALSE,\n+                        master=\"192.168.224.47\")\n\n> > hostname <- function(...)system(\"hostname\",intern=TRUE)\n> clusterCall(cl,hostname) #works\n[[1]]\n[1] \"sim18\"\n\n[[2]]\n[1] \"sim19\"\n\n> clusterApply(cl,1:2,hostname) #works\n\n> [[1]]\n[1] \"sim18\"\n\n[[2]]\n[1] \"sim19\"\n\n> showConnections()\n  description           class      mode  text     isopen   can read can write\n3 \"<-sim18.local:10187\" \"sockconn\" \"a+b\" \"binary\" \"opened\" \"yes\"    \"yes\"    \n\n> 4 \"<-sim19.local:10187\" \"sockconn\" \"a+b\" \"binary\" \"opened\" \"yes\"    \"yes\"    \n> require(doParallel)\nLoading required package: doParallel\n\n> Loading required package: foreach\nforeach: simple, scalable parallel programming from Revolution Analytics\nUse Revolution R for scalability, fault tolerance and more.\nhttp://www.revolutionanalytics.com\n\n> Loading required package: iterators\n> registerDoParallel(cl)\n> foreach(i=1:2)%dopar%{\n+   hostname()\n+ }\nError in unserialize(node$con) : error reading from connection\n> clusterCall(cl,hostname) #doesn't work\n\n> Error in serialize(data, node$con) : ignoring SIGPIPE signal\n> clusterCall(cl,hostname) #doesn't work\nError in serialize(data, node$con) : error writing to connection\n> clusterCall(cl,hostname) #doesn't work\n\n> Error in serialize(data, node$con) : error writing to connection\n> showConnections()\n  description           class      mode  text     isopen   can read can write\n3 \"<-sim18.local:10187\" \"sockconn\" \"a+b\" \"binary\" \"opened\" \"yes\"    \"yes\"    \n\n> 4 \"<-sim19.local:10187\" \"sockconn\" \"a+b\" \"binary\" \"opened\" \"yes\"    \"yes\"    \n> cl <- makePSOCKcluster(rep(\"localhost\",2))\n> clusterCall(cl,hostname) #works\n\n> [[1]]\n[1] \"toby-CF-SX2MEKBP\"\n\n[[2]]\n[1] \"toby-CF-SX2MEKBP\"\n\n> clusterApply(cl,1:2,hostname) #works\n[[1]]\n[1] \"toby-CF-SX2MEKBP\"\n\n[[2]]\n[1] \"toby-CF-SX2MEKBP\"\n\n>\n> registerDoParallel(cl)\n> foreach(i=1:2)%dopar%{\n+   hostname()\n+ } #works\n[[1]]\n[1] \"toby-CF-SX2MEKBP\"\n\n[[2]]\n[1] \"toby-CF-SX2MEKBP\"\n\n> clusterCall(cl,hostname) #works\n\n> [[1]]\n[1] \"toby-CF-SX2MEKBP\"\n\n[[2]]\n[1] \"toby-CF-SX2MEKBP\"\n\n> showConnections()\n  description           class      mode  text     isopen   can read can write\n3 \"<-sim18.local:10187\" \"sockconn\" \"a+b\" \"binary\" \"opened\" \"yes\"    \"yes\"    \n\n> 4 \"<-sim19.local:10187\" \"sockconn\" \"a+b\" \"binary\" \"opened\" \"yes\"    \"yes\"    \n5 \"<-localhost:10187\"   \"sockconn\" \"a+b\" \"binary\" \"opened\" \"yes\"    \"yes\"    \n\n> 6 \"<-localhost:10187\"   \"sockconn\" \"a+b\" \"binary\" \"opened\" \"yes\"    \"yes\"    \n> sessionInfo()\nR version 2.14.2 (2012-02-29)\n>\nPlatform: x86_64-unknown-linux-gnu (64-bit)\n\nlocale:\n [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              \n [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    \n [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   \n\n>  [7] LC_PAPER=C                 LC_NAME=C                 \n [9] LC_ADDRESS=C               LC_TELEPHONE=C            \n[11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       \n\nattached base packages:\n[1] parallel  graphics  utils     datasets  stats     grDevices methods  \n\n> [8] base     \n\nother attached packages:\n[1] doParallel_1.0.1   iterators_1.0.6    foreach_1.4.0      ggplot2_0.9.3     \n[5] RColorBrewer_1.0-5 lattice_0.20-0    \n\nloaded via a namespace (and not attached):\n\n> [1] codetools_0.2-8  colorspace_1.2-0 compiler_2.14.2  dichromat_1.2-4 \n [5] digest_0.6.0     grid_2.14.2      gtable_0.1.2     labeling_0.1    \n [9] MASS_7.3-17      munsell_0.4      plyr_1.8         proto_0.3-10    \n\n> [13] reshape2_1.2.2   scales_0.2.3     stringr_0.6.2   \n>\n\n\n-- \nRich Calaway\n\n> Documentation Manager\n\n> Revolution Analytics, Inc.\n\n> 1505 Westlake Ave North Suite 300\n\n> Seattle, WA 98109\n\n>richcalaway at revolutionanalytics.com\n\n> 206-456-6086 (Direct Phone)\n855-GET-REVO x6086 (Toll-free)\n>\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "So weird. Well, thanks for investigating and if I ever get it fixed I'll email and tell you how.\n\n----- Rich Calaway <richcalaway at revolutionanalytics.com> wrote:\n>Hi, Toby and all,\n\nI tried again t",
       "thread_id": "thread-1fb68f55dffb",
       "thread_depth": 1,
-      "month": "2013-02"
+      "month": "2013-02",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130204/d404f30e/attachment.pl"
+      ]
     },
     {
       "id": "msg-bb78c8ae5423",
@@ -121,11 +136,14 @@
         "<CALh21iKs1cRvmqgxWE1ssAec=MZEvkAfHXnpbvPKxCDJtkjieA@mail.gmail.com>",
         "<CA+_ZbMb8BFWWY=wTwF_uxm9mmLxPVBLf44K=tyiEtKaH9dS27w@mail.gmail.com>"
       ],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130204/d0d72d7a/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130204/d0d72d7a/attachment.pl>",
+      "body_plain": "Thanks for looking into this -- it seems a functional if somewhat inelegant\nway would be to use a tryCatch function on a VERY simple foreach statement.\n This is what I'm using now.  If you guys come up with a more \"official\"\nstatement that would be great!  Cheers!\n\n--j\n\n\nOn Sat, Feb 2, 2013 at 7:55 PM, Rich Calaway <\nrichcalaway at revolutionanalytics.com> wrote:\n\n> Hi, Steve and Jonathan,\n>\n> It is a good idea...I'm thinking it might need to be a generic with\n> specific methods for specific backends. Steve, you want to bat some ideas\n> around? We could probably put together something useful for the parallel\n> family (doParallel, doMC, doSNOW) in time for R 3.0...\n>\n> Rich Calaway\n>\n>\n> On Sat, Feb 2, 2013 at 12:02 PM, Stephen Weston <\n> stephen.b.weston at gmail.com> wrote:\n>\n>> Hi Jonathan,\n>>\n>> Sorry, there's is nothing like that in foreach.  The functions that\n>> are used to provide information about the parallel backend include:\n>>\n>>   getDoParWorkers()\n>>   getDoParName()\n>>   getDoParVersion()\n>>   getDoParRegistered()\n>>\n>> but no \"health check\" functions.  It's a good idea, though.  I believe\n>> they include that sort of thing in database frameworks.\n>>\n>> By the way, I had no idea that you could use the doSNOW package\n>> with snowfall, although I guess it makes sense since they give you\n>> access to the cluster object.  But I've only ever tested doSNOW with\n>> snow.\n>>\n>> - Steve\n>>\n>>\n>> On Sat, Feb 2, 2013 at 12:19 PM, Jonathan Greenberg <jgrn at illinois.edu>\n>> wrote:\n>> > R-sig-hpc'ers:\n>> >\n>> > I've been modding some code lately to take advantage of the foreach\n>> > generalization (so I don't have to write multiple statements depending\n>> on\n>> > the parallel backend that I have running), but I'm trying to figure out\n>> how\n>> > to check for a registered, but no longer running, parallel backend,\n>> e.g.:\n>> >\n>> > require(\"foreach\")\n>> > require(\"snowfall\")\n>> > require(\"doSNOW\")\n>> > # Start a snowfall cluster and register it with foreach\n>> > sfInit(cpu=2,parallel=TRUE)\n>> > cl <- sfGetCluster()\n>> > registerDoSNOW(cl)\n>> >\n>> > # Some foreach statement:\n>> > d <- data.frame(x=1:10, y=rnorm(10))\n>> > s <- foreach(d=iter(d, by='row'), .combine=rbind) %dopar% d\n>> >\n>> > # Works fine.  Now stop the cluster:\n>> > sfStop()\n>> > s <- foreach(d=iter(d, by='row'), .combine=rbind) %dopar% d\n>> > # Doesn't work, because the snow cluster is gone.\n>> >\n>> > # I can manually set this, but is there some test I can do\n>> > # to test for whether the cluster is working and, if not:\n>> > registerDoSEQ()\n>> > s <- foreach(d=iter(d, by='row'), .combine=rbind) %dopar% d\n>> >\n>> > # e.g.\n>> > if(checkForWorkingBackend == FALSE)\n>> > {\n>> > registerDoSEQ()\n>> > }\n>> >\n>> >\n>> >\n>> > --\n>> > Jonathan A. Greenberg, PhD\n>> > Assistant Professor\n>> > Global Environmental Analysis and Remote Sensing (GEARS) Laboratory\n>> > Department of Geography and Geographic Information Science\n>> > University of Illinois at Urbana-Champaign\n>> > 607 South Mathews Avenue, MC 150\n>> > Urbana, IL 61801\n>> > Phone: 217-300-1924\n>> > http://www.geog.illinois.edu/~jgrn/\n>> > AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007\n>> >\n>> >         [[alternative HTML version deleted]]\n>> >\n>> > _______________________________________________\n>> > R-sig-hpc mailing list\n>> > R-sig-hpc at r-project.org\n>> > https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>>\n>> _______________________________________________\n>> R-sig-hpc mailing list\n>> R-sig-hpc at r-project.org\n>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>>\n>\n>\n>\n> --\n> Rich Calaway\n> Documentation Manager\n> Revolution Analytics, Inc.\n> 1505 Westlake Ave North Suite 300\n> Seattle, WA 98109\n> richcalaway at revolutionanalytics.com\n> 206-456-6086 (Direct Phone)\n> 855-GET-REVO x6086 (Toll-free)\n>\n\n\n\n-- \nJonathan A. Greenberg, PhD\nAssistant Professor\nGlobal Environmental Analysis and Remote Sensing (GEARS) Laboratory\nDepartment of Geography and Geographic Information Science\nUniversity of Illinois at Urbana-Champaign\n607 South Mathews Avenue, MC 150\nUrbana, IL 61801\nPhone: 217-300-1924\nhttp://www.geog.illinois.edu/~jgrn/\nAIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "Thanks for looking into this -- it seems a functional if somewhat inelegant\nway would be to use a tryCatch function on a VERY simple foreach statement.\n This is what I'm using now.  If you guys come u",
       "thread_id": "thread-38291573083e",
       "thread_depth": 3,
-      "month": "2013-02"
+      "month": "2013-02",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130204/d0d72d7a/attachment.pl"
+      ]
     },
     {
       "id": "msg-e7133e31e384",
@@ -137,11 +155,14 @@
       "subject_clean": "snowfall?",
       "in_reply_to": null,
       "references": [],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130207/53a16331/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130207/53a16331/attachment.pl>",
+      "body_plain": "R-sig-hpc'ers:\n\nI just realized that I can no longer install snowfall and it appears to be\ngone from CRAN (\nhttp://cran.r-project.org/web/packages/snowfall/index.html)-- is this\nproject dead, or has it been wrapped into something else, or is it just\nbetween versions?  Thanks!\n\n> install.packages(\"snowfall\")\nInstalling package(s) into 'D:/Users/jgrn/Documents/R/win-library/2.15'\n(as 'lib' is unspecified)\nWarning message:\npackage 'snowfall' is not available (for R version 2.15.2)\n\n--j\n\n-- \nJonathan A. Greenberg, PhD\nAssistant Professor\nGlobal Environmental Analysis and Remote Sensing (GEARS) Laboratory\nDepartment of Geography and Geographic Information Science\nUniversity of Illinois at Urbana-Champaign\n607 South Mathews Avenue, MC 150\nUrbana, IL 61801\nPhone: 217-300-1924\nhttp://www.geog.illinois.edu/~jgrn/\nAIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "R-sig-hpc'ers:\n\nI just realized that I can no longer install snowfall and it appears to be\ngone from CRAN (\nhttp://cran.r-project.org/web/packages/snowfall/index.html)-- is this\nproject dead, or has i",
       "thread_id": "thread-e7133e31e384",
       "thread_depth": 0,
-      "month": "2013-02"
+      "month": "2013-02",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130207/53a16331/attachment.pl"
+      ]
     },
     {
       "id": "msg-853e9b62b57a",
@@ -190,11 +211,14 @@
         "<CABG0rfuAOwFjgHA=Wh6qNFsBPeY0Q-wWk0qAQ7xS2LF=eGk6nQ@mail.gmail.com>",
         "<20756.6280.292604.765189@max.nulle.part>"
       ],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130207/f63bad89/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130207/f63bad89/attachment.pl>",
+      "body_plain": "Dirk:\n\nThanks.  I had it installed on my machine from a few months ago, and didn't\neven realize it had been pulled until I had my RA install it.  I have my\nown code that uses snowfall as a requirement, which is also an issue.  I'm\njust starting to work with foreach, but I am teaching a class in the use of\nR, and snowfall makes dealing with clusters a WHOLE lot easier than the\ndefault snow package -- I don't mind using snow for advanced work, but for\nintroducing non-CS students to parallel coding, snowfall help a lot,\nparticularly for starting, finding, and stopping clusters.\n\n--jonathan\n\n\n\n\n\nOn Thu, Feb 7, 2013 at 3:11 PM, Dirk Eddelbuettel <edd at debian.org> wrote:\n\n>\n> On 7 February 2013 at 14:49, Jonathan Greenberg wrote:\n> | R-sig-hpc'ers:\n> |\n> | I just realized that I can no longer install snowfall and it appears to\n> be\n> | gone from CRAN (\n> | http://cran.r-project.org/web/packages/snowfall/index.html)-- is this\n> | project dead, or has it been wrapped into something else, or is it just\n> | between versions?  Thanks!\n> |\n> | > install.packages(\"snowfall\")\n> | Installing package(s) into 'D:/Users/jgrn/Documents/R/win-library/2.15'\n> | (as 'lib' is unspecified)\n> | Warning message:\n> | package 'snowfall' is not available (for R version 2.15.2)\n>\n> Removal from CRAN is something that happens to packages which fail to build\n> under R(-release) and the ever changing R-devel (aka R 3.0.0, due out in\n> April).\n>\n> My CRANberries services monitors removals as well additions and updates to\n> CRAN, so yes, I knew.\n>\n> The package is likely still available in the Archive/ section so you can\n> download it from there and install that way.  A little bird told that the\n> snowfall author is planning to updated the package \"time permitting\".\n>\n> And there are of course the package parallel (in R base), snow, foreach,\n> ...\n>\n> Dirk\n>\n> --\n> Dirk Eddelbuettel | edd at debian.org | http://dirk.eddelbuettel.com\n>\n\n\n\n-- \nJonathan A. Greenberg, PhD\nAssistant Professor\nGlobal Environmental Analysis and Remote Sensing (GEARS) Laboratory\nDepartment of Geography and Geographic Information Science\nUniversity of Illinois at Urbana-Champaign\n607 South Mathews Avenue, MC 150\nUrbana, IL 61801\nPhone: 217-300-1924\nhttp://www.geog.illinois.edu/~jgrn/\nAIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "Dirk:\n\nThanks.  I had it installed on my machine from a few months ago, and didn't\neven realize it had been pulled until I had my RA install it.  I have my\nown code that uses snowfall as a requirement",
       "thread_id": "thread-e7133e31e384",
       "thread_depth": 2,
-      "month": "2013-02"
+      "month": "2013-02",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130207/f63bad89/attachment.pl"
+      ]
     },
     {
       "id": "msg-205e638baa01",
@@ -280,11 +304,14 @@
       "subject_clean": "Forcing a snow cluster to stop",
       "in_reply_to": null,
       "references": [],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130212/51a11033/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130212/51a11033/attachment.pl>",
+      "body_plain": "R-sig-geo'ers:\n\nI sometimes force-stop a cluster call in the middle, but using sfStop()\ndoes not appear to kill the spawned R sessions (they keep processing, as\nfar as I can tell).  Are there any ways short of manually killing the\nsessions one at a time (in Windows) to force-stop a cluster?\n\n--j\n\n-- \nJonathan A. Greenberg, PhD\nAssistant Professor\nGlobal Environmental Analysis and Remote Sensing (GEARS) Laboratory\nDepartment of Geography and Geographic Information Science\nUniversity of Illinois at Urbana-Champaign\n607 South Mathews Avenue, MC 150\nUrbana, IL 61801\nPhone: 217-300-1924\nhttp://www.geog.illinois.edu/~jgrn/\nAIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "R-sig-geo'ers:\n\nI sometimes force-stop a cluster call in the middle, but using sfStop()\ndoes not appear to kill the spawned R sessions (they keep processing, as\nfar as I can tell).  Are there any ways",
       "thread_id": "thread-e01846a2bd15",
       "thread_depth": 0,
-      "month": "2013-02"
+      "month": "2013-02",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130212/51a11033/attachment.pl"
+      ]
     },
     {
       "id": "msg-eb5ef4dc5e06",
@@ -296,11 +323,14 @@
       "subject_clean": "communicating memory requirments",
       "in_reply_to": null,
       "references": [],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130219/285b996e/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130219/285b996e/attachment.pl>",
+      "body_plain": "I have some scripts for a book that I will be publishing and they use\nparallel processing (via foreach). Some of the analyses use more memory\nthan some users will have on hand and, as the number of workers increases,\nso do the memory demands.\n\nI'd like to report the memory requirements in a way that most people will\nunderstand (including me).\n\nOn OS X, I've run the scripts and did a roiling append of 'top' to capture\nthe memory used by the master process and the workers over time.\n\nCan anyone suggest which parameters I should report (e.g. VSIZE)? Is the\nsituation appreciably different on Windows?\n\nI admit to being fairly ignorant on this (complicated) subject so any\napproach to informing the users would be very welcome.\n\nThanks,\n\nMax\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "I have some scripts for a book that I will be publishing and they use\nparallel processing (via foreach). Some of the analyses use more memory\nthan some users will have on hand and, as the number of wo",
       "thread_id": "thread-eb5ef4dc5e06",
       "thread_depth": 0,
-      "month": "2013-02"
+      "month": "2013-02",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130219/285b996e/attachment.pl"
+      ]
     },
     {
       "id": "msg-40f96e89ebc3",
@@ -351,11 +381,14 @@
         "<CAJ9CoWmT5s0WKT7W4yPUCz5Gt_-Dv=fW3afUfqtmGhV7cw4BJg@mail.gmail.com>",
         "<5123C069.6030100@fhcrc.org>"
       ],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130219/20ac662d/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130219/20ac662d/attachment.pl>",
+      "body_plain": "Thanks for the replies.\n\nBeing more specific, the analyses are mostly related to resampling of\nvarious sorts (esp. the embarrassingly parallel type) that take a data\nobject into a worker, run a model and send summary statistics back to the\nmaster\n\n>From the basic memory profiling I've done (outside of R while the scripts\nare running), I might see that the master process consumes 2500M (VSIZE)\nand each worker eats up a separate chunk (say 1800M). I have a medium\nmemory size machine that I've used and figured out how many workers I can\nafford before I exceed physical memory (usually by first exceeding it).\n\nMy experience is that people will just naively run the scripts and send an\nemail when it doesn't work within the limits on their machine. In the hopes\nthat some people might read the comments before running and I'd like to let\nthem know what they're in for. My current verbiage is:\n\n> ### WARNING: Be aware of how much memory is needed to parallel\n> ### process. It can very quickly overwhelm the available hardware. We\n> ### estimate the memory usage (VSIZE = total memory size) to be\n> ### 2566M/core.\n\nThat last number is determined over the workers that were created while the\nscript was running. I'm curious to know if the use of VSIZE is appropriate\n(especially outside of *nix) and if this helps the user at all.\n\nThe scripts are at the chapter level, so a number of objects are created in\nthe same session. I dont think I need to profile at the object level but at\nthe session level so Rprofmem doesn't appear to be the best tool.\n\nThanks,\n\nMax\n\n\nOn Tue, Feb 19, 2013 at 1:11 PM, Martin Morgan <mtmorgan at fhcrc.org> wrote:\n\n> On 02/19/2013 05:16 AM, Max Kuhn wrote:\n>\n>> I have some scripts for a book that I will be publishing and they use\n>> parallel processing (via foreach). Some of the analyses use more memory\n>> than some users will have on hand and, as the number of workers increases,\n>> so do the memory demands.\n>>\n>> I'd like to report the memory requirements in a way that most people will\n>> understand (including me).\n>>\n>\n> not really answering your question, but it seems like parallel evaluation\n> in shared memory computers comes with an implicit need to manage memory,\n> and that one would rather strive to implement algorithms that do their job\n> in a memory efficient way. Probably this means iterating through data and\n> aggregating results, which is the approach of biglm. The user shouldn't\n> really be exposed to the need to choose a computer (or package) based on\n> memory consumption of algorithms. I'm not throwing stones, having seldom\n> managed this myself.\n>\n> Martin\n>\n>\n>> On OS X, I've run the scripts and did a roiling append of 'top' to capture\n>> the memory used by the master process and the workers over time.\n>>\n>> Can anyone suggest which parameters I should report (e.g. VSIZE)? Is the\n>> situation appreciably different on Windows?\n>>\n>> I admit to being fairly ignorant on this (complicated) subject so any\n>> approach to informing the users would be very welcome.\n>>\n>> Thanks,\n>>\n>> Max\n>>\n>>         [[alternative HTML version deleted]]\n>>\n>> ______________________________**_________________\n>> R-sig-hpc mailing list\n>> R-sig-hpc at r-project.org\n>> https://stat.ethz.ch/mailman/**listinfo/r-sig-hpc<https://stat.ethz.ch/mailman/listinfo/r-sig-hpc>\n>>\n>>\n>\n> --\n> Computational Biology / Fred Hutchinson Cancer Research Center\n> 1100 Fairview Ave. N.\n> PO Box 19024 Seattle, WA 98109\n>\n> Location: Arnold Building M1 B861\n> Phone: (206) 667-2793\n>\n\n\n\n-- \n\nMax\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "Thanks for the replies.\n\nBeing more specific, the analyses are mostly related to resampling of\nvarious sorts (esp. the embarrassingly parallel type) that take a data\nobject into a worker, run a model ",
       "thread_id": "thread-eb5ef4dc5e06",
       "thread_depth": 2,
-      "month": "2013-02"
+      "month": "2013-02",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130219/20ac662d/attachment.pl"
+      ]
     },
     {
       "id": "msg-b9621385a545",
@@ -424,11 +457,14 @@
         "<CABG0rfuPz7NehH8L5WcPz4SAYx4_rjSvSLpd2SshLMnppgFAtQ@mail.gmail.com>",
         "<CABG0rft_-K9+0D=EPxwib9KLybOVTG2F8pqY5K-76amaUcMzaQ@mail.gmail.com>"
       ],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130223/db1fcfdb/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130223/db1fcfdb/attachment.pl>",
+      "body_plain": "Jonathan, maybe .Last.value ?\n\nEtienne\n\n\n2013/2/23 Jonathan Greenberg <jgrn at illinois.edu>\n\n> To clarify: if I \"forget\" to store a cluster object:\n>\n> myfunction <- function()\n> {\n> library(\"parallel\")\n> cl <- makeCluster(2,type=\"PSOCK\")\n> setDefaultCluster(cl)\n> return(cl)\n> }\n>\n> myfunction()\n>\n> Is there any way to stop this running cluster short of quitting out of R?\n>\n> --j\n>\n>\n>\n> On Sat, Feb 23, 2013 at 2:51 PM, Jonathan Greenberg <jgrn at illinois.edu>\n> wrote:\n> > R-sig-hpc'ers:\n> >\n> > If I set a parallel cluster object using setDefaultCluster, is there\n> > any way to recover that object (basically a \"getDefaultCluster\"\n> > function)?\n> >\n> > --j\n> >\n> >\n> > --\n> > Jonathan A. Greenberg, PhD\n> > Assistant Professor\n> > Global Environmental Analysis and Remote Sensing (GEARS) Laboratory\n> > Department of Geography and Geographic Information Science\n> > University of Illinois at Urbana-Champaign\n> > 607 South Mathews Avenue, MC 150\n> > Urbana, IL 61801\n> > Phone: 217-300-1924\n> > http://www.geog.illinois.edu/~jgrn/\n> > AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007\n>\n>\n>\n> --\n> Jonathan A. Greenberg, PhD\n> Assistant Professor\n> Global Environmental Analysis and Remote Sensing (GEARS) Laboratory\n> Department of Geography and Geographic Information Science\n> University of Illinois at Urbana-Champaign\n> 607 South Mathews Avenue, MC 150\n> Urbana, IL 61801\n> Phone: 217-300-1924\n> http://www.geog.illinois.edu/~jgrn/\n> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "Jonathan, maybe .Last.value ?\n\nEtienne\n\n\n2013/2/23 Jonathan Greenberg <jgrn at illinois.edu>\n\n> To clarify: if I \"forget\" to store a cluster object:\n>\n> myfunction <- function()\n> {\n> library(\"paralle",
       "thread_id": "thread-7ba0ae4c0344",
       "thread_depth": 2,
-      "month": "2013-02"
+      "month": "2013-02",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130223/db1fcfdb/attachment.pl"
+      ]
     },
     {
       "id": "msg-822872ea9133",
@@ -522,11 +558,14 @@
         "<CABG0rfuH_N6B5v26AjG0Yo-ZX5LgtvyYDaXFPd59seA7AsZzjA@mail.gmail.com>",
         "<B2263846-06A1-4DBA-9D35-851AFAADA474@r-project.org>"
       ],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130224/2fb233b0/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130224/2fb233b0/attachment.pl>",
+      "body_plain": "Ha!  Given your responses I just assumed you were the author!  I see its\nlisted as R-core at r-project.org, but am I correct in thinking someone on\nthis mailing list is the \"actual\" author?\n\n--j\n\n\nOn Sun, Feb 24, 2013 at 8:55 AM, Simon Urbanek\n<simon.urbanek at r-project.org>wrote:\n\n> On Feb 24, 2013, at 8:42 AM, Jonathan Greenberg wrote:\n>\n> > Simon:\n> >\n> > That's a REALLY helpful function -- is there a reason its undocumented\n> > and hidden from the namespace?  Would you consider making it more\n> > visible?\n> >\n>\n> You'll have to ask the author ...\n>\n> Cheers,\n> S\n>\n>\n> > --j\n> >\n> > On Sun, Feb 24, 2013 at 7:28 AM, Simon Urbanek\n> > <simon.urbanek at r-project.org> wrote:\n> >> On Feb 23, 2013, at 3:51 PM, Jonathan Greenberg wrote:\n> >>\n> >>> R-sig-hpc'ers:\n> >>>\n> >>> If I set a parallel cluster object using setDefaultCluster, is there\n> >>> any way to recover that object (basically a \"getDefaultCluster\"\n> >>> function)?\n> >>>\n> >>\n> >> parallel:::defaultCluster()\n> >>\n> >> Cheers,\n> >> S\n> >>\n> >>\n> >>> --j\n> >>>\n> >>>\n> >>> --\n> >>> Jonathan A. Greenberg, PhD\n> >>> Assistant Professor\n> >>> Global Environmental Analysis and Remote Sensing (GEARS) Laboratory\n> >>> Department of Geography and Geographic Information Science\n> >>> University of Illinois at Urbana-Champaign\n> >>> 607 South Mathews Avenue, MC 150\n> >>> Urbana, IL 61801\n> >>> Phone: 217-300-1924\n> >>> http://www.geog.illinois.edu/~jgrn/\n> >>> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype:\n> jgrn3007\n> >>>\n> >>> _______________________________________________\n> >>> R-sig-hpc mailing list\n> >>> R-sig-hpc at r-project.org\n> >>> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n> >>>\n> >>>\n> >>\n> >\n> >\n> >\n> > --\n> > Jonathan A. Greenberg, PhD\n> > Assistant Professor\n> > Global Environmental Analysis and Remote Sensing (GEARS) Laboratory\n> > Department of Geography and Geographic Information Science\n> > University of Illinois at Urbana-Champaign\n> > 607 South Mathews Avenue, MC 150\n> > Urbana, IL 61801\n> > Phone: 217-300-1924\n> > http://www.geog.illinois.edu/~jgrn/\n> > AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007\n> >\n> >\n>\n>\n\n\n-- \nJonathan A. Greenberg, PhD\nAssistant Professor\nGlobal Environmental Analysis and Remote Sensing (GEARS) Laboratory\nDepartment of Geography and Geographic Information Science\nUniversity of Illinois at Urbana-Champaign\n607 South Mathews Avenue, MC 150\nUrbana, IL 61801\nPhone: 217-300-1924\nhttp://www.geog.illinois.edu/~jgrn/\nAIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "Ha!  Given your responses I just assumed you were the author!  I see its\nlisted as R-core at r-project.org, but am I correct in thinking someone on\nthis mailing list is the \"actual\" author?\n\n--j\n\n\nOn ",
       "thread_id": "thread-7ba0ae4c0344",
       "thread_depth": 4,
-      "month": "2013-02"
+      "month": "2013-02",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130224/2fb233b0/attachment.pl"
+      ]
     },
     {
       "id": "msg-dc4b17a00912",
@@ -574,11 +613,14 @@
       "references": [
         "<CABG0rfvpRokZQjAMnaqqCfCpHO-TtOKmdB4Q4JUtPX3sVBzG3w@mail.gmail.com>"
       ],
-      "body_plain": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130225/cac393b5/attachment.pl>",
-      "body_snippet": "An embedded and charset-unspecified text was scrubbed...\nName: not available\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130225/cac393b5/attachment.pl>",
+      "body_plain": "One simple thing I do to keep track of the progress is to include a\nstatement (in the function that is being executed in parallel) which\ncreates a text file [the name of which indicates which iteration it came\nfrom] and stores it to a folder. I just refresh the folder and figure out\nthe progress. not pretty but get's the job done for me.\n\nI've posted this to Stackoverflow some time ago (\nhttp://stackoverflow.com/questions/10903787/how-can-i-print-when-using-dopar/11377579#11377579\n)\n\nOn Mon, Feb 25, 2013 at 7:17 PM, Jonathan Greenberg <jgrn at illinois.edu>wrote:\n\n> Folks:\n>\n> Has anyone figured out a general solution to create a foreach progress\n> bar, updated as each iteration is completed?\n>\n> --j\n>\n> --\n> Jonathan A. Greenberg, PhD\n> Assistant Professor\n> Global Environmental Analysis and Remote Sensing (GEARS) Laboratory\n> Department of Geography and Geographic Information Science\n> University of Illinois at Urbana-Champaign\n> 607 South Mathews Avenue, MC 150\n> Urbana, IL 61801\n> Phone: 217-300-1924\n> http://www.geog.illinois.edu/~jgrn/\n> AIM: jgrn307, MSN: jgrn307 at hotmail.com, Gchat: jgrn307, Skype: jgrn3007\n>\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>\n\n\t[[alternative HTML version deleted]]",
+      "body_snippet": "One simple thing I do to keep track of the progress is to include a\nstatement (in the function that is being executed in parallel) which\ncreates a text file [the name of which indicates which iteratio",
       "thread_id": "thread-dc4b17a00912",
       "thread_depth": 1,
-      "month": "2013-02"
+      "month": "2013-02",
+      "restored_from": [
+        "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20130225/cac393b5/attachment.pl"
+      ]
     },
     {
       "id": "msg-171b0a1364a3",
