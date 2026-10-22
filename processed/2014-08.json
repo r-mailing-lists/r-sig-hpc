@@ -17,7 +17,8 @@
       "body_snippet": "I've been running doMPI jobs on a slurm cluster with R BATCH foo.R  and I'm used to getting a final line\nin foo.Rout with the output of proc.time() as promised by ?BATCH.  At least this was the way th",
       "thread_id": "thread-696b72922be1",
       "thread_depth": 0,
-      "month": "2014-08"
+      "month": "2014-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2014-August/001895.html"
     },
     {
       "id": "msg-c1b41a6eb455",
@@ -35,7 +36,8 @@
       "body_snippet": "I believe this behavior is due to mpi.quit() calling quit() with the\n\"runLast=FALSE\" option. If you call mpi.finalize() in your script\nrather than mpi.quit(), then you should see the output from\nproc.",
       "thread_id": "thread-696b72922be1",
       "thread_depth": 1,
-      "month": "2014-08"
+      "month": "2014-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2014-August/001896.html"
     },
     {
       "id": "msg-b754740193f7",
@@ -47,11 +49,12 @@
       "subject_clean": "Some hpc problems with doMPI and runmpi",
       "in_reply_to": null,
       "references": [],
-      "body_plain": "Dear R people,\n\nI?ve been doing some hpc using R and openmpi. Unfortunately I?ve encoutred a major problem and it?s nature is hard to pin down:\n\nEssentially I call mpirun Rscipt ? as soon as the script reaches a foreach()%dopar% it halts indefinitely. I?ve attached the qsub script:\n\n#!/bin/bash\n#$ -S /bin/bash\n#$ -N test_14\n#$ -cwd\n    \n#$ -V  \n#$ -o \"/fhgfs/g61570/Spectral Databases/log/test_14_\"$JOB_ID             \n#$ -j y\n#$ -q regular\n#$ -pe openmpi 8\n#$ -l h_rt=00:15:00\n#$ -l h_vmem=1.9G  \n#$ -m eas          \n#$ -M andre.ziervogel at psychol.uni-giessen.de\n\nmodule add gcc     \nmodule add openmpi/gcc/64/1.6.5\nmodule add R/gcc/3.0.1\n\ndate                       #log start time\n\necho \"Number of slots \" . $NSLOTS\n\nmpirun Rscript /fhgfs/g61570/Spectral\\ Databases/test_10.r > /fhgfs/g61570/Spectral\\ Databases/log/test_14.Rout\n\ndate\n\nexit\n\nand the R file:\n\nsuppressMessages(library('doMPI'))\n\nskylla.cluster <- startMPIcluster()\nregisterDoMPI(skylla.cluster)\n\ncat(paste(\"COMM SIZE: \", mpi.comm.size(0), \" cluster size: \", clusterSize(skylla.cluster), \"\\n\",sep = \"\"))\n\ntmp.time <- proc.time()\nsample <- foreach(i=seq(from=0, to=1000, by =1),.combine='c',.inorder=TRUE) %do%\n{\n\tr <- sqrt(i^2 + i^2) + .Machine$double.eps  * factorial(i)\n  \tsin(r) / r\n}\ncat(paste(\"Processing seriell time: \", \"\\n\", sep = \"  \"))\nprint(proc.time() - tmp.time)\n#print(sample)\n\ntmp.time <- proc.time()\nsample <- foreach(i=seq(from=0, to=1000, by =1),.combine='c',.inorder=TRUE) %dopar%\n{\n\tr <- sqrt(i^2 + i^2) + .Machine$double.eps  * factorial(i)\n  \tsin(r) / r\n}\ncat(paste(\"Processing parallel time: \", \"\\n\", sep = \"  \"))\nprint(proc.time() - tmp.time)\n#print(sample)\n\ncloseCluster(skylla.cluster)\n# mpi.close.Rslaves()\n# mpi.exit()\nmpi.quit(save='no?) \n\nAny suggestions would be highly appreciated! Thanks!\n\nBest\n\nAndr?\n\n------------------------------------------------------\nDipl. Psych Andr? Ziervogel\nandre.ziervogel at psychol.uni-giessen.de\n------------------------------------------------------\n\n-------------- next part --------------\nA non-text attachment was scrubbed...\nName: signature.asc\nType: application/pgp-signature\nSize: 842 bytes\nDesc: Message signed with OpenPGP using GPGMail\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20140807/90d4b356/attachment.bin>",
-      "body_snippet": "Dear R people,\n\nI?ve been doing some hpc using R and openmpi. Unfortunately I?ve encoutred a major problem and it?s nature is hard to pin down:\n\nEssentially I call mpirun Rscipt ? as soon as the scrip",
+      "body_plain": "Dear R people,\n\nI’ve been doing some hpc using R and openmpi. Unfortunately I’ve encoutred a major problem and it’s nature is hard to pin down:\n\nEssentially I call mpirun Rscipt … as soon as the script reaches a foreach()%dopar% it halts indefinitely. I’ve attached the qsub script:\n\n#!/bin/bash\n#$ -S /bin/bash\n#$ -N test_14\n#$ -cwd\n    \n#$ -V  \n#$ -o \"/fhgfs/g61570/Spectral Databases/log/test_14_\"$JOB_ID             \n#$ -j y\n#$ -q regular\n#$ -pe openmpi 8\n#$ -l h_rt=00:15:00\n#$ -l h_vmem=1.9G  \n#$ -m eas          \n#$ -M andre.ziervogel at psychol.uni-giessen.de\n\nmodule add gcc     \nmodule add openmpi/gcc/64/1.6.5\nmodule add R/gcc/3.0.1\n\ndate                       #log start time\n\necho \"Number of slots \" . $NSLOTS\n\nmpirun Rscript /fhgfs/g61570/Spectral\\ Databases/test_10.r > /fhgfs/g61570/Spectral\\ Databases/log/test_14.Rout\n\ndate\n\nexit\n\nand the R file:\n\nsuppressMessages(library('doMPI'))\n\nskylla.cluster <- startMPIcluster()\nregisterDoMPI(skylla.cluster)\n\ncat(paste(\"COMM SIZE: \", mpi.comm.size(0), \" cluster size: \", clusterSize(skylla.cluster), \"\\n\",sep = \"\"))\n\ntmp.time <- proc.time()\nsample <- foreach(i=seq(from=0, to=1000, by =1),.combine='c',.inorder=TRUE) %do%\n{\n\tr <- sqrt(i^2 + i^2) + .Machine$double.eps  * factorial(i)\n  \tsin(r) / r\n}\ncat(paste(\"Processing seriell time: \", \"\\n\", sep = \"  \"))\nprint(proc.time() - tmp.time)\n#print(sample)\n\ntmp.time <- proc.time()\nsample <- foreach(i=seq(from=0, to=1000, by =1),.combine='c',.inorder=TRUE) %dopar%\n{\n\tr <- sqrt(i^2 + i^2) + .Machine$double.eps  * factorial(i)\n  \tsin(r) / r\n}\ncat(paste(\"Processing parallel time: \", \"\\n\", sep = \"  \"))\nprint(proc.time() - tmp.time)\n#print(sample)\n\ncloseCluster(skylla.cluster)\n# mpi.close.Rslaves()\n# mpi.exit()\nmpi.quit(save='no‘) \n\nAny suggestions would be highly appreciated! Thanks!\n\nBest\n\nAndré\n\n------------------------------------------------------\nDipl. Psych André Ziervogel\nandre.ziervogel at psychol.uni-giessen.de\n------------------------------------------------------\n\n-------------- next part --------------\nA non-text attachment was scrubbed...\nName: signature.asc\nType: application/pgp-signature\nSize: 842 bytes\nDesc: Message signed with OpenPGP using GPGMail\nURL: <https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20140807/90d4b356/attachment.bin>",
+      "body_snippet": "Dear R people,\n\nI’ve been doing some hpc using R and openmpi. Unfortunately I’ve encoutred a major problem and it’s nature is hard to pin down:\n\nEssentially I call mpirun Rscipt … as soon as the scrip",
       "thread_id": "thread-b754740193f7",
       "thread_depth": 0,
-      "month": "2014-08"
+      "month": "2014-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2014-August/001897.html"
     },
     {
       "id": "msg-deeb8692ae41",
@@ -68,6 +71,7 @@
       "thread_id": "thread-deeb8692ae41",
       "thread_depth": 0,
       "month": "2014-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2014-August/001898.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20140808/a0379f8d/attachment.pl"
       ]
@@ -88,7 +92,8 @@
       "body_snippet": "Hi Rajendra Kumar,\n\nI think you are trying to start a SOCKS cluster (same machine) in a MPI \nenvironment (distributed machines).\nHave you tried\n\ncl<-makeCluster(type=\"MPI\",4)\n\nafter creating and setti",
       "thread_id": "thread-deeb8692ae41",
       "thread_depth": 1,
-      "month": "2014-08"
+      "month": "2014-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2014-August/001899.html"
     },
     {
       "id": "msg-024411e685d3",
@@ -108,6 +113,7 @@
       "thread_id": "thread-deeb8692ae41",
       "thread_depth": 2,
       "month": "2014-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2014-August/001900.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20140808/e8c93975/attachment.pl"
       ]
@@ -131,6 +137,7 @@
       "thread_id": "thread-deeb8692ae41",
       "thread_depth": 3,
       "month": "2014-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2014-August/001901.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20140808/34f27822/attachment.pl"
       ]
@@ -150,6 +157,7 @@
       "thread_id": "thread-0ae86ab9fb38",
       "thread_depth": 0,
       "month": "2014-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2014-August/001902.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20140808/9b48771e/attachment.pl"
       ]
@@ -168,7 +176,8 @@
       "body_snippet": "HI guys,\n\nI have written up a blog talking about how to accelerate R by CUDA.\n\nhttp://devblogs.nvidia.com/parallelforall/accelerate-r-applications-cuda/\n\nWelcome your comments :)   If other topics abo",
       "thread_id": "thread-966c3d9de507",
       "thread_depth": 0,
-      "month": "2014-08"
+      "month": "2014-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2014-August/001903.html"
     },
     {
       "id": "msg-15df0e4f8b12",
@@ -184,7 +193,8 @@
       "body_snippet": "Greetings,\n\nI'm trying to run some code on a cluster in which an internal qhull\nconvex-hull function repeatedly writes then scans a dummy file. (Very\ninefficient, I know, but c'est la vie.) The proble",
       "thread_id": "thread-15df0e4f8b12",
       "thread_depth": 0,
-      "month": "2014-08"
+      "month": "2014-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2014-August/001904.html"
     },
     {
       "id": "msg-989847820486",
@@ -202,7 +212,8 @@
       "body_snippet": "You didn't tell us which clusterning mechanism you're using, but most \nwill allow you to retrieve a unique node id or node number, which you \ncould use to create a subdirectory.\n\nAlso, 'tempfile' in R",
       "thread_id": "thread-15df0e4f8b12",
       "thread_depth": 1,
-      "month": "2014-08"
+      "month": "2014-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2014-August/001905.html"
     },
     {
       "id": "msg-91a3c4d58b8e",
@@ -221,7 +232,8 @@
       "body_snippet": "The tempfile option might work, as might using Sys.info()[\"nodename\"] to\nspecify individual subdirectories.\n\nAre you aware of any functions that can be used to identify which CPU a\nprocess has been sp",
       "thread_id": "thread-15df0e4f8b12",
       "thread_depth": 2,
-      "month": "2014-08"
+      "month": "2014-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2014-August/001906.html"
     },
     {
       "id": "msg-5f84b0c222fc",
@@ -241,7 +253,8 @@
       "body_snippet": "To Brian and anyone else following along on this thread:\n\nI wanted to reply with a solution. (Thanks also to Luke Tierney for\nfeedback.)\n\nThe simplest solution seems to be to take advantage of the tem",
       "thread_id": "thread-15df0e4f8b12",
       "thread_depth": 3,
-      "month": "2014-08"
+      "month": "2014-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2014-August/001907.html"
     },
     {
       "id": "msg-2988efbcd956",
@@ -257,7 +270,8 @@
       "body_snippet": "Hi all,\n\nI'm developing a package in which I explicitly handle parallelism, and in\neach parallel R session, running some SVD calculations through Rcpp +\nArmadillo.\n\nOn one of my test machines, R 3.1.0",
       "thread_id": "thread-2988efbcd956",
       "thread_depth": 0,
-      "month": "2014-08"
+      "month": "2014-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2014-August/001908.html"
     },
     {
       "id": "msg-03e0efb7627e",
@@ -275,7 +289,8 @@
       "body_snippet": "Hi Scott\n\nYou may need to contact the developers of openblas about openblas_set_num_threads. 2yrs ago when Simon was writing that wrapper it was only implemented for Linux. All other is just had a non",
       "thread_id": "thread-2988efbcd956",
       "thread_depth": 1,
-      "month": "2014-08"
+      "month": "2014-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2014-August/001909.html"
     },
     {
       "id": "msg-7ce75bbc9ed7",
@@ -294,7 +309,8 @@
       "body_snippet": "Hi Claudia,\n\nThe system I tested it on is running Ubuntu 12.04, so it should\ntheoretically work.\nI'd also like a way of disabling implicit parallelism if R has been\ncompiled with Goto BLAS and MKL, si",
       "thread_id": "thread-2988efbcd956",
       "thread_depth": 2,
-      "month": "2014-08"
+      "month": "2014-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2014-August/001910.html"
     },
     {
       "id": "msg-83dea54bfe75",
@@ -314,7 +330,8 @@
       "body_snippet": "Scott, \n\nOn 13 August 2014 at 20:08, Scott Ritchie wrote:\n| Hi Claudia,\n| \n| The system I tested it on is running Ubuntu 12.04, so it should\n| theoretically work.\n\nI keep forgetting you run an outdate",
       "thread_id": "thread-2988efbcd956",
       "thread_depth": 3,
-      "month": "2014-08"
+      "month": "2014-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2014-August/001911.html"
     },
     {
       "id": "msg-7f1d310c9304",
@@ -335,7 +352,8 @@
       "body_snippet": "Hi again Dirk,\n\nIf its just an issue with the particular setup I'm using, I'm happy to\nstick `export OPENBLAS_NUM_THREADS=1` in my bash profile.\n\nGood to know about Goto and MKL. I'd just seen them me",
       "thread_id": "thread-2988efbcd956",
       "thread_depth": 4,
-      "month": "2014-08"
+      "month": "2014-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2014-August/001912.html"
     },
     {
       "id": "msg-317f37a18294",
@@ -357,7 +375,8 @@
       "body_snippet": "hello,\nRhpcBLASctl is a package in the state of having started making it....\n\nExample..\n$ R -q\n> library(RhpcBLASctl)\n> omp_get_max_threads()\n[1] 8\n> omp_set_num_threads(1)\n> omp_get_max_threads()\n[1]",
       "thread_id": "thread-2988efbcd956",
       "thread_depth": 5,
-      "month": "2014-08"
+      "month": "2014-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2014-August/001913.html"
     },
     {
       "id": "msg-22b4182e9bc3",
@@ -380,7 +399,8 @@
       "body_snippet": "I hope it won't be viewed as highjacking this thread if I mention that \ndisabling implicit parallelism can be an issue in a variety of other contexts\nas well.  I've recently experienced this on our cl",
       "thread_id": "thread-22b4182e9bc3",
       "thread_depth": 0,
-      "month": "2014-08"
+      "month": "2014-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2014-August/001914.html"
     },
     {
       "id": "msg-a8b0911f70f8",
@@ -396,7 +416,8 @@
       "body_snippet": "Hello R HPC people,\n\nWe have just open sourced our R package for reading/writing very large data\nframes and matrices to disk and memory called activeH5 on GitHub:\nhttps://github.com/ActiveAnalytics/ac",
       "thread_id": "thread-a8b0911f70f8",
       "thread_depth": 0,
-      "month": "2014-08"
+      "month": "2014-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2014-August/001915.html"
     }
   ],
   "threads": [

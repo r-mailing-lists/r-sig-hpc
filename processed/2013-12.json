@@ -18,6 +18,7 @@
       "thread_id": "thread-b87b6202509d",
       "thread_depth": 0,
       "month": "2013-12",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2013-December/001798.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20131215/392a4d18/attachment.pl"
       ]
@@ -39,6 +40,7 @@
       "thread_id": "thread-b87b6202509d",
       "thread_depth": 1,
       "month": "2013-12",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2013-December/001799.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20131215/6fb7524d/attachment.pl"
       ]
@@ -58,6 +60,7 @@
       "thread_id": "thread-9d60b211b1f2",
       "thread_depth": 0,
       "month": "2013-12",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2013-December/001800.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20131216/12015d06/attachment.pl"
       ]
@@ -78,7 +81,8 @@
       "body_snippet": "Katharina,\n\nI don't think that what you are trying to do can be accomplished nearly that easily.  Using Rmpi directly is not for the faint of heart, and I strongly recommend using a nicer interface li",
       "thread_id": "thread-9d60b211b1f2",
       "thread_depth": 1,
-      "month": "2013-12"
+      "month": "2013-12",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2013-December/001801.html"
     },
     {
       "id": "msg-d1db0dd02c37",
@@ -94,7 +98,8 @@
       "body_snippet": "Conceptually, I have 2,000 tasks and I want each task to have access to\nan independent, repeatable random number stream.  Many of the tasks will\nrun on the same node.  For example, a typical job would",
       "thread_id": "thread-d1db0dd02c37",
       "thread_depth": 0,
-      "month": "2013-12"
+      "month": "2013-12",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2013-December/001802.html"
     },
     {
       "id": "msg-a1c8a13636ee",
@@ -112,7 +117,8 @@
       "body_snippet": "On Thu, 2013-12-19 at 13:28 -0800, Ross Boylan wrote:\n> Conceptually, I have 2,000 tasks and I want each task to have access to\n> an independent, repeatable random number stream.  Many of the tasks wi",
       "thread_id": "thread-d1db0dd02c37",
       "thread_depth": 1,
-      "month": "2013-12"
+      "month": "2013-12",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2013-December/001803.html"
     },
     {
       "id": "msg-62803c508b11",
@@ -131,7 +137,8 @@
       "body_snippet": "Ross,\n\nConsider writing this SPMD style and run as Rscript. Here is a short \nexample:\n\nlibrary(pbdMPI, quiet=TRUE)\ninit()\ncomm.set.seed(1234567, diff=TRUE)\nr <- runif(5)\ncomm.print(r, all.rank=TRUE)\nf",
       "thread_id": "thread-d1db0dd02c37",
       "thread_depth": 2,
-      "month": "2013-12"
+      "month": "2013-12",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2013-December/001804.html"
     },
     {
       "id": "msg-bb82b9ba844b",
@@ -151,7 +158,8 @@
       "body_snippet": "Another way is to use the snowFT package which assigns one stream per \ntask instead of one stream per node.\n\nHana\n\n\nOn 20/12/2013 03:24, George Ostrouchov wrote:\n> Ross,\n>\n> Consider writing this SPMD",
       "thread_id": "thread-d1db0dd02c37",
       "thread_depth": 3,
-      "month": "2013-12"
+      "month": "2013-12",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2013-December/001805.html"
     },
     {
       "id": "msg-f66eab890dfc",
@@ -163,11 +171,12 @@
       "subject_clean": "Comparison of RNG streams in pbdMPI and parallel",
       "in_reply_to": null,
       "references": [],
-      "body_plain": "Dear all,\n\nPlease compare the following simple scripts:\nscript 1:\n\nlibrary(pbdMPI, quiet = TRUE)\ninit()\n# here all ranks get the same RNS stream\ncomm.set.seed(seed=123456)\ncomm.print(rnorm(5), all.rank = TRUE)\ncomm.end.seed()\n# here each rank gets a different RNG stream\ncomm.set.seed(seed=123456, diff = TRUE)\ncomm.print(rnorm(5), all.rank = TRUE)\ncomm.end.seed()\n\nfinalize()\n\nand script 2:\n\nlibrary(parallel, quiet = TRUE)\nnp <- 2L;\ncl <- makeCluster(spec=np, type=\"MPI\", outfile=\"\"); # here all processes \nget the same RNS stream\na <- parSapply(cl=cl, X=1:2, FUN=function(x) { set.seed(seed=123456, \nkind=\"L'Ecuyer\"); print(rnorm(5));});\nstopCluster(cl=cl);\n\ncl <- makeCluster(spec=np, type=\"MPI\", outfile=\"\");\nclusterSetRNGStream(cl=cl, iseed=123456); # here each process gets a \ndifferent RNS stream\na <- parSapply(cl=cl, X=1:2, FUN=function(x) print(rnorm(5)));\nstopCluster(cl=cl);\nmpi.quit();\n\nYou can run script 1 with \"mpirun -np 2 Rscript script1.R\" and script 2 \nwith \"mpirun -np 1 Rscript script2.R\".\n\nI have the following questons:\n1. In script 1, the streams are completely different when diff=TRUE from \nwhen diff=FALSE. Shouldn't one of the random vectors in the case\ndiff=TRUE be the same as in the case diff=FALSE? This is exactly the \ncase in script 2.\n2. Why are the random vectors generated in script 1 completely different \nthan those generated with script 2,\ndespite that the seed is the same, that is seed=123456 in both script 1 \nand script 2?\n3. Is there a better way to implement the same stream for all workers in \nscript 2?\n\nBest regards,\n\nMartin Ivanov\n\n-- \nDr. Martin Ivanov\nEberhard-Karls-Universit?t T?bingen\nMathematisch-Naturwissenschaftliche Fakult?t\nFachbereich Geowissenschaften\nWater & Earth System Science (WESS)\nH?lderlinstra?e 12, 72074 T?bingen, Deutschland\nTel. +4970712974213",
+      "body_plain": "Dear all,\n\nPlease compare the following simple scripts:\nscript 1:\n\nlibrary(pbdMPI, quiet = TRUE)\ninit()\n# here all ranks get the same RNS stream\ncomm.set.seed(seed=123456)\ncomm.print(rnorm(5), all.rank = TRUE)\ncomm.end.seed()\n# here each rank gets a different RNG stream\ncomm.set.seed(seed=123456, diff = TRUE)\ncomm.print(rnorm(5), all.rank = TRUE)\ncomm.end.seed()\n\nfinalize()\n\nand script 2:\n\nlibrary(parallel, quiet = TRUE)\nnp <- 2L;\ncl <- makeCluster(spec=np, type=\"MPI\", outfile=\"\"); # here all processes \nget the same RNS stream\na <- parSapply(cl=cl, X=1:2, FUN=function(x) { set.seed(seed=123456, \nkind=\"L'Ecuyer\"); print(rnorm(5));});\nstopCluster(cl=cl);\n\ncl <- makeCluster(spec=np, type=\"MPI\", outfile=\"\");\nclusterSetRNGStream(cl=cl, iseed=123456); # here each process gets a \ndifferent RNS stream\na <- parSapply(cl=cl, X=1:2, FUN=function(x) print(rnorm(5)));\nstopCluster(cl=cl);\nmpi.quit();\n\nYou can run script 1 with \"mpirun -np 2 Rscript script1.R\" and script 2 \nwith \"mpirun -np 1 Rscript script2.R\".\n\nI have the following questons:\n1. In script 1, the streams are completely different when diff=TRUE from \nwhen diff=FALSE. Shouldn't one of the random vectors in the case\ndiff=TRUE be the same as in the case diff=FALSE? This is exactly the \ncase in script 2.\n2. Why are the random vectors generated in script 1 completely different \nthan those generated with script 2,\ndespite that the seed is the same, that is seed=123456 in both script 1 \nand script 2?\n3. Is there a better way to implement the same stream for all workers in \nscript 2?\n\nBest regards,\n\nMartin Ivanov\n\n-- \nDr. Martin Ivanov\nEberhard-Karls-Universität Tübingen\nMathematisch-Naturwissenschaftliche Fakultät\nFachbereich Geowissenschaften\nWater & Earth System Science (WESS)\nHölderlinstraße 12, 72074 Tübingen, Deutschland\nTel. +4970712974213",
       "body_snippet": "Dear all,\n\nPlease compare the following simple scripts:\nscript 1:\n\nlibrary(pbdMPI, quiet = TRUE)\ninit()\n# here all ranks get the same RNS stream\ncomm.set.seed(seed=123456)\ncomm.print(rnorm(5), all.ran",
       "thread_id": "thread-f66eab890dfc",
       "thread_depth": 0,
-      "month": "2013-12"
+      "month": "2013-12",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2013-December/001806.html"
     }
   ],
   "threads": [

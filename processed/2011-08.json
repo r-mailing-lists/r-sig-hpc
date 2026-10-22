@@ -13,11 +13,12 @@
       "subject_clean": "Looking for some function to determine how many cores I have",
       "in_reply_to": null,
       "references": [],
-      "body_plain": "Dear all, I am looking for some R function which will tell me how many cores I have in my machine. I am using?Windows?Vista and snowfall library for my parallel computations. However I need to automate the initializing the parallel computation using?sfInit() function, for which number of cores is one input.\n\nI can personally see the core numbers from Windows Task Manager, however want to automate (in some extend) my calculation. Is there any function to determine that number?\n\n\nThanks,",
-      "body_snippet": "Dear all, I am looking for some R function which will tell me how many cores I have in my machine. I am using?Windows?Vista and snowfall library for my parallel computations. However I need to automat",
+      "body_plain": "Dear all, I am looking for some R function which will tell me how many cores I have in my machine. I am using Windows Vista and snowfall library for my parallel computations. However I need to automate the initializing the parallel computation using sfInit() function, for which number of cores is one input.\n\nI can personally see the core numbers from Windows Task Manager, however want to automate (in some extend) my calculation. Is there any function to determine that number?\n\n\nThanks,",
+      "body_snippet": "Dear all, I am looking for some R function which will tell me how many cores I have in my machine. I am using Windows Vista and snowfall library for my parallel computations. However I need to automat",
       "thread_id": "thread-9c6c79bc0757",
       "thread_depth": 0,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001048.html"
     },
     {
       "id": "msg-768eeeade2bf",
@@ -36,6 +37,7 @@
       "thread_id": "thread-9c6c79bc0757",
       "thread_depth": 1,
       "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001049.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110804/3d7ffa2f/attachment.pl"
       ]
@@ -59,6 +61,7 @@
       "thread_id": "thread-aafce01f7619",
       "thread_depth": 0,
       "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001050.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110804/fe9a303b/attachment.pl"
       ]
@@ -75,11 +78,12 @@
       "references": [
         "<1312475907.45436.YahooMailNeo@web161818.mail.bf1.yahoo.com>"
       ],
-      "body_plain": "On 4 August 2011 at 09:38, Megh Dal wrote:\n| Dear all, I am looking for some R function which will tell me how many cores I have in my machine. I am using?Windows?Vista and snowfall library for my parallel computations. However I need to automate the initializing the parallel computation using?sfInit() function, for which number of cores is one input.\n| \n| I can personally see the core numbers from Windows Task Manager, however want to automate (in some extend) my calculation. Is there any function to determine that number?\n\nBrian Ripley is currently adding a new package 'parallel' to the R-devel SVN;\nthis should be part of R 2.14.0 due October.\n\nIt has a function to do this, but the code it pretty OS-dependent. Here is\nthe R function R/detectCores.R :\n\n\nif(.Platform$OS.type == \"windows\") {\ndetectCores <- function(all.tests = FALSE)\n    .Call(\"ncpus\", FALSE, package = \"parallel\")\n} else {\ndetectCores <- function(all.tests = FALSE)\n{\n    systems <-\n        list(darwin  = \"/usr/sbin/sysctl -n hw.ncpu 2>/dev/null\",\n             freebsd = \"/sbin/sysctl -n hw.ncpu 2>/dev/null\",\n             linux   = \"grep processor /proc/cpuinfo 2>/dev/null | wc -l\",\n             irix    = c(\"hinv | grep Processors | sed 's: .*::'\",\n                         \"hinv | grep '^Processor '| wc -l\"),\n#             solaris = \"/usr/sbin/psrinfo -v | grep 'Status of.*processor' | wc -l\"\n             solaris = \"/usr/sbin/psrinfo -p\")\n    for (i in seq(systems))\n        if(all.tests ||\n           length(grep(paste(\"^\", names(systems)[i], sep=''), R.version$os)))\n            for (cmd in systems[i]) {\n                a <- gsub(\"^ +\",\"\", system(cmd, TRUE)[1])\n                if (length(grep(\"^[1-9]\", a))) return(as.integer(a))\n            }\n    NA_integer_\n}\n}\n\n\nand on Windows you have to build and execute this C function src/ncpus.c:\n\n#include <R.h>\n#include \"parallel.h\"\n\n#define WIN32_LEAN_AND_MEAN\n#include <windows.h>\n\n\nSEXP ncpus(SEXP virtual)\n{\n    int virt = asLogical(virtual);\n    SYSTEM_INFO info;\n    GetSystemInfo(&info);\n    int nc = info.dwNumberOfProcessors;\n    return ScalarInteger(nc);\n}\n\n\n\nDirk\n\n\n-- \nGauss once played himself in a zero-sum game and won $50.\n                      -- #11 at http://www.gaussfacts.com",
-      "body_snippet": "On 4 August 2011 at 09:38, Megh Dal wrote:\n| Dear all, I am looking for some R function which will tell me how many cores I have in my machine. I am using?Windows?Vista and snowfall library for my par",
+      "body_plain": "On 4 August 2011 at 09:38, Megh Dal wrote:\n| Dear all, I am looking for some R function which will tell me how many cores I have in my machine. I am using Windows Vista and snowfall library for my parallel computations. However I need to automate the initializing the parallel computation using sfInit() function, for which number of cores is one input.\n| \n| I can personally see the core numbers from Windows Task Manager, however want to automate (in some extend) my calculation. Is there any function to determine that number?\n\nBrian Ripley is currently adding a new package 'parallel' to the R-devel SVN;\nthis should be part of R 2.14.0 due October.\n\nIt has a function to do this, but the code it pretty OS-dependent. Here is\nthe R function R/detectCores.R :\n\n\nif(.Platform$OS.type == \"windows\") {\ndetectCores <- function(all.tests = FALSE)\n    .Call(\"ncpus\", FALSE, package = \"parallel\")\n} else {\ndetectCores <- function(all.tests = FALSE)\n{\n    systems <-\n        list(darwin  = \"/usr/sbin/sysctl -n hw.ncpu 2>/dev/null\",\n             freebsd = \"/sbin/sysctl -n hw.ncpu 2>/dev/null\",\n             linux   = \"grep processor /proc/cpuinfo 2>/dev/null | wc -l\",\n             irix    = c(\"hinv | grep Processors | sed 's: .*::'\",\n                         \"hinv | grep '^Processor '| wc -l\"),\n#             solaris = \"/usr/sbin/psrinfo -v | grep 'Status of.*processor' | wc -l\"\n             solaris = \"/usr/sbin/psrinfo -p\")\n    for (i in seq(systems))\n        if(all.tests ||\n           length(grep(paste(\"^\", names(systems)[i], sep=''), R.version$os)))\n            for (cmd in systems[i]) {\n                a <- gsub(\"^ +\",\"\", system(cmd, TRUE)[1])\n                if (length(grep(\"^[1-9]\", a))) return(as.integer(a))\n            }\n    NA_integer_\n}\n}\n\n\nand on Windows you have to build and execute this C function src/ncpus.c:\n\n#include <R.h>\n#include \"parallel.h\"\n\n#define WIN32_LEAN_AND_MEAN\n#include <windows.h>\n\n\nSEXP ncpus(SEXP virtual)\n{\n    int virt = asLogical(virtual);\n    SYSTEM_INFO info;\n    GetSystemInfo(&info);\n    int nc = info.dwNumberOfProcessors;\n    return ScalarInteger(nc);\n}\n\n\n\nDirk\n\n\n-- \nGauss once played himself in a zero-sum game and won $50.\n                      -- #11 at http://www.gaussfacts.com",
+      "body_snippet": "On 4 August 2011 at 09:38, Megh Dal wrote:\n| Dear all, I am looking for some R function which will tell me how many cores I have in my machine. I am using Windows Vista and snowfall library for my par",
       "thread_id": "thread-9c6c79bc0757",
       "thread_depth": 1,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001051.html"
     },
     {
       "id": "msg-31766c109a4d",
@@ -97,7 +101,8 @@
       "body_snippet": "Hi\n\n> I can personally see the core numbers from Windows Task Manager, however want to automate (in some extend) my calculation. Is there any function to determine that number?\n\nIf you want the number",
       "thread_id": "thread-9c6c79bc0757",
       "thread_depth": 1,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001052.html"
     },
     {
       "id": "msg-8f80e8757fcf",
@@ -113,7 +118,8 @@
       "body_snippet": "Hi All,\n\nI'm relatively new to this but it has worked well for me previously and\nnow I'm getting errors.\n\nI'm attempting to run and R job, on a cluster using LSF operating\nsystem, using the packages d",
       "thread_id": "thread-8f80e8757fcf",
       "thread_depth": 0,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001053.html"
     },
     {
       "id": "msg-ee60490d5e8d",
@@ -131,7 +137,8 @@
       "body_snippet": "On Thu, 2011-08-11 at 12:40 +0100, Jim Maas wrote:\n> I guess I'm asking if the R packages doMPI and foreach are scalable,\n> and to what level?\n\nI suspect some limitation in the configuration on your c",
       "thread_id": "thread-8f80e8757fcf",
       "thread_depth": 1,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001054.html"
     },
     {
       "id": "msg-5173804f5aac",
@@ -147,7 +154,8 @@
       "body_snippet": "R-sig-hpc'ers:\n\nI'm a big fan of the snow/Rmpi package, and we've recently tried to\nget it running on a new debian system in our lab.  My sysadmin is not\ntoo keen on non-debian package installs (you k",
       "thread_id": "thread-5173804f5aac",
       "thread_depth": 0,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001055.html"
     },
     {
       "id": "msg-5f7a28cd7644",
@@ -165,7 +173,8 @@
       "body_snippet": "Hi Jonathan,\n\nI think this is normal.  Consider the following script rmpi.R:\n\nlibrary(Rmpi)\nprint(mpi.universe.size())\nmpi.quit()\n\nIf I run this using:\n\n  % R --slave -f rmpi.R\n  [1] 1\n\nthe universe s",
       "thread_id": "thread-5173804f5aac",
       "thread_depth": 1,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001056.html"
     },
     {
       "id": "msg-c4e3bfddee27",
@@ -184,7 +193,8 @@
       "body_snippet": "Stephen:\n\nThanks!  I guess the issue is that I'm seeing the slaves only spawn to\na single CPU on a 4-core system, which makes me think that the problem\nis more significant, but I can't tell if its par",
       "thread_id": "thread-5173804f5aac",
       "thread_depth": 2,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001057.html"
     },
     {
       "id": "msg-97dbe399d1c8",
@@ -204,7 +214,8 @@
       "body_snippet": "That sounds strange.  Rmpi or Open MPI would have to go\nout of its way to restrict processes from being scheduled on\ndifferent cores of the CPU using numactl, or something like that,\nwhich seems unlik",
       "thread_id": "thread-5173804f5aac",
       "thread_depth": 3,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001058.html"
     },
     {
       "id": "msg-fec8f332fa57",
@@ -225,7 +236,8 @@
       "body_snippet": "Stephen:\n\nI agree its a bit strange, but yeah, only a single core is being lit\nup, and divided into the number of slaves I spawn (25% if 4 slaves,\n33% if 3 slaves).\n\n--j\n\nOn Thu, Aug 11, 2011 at 2:40 ",
       "thread_id": "thread-5173804f5aac",
       "thread_depth": 4,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001059.html"
     },
     {
       "id": "msg-b12101f3dc4b",
@@ -248,7 +260,8 @@
       "body_snippet": "Very strange.  So I tried that, and it still runs on only a single\nprocessor (4 R processes are spawned, using 25% cpu each).  If I,\ninstead, launch R 4 times separately, and run on each instance the\n",
       "thread_id": "thread-b12101f3dc4b",
       "thread_depth": 0,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001060.html"
     },
     {
       "id": "msg-696d931a0eba",
@@ -272,7 +285,8 @@
       "body_snippet": "What happens when you use the socket transport?\n\n    cl <- makeSOCKcluster(4)\n    clusterEvalQ(cl, repeat sqrt(1))\n\nOn my Linux machine, these workers have process 1 as their parent,\nunlike the other ",
       "thread_id": "thread-b12101f3dc4b",
       "thread_depth": 1,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001061.html"
     },
     {
       "id": "msg-a110c12a9217",
@@ -290,7 +304,8 @@
       "body_snippet": "Hello, Jim\n\nI have seen similar, but the jobs still run.  On my system, it happens\nbecause our cluster has a mixture of fabrics.  Some are regular old\nethernet, some are infiniband. (suspect you are s",
       "thread_id": "thread-8f80e8757fcf",
       "thread_depth": 1,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001062.html"
     },
     {
       "id": "msg-105156604d4f",
@@ -307,6 +322,7 @@
       "thread_id": "thread-105156604d4f",
       "thread_depth": 0,
       "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001063.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110812/c2655a0b/attachment.pl"
       ]
@@ -327,7 +343,8 @@
       "body_snippet": "Don't know of any courses, but you may find my open-source textbook on\nHPC to be of interest, at\n\nhttp://heather.cs.ucdavis.edu/parprocbook\n\nIt's not solely on R, but it does have a lot of R examples.",
       "thread_id": "thread-105156604d4f",
       "thread_depth": 1,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001064.html"
     },
     {
       "id": "msg-5f1c89191a2c",
@@ -343,7 +360,8 @@
       "body_snippet": "Quick question for any RHIPE (The R Hadoop-based MapReduce package) users here :\n\nHow does RHIPE allow the use of arbitrary libraries / code from CRAN\nin the provided Map and Reduce functions when run",
       "thread_id": "thread-5f1c89191a2c",
       "thread_depth": 0,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001065.html"
     },
     {
       "id": "msg-9f1bfbdbe694",
@@ -361,7 +379,8 @@
       "body_snippet": "Hi\nThere is a mailing list for rhipe. Also we've moved to ml.stat.purdue.edu/rhipe\n\nThe documentation is beingobef into the package.\n\nIn the setup you can type\nlinbrary(ackagename)\n\nAre you getting er",
       "thread_id": "thread-5f1c89191a2c",
       "thread_depth": 1,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001066.html"
     },
     {
       "id": "msg-e602084c28ca",
@@ -380,7 +399,8 @@
       "body_snippet": "Hi Saptarshi,\n\nOn 12 August 2011 at 21:17, Saptarshi Guha wrote:\n| There is a mailing list for rhipe. Also we've moved to ml.stat.purdue.edu/rhipe\n\nBut the machine ml.stat.purdue.edu times out on http",
       "thread_id": "thread-5f1c89191a2c",
       "thread_depth": 2,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001067.html"
     },
     {
       "id": "msg-d440daa489ff",
@@ -397,6 +417,7 @@
       "thread_id": "thread-d440daa489ff",
       "thread_depth": 0,
       "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001068.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110813/8a5ff569/attachment.pl"
       ]
@@ -419,7 +440,8 @@
       "body_snippet": "Hello,\n\nYes, unfortunately, the Stat department website at purdue had gone\ndown for maintenance.\nIt should be up now. I'm working on\na) pushing code to code.google.com and have bugtracker\nb) pushing d",
       "thread_id": "thread-5f1c89191a2c",
       "thread_depth": 3,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001069.html"
     },
     {
       "id": "msg-6cf64e08e839",
@@ -438,7 +460,8 @@
       "body_snippet": "Munich R courses:\nhttp://www.stat.uni-muenchen.de/R/inhalte.html#K6\n\nBest\nMarkus\n\n\nAm Freitag, den 12.08.2011, 16:33 -0700 schrieb Norm Matloff:\n> Don't know of any courses, but you may find my open-s",
       "thread_id": "thread-105156604d4f",
       "thread_depth": 2,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001070.html"
     },
     {
       "id": "msg-89cdc73db1ae",
@@ -458,7 +481,8 @@
       "body_snippet": "Markus,\n\nLooks great. Are there any lecture notes to download for this course?\n\nThanks,\nMichael\n\nOn 08/15/2011 08:25 PM, Markus Schmidberger wrote:\n> Munich R courses:\n> http://www.stat.uni-muenchen.d",
       "thread_id": "thread-105156604d4f",
       "thread_depth": 3,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001071.html"
     },
     {
       "id": "msg-0bc4b6d941c8",
@@ -480,6 +504,7 @@
       "thread_id": "thread-105156604d4f",
       "thread_depth": 4,
       "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001072.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110815/86918703/attachment.pl"
       ]
@@ -499,6 +524,7 @@
       "thread_id": "thread-6c3be5258a67",
       "thread_depth": 0,
       "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001073.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110815/230819bb/attachment.pl"
       ]
@@ -519,7 +545,8 @@
       "body_snippet": "What version of R are you using?  Did you get any warning messages\nwhen installing or loading doMC?  Can you execute the following:\n\n  > library(compiler)\n  > compile(4)\n\nThere is no way to disable co",
       "thread_id": "thread-6c3be5258a67",
       "thread_depth": 1,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001074.html"
     },
     {
       "id": "msg-ba485d108644",
@@ -539,6 +566,7 @@
       "thread_id": "thread-6c3be5258a67",
       "thread_depth": 2,
       "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001075.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110815/dbd1e7ce/attachment.pl"
       ]
@@ -566,7 +594,8 @@
       "body_snippet": "Stephen et al.:\n\nA little more sleuthing as well as working through this very listserv\nfound the culprit.  I had to run R via orterun for it to work\nproperly:\n\norterun -n 1 R --no-save\n\nI was then abl",
       "thread_id": "thread-b12101f3dc4b",
       "thread_depth": 2,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001076.html"
     },
     {
       "id": "msg-2bcf58875e15",
@@ -582,7 +611,8 @@
       "body_snippet": "I'm using the following nested foreach loop structure which seems to work quite well.\n\nnsim = 1000 so the inner loop executes 1000 times.   I'd like to get the inner loop to randomly pick one result o",
       "thread_id": "thread-2bcf58875e15",
       "thread_depth": 0,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001077.html"
     },
     {
       "id": "msg-a54c3d807216",
@@ -600,7 +630,8 @@
       "body_snippet": "The main vignette for the foreach package contains two examples of\n\"when\" in section 6, \"List Comprehensions\".  Use \"vignette('foreach')\"\nto view it.  The foreach man page also shows one of the same e",
       "thread_id": "thread-2bcf58875e15",
       "thread_depth": 1,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001078.html"
     },
     {
       "id": "msg-6ac8e0673438",
@@ -612,11 +643,12 @@
       "subject_clean": "Question",
       "in_reply_to": null,
       "references": [],
-      "body_plain": "Krystian,\n\nYou asked how to do\n\nb=a[a>5]\n\nwith?ff objects.\n\n\nYou can do that by storing the logical selection in a bit vector and then creating the target ff vector in the final size\nlibrary(ff)\nn?<- 4e7\ns <- 1e3\na <- ff(1:n, caching=\"mmeachflush\")\nsystem.time({\n? # creating the boolean vector\n? f <- bit(n)\n? for (i in chunk(a, by=s)) f[i] <- a[i]>5\n? # now knowing the desires length create the target ff\n? b <- clone(a, length=sum(f), update=FALSE)\n? # fill it using the evaluated condition\n? n1 <- 0L\n? for (i in chunk(a, by=s)){\n??? h <- as.hi(f, range=i)\n??? n2 <- n1 + length(h)\n??? n1 <- n1 + 1L\n??? b[n1:n2] <- a[h]\n??? n1 <- n2\n? }\n})\n\n\nHowever you can also save the RAM for the bit vector and - more important - a second pass over the input data by growing the target ff on the fly:\n\nsystem.time({\n? for (i in chunk(a, by=s))\n? {\n??? x <- a[i]\n??? x <- x[x>5]\n??? if (i[[1]]==1L){\n????? b <- as.ff(x, caching=\"mmeachflush\")\n??? }else{\n????? n1 <- length(b)\n????? n2 <- n1 + length(x)\n????? length(b) <- n2\n????? n1 <- n1 + 1L\n????? b[n1:n2] <- x\n??? }\n? }\n})\n\n\nThe latter for me performs better if the ff object are bigger than RAM, the former might be better if you want to combine several logical conditions.\n\nKind regards\n\n\nJens Oehlschl?gel\n\n\n\n-----Urspr?ngliche Nachricht-----\nVon: kradlak <krystian.radlak at comarch.pl>\nGesendet: 18.08.2011 11:24:21\nAn: Jens.Oehlschlaegel at truecluster.com\nBetreff: Question\n\n> Hi,\n>I have a question connected to package ff.\n>I want to do operation with ff vector from packages ff like simple\n>operation in R like this.\n>Example\n>a=1:10\n>b=a[a>5]\n>\n>How to do this operation with ff packages:\n>Example :\n>a=ff(1, length=15*10^7)\n>\n>I know that I could get logical vector like this:\n>\n>k=bit(15*10^7) # from bit packages\n>a=ff(-1,15*10^7)\n>system.time(\n> for (i in chunk(a)){ k[i]<- a[i]<1}\n>)\n>\n>Any suggestions?\n>\n>Best,\n>Krystian\n\n?",
-      "body_snippet": "Krystian,\n\nYou asked how to do\n\nb=a[a>5]\n\nwith?ff objects.\n\n\nYou can do that by storing the logical selection in a bit vector and then creating the target ff vector in the final size\nlibrary(ff)\nn?<- ",
+      "body_plain": "Krystian,\n\nYou asked how to do\n\nb=a[a>5]\n\nwith ff objects.\n\n\nYou can do that by storing the logical selection in a bit vector and then creating the target ff vector in the final size\nlibrary(ff)\nn <- 4e7\ns <- 1e3\na <- ff(1:n, caching=\"mmeachflush\")\nsystem.time({\n  # creating the boolean vector\n  f <- bit(n)\n  for (i in chunk(a, by=s)) f[i] <- a[i]>5\n  # now knowing the desires length create the target ff\n  b <- clone(a, length=sum(f), update=FALSE)\n  # fill it using the evaluated condition\n  n1 <- 0L\n  for (i in chunk(a, by=s)){\n    h <- as.hi(f, range=i)\n    n2 <- n1 + length(h)\n    n1 <- n1 + 1L\n    b[n1:n2] <- a[h]\n    n1 <- n2\n  }\n})\n\n\nHowever you can also save the RAM for the bit vector and - more important - a second pass over the input data by growing the target ff on the fly:\n\nsystem.time({\n  for (i in chunk(a, by=s))\n  {\n    x <- a[i]\n    x <- x[x>5]\n    if (i[[1]]==1L){\n      b <- as.ff(x, caching=\"mmeachflush\")\n    }else{\n      n1 <- length(b)\n      n2 <- n1 + length(x)\n      length(b) <- n2\n      n1 <- n1 + 1L\n      b[n1:n2] <- x\n    }\n  }\n})\n\n\nThe latter for me performs better if the ff object are bigger than RAM, the former might be better if you want to combine several logical conditions.\n\nKind regards\n\n\nJens Oehlschlägel\n\n\n\n-----Ursprüngliche Nachricht-----\nVon: kradlak <krystian.radlak at comarch.pl>\nGesendet: 18.08.2011 11:24:21\nAn: Jens.Oehlschlaegel at truecluster.com\nBetreff: Question\n\n> Hi,\n>I have a question connected to package ff.\n>I want to do operation with ff vector from packages ff like simple\n>operation in R like this.\n>Example\n>a=1:10\n>b=a[a>5]\n>\n>How to do this operation with ff packages:\n>Example :\n>a=ff(1, length=15*10^7)\n>\n>I know that I could get logical vector like this:\n>\n>k=bit(15*10^7) # from bit packages\n>a=ff(-1,15*10^7)\n>system.time(\n> for (i in chunk(a)){ k[i]<- a[i]<1}\n>)\n>\n>Any suggestions?\n>\n>Best,\n>Krystian\n\n?",
+      "body_snippet": "Krystian,\n\nYou asked how to do\n\nb=a[a>5]\n\nwith ff objects.\n\n\nYou can do that by storing the logical selection in a bit vector and then creating the target ff vector in the final size\nlibrary(ff)\nn <- ",
       "thread_id": "thread-6ac8e0673438",
       "thread_depth": 0,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001079.html"
     },
     {
       "id": "msg-7388276d045a",
@@ -632,7 +664,8 @@
       "body_snippet": "Hi\n\nI am a newbie to parallel computing, let alone Rmpi, and appreciate if you could\ngive me advice on R parallel computing in general.\n\nI am a database marketing analyst and was told by my boss to do",
       "thread_id": "thread-7388276d045a",
       "thread_depth": 0,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001080.html"
     },
     {
       "id": "msg-478480b2d4dd",
@@ -648,7 +681,8 @@
       "body_snippet": "Hi,\n\nI am learning how to do parallel processing on R now.\nAnd I wonder if there are examples/sites/books for parallel\nstatistical analysis.\n\nI have seen many examples showing \"mclapply(1:30, rnorm)\",",
       "thread_id": "thread-478480b2d4dd",
       "thread_depth": 0,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001081.html"
     },
     {
       "id": "msg-e24712344204",
@@ -664,7 +698,8 @@
       "body_snippet": "Hi,\n\nCurrently I am trying to see how much parallel processing\npackages like multicore and snow can improve computing\ntimes.\n\nThen I would like to ask if I did anything wrong as I don't see\nany signif",
       "thread_id": "thread-e24712344204",
       "thread_depth": 0,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001082.html"
     },
     {
       "id": "msg-c62be1cf372b",
@@ -682,7 +717,8 @@
       "body_snippet": "On 08/23/2011 06:08 AM, Takatsugu Kobayashi wrote:\n> Hi,\n>\n> Currently I am trying to see how much parallel processing\n> packages like multicore and snow can improve computing\n> times.\n>\n> Then I woul",
       "thread_id": "thread-e24712344204",
       "thread_depth": 1,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001083.html"
     },
     {
       "id": "msg-4645c3bee7be",
@@ -699,6 +735,7 @@
       "thread_id": "thread-4645c3bee7be",
       "thread_depth": 0,
       "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001084.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110823/aa0411ba/attachment.pl"
       ]
@@ -720,7 +757,8 @@
       "body_snippet": "Hi Morgan\n\nI tried your code, and here is what I got.\nIt looks like multiple cores are not being allocated/used for\nmy computation.... I will try to figure out why with the linux\nadministrator at work",
       "thread_id": "thread-e24712344204",
       "thread_depth": 2,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001085.html"
     },
     {
       "id": "msg-a03f9ad45b02",
@@ -732,11 +770,12 @@
       "subject_clean": "Parallelizing function with subfunctions using snowfall",
       "in_reply_to": null,
       "references": [],
-      "body_plain": "Hi\n\nI have a function (jr.parsimest) which is rather time consuming and since I want to do use it several times with different input I tried to parallelize the process using snowfall. The code works fine when running in serial with sfInit(parallel=FALSE) but I have a problem getting it to work with sfInit(parallel=TRUE, cpus=8).\n\nThe problem is that the function jr.parsimest contains several subfunctions that in turn have several more subfunctions and so on and it seems that I have to export all of them with sfExport or sfExportall. This will be rather tricky and tedious at best, since I don?t really know some of the subfunctions with subfunctions since they come from a non-Cran package not written by me.  I also get a feeling that this is not the way to do things but I am not able confirm it anywhere.\n\nIs my approach fundamentally wrong? Is there a better way of doing things?\n\nParallelizing a time-consuming subfunction is of course an idea but I rather parallelize the \"topfunction\" if possible.\n\nI don?t think my code is important for the questions but I post it here anyhow just in case. I run the program on windows 7 computer at the moment but I would like to run it on unix later on if that matters.\n\nAny help would be greatly appreciated.\n\n/\nThanks in advance\n\nJoakim Ringblom\nPhD-student\nKarolinska Institutet\nStockholm, Sweden\njoakim.ringblom at ki.se\n\nparamvect<-c(1,0.52, 1.3,4)\nparamsd<-c(1,0.52, 1.3,4)\nparamsd<-c(0,0,0,0)\nressd<-c(0.01)\ndoser<-c(0,0.381,0.475,0.564)\ngruppstorlek<-c(10,10,10,10)\nn<-1\nnrdiff<-4\ncef<-0.05\nopiter<-2\nsearchnr<-1\nbestnr<-gruppstorlek\nouttable<-matrix(0,opiter,27+2*length(doser))\ncolnames(outtable)<-c(\"Medel-BMD\",\"Medel-BMDL\",\"Medel-BMDU\",\"Medel-BMDL/BMD\",\"Medel-BMDtrue\", \"Medel-SquaredError\", \"Medel-APE\", \"BMD-Varians\",\"BMDL-Varians\",\"BMDU-Varians\",\"BMDL/BMD-Varians\",\"BMDtrue-Varians\", \"SquaredError-Varians\", \"APE-Varians\", \"Antal BMD-NAs\", \"Parameter\",\"Parameter\",\"Parameter\",\"Parameter\", \"SD\",\"SD\",\"SD\",\"SD\", \"Ressd\", 1:length(doser), 1:length(doser),\"n\", \"CES\", \"searchnr\")\nfor (k in 1:opiter){\n iternr<-1\n grupplist<-list()\n grupplist[[iternr]]<-gruppstorlek\n for (i in 1:length(doser)){\n  arbnr<-gruppstorlek\n  if (arbnr[i]>=nrdiff){\n   arbnr[i]<-arbnr[i]-nrdiff\n   for (j in 1:length(doser)){\n    tempnr<-arbnr\n    if (!(i==j)){\n     searchnr<-searchnr+1\n     iternr<-iternr+1     \n     tempnr[j]=tempnr[j]+nrdiff \n     grupplist[[iternr]]<-tempnr  \n    }\n   }\n  }\n }\n sfInit(parallel=TRUE, cpus=8)\n svar<-sfLapply(grupplist, jr.parsimest, paramvect=paramvect, paramsd=paramsd, ressd=ressd, doser=doser, n=n, CES=cef, outtable=outtable,searchnr=searchnr)\n sfStop()\n \n besteffect<-svar[[1]]\n for (i in 2:length(svar)){\n  if (svar[[i]][7]<besteffect[7]){\n   besteffect<-svar[[i]]\n     }\n }\n bestnr<-c(besteffect[29],besteffect[30],besteffect[31],besteffect[32])\n if(all(gruppstorlek==bestnr & nrdiff>1)){nrdiff<-nrdiff/2}\n gruppstorlek<-bestnr\n outtable[k,]<-besteffect\n write.table(outtable, file=\"utskrift.txt\")\n}\nreturn(bestnr)",
+      "body_plain": "Hi\n\nI have a function (jr.parsimest) which is rather time consuming and since I want to do use it several times with different input I tried to parallelize the process using snowfall. The code works fine when running in serial with sfInit(parallel=FALSE) but I have a problem getting it to work with sfInit(parallel=TRUE, cpus=8).\n\nThe problem is that the function jr.parsimest contains several subfunctions that in turn have several more subfunctions and so on and it seems that I have to export all of them with sfExport or sfExportall. This will be rather tricky and tedious at best, since I don´t really know some of the subfunctions with subfunctions since they come from a non-Cran package not written by me.  I also get a feeling that this is not the way to do things but I am not able confirm it anywhere.\n\nIs my approach fundamentally wrong? Is there a better way of doing things?\n\nParallelizing a time-consuming subfunction is of course an idea but I rather parallelize the \"topfunction\" if possible.\n\nI don´t think my code is important for the questions but I post it here anyhow just in case. I run the program on windows 7 computer at the moment but I would like to run it on unix later on if that matters.\n\nAny help would be greatly appreciated.\n\n/\nThanks in advance\n\nJoakim Ringblom\nPhD-student\nKarolinska Institutet\nStockholm, Sweden\njoakim.ringblom at ki.se\n\nparamvect<-c(1,0.52, 1.3,4)\nparamsd<-c(1,0.52, 1.3,4)\nparamsd<-c(0,0,0,0)\nressd<-c(0.01)\ndoser<-c(0,0.381,0.475,0.564)\ngruppstorlek<-c(10,10,10,10)\nn<-1\nnrdiff<-4\ncef<-0.05\nopiter<-2\nsearchnr<-1\nbestnr<-gruppstorlek\nouttable<-matrix(0,opiter,27+2*length(doser))\ncolnames(outtable)<-c(\"Medel-BMD\",\"Medel-BMDL\",\"Medel-BMDU\",\"Medel-BMDL/BMD\",\"Medel-BMDtrue\", \"Medel-SquaredError\", \"Medel-APE\", \"BMD-Varians\",\"BMDL-Varians\",\"BMDU-Varians\",\"BMDL/BMD-Varians\",\"BMDtrue-Varians\", \"SquaredError-Varians\", \"APE-Varians\", \"Antal BMD-NAs\", \"Parameter\",\"Parameter\",\"Parameter\",\"Parameter\", \"SD\",\"SD\",\"SD\",\"SD\", \"Ressd\", 1:length(doser), 1:length(doser),\"n\", \"CES\", \"searchnr\")\nfor (k in 1:opiter){\n iternr<-1\n grupplist<-list()\n grupplist[[iternr]]<-gruppstorlek\n for (i in 1:length(doser)){\n  arbnr<-gruppstorlek\n  if (arbnr[i]>=nrdiff){\n   arbnr[i]<-arbnr[i]-nrdiff\n   for (j in 1:length(doser)){\n    tempnr<-arbnr\n    if (!(i==j)){\n     searchnr<-searchnr+1\n     iternr<-iternr+1     \n     tempnr[j]=tempnr[j]+nrdiff \n     grupplist[[iternr]]<-tempnr  \n    }\n   }\n  }\n }\n sfInit(parallel=TRUE, cpus=8)\n svar<-sfLapply(grupplist, jr.parsimest, paramvect=paramvect, paramsd=paramsd, ressd=ressd, doser=doser, n=n, CES=cef, outtable=outtable,searchnr=searchnr)\n sfStop()\n \n besteffect<-svar[[1]]\n for (i in 2:length(svar)){\n  if (svar[[i]][7]<besteffect[7]){\n   besteffect<-svar[[i]]\n     }\n }\n bestnr<-c(besteffect[29],besteffect[30],besteffect[31],besteffect[32])\n if(all(gruppstorlek==bestnr & nrdiff>1)){nrdiff<-nrdiff/2}\n gruppstorlek<-bestnr\n outtable[k,]<-besteffect\n write.table(outtable, file=\"utskrift.txt\")\n}\nreturn(bestnr)",
       "body_snippet": "Hi\n\nI have a function (jr.parsimest) which is rather time consuming and since I want to do use it several times with different input I tried to parallelize the process using snowfall. The code works f",
       "thread_id": "thread-a03f9ad45b02",
       "thread_depth": 0,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001086.html"
     },
     {
       "id": "msg-7fd449ea3b39",
@@ -750,11 +789,12 @@
       "references": [
         "<3D33DE7F2E85EF41A6A8786FFBC358300C2FFF20@KIMSX02.user.ki.se>"
       ],
-      "body_plain": "If the functions that jr.parsimest calls are all defined in a package,\nthen just load that package on each your workers, and they should be\navailable to jr.parsimest.  Of course, that means that the package has\nto be installed on all of the worker machines.\n\n- Steve\n\n\nOn Thu, Aug 25, 2011 at 4:39 AM, Joakim Ringblom <joakim.ringblom at ki.se> wrote:\n> Hi\n>\n> I have a function (jr.parsimest) which is rather time consuming and since I want to do use it several times with different input I tried to parallelize the process using snowfall. The code works fine when running in serial with sfInit(parallel=FALSE) but I have a problem getting it to work with sfInit(parallel=TRUE, cpus=8).\n>\n> The problem is that the function jr.parsimest contains several subfunctions that in turn have several more subfunctions and so on and it seems that I have to export all of them with sfExport or sfExportall. This will be rather tricky and tedious at best, since I don?t really know some of the subfunctions with subfunctions since they come from a non-Cran package not written by me. ?I also get a feeling that this is not the way to do things but I am not able confirm it anywhere.\n>\n> Is my approach fundamentally wrong? Is there a better way of doing things?\n>\n> Parallelizing a time-consuming subfunction is of course an idea but I rather parallelize the \"topfunction\" if possible.\n>\n> I don?t think my code is important for the questions but I post it here anyhow just in case. I run the program on windows 7 computer at the moment but I would like to run it on unix later on if that matters.\n>\n> Any help would be greatly appreciated.\n>\n> /\n> Thanks in advance\n>\n> Joakim Ringblom\n> PhD-student\n> Karolinska Institutet\n> Stockholm, Sweden\n> joakim.ringblom at ki.se\n>\n> paramvect<-c(1,0.52, 1.3,4)\n> paramsd<-c(1,0.52, 1.3,4)\n> paramsd<-c(0,0,0,0)\n> ressd<-c(0.01)\n> doser<-c(0,0.381,0.475,0.564)\n> gruppstorlek<-c(10,10,10,10)\n> n<-1\n> nrdiff<-4\n> cef<-0.05\n> opiter<-2\n> searchnr<-1\n> bestnr<-gruppstorlek\n> outtable<-matrix(0,opiter,27+2*length(doser))\n> colnames(outtable)<-c(\"Medel-BMD\",\"Medel-BMDL\",\"Medel-BMDU\",\"Medel-BMDL/BMD\",\"Medel-BMDtrue\", \"Medel-SquaredError\", \"Medel-APE\", \"BMD-Varians\",\"BMDL-Varians\",\"BMDU-Varians\",\"BMDL/BMD-Varians\",\"BMDtrue-Varians\", \"SquaredError-Varians\", \"APE-Varians\", \"Antal BMD-NAs\", \"Parameter\",\"Parameter\",\"Parameter\",\"Parameter\", \"SD\",\"SD\",\"SD\",\"SD\", \"Ressd\", 1:length(doser), 1:length(doser),\"n\", \"CES\", \"searchnr\")\n> for (k in 1:opiter){\n> ?iternr<-1\n> ?grupplist<-list()\n> ?grupplist[[iternr]]<-gruppstorlek\n> ?for (i in 1:length(doser)){\n> ?arbnr<-gruppstorlek\n> ?if (arbnr[i]>=nrdiff){\n> ? arbnr[i]<-arbnr[i]-nrdiff\n> ? for (j in 1:length(doser)){\n> ? ?tempnr<-arbnr\n> ? ?if (!(i==j)){\n> ? ? searchnr<-searchnr+1\n> ? ? iternr<-iternr+1\n> ? ? tempnr[j]=tempnr[j]+nrdiff\n> ? ? grupplist[[iternr]]<-tempnr\n> ? ?}\n> ? }\n> ?}\n> ?}\n> ?sfInit(parallel=TRUE, cpus=8)\n> ?svar<-sfLapply(grupplist, jr.parsimest, paramvect=paramvect, paramsd=paramsd, ressd=ressd, doser=doser, n=n, CES=cef, outtable=outtable,searchnr=searchnr)\n> ?sfStop()\n>\n> ?besteffect<-svar[[1]]\n> ?for (i in 2:length(svar)){\n> ?if (svar[[i]][7]<besteffect[7]){\n> ? besteffect<-svar[[i]]\n> ? ? }\n> ?}\n> ?bestnr<-c(besteffect[29],besteffect[30],besteffect[31],besteffect[32])\n> ?if(all(gruppstorlek==bestnr & nrdiff>1)){nrdiff<-nrdiff/2}\n> ?gruppstorlek<-bestnr\n> ?outtable[k,]<-besteffect\n> ?write.table(outtable, file=\"utskrift.txt\")\n> }\n> return(bestnr)\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>",
+      "body_plain": "If the functions that jr.parsimest calls are all defined in a package,\nthen just load that package on each your workers, and they should be\navailable to jr.parsimest.  Of course, that means that the package has\nto be installed on all of the worker machines.\n\n- Steve\n\n\nOn Thu, Aug 25, 2011 at 4:39 AM, Joakim Ringblom <joakim.ringblom at ki.se> wrote:\n> Hi\n>\n> I have a function (jr.parsimest) which is rather time consuming and since I want to do use it several times with different input I tried to parallelize the process using snowfall. The code works fine when running in serial with sfInit(parallel=FALSE) but I have a problem getting it to work with sfInit(parallel=TRUE, cpus=8).\n>\n> The problem is that the function jr.parsimest contains several subfunctions that in turn have several more subfunctions and so on and it seems that I have to export all of them with sfExport or sfExportall. This will be rather tricky and tedious at best, since I don´t really know some of the subfunctions with subfunctions since they come from a non-Cran package not written by me.  I also get a feeling that this is not the way to do things but I am not able confirm it anywhere.\n>\n> Is my approach fundamentally wrong? Is there a better way of doing things?\n>\n> Parallelizing a time-consuming subfunction is of course an idea but I rather parallelize the \"topfunction\" if possible.\n>\n> I don´t think my code is important for the questions but I post it here anyhow just in case. I run the program on windows 7 computer at the moment but I would like to run it on unix later on if that matters.\n>\n> Any help would be greatly appreciated.\n>\n> /\n> Thanks in advance\n>\n> Joakim Ringblom\n> PhD-student\n> Karolinska Institutet\n> Stockholm, Sweden\n> joakim.ringblom at ki.se\n>\n> paramvect<-c(1,0.52, 1.3,4)\n> paramsd<-c(1,0.52, 1.3,4)\n> paramsd<-c(0,0,0,0)\n> ressd<-c(0.01)\n> doser<-c(0,0.381,0.475,0.564)\n> gruppstorlek<-c(10,10,10,10)\n> n<-1\n> nrdiff<-4\n> cef<-0.05\n> opiter<-2\n> searchnr<-1\n> bestnr<-gruppstorlek\n> outtable<-matrix(0,opiter,27+2*length(doser))\n> colnames(outtable)<-c(\"Medel-BMD\",\"Medel-BMDL\",\"Medel-BMDU\",\"Medel-BMDL/BMD\",\"Medel-BMDtrue\", \"Medel-SquaredError\", \"Medel-APE\", \"BMD-Varians\",\"BMDL-Varians\",\"BMDU-Varians\",\"BMDL/BMD-Varians\",\"BMDtrue-Varians\", \"SquaredError-Varians\", \"APE-Varians\", \"Antal BMD-NAs\", \"Parameter\",\"Parameter\",\"Parameter\",\"Parameter\", \"SD\",\"SD\",\"SD\",\"SD\", \"Ressd\", 1:length(doser), 1:length(doser),\"n\", \"CES\", \"searchnr\")\n> for (k in 1:opiter){\n>  iternr<-1\n>  grupplist<-list()\n>  grupplist[[iternr]]<-gruppstorlek\n>  for (i in 1:length(doser)){\n>  arbnr<-gruppstorlek\n>  if (arbnr[i]>=nrdiff){\n>   arbnr[i]<-arbnr[i]-nrdiff\n>   for (j in 1:length(doser)){\n>    tempnr<-arbnr\n>    if (!(i==j)){\n>     searchnr<-searchnr+1\n>     iternr<-iternr+1\n>     tempnr[j]=tempnr[j]+nrdiff\n>     grupplist[[iternr]]<-tempnr\n>    }\n>   }\n>  }\n>  }\n>  sfInit(parallel=TRUE, cpus=8)\n>  svar<-sfLapply(grupplist, jr.parsimest, paramvect=paramvect, paramsd=paramsd, ressd=ressd, doser=doser, n=n, CES=cef, outtable=outtable,searchnr=searchnr)\n>  sfStop()\n>\n>  besteffect<-svar[[1]]\n>  for (i in 2:length(svar)){\n>  if (svar[[i]][7]<besteffect[7]){\n>   besteffect<-svar[[i]]\n>     }\n>  }\n>  bestnr<-c(besteffect[29],besteffect[30],besteffect[31],besteffect[32])\n>  if(all(gruppstorlek==bestnr & nrdiff>1)){nrdiff<-nrdiff/2}\n>  gruppstorlek<-bestnr\n>  outtable[k,]<-besteffect\n>  write.table(outtable, file=\"utskrift.txt\")\n> }\n> return(bestnr)\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>",
       "body_snippet": "If the functions that jr.parsimest calls are all defined in a package,\nthen just load that package on each your workers, and they should be\navailable to jr.parsimest.  Of course, that means that the p",
       "thread_id": "thread-a03f9ad45b02",
       "thread_depth": 1,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001087.html"
     },
     {
       "id": "msg-fea43a06430d",
@@ -769,11 +809,12 @@
         "<3D33DE7F2E85EF41A6A8786FFBC358300C2FFF20@KIMSX02.user.ki.se>",
         "<CALh21iK8J=MET5Va5XANQN6Fqaw1yB1Y8Qr0RyC8tsQ26jQDuA@mail.gmail.com>"
       ],
-      "body_plain": "Hi\n\nStephen: Thank you for answering, I really appreciate it.\n\nHowever, the workers in this case are the different cores on my octa-core processor and I have the package installed and loaded on my system. Yes, I do load the package in every session. I can?t install/load the package on to a core, can I? Any ideas from anyone are appreciated.\n\nBy the way, the error message I get while running is:\n\nError in checkForRemoteErrors(val) : \n  8 nodes produced errors; first error: could not find function \"f.ini\" ?\n\nF.ini is a package-function within jr.parsimest.\n\nThanks in advance.\n\n/\nJoakim Ringblom\nPhD-student\nKarolinska Institutet, Institutet f?r Milj?medicin\nNobels v?g, 13\nBox 210 17177 Stockholm\nSweden\n+46- (0)733965553\n\n________________________________________\nFr?n: Stephen Weston [stephen.b.weston at gmail.com]\nSkickat: den 25 augusti 2011 15:22\nTill: Joakim Ringblom\nKopia: r-sig-hpc at r-project.org\n?mne: Re: [R-sig-hpc] Parallelizing function with subfunctions using snowfall\n\nIf the functions that jr.parsimest calls are all defined in a package,\nthen just load that package on each your workers, and they should be\navailable to jr.parsimest.  Of course, that means that the package has\nto be installed on all of the worker machines.\n\n- Steve\n\n\nOn Thu, Aug 25, 2011 at 4:39 AM, Joakim Ringblom <joakim.ringblom at ki.se> wrote:\n> Hi\n>\n> I have a function (jr.parsimest) which is rather time consuming and since I want to do use it several times with different input I tried to parallelize the process using snowfall. The code works fine when running in serial with sfInit(parallel=FALSE) but I have a problem getting it to work with sfInit(parallel=TRUE, cpus=8).\n>\n> The problem is that the function jr.parsimest contains several subfunctions that in turn have several more subfunctions and so on and it seems that I have to export all of them with sfExport or sfExportall. This will be rather tricky and tedious at best, since I don?t really know some of the subfunctions with subfunctions since they come from a non-Cran package not written by me.  I also get a feeling that this is not the way to do things but I am not able confirm it anywhere.\n>\n> Is my approach fundamentally wrong? Is there a better way of doing things?\n>\n> Parallelizing a time-consuming subfunction is of course an idea but I rather parallelize the \"topfunction\" if possible.\n>\n> I don?t think my code is important for the questions but I post it here anyhow just in case. I run the program on windows 7 computer at the moment but I would like to run it on unix later on if that matters.\n>\n> Any help would be greatly appreciated.\n>\n> /\n> Thanks in advance\n>\n> Joakim Ringblom\n> PhD-student\n> Karolinska Institutet\n> Stockholm, Sweden\n> joakim.ringblom at ki.se\n>\n> paramvect<-c(1,0.52, 1.3,4)\n> paramsd<-c(1,0.52, 1.3,4)\n> paramsd<-c(0,0,0,0)\n> ressd<-c(0.01)\n> doser<-c(0,0.381,0.475,0.564)\n> gruppstorlek<-c(10,10,10,10)\n> n<-1\n> nrdiff<-4\n> cef<-0.05\n> opiter<-2\n> searchnr<-1\n> bestnr<-gruppstorlek\n> outtable<-matrix(0,opiter,27+2*length(doser))\n> colnames(outtable)<-c(\"Medel-BMD\",\"Medel-BMDL\",\"Medel-BMDU\",\"Medel-BMDL/BMD\",\"Medel-BMDtrue\", \"Medel-SquaredError\", \"Medel-APE\", \"BMD-Varians\",\"BMDL-Varians\",\"BMDU-Varians\",\"BMDL/BMD-Varians\",\"BMDtrue-Varians\", \"SquaredError-Varians\", \"APE-Varians\", \"Antal BMD-NAs\", \"Parameter\",\"Parameter\",\"Parameter\",\"Parameter\", \"SD\",\"SD\",\"SD\",\"SD\", \"Ressd\", 1:length(doser), 1:length(doser),\"n\", \"CES\", \"searchnr\")\n> for (k in 1:opiter){\n>  iternr<-1\n>  grupplist<-list()\n>  grupplist[[iternr]]<-gruppstorlek\n>  for (i in 1:length(doser)){\n>  arbnr<-gruppstorlek\n>  if (arbnr[i]>=nrdiff){\n>   arbnr[i]<-arbnr[i]-nrdiff\n>   for (j in 1:length(doser)){\n>    tempnr<-arbnr\n>    if (!(i==j)){\n>     searchnr<-searchnr+1\n>     iternr<-iternr+1\n>     tempnr[j]=tempnr[j]+nrdiff\n>     grupplist[[iternr]]<-tempnr\n>    }\n>   }\n>  }\n>  }\n>  sfInit(parallel=TRUE, cpus=8)\n>  svar<-sfLapply(grupplist, jr.parsimest, paramvect=paramvect, paramsd=paramsd, ressd=ressd, doser=doser, n=n, CES=cef, outtable=outtable,searchnr=searchnr)\n>  sfStop()\n>\n>  besteffect<-svar[[1]]\n>  for (i in 2:length(svar)){\n>  if (svar[[i]][7]<besteffect[7]){\n>   besteffect<-svar[[i]]\n>     }\n>  }\n>  bestnr<-c(besteffect[29],besteffect[30],besteffect[31],besteffect[32])\n>  if(all(gruppstorlek==bestnr & nrdiff>1)){nrdiff<-nrdiff/2}\n>  gruppstorlek<-bestnr\n>  outtable[k,]<-besteffect\n>  write.table(outtable, file=\"utskrift.txt\")\n> }\n> return(bestnr)\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>",
+      "body_plain": "Hi\n\nStephen: Thank you for answering, I really appreciate it.\n\nHowever, the workers in this case are the different cores on my octa-core processor and I have the package installed and loaded on my system. Yes, I do load the package in every session. I can´t install/load the package on to a core, can I? Any ideas from anyone are appreciated.\n\nBy the way, the error message I get while running is:\n\nError in checkForRemoteErrors(val) : \n  8 nodes produced errors; first error: could not find function \"f.ini\" “\n\nF.ini is a package-function within jr.parsimest.\n\nThanks in advance.\n\n/\nJoakim Ringblom\nPhD-student\nKarolinska Institutet, Institutet för Miljömedicin\nNobels väg, 13\nBox 210 17177 Stockholm\nSweden\n+46- (0)733965553\n\n________________________________________\nFrån: Stephen Weston [stephen.b.weston at gmail.com]\nSkickat: den 25 augusti 2011 15:22\nTill: Joakim Ringblom\nKopia: r-sig-hpc at r-project.org\nÄmne: Re: [R-sig-hpc] Parallelizing function with subfunctions using snowfall\n\nIf the functions that jr.parsimest calls are all defined in a package,\nthen just load that package on each your workers, and they should be\navailable to jr.parsimest.  Of course, that means that the package has\nto be installed on all of the worker machines.\n\n- Steve\n\n\nOn Thu, Aug 25, 2011 at 4:39 AM, Joakim Ringblom <joakim.ringblom at ki.se> wrote:\n> Hi\n>\n> I have a function (jr.parsimest) which is rather time consuming and since I want to do use it several times with different input I tried to parallelize the process using snowfall. The code works fine when running in serial with sfInit(parallel=FALSE) but I have a problem getting it to work with sfInit(parallel=TRUE, cpus=8).\n>\n> The problem is that the function jr.parsimest contains several subfunctions that in turn have several more subfunctions and so on and it seems that I have to export all of them with sfExport or sfExportall. This will be rather tricky and tedious at best, since I don´t really know some of the subfunctions with subfunctions since they come from a non-Cran package not written by me.  I also get a feeling that this is not the way to do things but I am not able confirm it anywhere.\n>\n> Is my approach fundamentally wrong? Is there a better way of doing things?\n>\n> Parallelizing a time-consuming subfunction is of course an idea but I rather parallelize the \"topfunction\" if possible.\n>\n> I don´t think my code is important for the questions but I post it here anyhow just in case. I run the program on windows 7 computer at the moment but I would like to run it on unix later on if that matters.\n>\n> Any help would be greatly appreciated.\n>\n> /\n> Thanks in advance\n>\n> Joakim Ringblom\n> PhD-student\n> Karolinska Institutet\n> Stockholm, Sweden\n> joakim.ringblom at ki.se\n>\n> paramvect<-c(1,0.52, 1.3,4)\n> paramsd<-c(1,0.52, 1.3,4)\n> paramsd<-c(0,0,0,0)\n> ressd<-c(0.01)\n> doser<-c(0,0.381,0.475,0.564)\n> gruppstorlek<-c(10,10,10,10)\n> n<-1\n> nrdiff<-4\n> cef<-0.05\n> opiter<-2\n> searchnr<-1\n> bestnr<-gruppstorlek\n> outtable<-matrix(0,opiter,27+2*length(doser))\n> colnames(outtable)<-c(\"Medel-BMD\",\"Medel-BMDL\",\"Medel-BMDU\",\"Medel-BMDL/BMD\",\"Medel-BMDtrue\", \"Medel-SquaredError\", \"Medel-APE\", \"BMD-Varians\",\"BMDL-Varians\",\"BMDU-Varians\",\"BMDL/BMD-Varians\",\"BMDtrue-Varians\", \"SquaredError-Varians\", \"APE-Varians\", \"Antal BMD-NAs\", \"Parameter\",\"Parameter\",\"Parameter\",\"Parameter\", \"SD\",\"SD\",\"SD\",\"SD\", \"Ressd\", 1:length(doser), 1:length(doser),\"n\", \"CES\", \"searchnr\")\n> for (k in 1:opiter){\n>  iternr<-1\n>  grupplist<-list()\n>  grupplist[[iternr]]<-gruppstorlek\n>  for (i in 1:length(doser)){\n>  arbnr<-gruppstorlek\n>  if (arbnr[i]>=nrdiff){\n>   arbnr[i]<-arbnr[i]-nrdiff\n>   for (j in 1:length(doser)){\n>    tempnr<-arbnr\n>    if (!(i==j)){\n>     searchnr<-searchnr+1\n>     iternr<-iternr+1\n>     tempnr[j]=tempnr[j]+nrdiff\n>     grupplist[[iternr]]<-tempnr\n>    }\n>   }\n>  }\n>  }\n>  sfInit(parallel=TRUE, cpus=8)\n>  svar<-sfLapply(grupplist, jr.parsimest, paramvect=paramvect, paramsd=paramsd, ressd=ressd, doser=doser, n=n, CES=cef, outtable=outtable,searchnr=searchnr)\n>  sfStop()\n>\n>  besteffect<-svar[[1]]\n>  for (i in 2:length(svar)){\n>  if (svar[[i]][7]<besteffect[7]){\n>   besteffect<-svar[[i]]\n>     }\n>  }\n>  bestnr<-c(besteffect[29],besteffect[30],besteffect[31],besteffect[32])\n>  if(all(gruppstorlek==bestnr & nrdiff>1)){nrdiff<-nrdiff/2}\n>  gruppstorlek<-bestnr\n>  outtable[k,]<-besteffect\n>  write.table(outtable, file=\"utskrift.txt\")\n> }\n> return(bestnr)\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>",
       "body_snippet": "Hi\n\nStephen: Thank you for answering, I really appreciate it.\n\nHowever, the workers in this case are the different cores on my octa-core processor and I have the package installed and loaded on my sys",
       "thread_id": "thread-a03f9ad45b02",
       "thread_depth": 2,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001088.html"
     },
     {
       "id": "msg-ec9d00ff870e",
@@ -788,11 +829,12 @@
         "<3D33DE7F2E85EF41A6A8786FFBC358300C2FFF20@KIMSX02.user.ki.se>",
         "<CALh21iK8J=MET5Va5XANQN6Fqaw1yB1Y8Qr0RyC8tsQ26jQDuA@mail.gmail.com>"
       ],
-      "body_plain": "Hi\n\nI just found the answer myself, I can?t believe I missed it before. Thanks anyone who has read my post, sorry for taking your time.\n\nRegards\n\nJoakim Ringblom\nPhD-student\nKarolinska Institutet, Institutet f?r Milj?medicin\nNobels v?g, 13\nBox 210 17177 Stockholm\nSweden\n+46- (0)733965553\n\n________________________________________\nFr?n: Stephen Weston [stephen.b.weston at gmail.com]\nSkickat: den 25 augusti 2011 15:22\nTill: Joakim Ringblom\nKopia: r-sig-hpc at r-project.org\n?mne: Re: [R-sig-hpc] Parallelizing function with subfunctions using snowfall\n\nIf the functions that jr.parsimest calls are all defined in a package,\nthen just load that package on each your workers, and they should be\navailable to jr.parsimest.  Of course, that means that the package has\nto be installed on all of the worker machines.\n\n- Steve\n\n\nOn Thu, Aug 25, 2011 at 4:39 AM, Joakim Ringblom <joakim.ringblom at ki.se> wrote:\n> Hi\n>\n> I have a function (jr.parsimest) which is rather time consuming and since I want to do use it several times with different input I tried to parallelize the process using snowfall. The code works fine when running in serial with sfInit(parallel=FALSE) but I have a problem getting it to work with sfInit(parallel=TRUE, cpus=8).\n>\n> The problem is that the function jr.parsimest contains several subfunctions that in turn have several more subfunctions and so on and it seems that I have to export all of them with sfExport or sfExportall. This will be rather tricky and tedious at best, since I don?t really know some of the subfunctions with subfunctions since they come from a non-Cran package not written by me.  I also get a feeling that this is not the way to do things but I am not able confirm it anywhere.\n>\n> Is my approach fundamentally wrong? Is there a better way of doing things?\n>\n> Parallelizing a time-consuming subfunction is of course an idea but I rather parallelize the \"topfunction\" if possible.\n>\n> I don?t think my code is important for the questions but I post it here anyhow just in case. I run the program on windows 7 computer at the moment but I would like to run it on unix later on if that matters.\n>\n> Any help would be greatly appreciated.\n>\n> /\n> Thanks in advance\n>\n> Joakim Ringblom\n> PhD-student\n> Karolinska Institutet\n> Stockholm, Sweden\n> joakim.ringblom at ki.se\n>\n> paramvect<-c(1,0.52, 1.3,4)\n> paramsd<-c(1,0.52, 1.3,4)\n> paramsd<-c(0,0,0,0)\n> ressd<-c(0.01)\n> doser<-c(0,0.381,0.475,0.564)\n> gruppstorlek<-c(10,10,10,10)\n> n<-1\n> nrdiff<-4\n> cef<-0.05\n> opiter<-2\n> searchnr<-1\n> bestnr<-gruppstorlek\n> outtable<-matrix(0,opiter,27+2*length(doser))\n> colnames(outtable)<-c(\"Medel-BMD\",\"Medel-BMDL\",\"Medel-BMDU\",\"Medel-BMDL/BMD\",\"Medel-BMDtrue\", \"Medel-SquaredError\", \"Medel-APE\", \"BMD-Varians\",\"BMDL-Varians\",\"BMDU-Varians\",\"BMDL/BMD-Varians\",\"BMDtrue-Varians\", \"SquaredError-Varians\", \"APE-Varians\", \"Antal BMD-NAs\", \"Parameter\",\"Parameter\",\"Parameter\",\"Parameter\", \"SD\",\"SD\",\"SD\",\"SD\", \"Ressd\", 1:length(doser), 1:length(doser),\"n\", \"CES\", \"searchnr\")\n> for (k in 1:opiter){\n>  iternr<-1\n>  grupplist<-list()\n>  grupplist[[iternr]]<-gruppstorlek\n>  for (i in 1:length(doser)){\n>  arbnr<-gruppstorlek\n>  if (arbnr[i]>=nrdiff){\n>   arbnr[i]<-arbnr[i]-nrdiff\n>   for (j in 1:length(doser)){\n>    tempnr<-arbnr\n>    if (!(i==j)){\n>     searchnr<-searchnr+1\n>     iternr<-iternr+1\n>     tempnr[j]=tempnr[j]+nrdiff\n>     grupplist[[iternr]]<-tempnr\n>    }\n>   }\n>  }\n>  }\n>  sfInit(parallel=TRUE, cpus=8)\n>  svar<-sfLapply(grupplist, jr.parsimest, paramvect=paramvect, paramsd=paramsd, ressd=ressd, doser=doser, n=n, CES=cef, outtable=outtable,searchnr=searchnr)\n>  sfStop()\n>\n>  besteffect<-svar[[1]]\n>  for (i in 2:length(svar)){\n>  if (svar[[i]][7]<besteffect[7]){\n>   besteffect<-svar[[i]]\n>     }\n>  }\n>  bestnr<-c(besteffect[29],besteffect[30],besteffect[31],besteffect[32])\n>  if(all(gruppstorlek==bestnr & nrdiff>1)){nrdiff<-nrdiff/2}\n>  gruppstorlek<-bestnr\n>  outtable[k,]<-besteffect\n>  write.table(outtable, file=\"utskrift.txt\")\n> }\n> return(bestnr)\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>",
-      "body_snippet": "Hi\n\nI just found the answer myself, I can?t believe I missed it before. Thanks anyone who has read my post, sorry for taking your time.\n\nRegards\n\nJoakim Ringblom\nPhD-student\nKarolinska Institutet, Ins",
+      "body_plain": "Hi\n\nI just found the answer myself, I can´t believe I missed it before. Thanks anyone who has read my post, sorry for taking your time.\n\nRegards\n\nJoakim Ringblom\nPhD-student\nKarolinska Institutet, Institutet för Miljömedicin\nNobels väg, 13\nBox 210 17177 Stockholm\nSweden\n+46- (0)733965553\n\n________________________________________\nFrån: Stephen Weston [stephen.b.weston at gmail.com]\nSkickat: den 25 augusti 2011 15:22\nTill: Joakim Ringblom\nKopia: r-sig-hpc at r-project.org\nÄmne: Re: [R-sig-hpc] Parallelizing function with subfunctions using snowfall\n\nIf the functions that jr.parsimest calls are all defined in a package,\nthen just load that package on each your workers, and they should be\navailable to jr.parsimest.  Of course, that means that the package has\nto be installed on all of the worker machines.\n\n- Steve\n\n\nOn Thu, Aug 25, 2011 at 4:39 AM, Joakim Ringblom <joakim.ringblom at ki.se> wrote:\n> Hi\n>\n> I have a function (jr.parsimest) which is rather time consuming and since I want to do use it several times with different input I tried to parallelize the process using snowfall. The code works fine when running in serial with sfInit(parallel=FALSE) but I have a problem getting it to work with sfInit(parallel=TRUE, cpus=8).\n>\n> The problem is that the function jr.parsimest contains several subfunctions that in turn have several more subfunctions and so on and it seems that I have to export all of them with sfExport or sfExportall. This will be rather tricky and tedious at best, since I don´t really know some of the subfunctions with subfunctions since they come from a non-Cran package not written by me.  I also get a feeling that this is not the way to do things but I am not able confirm it anywhere.\n>\n> Is my approach fundamentally wrong? Is there a better way of doing things?\n>\n> Parallelizing a time-consuming subfunction is of course an idea but I rather parallelize the \"topfunction\" if possible.\n>\n> I don´t think my code is important for the questions but I post it here anyhow just in case. I run the program on windows 7 computer at the moment but I would like to run it on unix later on if that matters.\n>\n> Any help would be greatly appreciated.\n>\n> /\n> Thanks in advance\n>\n> Joakim Ringblom\n> PhD-student\n> Karolinska Institutet\n> Stockholm, Sweden\n> joakim.ringblom at ki.se\n>\n> paramvect<-c(1,0.52, 1.3,4)\n> paramsd<-c(1,0.52, 1.3,4)\n> paramsd<-c(0,0,0,0)\n> ressd<-c(0.01)\n> doser<-c(0,0.381,0.475,0.564)\n> gruppstorlek<-c(10,10,10,10)\n> n<-1\n> nrdiff<-4\n> cef<-0.05\n> opiter<-2\n> searchnr<-1\n> bestnr<-gruppstorlek\n> outtable<-matrix(0,opiter,27+2*length(doser))\n> colnames(outtable)<-c(\"Medel-BMD\",\"Medel-BMDL\",\"Medel-BMDU\",\"Medel-BMDL/BMD\",\"Medel-BMDtrue\", \"Medel-SquaredError\", \"Medel-APE\", \"BMD-Varians\",\"BMDL-Varians\",\"BMDU-Varians\",\"BMDL/BMD-Varians\",\"BMDtrue-Varians\", \"SquaredError-Varians\", \"APE-Varians\", \"Antal BMD-NAs\", \"Parameter\",\"Parameter\",\"Parameter\",\"Parameter\", \"SD\",\"SD\",\"SD\",\"SD\", \"Ressd\", 1:length(doser), 1:length(doser),\"n\", \"CES\", \"searchnr\")\n> for (k in 1:opiter){\n>  iternr<-1\n>  grupplist<-list()\n>  grupplist[[iternr]]<-gruppstorlek\n>  for (i in 1:length(doser)){\n>  arbnr<-gruppstorlek\n>  if (arbnr[i]>=nrdiff){\n>   arbnr[i]<-arbnr[i]-nrdiff\n>   for (j in 1:length(doser)){\n>    tempnr<-arbnr\n>    if (!(i==j)){\n>     searchnr<-searchnr+1\n>     iternr<-iternr+1\n>     tempnr[j]=tempnr[j]+nrdiff\n>     grupplist[[iternr]]<-tempnr\n>    }\n>   }\n>  }\n>  }\n>  sfInit(parallel=TRUE, cpus=8)\n>  svar<-sfLapply(grupplist, jr.parsimest, paramvect=paramvect, paramsd=paramsd, ressd=ressd, doser=doser, n=n, CES=cef, outtable=outtable,searchnr=searchnr)\n>  sfStop()\n>\n>  besteffect<-svar[[1]]\n>  for (i in 2:length(svar)){\n>  if (svar[[i]][7]<besteffect[7]){\n>   besteffect<-svar[[i]]\n>     }\n>  }\n>  bestnr<-c(besteffect[29],besteffect[30],besteffect[31],besteffect[32])\n>  if(all(gruppstorlek==bestnr & nrdiff>1)){nrdiff<-nrdiff/2}\n>  gruppstorlek<-bestnr\n>  outtable[k,]<-besteffect\n>  write.table(outtable, file=\"utskrift.txt\")\n> }\n> return(bestnr)\n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n>",
+      "body_snippet": "Hi\n\nI just found the answer myself, I can´t believe I missed it before. Thanks anyone who has read my post, sorry for taking your time.\n\nRegards\n\nJoakim Ringblom\nPhD-student\nKarolinska Institutet, Ins",
       "thread_id": "thread-a03f9ad45b02",
       "thread_depth": 2,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001089.html"
     },
     {
       "id": "msg-d203115c3a85",
@@ -808,11 +850,12 @@
         "<CALh21iK8J=MET5Va5XANQN6Fqaw1yB1Y8Qr0RyC8tsQ26jQDuA@mail.gmail.com>",
         "<3D33DE7F2E85EF41A6A8786FFBC358300C30019C@KIMSX02.user.ki.se>"
       ],
-      "body_plain": "Joakim,\n\nSo what's the answer that you found? Maybe other people who have a\nsimilar problem (now or in the future) would also profit from knowing it.\n\nThanks,\nMichael\n\n\nOn 08/26/2011 05:38 PM, Joakim Ringblom wrote:\n> Hi\n> \n> I just found the answer myself, I can?t believe I missed it before. Thanks anyone who has read my post, sorry for taking your time.\n> \n> Regards\n> \n> Joakim Ringblom\n> PhD-student\n> Karolinska Institutet, Institutet f?r Milj?medicin\n> Nobels v?g, 13\n> Box 210 17177 Stockholm\n> Sweden\n> +46- (0)733965553",
+      "body_plain": "Joakim,\n\nSo what's the answer that you found? Maybe other people who have a\nsimilar problem (now or in the future) would also profit from knowing it.\n\nThanks,\nMichael\n\n\nOn 08/26/2011 05:38 PM, Joakim Ringblom wrote:\n> Hi\n> \n> I just found the answer myself, I can´t believe I missed it before. Thanks anyone who has read my post, sorry for taking your time.\n> \n> Regards\n> \n> Joakim Ringblom\n> PhD-student\n> Karolinska Institutet, Institutet för Miljömedicin\n> Nobels väg, 13\n> Box 210 17177 Stockholm\n> Sweden\n> +46- (0)733965553",
       "body_snippet": "Joakim,\n\nSo what's the answer that you found? Maybe other people who have a\nsimilar problem (now or in the future) would also profit from knowing it.\n\nThanks,\nMichael\n\n\nOn 08/26/2011 05:38 PM, Joakim ",
       "thread_id": "thread-a03f9ad45b02",
       "thread_depth": 3,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001090.html"
     },
     {
       "id": "msg-f6c6677c2e08",
@@ -828,7 +871,8 @@
       "body_snippet": "Dear all, I am looking for some way on how to parallelize some computation on a vectorized function. I have a custom made vectorized function and also have a very length vector (of length some 2 milli",
       "thread_id": "thread-f6c6677c2e08",
       "thread_depth": 0,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001091.html"
     },
     {
       "id": "msg-ed5350f6c1d4",
@@ -846,7 +890,8 @@
       "body_snippet": "On Sat, 2011-08-27 at 07:41 -0700, Megh Dal wrote:\n> Dear all, I am looking for some way on how to parallelize some computation on a vectorized function. I have a custom made vectorized function and a",
       "thread_id": "thread-f6c6677c2e08",
       "thread_depth": 1,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001092.html"
     },
     {
       "id": "msg-29bfdc8e9dea",
@@ -865,7 +910,8 @@
       "body_snippet": "Thanks Brian for your reply. Would you mind to give me an example how you have achieved that with foreach package? I could then try with the snowfall package in windows.\n\nThanks,\n\n\n----- Original Mess",
       "thread_id": "thread-f6c6677c2e08",
       "thread_depth": 2,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001093.html"
     },
     {
       "id": "msg-18b23d916861",
@@ -883,7 +929,8 @@
       "body_snippet": "See this question on stack overflow:\nhttp://stackoverflow.com/questions/5571774/what-is-the-easiest-way-to-parallelize-a-vectorized-function-in-r\n\n\"Have a look at the pvec function in multicore\"\n\nSent",
       "thread_id": "thread-f6c6677c2e08",
       "thread_depth": 1,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001094.html"
     },
     {
       "id": "msg-976e8cd4d6ce",
@@ -901,7 +948,8 @@
       "body_snippet": "Hello evervyone!\n\nWhen I use doMC and foreach for 'parallel' comupting, I find that R\njust open two processes in one core. I have tried many times in\ndifferent circumtances, but It never use another c",
       "thread_id": "thread-976e8cd4d6ce",
       "thread_depth": 0,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001095.html"
     },
     {
       "id": "msg-0255ce52956f",
@@ -920,7 +968,8 @@
       "body_snippet": "On Sun, 2011-08-28 at 14:54 +0800, ??? wrote:\n> registerDoMC( core = 4 )\n\nyour first problem is that the parameter is 'cores'\n\nregisterDoMC(cores=4)\nor\nregisterDoMC(4)\n\n\n-- \nBrian G. Peterson\nhttp://b",
       "thread_id": "thread-976e8cd4d6ce",
       "thread_depth": 1,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001096.html"
     },
     {
       "id": "msg-ea29324b618f",
@@ -941,7 +990,8 @@
       "body_snippet": "On Sun, 2011-08-28 at 18:47 +0800, ??? wrote:\n> Thank you for response firstly. But it is just a clerical error. In\n> fact I do run registerDoMC(cores=4) in my code, it does not work\n> still...\n> Furt",
       "thread_id": "thread-ea29324b618f",
       "thread_depth": 0,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001097.html"
     },
     {
       "id": "msg-d5c8b479ff5d",
@@ -958,6 +1008,7 @@
       "thread_id": "thread-d5c8b479ff5d",
       "thread_depth": 0,
       "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001098.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110828/4eb94933/attachment.pl"
       ]
@@ -979,6 +1030,7 @@
       "thread_id": "thread-d5c8b479ff5d",
       "thread_depth": 1,
       "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001099.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110828/ede098e2/attachment.pl"
       ]
@@ -1001,6 +1053,7 @@
       "thread_id": "thread-d5c8b479ff5d",
       "thread_depth": 2,
       "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001100.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110828/9f8fc0af/attachment.pl"
       ]
@@ -1020,11 +1073,12 @@
         "<3D33DE7F2E85EF41A6A8786FFBC358300C30019C@KIMSX02.user.ki.se>",
         "<1314354206.3759.3.camel@brian-desktop>"
       ],
-      "body_plain": "Hi\n\nThat?s definately a good point. I should have written it the first time.So here is the answer:\n\nTo be able use a package while running snowball in parallel, the package has to be loaded with sfLibrary.\n\n/\n\nJoakim Ringblom\nPhD-student\nKarolinska Institutet, Institutet f?r Milj?medicin\nNobels v?g, 13\nBox 210 17177 Stockholm\nSweden\n+46- (0)733965553\n\n________________________________________\nFr?n: Brian G. Peterson [brian at braverock.com]\nSkickat: den 26 augusti 2011 12:23\nTill: Joakim Ringblom\n?mne: Re: [R-sig-hpc] Parallelizing function with subfunctions using snowfall\n\nOn Fri, 2011-08-26 at 09:38 +0000, Joakim Ringblom wrote:\n> I just found the answer myself, I can?t believe I missed it before.\n> Thanks anyone who has read my post, sorry for taking your time.\n\nI'm glad you found a solution.\n\nBecause your question has been asked in various ways before, and because\nmany variations on the theme can cause the problem you encountered,\nplease enlighten the list on what you did to solve the issue so that\nothers can benefit from what you've learned.\n\nRegards,\n\n   - Brian\n\n--\nBrian G. Peterson\nhttp://braverock.com/brian/\nPh: 773-459-4973\nIM: bgpbraverock",
-      "body_snippet": "Hi\n\nThat?s definately a good point. I should have written it the first time.So here is the answer:\n\nTo be able use a package while running snowball in parallel, the package has to be loaded with sfLib",
+      "body_plain": "Hi\n\nThat´s definately a good point. I should have written it the first time.So here is the answer:\n\nTo be able use a package while running snowball in parallel, the package has to be loaded with sfLibrary.\n\n/\n\nJoakim Ringblom\nPhD-student\nKarolinska Institutet, Institutet för Miljömedicin\nNobels väg, 13\nBox 210 17177 Stockholm\nSweden\n+46- (0)733965553\n\n________________________________________\nFrån: Brian G. Peterson [brian at braverock.com]\nSkickat: den 26 augusti 2011 12:23\nTill: Joakim Ringblom\nÄmne: Re: [R-sig-hpc] Parallelizing function with subfunctions using snowfall\n\nOn Fri, 2011-08-26 at 09:38 +0000, Joakim Ringblom wrote:\n> I just found the answer myself, I can´t believe I missed it before.\n> Thanks anyone who has read my post, sorry for taking your time.\n\nI'm glad you found a solution.\n\nBecause your question has been asked in various ways before, and because\nmany variations on the theme can cause the problem you encountered,\nplease enlighten the list on what you did to solve the issue so that\nothers can benefit from what you've learned.\n\nRegards,\n\n   - Brian\n\n--\nBrian G. Peterson\nhttp://braverock.com/brian/\nPh: 773-459-4973\nIM: bgpbraverock",
+      "body_snippet": "Hi\n\nThat´s definately a good point. I should have written it the first time.So here is the answer:\n\nTo be able use a package while running snowball in parallel, the package has to be loaded with sfLib",
       "thread_id": "thread-649beac534d7",
       "thread_depth": 0,
-      "month": "2011-08"
+      "month": "2011-08",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-August/001101.html"
     }
   ],
   "threads": [

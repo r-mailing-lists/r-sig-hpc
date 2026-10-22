@@ -18,6 +18,7 @@
       "thread_id": "thread-2ec26c21b37c",
       "thread_depth": 0,
       "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001267.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120301/1b911335/attachment.pl"
       ]
@@ -37,6 +38,7 @@
       "thread_id": "thread-bc67b7052716",
       "thread_depth": 0,
       "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001268.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120301/7018ff50/attachment.pl"
       ]
@@ -55,7 +57,8 @@
       "body_snippet": "I'm trying to convert a loop in a simulation program to a parallel\nprocess using multicore.? It looks like this:\n\nsimus=1000?\nset.seed(12345)\nfor(iter in 1:simus){\n?\n#bunch of code setting up random d",
       "thread_id": "thread-12d232e00e71",
       "thread_depth": 0,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001269.html"
     },
     {
       "id": "msg-25c6abeef52f",
@@ -73,7 +76,8 @@
       "body_snippet": "Scott,\n\nOn Mar 6, 2012, at 4:19 PM, Scott Raynaud wrote:\n\n> I'm trying to convert a loop in a simulation program to a parallel\n> process using multicore.  It looks like this:\n> \n> simus=1000 \n> set.se",
       "thread_id": "thread-12d232e00e71",
       "thread_depth": 1,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001270.html"
     },
     {
       "id": "msg-6902d9b34cce",
@@ -88,11 +92,12 @@
         "<1331068770.21935.YahooMailNeo@web120606.mail.ne1.yahoo.com>",
         "<A43D9DA4-990A-46A6-8FA2-C49459048051@r-project.org>"
       ],
-      "body_plain": "Thanks for the feedback.? Part of my problem is that I need the most\nrecent copy of R.? My IS team told me they can only get an earlier\ncopy using apt-get, but I think there must be a way so I've tasked them\nwith figuring it out.? \n\nMy?OS is Kubuntu. I just thought it odd that it could only detect the \nnumber of CPUs rather than the number of cores.? I'm completely\nnew to parallel processing but it seems that something is not right\nin the core detection.\n\nOne quetion I still have regrds child processes. I understand they \nfinish on their own, but what if I need to kill those processing because \nof an obvious problem.? How can I do that?\n\n----- Original Message -----\nFrom: Simon Urbanek <simon.urbanek at r-project.org>\nTo: Scott Raynaud <scott.raynaud at yahoo.com>\nCc: \"r-sig-hpc at r-project.org\" <r-sig-hpc at r-project.org>\nSent: Tuesday, March 6, 2012 8:27 PM\nSubject: Re: [R-sig-hpc] Parallel loop\n\nScott,\n\nOn Mar 6, 2012, at 4:19 PM, Scott Raynaud wrote:\n\n> I'm trying to convert a loop in a simulation program to a parallel\n> process using multicore.? It looks like this:\n> \n> simus=1000 \n> set.seed(12345)\n> for(iter in 1:simus){\n>? \n> #bunch of code setting up random draws from various \n> #distributions for X matrix \n>? \n> #Computaion of Y\n>? \n> (fitmodel <- lmer(modelformula,data,family=binomial(link=logit),nAGQ=2))\n>? \n> estbeta<-fixef(fitmodel)\n>? sdebeta<-sqrt(diag(vcov(fitmodel)))\n>? for(l in 1:betasize)\n>? {? \n>? ? cibeta<-estbeta[l]-sgnbeta[l]*z1score*sdebeta[l]\n>? ? if(beta[l]*cibeta>0)? ? ? ? ? ? ? powaprox[[l]]<-powaprox[[l]]+1\n>? ? ? sdepower[l,iter]<-as.numeric(sdebeta[l])\n>? }? \n> ##------------------------------------------------------------------------##\n>? ? ? ? ? ? ? ? ? ? ? ? ? } ##? iteration end here\n>? \n>? \n> The variable fitmodel is defined elsewhere and consists of\n> fixed and random parts.? Betasize is the length of the vector of\n> fixed effects.? Looks like near the bottom there's a \n> counter that increments if the slope estimate doesn't trap 0.? \n> The next line records the standard deviation.? It's these two items\n> that I need to recover.\n>? \n> So I'm thinking that I'm going to recode this way to run on\n> a machine that has 4-Xeon CPUs:\n>? \n> library(multicore)\n> options(cores=4)\n> simus=1000\n> sim.base.fun<-function(iter){? #replaces for(iter in 1:simus){\n> \n> #bunch of code setting up random draws from various \n> #distributions for X matrix \n>? \n> #Computaion of Y\n>? \n> (fitmodel <- lmer(modelformula,data,family=binomial(link=logit),nAGQ=2))\n>? \n> estbeta<-fixef(fitmodel)\n>? sdebeta<-sqrt(diag(vcov(fitmodel)))\n>? for(l in 1:betasize)\n>? {? \n>? ? cibeta<-estbeta[l]-sgnbeta[l]*z1score*sdebeta[l]\n>? ? if(beta[l]*cibeta>0)? ? \n>? ? return(powaprox[[1]]<-powaprox[[1]]+1 #replaces powaprox[[l]]<-powaprox[[l]]+1\n>? ? retunr(sedpower[1,iter]<-as.numeric(sdebeta[1]) #replaces sdepower[l,iter]<-as.numeric(sdebeta[l])\n>? ? ? }\n>? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? }#end of sim.base.fun\n> sim.fun<_lapply(iter in 1:simus),sim.base.fun)\n>? \n\nNo, the above won't work (all typos aside) since you are still using assignments. Inherently the above is not parallelizable as-is because of\npowaprox[[l]]<-powaprox[[l]]+1\nbut that is trivially removed. Also the inner for loop is entirely superfluous.\n\nSince your code was incomplete this is just a suggestion as we can't test anything (I'm not even checking if what you're doing makes any sense), but it should give you an idea of what to do:\n\nsim.base <- function(iter) { \n? ## your unstated code goes here ...\n? fitmodel <- lmer(modelformula,data,family=binomial(link=logit),nAGQ=2)\n? estbeta <- fixef(fitmodel)\n? sdebeta <- sqrt(diag(vcov(fitmodel)))\n? list( powf = estbeta-sgnbeta*z1score*sdebeta*beta > 0,\n? ? ? ? sdepower = sdebeta)\n? )\n}\n\nres <- lapply(seq.int(simus), sim.base)\npowf <- sapply(res, function(x) x$powf)\nsdepower <- sapply(res, function(x) x$sdepower)\npowapprox <- apply(powf, 1, sum)\n\n\nTo parallelize, replace lapply above with mclapply. \n\n\n\n>? Do I need a collect statement? \n\nNo, if you use mclapply it's all done for you.\n\n\n> How do I kill the worker processes? \n\nNo, they go away once they're done computing.\n\n\n> One thing I'm not accounting for is the random\n> number generating process.? I've seen a couple of ways of\n> doing this, one using mclapply and another using rlecuyer,\n> but I'm not sure how to make them work.? Suggestions?\n> Is there a way to replicate the same random numbers used \n> in the conventional loop in the parallel loop?\n\nThere is but you may need read up on that - you have to use a generator that produces a streaming sequence such that you can skip forward (also see recent discussion here and R-devel). For the above you may get away without it by simply setting different seeds in each iteration.\n\n\n>? My machine has 4-Intel? Xeon? Processor X5650 CPUs.\n> When I type:\n>? \n> library(multicore)\n> multicore:::detectCores()\n>? \n> it returns 4.? However, the Intel cutsheet says each of these proceesors\n> has 6 cores.? How can I acces them? \n\nYou can set any number of cores you want using mc.cores=... argument - the detected cores are just a default if you don't specify anything.\n\nWhat OS/distro is this? It is very unusual to see the number of cores reported wrongly by the system ...\n\nCheers,\nSimon\n\n\n\n> I know there's a point of diminishing\n> returns but I can't figure out what it is unless I test it.\n> \n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n> \n>",
-      "body_snippet": "Thanks for the feedback.? Part of my problem is that I need the most\nrecent copy of R.? My IS team told me they can only get an earlier\ncopy using apt-get, but I think there must be a way so I've task",
+      "body_plain": "Thanks for the feedback.  Part of my problem is that I need the most\nrecent copy of R.  My IS team told me they can only get an earlier\ncopy using apt-get, but I think there must be a way so I've tasked them\nwith figuring it out.  \n\nMy OS is Kubuntu. I just thought it odd that it could only detect the \nnumber of CPUs rather than the number of cores.  I'm completely\nnew to parallel processing but it seems that something is not right\nin the core detection.\n\nOne quetion I still have regrds child processes. I understand they \nfinish on their own, but what if I need to kill those processing because \nof an obvious problem.  How can I do that?\n\n----- Original Message -----\nFrom: Simon Urbanek <simon.urbanek at r-project.org>\nTo: Scott Raynaud <scott.raynaud at yahoo.com>\nCc: \"r-sig-hpc at r-project.org\" <r-sig-hpc at r-project.org>\nSent: Tuesday, March 6, 2012 8:27 PM\nSubject: Re: [R-sig-hpc] Parallel loop\n\nScott,\n\nOn Mar 6, 2012, at 4:19 PM, Scott Raynaud wrote:\n\n> I'm trying to convert a loop in a simulation program to a parallel\n> process using multicore.  It looks like this:\n> \n> simus=1000 \n> set.seed(12345)\n> for(iter in 1:simus){\n>  \n> #bunch of code setting up random draws from various \n> #distributions for X matrix \n>  \n> #Computaion of Y\n>  \n> (fitmodel <- lmer(modelformula,data,family=binomial(link=logit),nAGQ=2))\n>  \n> estbeta<-fixef(fitmodel)\n>  sdebeta<-sqrt(diag(vcov(fitmodel)))\n>  for(l in 1:betasize)\n>  {  \n>    cibeta<-estbeta[l]-sgnbeta[l]*z1score*sdebeta[l]\n>    if(beta[l]*cibeta>0)    ? ? ? ?   powaprox[[l]]<-powaprox[[l]]+1\n>      sdepower[l,iter]<-as.numeric(sdebeta[l])\n>  }  \n> ##------------------------------------------------------------------------##\n>  ? ? ? ? ? ? ? ? ? ? ? ? } ##  iteration end here\n>  \n>  \n> The variable fitmodel is defined elsewhere and consists of\n> fixed and random parts.  Betasize is the length of the vector of\n> fixed effects.  Looks like near the bottom there's a \n> counter that increments if the slope estimate doesn't trap 0.  \n> The next line records the standard deviation.  It's these two items\n> that I need to recover.\n>  \n> So I'm thinking that I'm going to recode this way to run on\n> a machine that has 4-Xeon CPUs:\n>  \n> library(multicore)\n> options(cores=4)\n> simus=1000\n> sim.base.fun<-function(iter){  #replaces for(iter in 1:simus){\n> \n> #bunch of code setting up random draws from various \n> #distributions for X matrix \n>  \n> #Computaion of Y\n>  \n> (fitmodel <- lmer(modelformula,data,family=binomial(link=logit),nAGQ=2))\n>  \n> estbeta<-fixef(fitmodel)\n>  sdebeta<-sqrt(diag(vcov(fitmodel)))\n>  for(l in 1:betasize)\n>  {  \n>    cibeta<-estbeta[l]-sgnbeta[l]*z1score*sdebeta[l]\n>    if(beta[l]*cibeta>0)    \n>    return(powaprox[[1]]<-powaprox[[1]]+1 #replaces powaprox[[l]]<-powaprox[[l]]+1\n>    retunr(sedpower[1,iter]<-as.numeric(sdebeta[1]) #replaces sdepower[l,iter]<-as.numeric(sdebeta[l])\n>    ? }\n>? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ?   }#end of sim.base.fun\n> sim.fun<_lapply(iter in 1:simus),sim.base.fun)\n>  \n\nNo, the above won't work (all typos aside) since you are still using assignments. Inherently the above is not parallelizable as-is because of\npowaprox[[l]]<-powaprox[[l]]+1\nbut that is trivially removed. Also the inner for loop is entirely superfluous.\n\nSince your code was incomplete this is just a suggestion as we can't test anything (I'm not even checking if what you're doing makes any sense), but it should give you an idea of what to do:\n\nsim.base <- function(iter) { \n  ## your unstated code goes here ...\n  fitmodel <- lmer(modelformula,data,family=binomial(link=logit),nAGQ=2)\n  estbeta <- fixef(fitmodel)\n  sdebeta <- sqrt(diag(vcov(fitmodel)))\n  list( powf = estbeta-sgnbeta*z1score*sdebeta*beta > 0,\n? ?     sdepower = sdebeta)\n  )\n}\n\nres <- lapply(seq.int(simus), sim.base)\npowf <- sapply(res, function(x) x$powf)\nsdepower <- sapply(res, function(x) x$sdepower)\npowapprox <- apply(powf, 1, sum)\n\n\nTo parallelize, replace lapply above with mclapply. \n\n\n\n>  Do I need a collect statement? \n\nNo, if you use mclapply it's all done for you.\n\n\n> How do I kill the worker processes? \n\nNo, they go away once they're done computing.\n\n\n> One thing I'm not accounting for is the random\n> number generating process.  I've seen a couple of ways of\n> doing this, one using mclapply and another using rlecuyer,\n> but I'm not sure how to make them work.  Suggestions?\n> Is there a way to replicate the same random numbers used \n> in the conventional loop in the parallel loop?\n\nThere is but you may need read up on that - you have to use a generator that produces a streaming sequence such that you can skip forward (also see recent discussion here and R-devel). For the above you may get away without it by simply setting different seeds in each iteration.\n\n\n>  My machine has 4-Intel® Xeon® Processor X5650 CPUs.\n> When I type:\n>  \n> library(multicore)\n> multicore:::detectCores()\n>  \n> it returns 4.  However, the Intel cutsheet says each of these proceesors\n> has 6 cores.  How can I acces them? \n\nYou can set any number of cores you want using mc.cores=... argument - the detected cores are just a default if you don't specify anything.\n\nWhat OS/distro is this? It is very unusual to see the number of cores reported wrongly by the system ...\n\nCheers,\nSimon\n\n\n\n> I know there's a point of diminishing\n> returns but I can't figure out what it is unless I test it.\n> \n> _______________________________________________\n> R-sig-hpc mailing list\n> R-sig-hpc at r-project.org\n> https://stat.ethz.ch/mailman/listinfo/r-sig-hpc\n> \n>",
+      "body_snippet": "Thanks for the feedback.  Part of my problem is that I need the most\nrecent copy of R.  My IS team told me they can only get an earlier\ncopy using apt-get, but I think there must be a way so I've task",
       "thread_id": "thread-12d232e00e71",
       "thread_depth": 2,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001271.html"
     },
     {
       "id": "msg-d6cb3a52e9f6",
@@ -112,7 +117,8 @@
       "body_snippet": "Scott Raynaud wrote:\n> Thanks for the feedback.  Part of my problem is that I need the most\n> recent copy of R.  My IS team told me they can only get an earlier\n> copy using apt-get, but I think there",
       "thread_id": "thread-12d232e00e71",
       "thread_depth": 3,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001272.html"
     },
     {
       "id": "msg-05b17fdb1a91",
@@ -132,7 +138,8 @@
       "body_snippet": "Scott,\n\nOn Mar 8, 2012, at 11:37 AM, Scott Raynaud wrote:\n\n> Thanks for the feedback.  Part of my problem is that I need the most recent copy of R. \n\nI don't quite understand how this is related to yo",
       "thread_id": "thread-12d232e00e71",
       "thread_depth": 3,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001273.html"
     },
     {
       "id": "msg-41f2e98fe215",
@@ -148,7 +155,8 @@
       "body_snippet": "Dear members,\n\nI noticed that there isn't a function for matrix multiplication in the new parallel library. What would be the most efficient way to do a matrix multiplication there?\n\nPatrik Waldmann",
       "thread_id": "thread-41f2e98fe215",
       "thread_depth": 0,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001274.html"
     },
     {
       "id": "msg-8aff0bed6b5a",
@@ -166,7 +174,8 @@
       "body_snippet": "Dear Patrick,\n\n> I noticed that there isn't a function for matrix multiplication in\n> the new parallel library. What would be the most efficient way to do\n> a matrix multiplication there?\nI use libgot",
       "thread_id": "thread-41f2e98fe215",
       "thread_depth": 1,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001275.html"
     },
     {
       "id": "msg-c3abe9e70e41",
@@ -184,7 +193,8 @@
       "body_snippet": "On Mar 12, 2012, at 5:40 AM, Patrik Waldmann wrote:\n\n> Dear members,\n> \n> I noticed that there isn't a function for matrix multiplication in the new parallel library. What would be the most efficient ",
       "thread_id": "thread-41f2e98fe215",
       "thread_depth": 1,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001276.html"
     },
     {
       "id": "msg-3feeb6dd512d",
@@ -200,7 +210,8 @@
       "body_snippet": "What does automatically mean? Is X%*%t(X) parallelized?\n\nPatrik\n\n>>> Simon Urbanek <simon.urbanek at r-project.org> 03/13/12 07:27 AM >>>\n\nOn Mar 12, 2012, at 5:40 AM, Patrik Waldmann wrote:\n\n> Dear m",
       "thread_id": "thread-3feeb6dd512d",
       "thread_depth": 0,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001277.html"
     },
     {
       "id": "msg-e5533448d99e",
@@ -217,6 +228,7 @@
       "thread_id": "thread-e5533448d99e",
       "thread_depth": 0,
       "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001278.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120313/c61cedce/attachment.pl"
       ]
@@ -237,7 +249,8 @@
       "body_snippet": "> >>> Simon Urbanek <simon.urbanek at r-project.org> 03/13/12 07:27 AM >>>\n> \n> On Mar 12, 2012, at 5:40 AM, Patrik Waldmann wrote:\n> \n> > Dear members,\n> > \n> > I noticed that there isn't a function ",
       "thread_id": "thread-3feeb6dd512d",
       "thread_depth": 1,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001279.html"
     },
     {
       "id": "msg-68e2cdab5b2a",
@@ -256,7 +269,8 @@
       "body_snippet": "Brian\n\nThanks for spelling this out for those of us that are a bit slow. \n(Newbie questions below)\n\nOn 12-03-13 08:54 AM, Brian G. Peterson wrote:\n>>>>> Simon Urbanek<simon.urbanek at r-project.org>  ",
       "thread_id": "thread-3feeb6dd512d",
       "thread_depth": 2,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001280.html"
     },
     {
       "id": "msg-553d6b4282ab",
@@ -276,7 +290,8 @@
       "body_snippet": "On Tue, 2012-03-13 at 12:40 -0400, Paul Gilbert wrote:\n> Brian\n> \n> Thanks for spelling this out for those of us that are a bit slow. \n> (Newbie questions below)\n\n<... snip ...>\n\n> > So, if your BLAS ",
       "thread_id": "thread-3feeb6dd512d",
       "thread_depth": 3,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001281.html"
     },
     {
       "id": "msg-9efaa8456174",
@@ -297,7 +312,8 @@
       "body_snippet": "On 12-03-13 12:50 PM, Brian G. Peterson wrote:\n> On Tue, 2012-03-13 at 12:40 -0400, Paul Gilbert wrote:\n>> Brian\n>>\n>> Thanks for spelling this out for those of us that are a bit slow.\n>> (Newbie ques",
       "thread_id": "thread-3feeb6dd512d",
       "thread_depth": 4,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001282.html"
     },
     {
       "id": "msg-17d1edcee345",
@@ -319,7 +335,8 @@
       "body_snippet": "On Tue, 2012-03-13 at 15:05 -0400, Paul Gilbert wrote:\n> (I have a long history of getting things that should 'just work' to \n> 'just not work'.) But I didn't really state my question very well. I'm\n>",
       "thread_id": "thread-3feeb6dd512d",
       "thread_depth": 5,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001283.html"
     },
     {
       "id": "msg-30909de50fc8",
@@ -343,6 +360,7 @@
       "thread_id": "thread-3feeb6dd512d",
       "thread_depth": 6,
       "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001284.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120313/66b3009d/attachment.pl"
       ]
@@ -367,7 +385,8 @@
       "body_snippet": "On Mar 13, 2012, at 3:05 PM, Paul Gilbert wrote:\n\n> \n> \n> On 12-03-13 12:50 PM, Brian G. Peterson wrote:\n>> On Tue, 2012-03-13 at 12:40 -0400, Paul Gilbert wrote:\n>>> Brian\n>>> \n>>> Thanks for spellin",
       "thread_id": "thread-3feeb6dd512d",
       "thread_depth": 5,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001285.html"
     },
     {
       "id": "msg-839a892b29b6",
@@ -388,7 +407,8 @@
       "body_snippet": ">  On other machines, I might use a\n> multithreaded BLAS like gotoblas so that I have some flexibility (though\n> apparently unlike Claudia, I rarely change it in practice).\n\n:-) Yes, I do change it in",
       "thread_id": "thread-3feeb6dd512d",
       "thread_depth": 4,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001286.html"
     },
     {
       "id": "msg-fa929bd3dc56",
@@ -411,7 +431,8 @@
       "body_snippet": "On 12-03-13 09:59 PM, Simon Urbanek wrote:\n>\n> On Mar 13, 2012, at 3:05 PM, Paul Gilbert wrote:\n>\n>>\n>>\n>> On 12-03-13 12:50 PM, Brian G. Peterson wrote:\n>>> On Tue, 2012-03-13 at 12:40 -0400, Paul Gi",
       "thread_id": "thread-3feeb6dd512d",
       "thread_depth": 6,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001287.html"
     },
     {
       "id": "msg-335a430a4557",
@@ -433,7 +454,8 @@
       "body_snippet": "On 12-03-14 10:47 AM, Claudia Beleites wrote:\n>>   On other machines, I might use a\n>> multithreaded BLAS like gotoblas so that I have some flexibility (though\n>> apparently unlike Claudia, I rarely c",
       "thread_id": "thread-3feeb6dd512d",
       "thread_depth": 5,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001288.html"
     },
     {
       "id": "msg-9edf1d35f388",
@@ -457,7 +479,8 @@
       "body_snippet": "On Mar 14, 2012, at 12:53 PM, Paul Gilbert wrote:\n\n> \n> \n> On 12-03-13 09:59 PM, Simon Urbanek wrote:\n>> \n>> On Mar 13, 2012, at 3:05 PM, Paul Gilbert wrote:\n>> \n>>> \n>>> \n>>> On 12-03-13 12:50 PM, Br",
       "thread_id": "thread-3feeb6dd512d",
       "thread_depth": 7,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001289.html"
     },
     {
       "id": "msg-a19321d28ac2",
@@ -482,7 +505,8 @@
       "body_snippet": "On 12-03-14 01:24 PM, Simon Urbanek wrote:\n>\n> On Mar 14, 2012, at 12:53 PM, Paul Gilbert wrote:\n>\n>>\n>>\n>> On 12-03-13 09:59 PM, Simon Urbanek wrote:\n>>>\n>>> On Mar 13, 2012, at 3:05 PM, Paul Gilbert",
       "thread_id": "thread-3feeb6dd512d",
       "thread_depth": 8,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001290.html"
     },
     {
       "id": "msg-bc5fe548a014",
@@ -504,7 +528,8 @@
       "body_snippet": "Claudia,\n\nOn Mar 14, 2012, at 10:47 AM, Claudia Beleites wrote:\n\n>> On other machines, I might use a\n>> multithreaded BLAS like gotoblas so that I have some flexibility (though\n>> apparently unlike Cl",
       "thread_id": "thread-3feeb6dd512d",
       "thread_depth": 5,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001291.html"
     },
     {
       "id": "msg-716b7d0c9781",
@@ -520,7 +545,8 @@
       "body_snippet": "I thought I'll post this here since I could not find an answer anywhere I searched: how to setup R with threaded BLAS on Debian/Ubuntu.\n\nFirst, neither Debian nor Ubuntu come with optimized ATLAS bina",
       "thread_id": "thread-716b7d0c9781",
       "thread_depth": 0,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001292.html"
     },
     {
       "id": "msg-8f5157e4ee74",
@@ -538,7 +564,8 @@
       "body_snippet": "On 14 March 2012 at 23:09, Simon Urbanek wrote:\n| I thought I'll post this here since I could not find an answer anywhere I searched: how to setup R with threaded BLAS on Debian/Ubuntu.\n| \n| First, ne",
       "thread_id": "thread-716b7d0c9781",
       "thread_depth": 1,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001293.html"
     },
     {
       "id": "msg-63a74c6930d7",
@@ -557,7 +584,8 @@
       "body_snippet": "On Mar 14, 2012, at 11:52 PM, Dirk Eddelbuettel wrote:\n\n> \n> On 14 March 2012 at 23:09, Simon Urbanek wrote:\n> | I thought I'll post this here since I could not find an answer anywhere I searched: how",
       "thread_id": "thread-716b7d0c9781",
       "thread_depth": 2,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001294.html"
     },
     {
       "id": "msg-cc035ab38e90",
@@ -578,7 +606,8 @@
       "body_snippet": "So what I meant by the latest version was that I think that I want to do would be \neasier in package parallel, but I'm a noob at this so I don't know for sure.? Anyway,\nI need 2.14.1 to get to that pa",
       "thread_id": "thread-12d232e00e71",
       "thread_depth": 4,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001295.html"
     },
     {
       "id": "msg-69f426d21040",
@@ -600,7 +629,8 @@
       "body_snippet": "On 15 March 2012 at 09:43, Scott Raynaud wrote:\n| So what I meant by the latest version was that I think that I want to do would be \n| easier in package parallel, but I'm a noob at this so I don't kno",
       "thread_id": "thread-12d232e00e71",
       "thread_depth": 5,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001296.html"
     },
     {
       "id": "msg-2565628fe9a4",
@@ -622,7 +652,8 @@
       "body_snippet": "(Apologies if this has already been discussed) I've found it unexpectedly painless to compile R from source on a linux machine, if you'd rather not wait for your IS people. From memory, I believe the ",
       "thread_id": "thread-12d232e00e71",
       "thread_depth": 5,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001297.html"
     },
     {
       "id": "msg-cc971e6e8272",
@@ -645,7 +676,8 @@
       "body_snippet": "Simon and Paul,\n\nseems I have trouble with some part of the configuration on the server:\nI'm not able any longer to change the number of threads for the\ngotoblas, it always stays at 6 (which is fortun",
       "thread_id": "thread-3feeb6dd512d",
       "thread_depth": 6,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001298.html"
     },
     {
       "id": "msg-cfd656692203",
@@ -668,7 +700,8 @@
       "body_snippet": "On Thu, Mar 15, 2012 at 05:27:23PM +0000, Michael Spiegel wrote:\n\n> (Apologies if this has already been discussed) I've found it unexpectedly painless to compile R from source on a linux machine, if y",
       "thread_id": "thread-12d232e00e71",
       "thread_depth": 6,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001299.html"
     },
     {
       "id": "msg-adfb9aa6d8df",
@@ -692,7 +725,8 @@
       "body_snippet": "On 12-03-15 02:02 PM, Norm Matloff wrote:\n> On Thu, Mar 15, 2012 at 05:27:23PM +0000, Michael Spiegel wrote:\n>\n>> (Apologies if this has already been discussed) I've found it unexpectedly painless to ",
       "thread_id": "thread-12d232e00e71",
       "thread_depth": 7,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001300.html"
     },
     {
       "id": "msg-3068e9222aa2",
@@ -709,6 +743,7 @@
       "thread_id": "thread-3068e9222aa2",
       "thread_depth": 0,
       "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001301.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120315/136a2c79/attachment.pl"
       ]
@@ -728,6 +763,7 @@
       "thread_id": "thread-ca74cf5c3fb5",
       "thread_depth": 0,
       "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001302.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120315/765a6067/attachment.pl"
       ]
@@ -747,6 +783,7 @@
       "thread_id": "thread-0b404b48cdbb",
       "thread_depth": 0,
       "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001303.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120316/e7e35b45/attachment.pl"
       ]
@@ -767,7 +804,8 @@
       "body_snippet": "'cat' and 'print' work from the workers, but the\noutput is redirected to /dev/null (or NUL:) by\ndefault.  If you set the 'outfile' option to an\nempty string when creating the cluster object,\nthen outp",
       "thread_id": "thread-0b404b48cdbb",
       "thread_depth": 1,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001304.html"
     },
     {
       "id": "msg-5a0623e6c831",
@@ -784,6 +822,7 @@
       "thread_id": "thread-5a0623e6c831",
       "thread_depth": 0,
       "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001305.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120316/e152ceb5/attachment.pl"
       ]
@@ -803,6 +842,7 @@
       "thread_id": "thread-82e9097b7c69",
       "thread_depth": 0,
       "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001306.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120320/c1fa12b6/attachment.pl"
       ]
@@ -817,11 +857,12 @@
       "subject_clean": "New AMD Bulldozer for Parallel Computing with R",
       "in_reply_to": null,
       "references": [],
-      "body_plain": "Dear R enthusiasts,\n\ni`m planning to set up a new PC and consider to buy an AMD FX-8120. For \nmy estimations (with floating-point data) I use the genoud optimizer in \nthe package rgenoud which (at least I think) would be able to handle the \n8 cores. Is anybody using the AMD proc for computing with R and could \ntell about the performance? What scares me a bit to just buy it are the \nhuge amount of benchmarks on the net which tell that AMD has really bad \nperformance ( especially for single-threaded apps). Would the Intel I7 \n2600 be the better alternative? All the Intel 6-core processors are out \nof budget for me.\n\nBest regards,\n\nAndreas Recktenwald\n\n-- \nDipl.-Kfm. Andreas Recktenwald\n\n\n\nUniversit?t des Saarlandes ? Fakult?t f?r Rechts- und\nWirtschaftswissenschaften\n\nLehrstuhl f?r Statistik und ?konometrie\n\nCampus C3 1, Zimmer 206\n\n66123 Saarbr?cken\n\nTel.: ++49681 ? 302 3571",
+      "body_plain": "Dear R enthusiasts,\n\ni`m planning to set up a new PC and consider to buy an AMD FX-8120. For \nmy estimations (with floating-point data) I use the genoud optimizer in \nthe package rgenoud which (at least I think) would be able to handle the \n8 cores. Is anybody using the AMD proc for computing with R and could \ntell about the performance? What scares me a bit to just buy it are the \nhuge amount of benchmarks on the net which tell that AMD has really bad \nperformance ( especially for single-threaded apps). Would the Intel I7 \n2600 be the better alternative? All the Intel 6-core processors are out \nof budget for me.\n\nBest regards,\n\nAndreas Recktenwald\n\n-- \nDipl.-Kfm. Andreas Recktenwald\n\n\n\nUniversität des Saarlandes – Fakultät für Rechts- und\nWirtschaftswissenschaften\n\nLehrstuhl für Statistik und Ökonometrie\n\nCampus C3 1, Zimmer 206\n\n66123 Saarbrücken\n\nTel.: ++49681 – 302 3571",
       "body_snippet": "Dear R enthusiasts,\n\ni`m planning to set up a new PC and consider to buy an AMD FX-8120. For \nmy estimations (with floating-point data) I use the genoud optimizer in \nthe package rgenoud which (at lea",
       "thread_id": "thread-f7f18c23455f",
       "thread_depth": 0,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001307.html"
     },
     {
       "id": "msg-357b8bc02ebc",
@@ -838,6 +879,7 @@
       "thread_id": "thread-357b8bc02ebc",
       "thread_depth": 0,
       "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001308.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120323/a5d65d9a/attachment.pl"
       ]
@@ -855,11 +897,12 @@
         "<4F6C5B20.1040208@mx.uni-saarland.de>",
         "<1332503446.2761.32.camel@brian-rcg>"
       ],
-      "body_plain": "Am 23.03.2012 12:50, schrieb Brian G. Peterson:\n> On Fri, 2012-03-23 at 12:14 +0100, Andreas Recktenwald wrote:\n>> Dear R enthusiasts,\n>>\n>> i`m planning to set up a new PC and consider to buy an AMD FX-8120. For\n>> my estimations (with floating-point data) I use the genoud optimizer in\n>> the package rgenoud which (at least I think) would be able to handle the\n>> 8 cores. Is anybody using the AMD proc for computing with R and could\n>> tell about the performance? What scares me a bit to just buy it are the\n>> huge amount of benchmarks on the net which tell that AMD has really bad\n>> performance ( especially for single-threaded apps). Would the Intel I7\n>> 2600 be the better alternative? All the Intel 6-core processors are out\n>> of budget for me.\n> Tests we've run here with multi-threaded R had horrible performance on\n> the Bulldozer processors.\n>\n> For 'budget' 6-core systems, we've stuck with the AMD Phenom II\n> processors and overclocked them. We have several running happily at\n> 4.2GHz.  For non-budget systems for now we're using i7's and Xeons.\n>\n> The Phenom II wins in performance per watt and performance per dollar at\n> this point, but the i7 and Xeon systems are faster by 10% or so.\n\nThanks for your replies,\nreally doesn't look too good for Bulldozer. Which OS where you running \nthe tests on? I'm using Lubuntu 11.10 (forgot the mention this in my \ninitial post) and I'm recently read that Bulldozer performance increase \nwhen using gcc with march=bdver1 or the AMD Open64 compiler.\nAt the moment only point for bulldozer are the price ( FX-8120: 150 ?, \nXeon E3 - 1230:  200 ?, i7 2600k: 250 ?).\n\nI think i should take the money get an i7-2600k and then overclock this \none.\n\nBest regards\n\n-- \nDipl.-Kfm. Andreas Recktenwald\n\n\n\nUniversit?t des Saarlandes ? Fakult?t f?r Rechts- und\nWirtschaftswissenschaften\n\nLehrstuhl f?r Statistik und ?konometrie\n\nCampus C3 1, Zimmer 206\n\n66123 Saarbr?cken\n\nTel.: ++49681 ? 302 3571",
+      "body_plain": "Am 23.03.2012 12:50, schrieb Brian G. Peterson:\n> On Fri, 2012-03-23 at 12:14 +0100, Andreas Recktenwald wrote:\n>> Dear R enthusiasts,\n>>\n>> i`m planning to set up a new PC and consider to buy an AMD FX-8120. For\n>> my estimations (with floating-point data) I use the genoud optimizer in\n>> the package rgenoud which (at least I think) would be able to handle the\n>> 8 cores. Is anybody using the AMD proc for computing with R and could\n>> tell about the performance? What scares me a bit to just buy it are the\n>> huge amount of benchmarks on the net which tell that AMD has really bad\n>> performance ( especially for single-threaded apps). Would the Intel I7\n>> 2600 be the better alternative? All the Intel 6-core processors are out\n>> of budget for me.\n> Tests we've run here with multi-threaded R had horrible performance on\n> the Bulldozer processors.\n>\n> For 'budget' 6-core systems, we've stuck with the AMD Phenom II\n> processors and overclocked them. We have several running happily at\n> 4.2GHz.  For non-budget systems for now we're using i7's and Xeons.\n>\n> The Phenom II wins in performance per watt and performance per dollar at\n> this point, but the i7 and Xeon systems are faster by 10% or so.\n\nThanks for your replies,\nreally doesn't look too good for Bulldozer. Which OS where you running \nthe tests on? I'm using Lubuntu 11.10 (forgot the mention this in my \ninitial post) and I'm recently read that Bulldozer performance increase \nwhen using gcc with march=bdver1 or the AMD Open64 compiler.\nAt the moment only point for bulldozer are the price ( FX-8120: 150 €, \nXeon E3 - 1230:  200 €, i7 2600k: 250 €).\n\nI think i should take the money get an i7-2600k and then overclock this \none.\n\nBest regards\n\n-- \nDipl.-Kfm. Andreas Recktenwald\n\n\n\nUniversität des Saarlandes – Fakultät für Rechts- und\nWirtschaftswissenschaften\n\nLehrstuhl für Statistik und Ökonometrie\n\nCampus C3 1, Zimmer 206\n\n66123 Saarbrücken\n\nTel.: ++49681 – 302 3571",
       "body_snippet": "Am 23.03.2012 12:50, schrieb Brian G. Peterson:\n> On Fri, 2012-03-23 at 12:14 +0100, Andreas Recktenwald wrote:\n>> Dear R enthusiasts,\n>>\n>> i`m planning to set up a new PC and consider to buy an AMD ",
       "thread_id": "thread-988c86b3350b",
       "thread_depth": 0,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001309.html"
     },
     {
       "id": "msg-717d6955bee3",
@@ -876,6 +919,7 @@
       "thread_id": "thread-717d6955bee3",
       "thread_depth": 0,
       "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001310.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120329/302555a0/attachment.pl"
       ]
@@ -895,6 +939,7 @@
       "thread_id": "thread-edbf79a6fc7d",
       "thread_depth": 0,
       "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001311.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20120329/38894a02/attachment.pl"
       ]
@@ -915,7 +960,8 @@
       "body_snippet": "On Thu, 2012-03-29 at 14:26 -0400, Ben Weinstein wrote:\n> Hello all,\n> \n> I've seen multiple posts on this subject, but haven't clearly been able to\n> understand the issue. There must be something sma",
       "thread_id": "thread-edbf79a6fc7d",
       "thread_depth": 1,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001312.html"
     },
     {
       "id": "msg-b65ab58a354a",
@@ -933,7 +979,8 @@
       "body_snippet": "Hi Ben,\n\nYou have to run R via mpirun, otherwise all of the workers start\non the one node.\n\n> I have tried using mpirun -np 4 in front of the R - call, but this just\n> fails without message.\n\nYou have",
       "thread_id": "thread-edbf79a6fc7d",
       "thread_depth": 1,
-      "month": "2012-03"
+      "month": "2012-03",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-March/001313.html"
     }
   ],
   "threads": [

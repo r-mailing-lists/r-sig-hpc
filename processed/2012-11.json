@@ -13,11 +13,12 @@
       "subject_clean": "How to manage the .ff files made by using the ff package",
       "in_reply_to": null,
       "references": [],
-      "body_plain": "Matthew,\n\nYou asked how to autmatically re-use a 'pattern' when modifying a ffdf \nobject. To start with, help(read.table.ffdf) has an example how to \ncreate a ffdf in a specific directory with a specific file name \n'pattern'. If we put the pattern in a variable, this looks like\n\n     mypattern <- \"c:/tmp/csv\"\n     ffy <- read.csv.ffdf(file=csvfile, header=TRUE, \ncolClasses=c(ord=\"ordered\", dct=\"POSIXct\", dat=\"Date\")\n     , asffdf_args=list(\n         vmode = c(log=\"boolean\", int=\"byte\", dbl=\"single\", \nfac=\"nibble\", ord=\"nibble\", dct=\"single\", dat=\"single\")\n       , col_args=list(pattern = mypattern)  # create in getwd() with \nprefix csv\n       )\n     )\n\nAs long as you modify existing columns, you operate 'by reference', thus \nno need to create new ffs.\nFor adding new columns, there are two little challenges in using the \npattern from the fdff instead of using the variable mypattern\n\n1. There is no 'pattern' stored at the ffdf level, 'pattern' is stored \nwith each single ff column.\n2. ffdfs are created from ffs, that need to exist *before* actually \nexecuting the code that creates the ffdf.\n\nThe following code shows how to query the old pattern and apply it for \ncreating a new column:\n\n     namedcolindexes <- 1:ncol(ffy)\n     names(namedcolindexes) <- colnames(ffy)\n     ffx <- do.call(\"ffdf\", c(lapply(namedcolindexes, \nfunction(i)ffy[[i]]), list(newcol=ff(1:nrow(ffy), \npattern=pattern(ffy[[1]])))))\n     filename(ffx)\n\nIf you need to do this very often, you can create you own function, to \nsave you some typing.\n\nKind regards\n\nJens Oehlschl?gel\n\n\n*Gesendet:* Freitag, 26. Oktober 2012 um 03:48 Uhr\n*Von:* \"Matthew Dubins\" <matt.dubins at gmail.com>\n*An:* Jens_Oehlschlaegel at truecluster.com\n*Betreff:* Re: How to manage the .ff files made by using the ff package\nHi Jens,\n\nIf I set a pattern for my ffdf once, then will it continue to use the \nsame pattern even when I modify that ffdf?  I do a lot of data \nprocessing and I just notice that every time I made a new column, it \nwould make a 'clone' ff file that wouldn't conform to the pattern I set.\n\nBasically, I compile the data outside of R, read it into R using \nread.csv.ffdf, but what options do I use to make sure the data i've \nimported persists without getting that filename access error?\n\nAll that being said, once I wasn't having any issues accessing the data \nthat I saved in my new tempdir, I found the ff package to be great for \nreducing RAM usage :) :)  When will it be updated next?\n\nCheers,\nMatthew Dubins\n\nOn Tue, Oct 23, 2012 at 12:56 PM, <Jens_Oehlschlaegel at truecluster.com> \nwrote:\n\n    Dear Matthew,\n\n    I'd rather keep fftempdir where it is and give a different pattern\n    or filename for those ffs that you want to keep.\n\n    HTH\n\n    Jens\n\n\n    *Gesendet:* Freitag, 19. Oktober 2012 um 02:05 Uhr\n    *Von:* \"Matthew Dubins\" <matt.dubins at gmail.com>\n    *An:* Jens_Oehlschlaegel at truecluster.com\n    *Betreff:* How to manage the .ff files made by using the ff package\n    Dear Jens,\n\n    I'm now near completion of an analysis project wherein I almost\n    exclusively used the ff package to manage, process, and analyze my\n    data.  I kept noticing that it was saving .ff files in a temp\n    directory on my windows machine as I was saving and loading my\n    project.  I learned that it's better to set the fftempdir to another\n    location so that the .ff files don't get deleted and the package\n    doesn't complain that you can't load a vector because\n    \"file./access/(/filename/, /0/) == /0/ is not TRUE\".\n\n    Now that I have a custom fftempdir, I don't seem to have any more\n    problems loading up individual vectors but these .ff files keep\n    piling on.  What's a good way of making sure that I keep only the\n    .ff files that I need for analysis?  Do I need to keep them in the\n    fftempdir that I set or does the data persist on the hard drive in\n    the .RData and .ffData files in the project directory?\n\n    Thanks,\n    Matthew Dubins",
+      "body_plain": "Matthew,\n\nYou asked how to autmatically re-use a 'pattern' when modifying a ffdf \nobject. To start with, help(read.table.ffdf) has an example how to \ncreate a ffdf in a specific directory with a specific file name \n'pattern'. If we put the pattern in a variable, this looks like\n\n     mypattern <- \"c:/tmp/csv\"\n     ffy <- read.csv.ffdf(file=csvfile, header=TRUE, \ncolClasses=c(ord=\"ordered\", dct=\"POSIXct\", dat=\"Date\")\n     , asffdf_args=list(\n         vmode = c(log=\"boolean\", int=\"byte\", dbl=\"single\", \nfac=\"nibble\", ord=\"nibble\", dct=\"single\", dat=\"single\")\n       , col_args=list(pattern = mypattern)  # create in getwd() with \nprefix csv\n       )\n     )\n\nAs long as you modify existing columns, you operate 'by reference', thus \nno need to create new ffs.\nFor adding new columns, there are two little challenges in using the \npattern from the fdff instead of using the variable mypattern\n\n1. There is no 'pattern' stored at the ffdf level, 'pattern' is stored \nwith each single ff column.\n2. ffdfs are created from ffs, that need to exist *before* actually \nexecuting the code that creates the ffdf.\n\nThe following code shows how to query the old pattern and apply it for \ncreating a new column:\n\n     namedcolindexes <- 1:ncol(ffy)\n     names(namedcolindexes) <- colnames(ffy)\n     ffx <- do.call(\"ffdf\", c(lapply(namedcolindexes, \nfunction(i)ffy[[i]]), list(newcol=ff(1:nrow(ffy), \npattern=pattern(ffy[[1]])))))\n     filename(ffx)\n\nIf you need to do this very often, you can create you own function, to \nsave you some typing.\n\nKind regards\n\nJens Oehlschlägel\n\n\n*Gesendet:* Freitag, 26. Oktober 2012 um 03:48 Uhr\n*Von:* \"Matthew Dubins\" <matt.dubins at gmail.com>\n*An:* Jens_Oehlschlaegel at truecluster.com\n*Betreff:* Re: How to manage the .ff files made by using the ff package\nHi Jens,\n\nIf I set a pattern for my ffdf once, then will it continue to use the \nsame pattern even when I modify that ffdf?  I do a lot of data \nprocessing and I just notice that every time I made a new column, it \nwould make a 'clone' ff file that wouldn't conform to the pattern I set.\n\nBasically, I compile the data outside of R, read it into R using \nread.csv.ffdf, but what options do I use to make sure the data i've \nimported persists without getting that filename access error?\n\nAll that being said, once I wasn't having any issues accessing the data \nthat I saved in my new tempdir, I found the ff package to be great for \nreducing RAM usage :) :)  When will it be updated next?\n\nCheers,\nMatthew Dubins\n\nOn Tue, Oct 23, 2012 at 12:56 PM, <Jens_Oehlschlaegel at truecluster.com> \nwrote:\n\n    Dear Matthew,\n\n    I'd rather keep fftempdir where it is and give a different pattern\n    or filename for those ffs that you want to keep.\n\n    HTH\n\n    Jens\n\n\n    *Gesendet:* Freitag, 19. Oktober 2012 um 02:05 Uhr\n    *Von:* \"Matthew Dubins\" <matt.dubins at gmail.com>\n    *An:* Jens_Oehlschlaegel at truecluster.com\n    *Betreff:* How to manage the .ff files made by using the ff package\n    Dear Jens,\n\n    I'm now near completion of an analysis project wherein I almost\n    exclusively used the ff package to manage, process, and analyze my\n    data.  I kept noticing that it was saving .ff files in a temp\n    directory on my windows machine as I was saving and loading my\n    project.  I learned that it's better to set the fftempdir to another\n    location so that the .ff files don't get deleted and the package\n    doesn't complain that you can't load a vector because\n    \"file./access/(/filename/, /0/) == /0/ is not TRUE\".\n\n    Now that I have a custom fftempdir, I don't seem to have any more\n    problems loading up individual vectors but these .ff files keep\n    piling on.  What's a good way of making sure that I keep only the\n    .ff files that I need for analysis?  Do I need to keep them in the\n    fftempdir that I set or does the data persist on the hard drive in\n    the .RData and .ffData files in the project directory?\n\n    Thanks,\n    Matthew Dubins",
       "body_snippet": "Matthew,\n\nYou asked how to autmatically re-use a 'pattern' when modifying a ffdf \nobject. To start with, help(read.table.ffdf) has an example how to \ncreate a ffdf in a specific directory with a speci",
       "thread_id": "thread-dd0495b8cbcf",
       "thread_depth": 0,
-      "month": "2012-11"
+      "month": "2012-11",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-November/001543.html"
     },
     {
       "id": "msg-b682c553cf68",
@@ -34,6 +35,7 @@
       "thread_id": "thread-b682c553cf68",
       "thread_depth": 0,
       "month": "2012-11",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-November/001544.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121102/1e515d19/attachment.pl"
       ]
@@ -54,7 +56,8 @@
       "body_snippet": "On Nov 2, 2012, at 10:36 AM, Jonathan Greenberg wrote:\n\n> r-sig-hpc'ers:\n> \n> Is there any way to query the number of CPUs on a single-node Windows box?\n\nparallel::detectCores()\n\nCheers,\nSimon\n\n\n> I'm",
       "thread_id": "thread-b682c553cf68",
       "thread_depth": 1,
-      "month": "2012-11"
+      "month": "2012-11",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-November/001545.html"
     },
     {
       "id": "msg-a747a21949b8",
@@ -70,7 +73,8 @@
       "body_snippet": "Hello,\n\nShort version:\n==========\n\nCan anyone recommend a method to load dynamically the elements of a large (multi-gigabyte) list on demand, where each list element is a complex list (S3 object) in i",
       "thread_id": "thread-a747a21949b8",
       "thread_depth": 0,
-      "month": "2012-11"
+      "month": "2012-11",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-November/001546.html"
     },
     {
       "id": "msg-ab41e66d6666",
@@ -89,6 +93,7 @@
       "thread_id": "thread-a747a21949b8",
       "thread_depth": 1,
       "month": "2012-11",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-November/001547.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121116/c4766952/attachment.pl"
       ]
@@ -110,7 +115,8 @@
       "body_snippet": "Dear Saptarshi,\n\nThanks for your response.\n\nOn 17 Nov 2012, at 05:42, Saptarshi Guha wrote:\n\n> One question: how large is each list element? < 256MB?\n\nfairly small (<5Mb)\n\n> One approach: store your d",
       "thread_id": "thread-a747a21949b8",
       "thread_depth": 2,
-      "month": "2012-11"
+      "month": "2012-11",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-November/001548.html"
     },
     {
       "id": "msg-0853028ff094",
@@ -132,6 +138,7 @@
       "thread_id": "thread-0853028ff094",
       "thread_depth": 0,
       "month": "2012-11",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2012-November/001549.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20121121/59118aff/attachment.pl"
       ]

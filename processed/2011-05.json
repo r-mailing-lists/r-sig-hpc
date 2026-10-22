@@ -18,6 +18,7 @@
       "thread_id": "thread-53244293f402",
       "thread_depth": 0,
       "month": "2011-05",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-May/000969.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110507/b1ab12bc/attachment.pl"
       ]
@@ -34,11 +35,12 @@
       "references": [
         "<BANLkTi=Lmh1Dynj2TmkpJ=r0TZt12PXBZg@mail.gmail.com>"
       ],
-      "body_plain": "2011/5/7 Mar?a del Carmen Romero <mariadelc.romero at gmail.com>:\n> Hi,\n>\n> My name is Maria del Carmen Romero and I was working with package snow until\n> December, 2010 without problems. Now, when I try to create 2 clusters\n> (because I have a dual-core processor) with the instruction:\n>> cl<-makeCluster(2,type=\"SOCK\")\n>\n> I have to different problems:\n>\n> - In earlier versions to 2.13, the error is:\n> Error en socketConnection(host, port, open = \"a+b\", blocking = TRUE) :\n> ?argumento 'port' inv?lido\n> Adem?s: Warning message:\n> In socketConnection(host, port, open = \"a+b\", blocking = TRUE) :\n> ?NAs introducidos por coerci?n\n\nIt looks like a worker is seeing a corrupted port value.\nI can reproduce this type of error with:\n\n    > setDefaultClusterOptions(port=\"frank\")\n    > cl <- makeCluster(2, type=\"SOCK\")\n\nIn this case, the worker tries to convert \"frank\" to an integer,\ngets an NA instead, and then socketConnection complains that\nNA is an invalid port value.\n\nBut I don't see how that would happen accidentally.  snow doesn't\nuse a configuration file that I know of.  You're not executing any\nsnow functions in a Rprofile file, are you?\n\nYou could look at the default value of the port option using:\ncl <- makeCluster(2, type=\"SOCK\", manual=TRUE)\n    > getClusterOption(\"port\")\n\nBy default, it returns 10187.\n\n> - In the version to 2.13, the program hangs and I have to hit Ctrl-C.\n\nThat's rather common when something goes wrong in\nmakeSOCKcluster.  The fact that you're using local workers\nrules out a number of possible problems, but it still doesn't tell\nme much.\n\nIn both cases, I suggest using the manual=TRUE option, and then\nstarting the workers on the local machine using the specified\ncommand lines.  That will tell you how the port value is being set\nin the first case.  And you might see some other error message\nfrom the workers in the second case.\n\nIn your case, use the command:\n\n    > cl <- makeCluster(2, type=\"SOCK\", manual=TRUE, outfile=\"\")\n\nSetting outfile to an empty string will prevent the worker from\nredirecting informational messages.  I think that is useful when\nexecuting workers manually.\n\n- Steve",
-      "body_snippet": "2011/5/7 Mar?a del Carmen Romero <mariadelc.romero at gmail.com>:\n> Hi,\n>\n> My name is Maria del Carmen Romero and I was working with package snow until\n> December, 2010 without problems. Now, when I ",
+      "body_plain": "2011/5/7 María del Carmen Romero <mariadelc.romero at gmail.com>:\n> Hi,\n>\n> My name is Maria del Carmen Romero and I was working with package snow until\n> December, 2010 without problems. Now, when I try to create 2 clusters\n> (because I have a dual-core processor) with the instruction:\n>> cl<-makeCluster(2,type=\"SOCK\")\n>\n> I have to different problems:\n>\n> - In earlier versions to 2.13, the error is:\n> Error en socketConnection(host, port, open = \"a+b\", blocking = TRUE) :\n>  argumento 'port' inválido\n> Además: Warning message:\n> In socketConnection(host, port, open = \"a+b\", blocking = TRUE) :\n>  NAs introducidos por coerción\n\nIt looks like a worker is seeing a corrupted port value.\nI can reproduce this type of error with:\n\n    > setDefaultClusterOptions(port=\"frank\")\n    > cl <- makeCluster(2, type=\"SOCK\")\n\nIn this case, the worker tries to convert \"frank\" to an integer,\ngets an NA instead, and then socketConnection complains that\nNA is an invalid port value.\n\nBut I don't see how that would happen accidentally.  snow doesn't\nuse a configuration file that I know of.  You're not executing any\nsnow functions in a Rprofile file, are you?\n\nYou could look at the default value of the port option using:\ncl <- makeCluster(2, type=\"SOCK\", manual=TRUE)\n    > getClusterOption(\"port\")\n\nBy default, it returns 10187.\n\n> - In the version to 2.13, the program hangs and I have to hit Ctrl-C.\n\nThat's rather common when something goes wrong in\nmakeSOCKcluster.  The fact that you're using local workers\nrules out a number of possible problems, but it still doesn't tell\nme much.\n\nIn both cases, I suggest using the manual=TRUE option, and then\nstarting the workers on the local machine using the specified\ncommand lines.  That will tell you how the port value is being set\nin the first case.  And you might see some other error message\nfrom the workers in the second case.\n\nIn your case, use the command:\n\n    > cl <- makeCluster(2, type=\"SOCK\", manual=TRUE, outfile=\"\")\n\nSetting outfile to an empty string will prevent the worker from\nredirecting informational messages.  I think that is useful when\nexecuting workers manually.\n\n- Steve",
+      "body_snippet": "2011/5/7 María del Carmen Romero <mariadelc.romero at gmail.com>:\n> Hi,\n>\n> My name is Maria del Carmen Romero and I was working with package snow until\n> December, 2010 without problems. Now, when I ",
       "thread_id": "thread-53244293f402",
       "thread_depth": 1,
-      "month": "2011-05"
+      "month": "2011-05",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-May/000970.html"
     },
     {
       "id": "msg-d33977828ae9",
@@ -57,7 +59,8 @@
       "body_snippet": "I seem to have garbled my instructions on getting the default\nport value.\n\n2011/5/7 Stephen Weston <stephen.b.weston at gmail.com>:\n\n> You could look at the default value of the port option using:\n> c",
       "thread_id": "thread-53244293f402",
       "thread_depth": 2,
-      "month": "2011-05"
+      "month": "2011-05",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-May/000971.html"
     },
     {
       "id": "msg-ea23c0da86bd",
@@ -78,6 +81,7 @@
       "thread_id": "thread-53244293f402",
       "thread_depth": 3,
       "month": "2011-05",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-May/000972.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110507/79b2669e/attachment.pl"
       ]
@@ -97,11 +101,12 @@
         "<BANLkTikZ6wvQO9zw-pVzgDv-3PexxmKi=w@mail.gmail.com>",
         "<BANLkTinPM8oGCTG-5eLmnuDZLgMDi9U4+Q@mail.gmail.com>"
       ],
-      "body_plain": "It appears to me that in R 2.13.0, the internal function\n.path.package has changed.  Instead of returning the old-\nstyle, short file names, it's returning paths that can contain\nwhite space.  snow uses .path.package(\"snow\") to set the\ndefault values of several options, including \"snowlib\", and\nmakeSOCKcluster uses \"snowlib\" to locate RSOCKnode.R,\nfor example.  Since makeSOCKcluster doesn't quote the\ncommand for starting the workers, it can fail if there are\nblanks in the path of RSOCKnode, for example.\n\nI'm not sure why you didn't see an error message from\nRscript when you tried to start the worker, however.\nAnyway, I would suggest that you specify a value for\nthe \"snowlib\" option to see if it helps.  Here's my guess\nof how to set it:\n\n    > snowlib <- file.path(Sys.getenv(\"R_HOME\"), \"library\")\n    > setDefaultClusterOptions(snowlib=snowlib)\n\nI suggest this because it appears from your output that\nthe R_HOME environment variable still uses the short\nfile name form.\n\nYou can verify that you set it properly with the command:\n\n    > list.files(file.path(getClusterOption(\"snowlib\"), \"snow\"))\n\nwhich should list the contents of the snow installation directory.\n\nNow you can create a socket cluster as before.\n\nGood luck,\n\n- Steve\n\n\n2011/5/7 Mar?a del Carmen Romero <mariadelc.romero at gmail.com>:\n> Steven,\n>\n> Thank you for your answer.\n>\n> I executed the instruction in Version 2.13:\n>\n>> cl <- makeSOCKcluster(2, manual=TRUE, outfile=\"\")\n> Manually start worker on localhost with\n> ???? C:/ARCHIV~1/R/R-213~1.0/bin/Rscript.exe C:/Archivos de\n> programa/R/R-2.13.0/library/snow/RSOCKnode.R MASTER=localhost PORT=10187\n> OUT= SNOWLIB=C:/Archivos de programa/R/R-2.13.0/library\n> in the Version 2.13, and now the program and hangs and I have to hit Ctrl-C.\n>\n> If I open another session (while the other is running), end execute the same\n> instruction, the error is:\n> Manually start worker on localhost with\n> ???? C:/ARCHIV~1/R/R-213~1.0/bin/Rscript.exe C:/Archivos de\n> programa/R/R-2.13.0/library/snow/RSOCKnode.R MASTER=localhost PORT=10187\n> OUT= SNOWLIB=C:/Archivos de programa/R/R-2.13.0/library\n> Error en socketConnection(port = port, server = TRUE, blocking = TRUE,? :\n> ? no se puede abrir la conexi?n\n> Adem?s: Mensajes de aviso perdidos\n> In socketConnection(port = port, server = TRUE, blocking = TRUE,? :\n> ? port 10187 cannot be opened\n>\n> Clearly, the problem is with the connection... but I do not find it...\n>\n> Mar?a\n>\n>\n>\n> El 7 de mayo de 2011 12:34, Stephen Weston <stephen.b.weston at gmail.com>\n> escribi?:\n>>\n>> I seem to have garbled my instructions on getting the default\n>> port value.\n>>\n>> 2011/5/7 Stephen Weston <stephen.b.weston at gmail.com>:\n>>\n>> > You could look at the default value of the port option using:\n>> > cl <- makeCluster(2, type=\"SOCK\", manual=TRUE)\n>> > ? ?> getClusterOption(\"port\")\n>>\n>> Ignore that extra line. ?I meant to say:\n>>\n>> You could look at the default value of the port option using:\n>>\n>> ? ?> getClusterOption(\"port\")\n>>\n>> - Steve\n>\n>",
+      "body_plain": "It appears to me that in R 2.13.0, the internal function\n.path.package has changed.  Instead of returning the old-\nstyle, short file names, it's returning paths that can contain\nwhite space.  snow uses .path.package(\"snow\") to set the\ndefault values of several options, including \"snowlib\", and\nmakeSOCKcluster uses \"snowlib\" to locate RSOCKnode.R,\nfor example.  Since makeSOCKcluster doesn't quote the\ncommand for starting the workers, it can fail if there are\nblanks in the path of RSOCKnode, for example.\n\nI'm not sure why you didn't see an error message from\nRscript when you tried to start the worker, however.\nAnyway, I would suggest that you specify a value for\nthe \"snowlib\" option to see if it helps.  Here's my guess\nof how to set it:\n\n    > snowlib <- file.path(Sys.getenv(\"R_HOME\"), \"library\")\n    > setDefaultClusterOptions(snowlib=snowlib)\n\nI suggest this because it appears from your output that\nthe R_HOME environment variable still uses the short\nfile name form.\n\nYou can verify that you set it properly with the command:\n\n    > list.files(file.path(getClusterOption(\"snowlib\"), \"snow\"))\n\nwhich should list the contents of the snow installation directory.\n\nNow you can create a socket cluster as before.\n\nGood luck,\n\n- Steve\n\n\n2011/5/7 María del Carmen Romero <mariadelc.romero at gmail.com>:\n> Steven,\n>\n> Thank you for your answer.\n>\n> I executed the instruction in Version 2.13:\n>\n>> cl <- makeSOCKcluster(2, manual=TRUE, outfile=\"\")\n> Manually start worker on localhost with\n>      C:/ARCHIV~1/R/R-213~1.0/bin/Rscript.exe C:/Archivos de\n> programa/R/R-2.13.0/library/snow/RSOCKnode.R MASTER=localhost PORT=10187\n> OUT= SNOWLIB=C:/Archivos de programa/R/R-2.13.0/library\n> in the Version 2.13, and now the program and hangs and I have to hit Ctrl-C.\n>\n> If I open another session (while the other is running), end execute the same\n> instruction, the error is:\n> Manually start worker on localhost with\n>      C:/ARCHIV~1/R/R-213~1.0/bin/Rscript.exe C:/Archivos de\n> programa/R/R-2.13.0/library/snow/RSOCKnode.R MASTER=localhost PORT=10187\n> OUT= SNOWLIB=C:/Archivos de programa/R/R-2.13.0/library\n> Error en socketConnection(port = port, server = TRUE, blocking = TRUE,  :\n>   no se puede abrir la conexión\n> Además: Mensajes de aviso perdidos\n> In socketConnection(port = port, server = TRUE, blocking = TRUE,  :\n>   port 10187 cannot be opened\n>\n> Clearly, the problem is with the connection... but I do not find it...\n>\n> María\n>\n>\n>\n> El 7 de mayo de 2011 12:34, Stephen Weston <stephen.b.weston at gmail.com>\n> escribió:\n>>\n>> I seem to have garbled my instructions on getting the default\n>> port value.\n>>\n>> 2011/5/7 Stephen Weston <stephen.b.weston at gmail.com>:\n>>\n>> > You could look at the default value of the port option using:\n>> > cl <- makeCluster(2, type=\"SOCK\", manual=TRUE)\n>> >    > getClusterOption(\"port\")\n>>\n>> Ignore that extra line.  I meant to say:\n>>\n>> You could look at the default value of the port option using:\n>>\n>>    > getClusterOption(\"port\")\n>>\n>> - Steve\n>\n>",
       "body_snippet": "It appears to me that in R 2.13.0, the internal function\n.path.package has changed.  Instead of returning the old-\nstyle, short file names, it's returning paths that can contain\nwhite space.  snow use",
       "thread_id": "thread-53244293f402",
       "thread_depth": 4,
-      "month": "2011-05"
+      "month": "2011-05",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-May/000973.html"
     },
     {
       "id": "msg-e2d726049ff4",
@@ -118,6 +123,7 @@
       "thread_id": "thread-e2d726049ff4",
       "thread_depth": 0,
       "month": "2011-05",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-May/000974.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110511/057de6fb/attachment.pl"
       ]
@@ -138,7 +144,8 @@
       "body_snippet": "Using \"manual = TRUE\" is particularly useful when the worker\ngets an error before creating the log file.  And using it doesn't take\nany R skills at all, although I guess you do need to know how to\ntyp",
       "thread_id": "thread-e2d726049ff4",
       "thread_depth": 1,
-      "month": "2011-05"
+      "month": "2011-05",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-May/000975.html"
     },
     {
       "id": "msg-064e660e04a0",
@@ -157,7 +164,8 @@
       "body_snippet": "Thanks to Steve and everyone else who responded off-list.  Please keep the\nsuggestions coming. <G>\n\nHere is a summary of the suggestions and results so far:\n\n1.  1. Copy your snow folder from C:/user/",
       "thread_id": "thread-e2d726049ff4",
       "thread_depth": 2,
-      "month": "2011-05"
+      "month": "2011-05",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-May/000976.html"
     },
     {
       "id": "msg-110d86cc323e",
@@ -173,7 +181,8 @@
       "body_snippet": "All,\n\nI've been searching around on mailing lists for days but still haven't\nbeen able to get Rmpi working on my cluster.\n\nMost recently, I've set the mpi paths using configure.args, but still\ncan't g",
       "thread_id": "thread-110d86cc323e",
       "thread_depth": 0,
-      "month": "2011-05"
+      "month": "2011-05",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-May/000977.html"
     },
     {
       "id": "msg-ece06ca87551",
@@ -191,7 +200,8 @@
       "body_snippet": "Hi. Can you check if libmpi.so is installed at /opt/openmpi/tcp-intel//lib/?\n\nThis line seems indicating libmpi.a is checked instead of libmpi.so. Hao\n\n/usr/bin/ld: /opt/openmpi/tcp-intel//lib/libmpi.",
       "thread_id": "thread-110d86cc323e",
       "thread_depth": 1,
-      "month": "2011-05"
+      "month": "2011-05",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-May/000978.html"
     },
     {
       "id": "msg-ffbe31956b26",
@@ -211,7 +221,8 @@
       "body_snippet": "On Thu, May 12, 2011 at 5:03 PM, Whit Broach <whitneybroach at gmail.com> wrote:\n\n> 4.  Steve's suggestion below, using manual = TRUE and typing the command\n> indicated.\n>\n> 4 Result.  Log file is cre",
       "thread_id": "thread-e2d726049ff4",
       "thread_depth": 3,
-      "month": "2011-05"
+      "month": "2011-05",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-May/000979.html"
     },
     {
       "id": "msg-bdd2bac3f489",
@@ -230,7 +241,8 @@
       "body_snippet": "You are correct -- there is no libmpi.so in that directory, only libmpi.a.\n\nSo I need to recompile openMPI to produce shared, rather than a static\nlibraries?\n\nJeff\n\n> Hi. Can you check if libmpi.so is",
       "thread_id": "thread-110d86cc323e",
       "thread_depth": 2,
-      "month": "2011-05"
+      "month": "2011-05",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-May/000980.html"
     },
     {
       "id": "msg-03c17bdfb2ae",
@@ -250,7 +262,8 @@
       "body_snippet": "Just an update:\n\nI downloaded the most recent OpenMPI RPMs and followed the default\n\"configure/make install\" installation. It properly produced the .so\nlibraries.\n\nAfter updating using ldconfig, I was",
       "thread_id": "thread-110d86cc323e",
       "thread_depth": 3,
-      "month": "2011-05"
+      "month": "2011-05",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-May/000981.html"
     },
     {
       "id": "msg-dc6500c45785",
@@ -271,7 +284,8 @@
       "body_snippet": "Problem successfully addressed!\n\nTo summarize what happened off-list, I used Stephen's suggestions to isolate\nthe problem.  The space in the folder name \"Program Files\" prevented snow\nfrom working cor",
       "thread_id": "thread-e2d726049ff4",
       "thread_depth": 4,
-      "month": "2011-05"
+      "month": "2011-05",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-May/000982.html"
     },
     {
       "id": "msg-cee5689d5d27",
@@ -288,6 +302,7 @@
       "thread_id": "thread-cee5689d5d27",
       "thread_depth": 0,
       "month": "2011-05",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-May/000983.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110516/3eca9e34/attachment.pl"
       ]
@@ -312,7 +327,8 @@
       "body_snippet": "Luke Tierney just released snow 0.3-5 to CRAN which should fix this\nproblem.  If you're using snow on Windows, I recommend that you\nupgrade to this new version to avoid problems with R 2.13.0.\n\n- Stev",
       "thread_id": "thread-e2d726049ff4",
       "thread_depth": 5,
-      "month": "2011-05"
+      "month": "2011-05",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-May/000984.html"
     },
     {
       "id": "msg-f7eb24aca31a",
@@ -335,7 +351,8 @@
       "body_snippet": "Thanks to Stephen and Luke!\n\n-----Original Message-----\nFrom: Stephen Weston [mailto:stephen.b.weston at gmail.com] \nSent: Tuesday, May 17, 2011 12:25 PM\nTo: r-sig-hpc at r-project.org\nCc: whitneybroa",
       "thread_id": "thread-e2d726049ff4",
       "thread_depth": 6,
-      "month": "2011-05"
+      "month": "2011-05",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-May/000985.html"
     },
     {
       "id": "msg-bd2f3fe8f98b",
@@ -347,11 +364,12 @@
       "subject_clean": "ff() sometimes gets wrong length when reading from disk",
       "in_reply_to": null,
       "references": [],
-      "body_plain": "Andrew,\n\nEverything is fine!\n\n# look at this small example\nlibrary(ff)\nx <- ff(1:3, filename=\"c:/temp/x.ff\")\ny <- ff(c(F,F,T), filename=\"c:/temp/y.ff\")\nd <- ffdf(x,y)\n\n# reading this gives length 3 as expected\nx2 <- ff(vmode=\"integer\", filename=\"c:/temp/x.ff\")\n# reading this gives length 16 because logicals are stored compressed to 2bits per element rounded up to full integers (the file has 4 bytes = 32 bits = 16 logicals)\ny2 <- ff(vmode=\"logical\", filename=\"c:/temp/y.ff\")\n# and since ffdf expects equal lengths you get that error\nffdf(x2,y2)\n# you could theoretically fix that by explicitely specifying the length on reading the file\ny2 <- ff(vmode=\"logical\", filename=\"c:/temp/y.ff\", length=3)\nffdf(x2,y2)\n# but it is much easier to save the R-side metadata of your ffdf\nsave(d, file=\"c:/temp/d.RData\")\n# close R\n# open R\n# and after\nlibrary(ff)\nload(file=\"c:/temp/d.RData\")\nopen(d)\n# you can continue working with that ffdf as if R was never closed\n\nCheers\nJens\n\n\n-----Urspr?ngliche Nachricht-----\nVon: \"Andrew Piskorski\" <atp at piskorski.com>\nGesendet: 25.05.2011 23:07:41\nAn: \"Dr. Jens Oehlschlaegel\" <Jens.Oehlschlaegel at truecluster.com>\nBetreff: ff() sometimes gets wrong length when reading from disk\n\n>ff package authors, hello! I'm using f_2.2-2.tar.gz from CRAN.\n>\n>I've writeten my data to disk using ffdf() and as.ff(). The ffdf\n>object returned when I write out the files seems correct. However,\n>when I try to read the ff data files on in a fresh R session,\n>sometimes my ffdf() fails with this error:\n>\n> number of rows don't match, recycling not yet implemented\n>\n>The problem there is that my \"pit.p\" column is somehow ending up as\n>length 258460 rather than 258458. However, when I wrote this data to\n>disk, ffdf() definitely believed that all columns had length 258458.\n>\n>Could you give me advice please on what the problem might be and how I\n>should fix it? Thanks in advance for your help!\n>\n>------------------------------------------------------------\n>\n># Attempt to read ffdf from disk, this sometimes fails\n>ffdf( \"date.time\" = ff(filename=col.files[\"date.time\"] ,vmode=\"double\" ,ramclass=\"POSIXct\")\n> ,\"price\" = ff(filename=col.files[\"price\" ] ,vmode=\"double\" )\n> ,\"volume\" = ff(filename=col.files[\"volume\" ] ,vmode=\"double\" )\n> ,\"pit.p\" = ff(filename=col.files[\"pit.p\" ] ,vmode=\"logical\") )\n>\n># This is how I write my ffdf files:\n>if (is.null(td.ff)) {\n> # Insert the first 1 days worth of rows:\n> td.ff <-\n> ffdf( \"date.time\" = as.ff(index(td.xts) ,filename=col.files[\"date.time\"] ,vmode=\"double\" ,ramclass=\"POSIXct\")\n> ,\"price\" = as.ff(as.vector(td.xts[,\"price\" ]) ,filename=col.files[\"price\" ] ,vmode=\"double\")\n> ,\"volume\" = as.ff(as.vector(td.xts[,\"volume\"]) ,filename=col.files[\"volume\" ] ,vmode=\"double\")\n> ,\"pit.p\" = as.ff(as.vector(td.xts[,\"pit.p\" ]) ,filename=col.files[\"pit.p\" ] ,vmode=\"logical\") )\n>} else {\n> # Append rows for day 2 and later:\n> # Look in read.table.ffdf() for an example of how to append rows to an ffdf object.\n> nr.old <- nrow(td.ff) ; nr.add <- nrow(td.xts)\n> nrow(td.ff) <- nr.old + nr.add\n> pos <- hi((nr.old +1L) ,(nr.old + nr.add))\n> td.ff[pos ,\"date.time\"] <- index(td.xts)\n> td.ff[pos ,\"price\" ] <- as.vector(td.xts[,\"price\" ])\n> td.ff[pos ,\"volume\" ] <- as.vector(td.xts[,\"volume\"])\n> td.ff[pos ,\"pit.p\" ] <- as.vector(td.xts[,\"pit.p\" ])\n>}\n>\n># File sizes of each column on disk:\n>$ du -b ff_XG.201012*\n>2067664 ff_XG.201012_date.time\n>64615 ff_XG.201012_pit.p\n>2067664 ff_XG.201012_price\n>2067664 ff_XG.201012_volume\n>\n># Truncated result of running str() on the ff object:\n># Bad object, read from scratch:\n> $ pit.p : list()\n> ..- attr(*, \"physical\")=Class 'ff_pointer' <externalptr>\n> .. ..- attr(*, \"vmode\")= chr \"logical\"\n> .. ..- attr(*, \"maxlength\")= int 258460\n> .. ..- attr(*, \"pattern\")= chr \"/data1/nobackup/andy/ff/\"\n> .. ..- attr(*, \"filename\")= chr \"/data1/nobackup/andy/ff/ff_XG.201012_pit.p\"\n> .. ..- attr(*, \"pagesize\")= int 65536\n> .. ..- attr(*, \"finalizer\")= chr \"close\"\n> .. ..- attr(*, \"finonexit\")= logi TRUE\n> .. ..- attr(*, \"readonly\")= logi FALSE\n> .. ..- attr(*, \"caching\")= chr \"mmnoflush\"\n> ..- attr(*, \"virtual\")= list()\n> .. ..- attr(*, \"Length\")= int 258460\n> .. ..- attr(*, \"Symmetric\")= logi FALSE\n> .. - attr(*, \"class\") = chr [1:2] \"ff_vector\" \"ff\"\n>\n># Good object, returned when initially writing to disk:\n> .. $ pit.p : list()\n> .. ..- attr(*, \"physical\")=Class 'ff_pointer' <externalptr>\n> .. .. ..- attr(*, \"vmode\")= chr \"logical\"\n> .. .. ..- attr(*, \"maxlength\")= int 258458\n> .. .. ..- attr(*, \"pattern\")= chr \"clone\"\n> .. .. ..- attr(*, \"filename\")= chr \"/data1/nobackup/andy/ff/ff_XG.201012_pit.p\"\n> .. .. ..- attr(*, \"pagesize\")= int 65536\n> .. .. ..- attr(*, \"finalizer\")= chr \"close\"\n> .. .. ..- attr(*, \"finonexit\")= logi TRUE\n> .. .. ..- attr(*, \"readonly\")= logi FALSE\n> .. .. ..- attr(*, \"caching\")= chr \"mmnoflush\"\n> .. ..- attr(*, \"virtual\")= list()\n> .. .. ..- attr(*, \"Length\")= int 258458\n> .. .. ..- attr(*, \"Symmetric\")= logi FALSE\n> .. .. ..- attr(*, \"class\")= chr \"virtual\"\n> .. .. - attr(*, \"class\") = chr [1:2] \"ff_vector\" \"ff\"\n>\n>--\n>Andrew Piskorski <atp at piskorski.com>\n>http://www.piskorski.com/",
+      "body_plain": "Andrew,\n\nEverything is fine!\n\n# look at this small example\nlibrary(ff)\nx <- ff(1:3, filename=\"c:/temp/x.ff\")\ny <- ff(c(F,F,T), filename=\"c:/temp/y.ff\")\nd <- ffdf(x,y)\n\n# reading this gives length 3 as expected\nx2 <- ff(vmode=\"integer\", filename=\"c:/temp/x.ff\")\n# reading this gives length 16 because logicals are stored compressed to 2bits per element rounded up to full integers (the file has 4 bytes = 32 bits = 16 logicals)\ny2 <- ff(vmode=\"logical\", filename=\"c:/temp/y.ff\")\n# and since ffdf expects equal lengths you get that error\nffdf(x2,y2)\n# you could theoretically fix that by explicitely specifying the length on reading the file\ny2 <- ff(vmode=\"logical\", filename=\"c:/temp/y.ff\", length=3)\nffdf(x2,y2)\n# but it is much easier to save the R-side metadata of your ffdf\nsave(d, file=\"c:/temp/d.RData\")\n# close R\n# open R\n# and after\nlibrary(ff)\nload(file=\"c:/temp/d.RData\")\nopen(d)\n# you can continue working with that ffdf as if R was never closed\n\nCheers\nJens\n\n\n-----Ursprüngliche Nachricht-----\nVon: \"Andrew Piskorski\" <atp at piskorski.com>\nGesendet: 25.05.2011 23:07:41\nAn: \"Dr. Jens Oehlschlaegel\" <Jens.Oehlschlaegel at truecluster.com>\nBetreff: ff() sometimes gets wrong length when reading from disk\n\n>ff package authors, hello! I'm using f_2.2-2.tar.gz from CRAN.\n>\n>I've writeten my data to disk using ffdf() and as.ff(). The ffdf\n>object returned when I write out the files seems correct. However,\n>when I try to read the ff data files on in a fresh R session,\n>sometimes my ffdf() fails with this error:\n>\n> number of rows don't match, recycling not yet implemented\n>\n>The problem there is that my \"pit.p\" column is somehow ending up as\n>length 258460 rather than 258458. However, when I wrote this data to\n>disk, ffdf() definitely believed that all columns had length 258458.\n>\n>Could you give me advice please on what the problem might be and how I\n>should fix it? Thanks in advance for your help!\n>\n>------------------------------------------------------------\n>\n># Attempt to read ffdf from disk, this sometimes fails\n>ffdf( \"date.time\" = ff(filename=col.files[\"date.time\"] ,vmode=\"double\" ,ramclass=\"POSIXct\")\n> ,\"price\" = ff(filename=col.files[\"price\" ] ,vmode=\"double\" )\n> ,\"volume\" = ff(filename=col.files[\"volume\" ] ,vmode=\"double\" )\n> ,\"pit.p\" = ff(filename=col.files[\"pit.p\" ] ,vmode=\"logical\") )\n>\n># This is how I write my ffdf files:\n>if (is.null(td.ff)) {\n> # Insert the first 1 days worth of rows:\n> td.ff <-\n> ffdf( \"date.time\" = as.ff(index(td.xts) ,filename=col.files[\"date.time\"] ,vmode=\"double\" ,ramclass=\"POSIXct\")\n> ,\"price\" = as.ff(as.vector(td.xts[,\"price\" ]) ,filename=col.files[\"price\" ] ,vmode=\"double\")\n> ,\"volume\" = as.ff(as.vector(td.xts[,\"volume\"]) ,filename=col.files[\"volume\" ] ,vmode=\"double\")\n> ,\"pit.p\" = as.ff(as.vector(td.xts[,\"pit.p\" ]) ,filename=col.files[\"pit.p\" ] ,vmode=\"logical\") )\n>} else {\n> # Append rows for day 2 and later:\n> # Look in read.table.ffdf() for an example of how to append rows to an ffdf object.\n> nr.old <- nrow(td.ff) ; nr.add <- nrow(td.xts)\n> nrow(td.ff) <- nr.old + nr.add\n> pos <- hi((nr.old +1L) ,(nr.old + nr.add))\n> td.ff[pos ,\"date.time\"] <- index(td.xts)\n> td.ff[pos ,\"price\" ] <- as.vector(td.xts[,\"price\" ])\n> td.ff[pos ,\"volume\" ] <- as.vector(td.xts[,\"volume\"])\n> td.ff[pos ,\"pit.p\" ] <- as.vector(td.xts[,\"pit.p\" ])\n>}\n>\n># File sizes of each column on disk:\n>$ du -b ff_XG.201012*\n>2067664 ff_XG.201012_date.time\n>64615 ff_XG.201012_pit.p\n>2067664 ff_XG.201012_price\n>2067664 ff_XG.201012_volume\n>\n># Truncated result of running str() on the ff object:\n># Bad object, read from scratch:\n> $ pit.p : list()\n> ..- attr(*, \"physical\")=Class 'ff_pointer' <externalptr>\n> .. ..- attr(*, \"vmode\")= chr \"logical\"\n> .. ..- attr(*, \"maxlength\")= int 258460\n> .. ..- attr(*, \"pattern\")= chr \"/data1/nobackup/andy/ff/\"\n> .. ..- attr(*, \"filename\")= chr \"/data1/nobackup/andy/ff/ff_XG.201012_pit.p\"\n> .. ..- attr(*, \"pagesize\")= int 65536\n> .. ..- attr(*, \"finalizer\")= chr \"close\"\n> .. ..- attr(*, \"finonexit\")= logi TRUE\n> .. ..- attr(*, \"readonly\")= logi FALSE\n> .. ..- attr(*, \"caching\")= chr \"mmnoflush\"\n> ..- attr(*, \"virtual\")= list()\n> .. ..- attr(*, \"Length\")= int 258460\n> .. ..- attr(*, \"Symmetric\")= logi FALSE\n> .. - attr(*, \"class\") = chr [1:2] \"ff_vector\" \"ff\"\n>\n># Good object, returned when initially writing to disk:\n> .. $ pit.p : list()\n> .. ..- attr(*, \"physical\")=Class 'ff_pointer' <externalptr>\n> .. .. ..- attr(*, \"vmode\")= chr \"logical\"\n> .. .. ..- attr(*, \"maxlength\")= int 258458\n> .. .. ..- attr(*, \"pattern\")= chr \"clone\"\n> .. .. ..- attr(*, \"filename\")= chr \"/data1/nobackup/andy/ff/ff_XG.201012_pit.p\"\n> .. .. ..- attr(*, \"pagesize\")= int 65536\n> .. .. ..- attr(*, \"finalizer\")= chr \"close\"\n> .. .. ..- attr(*, \"finonexit\")= logi TRUE\n> .. .. ..- attr(*, \"readonly\")= logi FALSE\n> .. .. ..- attr(*, \"caching\")= chr \"mmnoflush\"\n> .. ..- attr(*, \"virtual\")= list()\n> .. .. ..- attr(*, \"Length\")= int 258458\n> .. .. ..- attr(*, \"Symmetric\")= logi FALSE\n> .. .. ..- attr(*, \"class\")= chr \"virtual\"\n> .. .. - attr(*, \"class\") = chr [1:2] \"ff_vector\" \"ff\"\n>\n>--\n>Andrew Piskorski <atp at piskorski.com>\n>http://www.piskorski.com/",
       "body_snippet": "Andrew,\n\nEverything is fine!\n\n# look at this small example\nlibrary(ff)\nx <- ff(1:3, filename=\"c:/temp/x.ff\")\ny <- ff(c(F,F,T), filename=\"c:/temp/y.ff\")\nd <- ffdf(x,y)\n\n# reading this gives length 3 as",
       "thread_id": "thread-bd2f3fe8f98b",
       "thread_depth": 0,
-      "month": "2011-05"
+      "month": "2011-05",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-May/000986.html"
     },
     {
       "id": "msg-238938c595fb",
@@ -368,6 +386,7 @@
       "thread_id": "thread-238938c595fb",
       "thread_depth": 0,
       "month": "2011-05",
+      "source_url": "https://stat.ethz.ch/pipermail/r-sig-hpc/2011-May/000987.html",
       "restored_from": [
         "https://stat.ethz.ch/pipermail/r-sig-hpc/attachments/20110528/9db31497/attachment.pl"
       ]
